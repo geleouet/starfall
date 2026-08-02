@@ -127,14 +127,38 @@ void main() {
     float pool = mix(mix(poolPt, poolAvg, 0.40), poolFar, poorlyCovered);
     float stainAmt = mix(mix(stainPt, stainAvg, 0.80), 0.0, poorlyCovered);
 
-    // -- the halo (STYLE.md 3.2) ----------------------------------------------
-    // Step 1 ships the *tight* halo on purpose. The wide wet bleed is worth
-    // keeping and is step 2 of this revision; reintroducing it here would once
-    // again make the change unattributable. This reaches roughly 15 px past the
-    // coverage, is strongest where the garment is authored to fray, and carries
-    // nothing fine.
-    float haloShape = smoothstep(0.02, 0.44, cM);
-    float haloA = haloShape * (0.05 + 0.21 * bleedAvg) * u_bleedRadius;
+    // -- the wet bleed (STYLE.md 3.2, debt D3) --------------------------------
+    // Step 1 shipped only the tight halo and deferred the wide one. Measured on
+    // the pass-5 capture, what actually shipped was neither: scanning the left
+    // shoulder at y=200 and y=230 the paper holds 218-222 right up to a
+    // three-pixel step down to ink 124, with stair-stepping visible at 7x. The
+    // review's verdict was that 3.2 is absent above the waist entirely, and it
+    // was right. Two independent reasons, both fixed:
+    //
+    //   * the shape term was smoothstep(0.02, 0.44, cM) on a sigma-8 blur, and
+    //     that collapses to zero about four pixels outside the boundary -- the
+    //     halo died exactly where it was supposed to start;
+    //   * `bleed` was floored at 0.30 where the garment is authored solid, so
+    //     the whole term was worth about 11% alpha at its strongest and one
+    //     luminance level at the shoulder.
+    //
+    // Now there are genuinely two halos. The tight one carries the density, out
+    // to roughly 12 px. The wide one is read from the sigma-20 field with a much
+    // lower knee, so it is still worth ~12% alpha twenty pixels out and decays
+    // to nothing by forty -- the "softer and larger than the dissolve band" that
+    // 3.2 asks for, and what makes the figure sit *in* the paper. They compose
+    // as over rather than adding, so the pair can never exceed the tight one's
+    // own ceiling and no edge acquires a hard second ring.
+    //
+    // This is still not a screen-space measurement of the edge. The silhouette
+    // is cut in ink_skin.frag at full resolution in material space and arrives
+    // here already decided; these blurs are read strictly *outside* it, where
+    // coverage is zero, and can no more move the outline than a shadow can move
+    // the object.
+    float bleedFar = far.b / max(cF, 0.02);
+    float haloTight = smoothstep(0.015, 0.30, cM) * (0.09 + 0.26 * bleedAvg);
+    float haloWide = smoothstep(0.006, 0.20, cF) * (0.05 + 0.14 * bleedFar);
+    float haloA = (haloTight + haloWide * (1.0 - haloTight)) * u_bleedRadius;
 
     float alpha = max(cov, haloA);
 
@@ -161,7 +185,7 @@ void main() {
     // through damp paper the pigment separates: it loses the indigo first and
     // ends up greyer and warmer than where it came from. Reading the same tint
     // all the way out is what makes a bleed look like a gaussian blur.
-    float nearness = smoothstep(0.02, 0.55, cM);
+    float nearness = smoothstep(0.010, 0.45, cM);
     vec3 haloNear = mix(u_base, u_paper, 0.24);
     vec3 haloFar = mix(mix(u_base, u_paper, 0.74), u_stain, 0.16);
     vec3 haloInk = mix(haloFar, haloNear, nearness);

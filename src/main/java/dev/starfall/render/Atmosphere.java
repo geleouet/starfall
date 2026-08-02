@@ -49,4 +49,36 @@ final class Atmosphere {
     static void setFogUniforms(ShaderProgram shader) {
         shader.setUniform3fv("u_fogBands[0]", BANDS, 0, BANDS.length);
     }
+
+    /**
+     * The same band function the shaders run, on the CPU, so geometry that is
+     * built vertex-by-vertex in Java can be attenuated by the mist too.
+     *
+     * <p>It exists for the blade's outer glow and arc-trail, which are the one
+     * part of the figure whose colour is decided in {@code InkSkinnedRenderer}
+     * rather than in a fragment shader. Without it the blade fades into the fog
+     * band (debt D2) while its own halo stays at full strength on top of it,
+     * which is worse than either extreme.
+     *
+     * <p><strong>Keep this identical to the loop in ink_skin.frag,
+     * ink_resolve.frag and ink_blade.frag.</strong> A divergence here does not
+     * fail loudly; it just puts the figure and its glow in two different
+     * atmospheres.
+     */
+    static float fogAt(float worldX, float worldY, float timeSeconds) {
+        float fog = 0f;
+        for (int i = 0; i < 3; i++) {
+            float centre = BANDS[i * 3];
+            float half = BANDS[i * 3 + 1];
+            float strength = BANDS[i * 3 + 2];
+            float drift = timeSeconds * (0.055f + 0.031f * i);
+            float wobble = half * (0.30f * (float) Math.sin(worldX * (0.85f + 0.45f * i) + drift + i * 2.1f)
+                                 + 0.19f * (float) Math.sin(worldX * 2.43f - drift * 0.7f + i)
+                                 + 0.11f * (float) Math.sin(worldX * 5.11f + drift * 1.6f - i * 1.7f));
+            float d = Math.abs(worldY - (centre + wobble)) / half;
+            float s = Math.min(1f, Math.max(0f, d));
+            fog += strength * (1f - s * s * (3f - 2f * s));
+        }
+        return Math.min(1f, Math.max(0f, fog));
+    }
 }

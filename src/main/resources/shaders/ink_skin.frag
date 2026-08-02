@@ -119,6 +119,19 @@ float dnoise3(vec2 p, vec2 d) {
     return 0.25 * (vnoise(p - d) + 2.0 * vnoise(p) + vnoise(p + d));
 }
 
+// STYLE.md 3b.1's anti-shimmer guarantee, as a function rather than as a
+// comment. An octave whose material-space frequency is `freq` has a period of
+// mpPx/freq pixels; this fades it out over the range where that period falls
+// from 6 px to 2 px and holds it at zero below. Every octave added below the
+// pass-5 frequency set is gated by this, which is what makes it safe to reach
+// down into the brush-hair band at all: at capture framing the 40 and 64
+// octaves are 5.6 and 3.5 px and fully present, and if the camera ever pulls
+// back far enough to put them on the pixel grid they switch themselves off
+// rather than producing the shimmer that failed two reviews.
+float octaveFade(float mpPx, float freq) {
+    return smoothstep(2.0, 6.0, mpPx / freq);
+}
+
 float vnoise3(vec3 p) {
     vec3 i = floor(p);
     vec3 f = fract(p);
@@ -196,21 +209,37 @@ void main() {
                + vnoise3(vec3(mp * 11.10 - 7.0, tz * 2.4 + 11.0)) * 0.18;
 
     // -- the mark field -------------------------------------------------------
-    // Four octaves spanning about 10:1, because a single scale of break-up reads
+    // Six octaves spanning about 20:1, because a single scale of break-up reads
     // as torn wet cardboard rather than as a brush running out of ink: the big
     // lobes have to have small marks flaking off ahead of them.
     //
-    // The frequencies are pass 3's and are carried forward verbatim -- they are
-    // the real fix for the periodic torso banding that failed two reviews, and
-    // the architecture never was. At this camera (200 px per world unit) their
-    // periods are 65, 27, 13 and 8.3 px, all clear of STYLE.md 3b.1's 2 px hard
-    // floor and clear of the 3-5 px ripple the review measured. Anisotropy stays
-    // under 1.6:1 for the same reason.
+    // The first four frequencies are pass 3's, carried forward verbatim -- they
+    // are the real fix for the periodic torso banding that failed two reviews,
+    // and the architecture never was. At this camera (225 px per world unit)
+    // their periods are 73, 31, 15 and 9.4 px.
+    //
+    // The last two are debt item D4 and are a number, not a design. STYLE.md
+    // 3b.1's hard floor is 2 px and the pass-5 set stopped at 9.4, leaving an
+    // octave and a half of unused headroom in exactly the band where "ink fleck"
+    // lives -- which is why the review found every detached fleck to be a smooth
+    // 8x6 ellipse, STYLE.md 3's "flecks that are all the same size". 40 and 64
+    // land at 5.6 and 3.5 px. Both stay above the floor at this framing and both
+    // are gated by octaveFade so they cannot approach it at any other.
+    // Amplitudes still sum to 1.0, so the contrast expansion below is unchanged
+    // and the coarse structure of the silhouette is untouched: these perturb the
+    // contour by a pixel or two, they do not reshape it.
+    float mpPx = 1.0 / max(length(fwidth(mp)), 1e-6);
+    float f40 = octaveFade(mpPx, 40.0);
+    float f64 = octaveFade(mpPx, 64.0);
+
     vec2 creep = vec2(u_time * 0.0035, u_time * -0.0022);
-    float marks = dnoise2(mp * 3.10 + creep * 11.0, dir * 0.30) * 0.22
-                + dnoise2(mp * 7.30 + 3.7 - creep * 7.0, dir * 0.30) * 0.26
-                + dnoise2(mp * 15.50 - 5.1, dir * 0.30) * 0.26
-                + dnoise2(mp * 24.00 + 12.9, dir * 0.30) * 0.26;
+    float marks = dnoise2(mp * 3.10 + creep * 11.0, dir * 0.30) * 0.20
+                + dnoise2(mp * 7.30 + 3.7 - creep * 7.0, dir * 0.30) * 0.24
+                + dnoise2(mp * 15.50 - 5.1, dir * 0.30) * 0.24
+                + dnoise2(mp * 24.00 + 12.9, dir * 0.30) * 0.20
+                + dnoise2(mp * 40.00 - 21.3, dir * 0.30) * 0.08 * f40
+                + dnoise2(mp * 64.00 + 8.4, dir * 0.30) * 0.04 * f64;
+    marks += 0.5 * (0.08 * (1.0 - f40) + 0.04 * (1.0 - f64));   // keep the mean at 0.5
 
     // Contrast expansion: an fbm sum piles up around 0.5, and a threshold that
     // only ever sees 0.35..0.65 cannot shed sparse flecks at high dissolve.
@@ -278,10 +307,17 @@ void main() {
     // +-13..44 px gated by nothing local, which is the lobe that ate the forearm
     // (item 8). This term physically cannot: on the forearm it is worth three
     // pixels.
+    //
+    // D4 adds a fifth and sixth, at 5.0 and 3.2 px against the pass-5 set's
+    // 77/33/15/9. A boundary whose finest wobble is nine pixels can only carry
+    // nine-pixel scallops, and that is the second half of why the flecks all
+    // came out the same size -- they are cut out of the same contour.
     float wob = (vnoise(mp * 2.60 + 5.0) - 0.5) * 1.30
               + (vnoise(mp * 6.10 - 17.0) - 0.5) * 1.05
               + (vnoise(mp * 13.30 + 41.0) - 0.5) * 0.95
-              + (vnoise(mp * 22.00 - 63.0) - 0.5) * 0.70;
+              + (vnoise(mp * 22.00 - 63.0) - 0.5) * 0.70
+              + (vnoise(mp * 45.00 + 9.0) - 0.5) * 0.46 * octaveFade(mpPx, 45.0)
+              + (vnoise(mp * 70.00 - 28.0) - 0.5) * 0.30 * octaveFade(mpPx, 70.0);
     float edgeW = edgePx - wob * mix(0.16 * halfPx + 2.2, 12.0, dissolve);
 
     float ramp = smoothstep(0.0, frayPx, edgeW);
@@ -320,8 +356,18 @@ void main() {
     // pass 3 produced. A coarse cluster gate on top keeps the marks in drifts
     // instead of spreading them evenly along every edge, which is STYLE.md 10's
     // "symmetric, uniform particle bursts" in slow motion.
-    float shardN = dnoise2(mp * 15.50 - 5.1, dir * 0.30) * 0.46
-                 + dnoise2(mp * 24.00 + 12.9, dir * 0.30) * 0.54;
+    //
+    // D4 again. The two fine octaves are folded into the shard field itself and
+    // normalised by their own weight sum, so the threshold below keeps meaning
+    // the same thing whatever the framing. A shard cut from a field that has
+    // structure at 3.5, 5.6, 9.4 and 15 px comes out with structure at all four,
+    // which is the size *distribution* the matched-scale reference shows and the
+    // pass-5 capture does not have.
+    float shardW = 0.34 + 0.36 + 0.20 * f40 + 0.10 * f64;
+    float shardN = (dnoise2(mp * 15.50 - 5.1, dir * 0.30) * 0.34
+                  + dnoise2(mp * 24.00 + 12.9, dir * 0.30) * 0.36
+                  + dnoise2(mp * 40.00 - 21.3, dir * 0.30) * 0.20 * f40
+                  + dnoise2(mp * 64.00 + 8.4, dir * 0.30) * 0.10 * f64) / max(shardW, 1e-3);
     float shardClump = smoothstep(0.40, 0.64, vnoise(mp * 3.40 + 29.0) * 0.7
                                             + vnoise(mp * 8.10 - 47.0) * 0.3);
     float shardZone = smoothstep(0.5, 3.5, edgePx)
@@ -329,6 +375,35 @@ void main() {
                     * smoothstep(0.04, 0.28, dissolve)
                     * shardClump;
     cov = max(cov, smoothstep(0.625, 0.715, shardN) * shardZone * 0.95);
+
+    // -- splatter (STYLE.md 3's "flecks that are all the same size", debt D4) --
+    // A second, much finer cut, kept separate from the shards on purpose. The
+    // shards are torn *pieces of the edge*: they are cut from the same octaves
+    // that shape the contour, so they inherit its scale. Splatter is not part of
+    // the edge at all -- it is what leaves the brush and lands beyond it, and at
+    // this framing the matched-scale reference puts it between 1 and 5 px.
+    //
+    // So this reads only the two finest octaves, at a threshold tight enough
+    // that only their peaks survive (about the top 8% of the field), which turns
+    // a 3.5 px noise cell into a 1-2 px speck. The zone reaches roughly twice as
+    // far out as the shard zone and its own coarse drift gate is sparser, so the
+    // specks arrive in spatters with clean paper between them rather than as an
+    // even sprinkle -- STYLE.md 10's "symmetric, uniform particle bursts".
+    //
+    // Neither octave can reach the 2 px floor: octaveFade zeroes both first, and
+    // when it does, speckW collapses and the term switches off cleanly instead
+    // of renormalising a field that is no longer there.
+    float speckW = 0.62 * f40 + 0.38 * f64;
+    float speckN = (dnoise2(mp * 40.00 + 77.0, dir * 0.30) * 0.62 * f40
+                  + dnoise2(mp * 64.00 - 33.0, dir * 0.30) * 0.38 * f64) / max(speckW, 1e-3);
+    float speckDrift = smoothstep(0.50, 0.80, vnoise(mp * 2.20 - 91.0) * 0.62
+                                            + vnoise(mp * 5.60 + 13.0) * 0.38);
+    float speckZone = smoothstep(0.2, 1.6, edgePx)
+                    * (1.0 - smoothstep(frayPx * 0.5, frayPx * 2.6 + 7.0, edgePx))
+                    * smoothstep(0.03, 0.24, dissolve)
+                    * speckDrift
+                    * step(0.02, speckW);
+    cov = max(cov, smoothstep(0.700, 0.775, speckN) * speckZone * 0.88);
 
     // The tooth is allowed to open the coverage, not just lift the value:
     // STYLE.md 3.3 asks for paper showing through in streaks, and ink that only
@@ -363,12 +438,51 @@ void main() {
                      + blot * 0.16
                      + hang * 0.10, 0.0, 1.0);
 
+    // -- cream reserves (STYLE.md 3b.0, debt D3) ------------------------------
+    // Pooling only ever darkens, and above the waist there is almost nothing to
+    // pool: the mantle is authored at wetness 0.03-0.20 and came out of pass 5
+    // as a near-flat mid-indigo field with a hard polygon edge, against a hem
+    // the review called "genuinely wet, dilute, cloudy, with real internal value
+    // variation" and named as the target for the whole figure. The hem gets that
+    // read because it is wet; the shoulder cannot get it the same way without
+    // inverting the ink gravity that three passes fought for.
+    //
+    // Shibori supplies the other half. Where the binding kept the dye out the
+    // cloth stays near the paper, so the variation runs *upward* from the base
+    // tone as well as down. That is dilute and cloudy without being any lighter
+    // on average in the places that matter, and it is why family E's indigo
+    // reads as cloth rather than as fill.
+    //
+    // Deliberately sparse and strong rather than broad and weak -- a wide gentle
+    // version is just a lighter garment, which is the "washed out" fault the
+    // debt document explicitly warns is *not* fixed by value. Gated off as the
+    // cloth gets wet, so the hem, the hakama and the grip keep their density.
+    //
+    // Amplitude measured, not guessed. At 0.34 the first p6 capture lifted the
+    // mid-torso from 55 to 73 mean ink luminance, which is the "washed out"
+    // fault the debt document is explicit cannot be fixed *or caused* by value
+    // -- a reserve that shows up as a general lift is just a paler garment. At
+    // 0.20 the band means are back within a few levels of pass 5's while the
+    // interior still carries visible cloud structure.
+    //
+    // Built from the wash *and* the mark field, and thresholded over a wide
+    // range rather than a narrow one. Cut tightly out of the wash alone it
+    // selected that field's broad plateaus and printed as large flat pale
+    // facets with straight borders -- which is not a reserve, it is debt item
+    // D6's flat-facet mosaic with a lighter tone. Mixing in `marks`, which now
+    // carries structure down to 3.5 px, and ramping instead of stepping gives a
+    // gradient with cloud edges.
+    float reserveField = clamp(0.5 + (wash - 0.5) * 1.70, 0.0, 1.0) * 0.70
+                       + clamp(0.5 + (marks - 0.5) * 1.30, 0.0, 1.0) * 0.30;
+    float reserve = (1.0 - smoothstep(0.16, 0.54, reserveField))
+                  * (1.0 - smoothstep(0.18, 0.55, wetness));
+
     // 0.5 is the base tone; below it the wash is dilute, above it pigment pools.
     // Encoding it signed around the middle is what lets the dry brush lift ink
     // toward the paper rather than only punching holes in it -- and at 0.42 the
     // lift is finally large enough to *see*, which is item 9. Pass 3's torso
     // interior was a near-flat dark field with no streak structure at all.
-    float pool = clamp(0.5 + 0.50 * dark - 0.72 * skip, 0.0, 1.0);
+    float pool = clamp(0.5 + 0.50 * dark - 0.72 * skip - 0.26 * reserve, 0.0, 1.0);
 
     // Watercolour strands pigment at the drying front, so every fleck carries a
     // darker rim. Partial coverage *is* the drying front here, which is a much
@@ -392,13 +506,37 @@ void main() {
     // A blend rather than a product of two gates, because a product of
     // independent smoothsteps almost never reaches one and the bloom arrived as
     // a dilute tint over already-dark ink and measured as mud.
+    //
+    // The gate has two regimes, and the split is debt D1's. Its coarsest octave
+    // is a 128 px blob, so over a 26 px object it is a coin flip: either the
+    // whole thing blooms or none of it does. That is exactly right for a dye
+    // bloom on a garment and useless for a *fitting* -- the leather-and-brass
+    // kote, the linen obi, the lacquered saya -- which has to be reliably warm
+    // because being the one non-ink value in the cluster is its entire job.
+    //
+    // So a stainMask authored above ~0.5 declares "this is a fitting, not a
+    // bloom": the gate opens almost everywhere, keeping only a soft blotchy
+    // modulation, and in exchange the *amount* is compressed hard -- to 0.36,
+    // which is below the knee of the resolve's pale-ochre push, so a fitting
+    // lands on a dark leather-brown instead of the bright rust of a bloom. The
+    // first p6 capture ran this at 0.58 and the obi and both scabbards printed
+    // as orange sticks, well past STYLE.md 2.2's accent budget. Garment stains are all
+    // authored at or below 0.29 and are untouched by this.
+    float fitting = smoothstep(0.42, 0.62, stainMask);
+    float gate = 0.55 * blotchy + 0.45 * stainN;
     float stain = clamp(stainMask * 2.10, 0.0, 1.0)
-                * smoothstep(0.515, 0.595, 0.55 * blotchy + 0.45 * stainN);
+                * (1.0 - 0.64 * fitting)
+                * smoothstep(mix(0.515, 0.300, fitting), mix(0.595, 0.520, fitting), gate);
 
     // -- how hard this passage wicks into the paper ---------------------------
-    // The resolve's halo reads this, so a hem bleeds and a shoulder crest does
-    // not. Step 1 ships the tight halo deliberately; the wide bleed is step 2.
-    float bleed = 0.30 + 0.70 * dissolve;
+    // The resolve's halo reads this. Debt D3: the floor was 0.30, which with the
+    // resolve's old halo mapping made the wet bleed worth about one luminance
+    // level anywhere the garment is authored solid -- i.e. absent above the
+    // waist entirely, which is STYLE.md 3.2 simply not implemented there. A hem
+    // still bleeds roughly twice as hard as a shoulder crest, which is the
+    // distinction this channel exists to carry; it is the *floor* that was
+    // wrong, not the slope.
+    float bleed = 0.52 + 0.48 * dissolve;
 
     // Premultiplied. See the header: this is ordinary "over" compositing, which
     // averages overlapping ribbons instead of letting the topmost replace them.

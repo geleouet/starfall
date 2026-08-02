@@ -40,16 +40,60 @@ void main() {
     // one: the blade is the only genuinely cool thing in a warm frame and it has
     // to stay that way after the fog veil below has had its go at it.
     vec3 steel = mix(u_base, vec3(0.94, 0.975, 1.0), 0.45);
-    vec3 ink = mix(u_base, steel, core);
+
+    // -- the hamon (STYLE.md 3b.3, debt D2) -----------------------------------
+    // The temper line between the hardened edge and the softer spine, present in
+    // every grid of family E and called out by 3b.3 as the one high-frequency
+    // detail that must stay faintly readable even at planning framing, because
+    // the blade is the object the eye follows. It is therefore deliberately
+    // exempt from the distance fade the rest of the detail budget obeys.
+    //
+    // u runs across the blade: 0 is the mune (the spine, which is the convex
+    // side of the sori the rig authors) and 1 is the ha. The line sits about a
+    // third of the width up from the edge and wanders -- a suguha base with a
+    // notare undulation over it, three incommensurate terms so it never repeats.
+    // The fastest of them is 61 radians over the blade's length, which at
+    // capture framing is a 15 px period against 3b.1's 2 px floor.
+    //
+    // Below the line the steel is frostier and a shade paler; above it, softer
+    // and marginally darker. The whole excursion is small on purpose: STYLE.md 5
+    // wants a sliver of near-white, not a two-tone stripe.
+    float hamonLine = 0.60
+                    + 0.070 * sin(v_uv.y * 37.0)
+                    + 0.040 * sin(v_uv.y * 61.0 + 1.9)
+                    + 0.032 * sin(v_uv.y * 17.0 - 0.7);
+    float hamon = smoothstep(hamonLine - 0.12, hamonLine + 0.08, v_uv.x);
+    // The step across the line has to be worth about twenty luminance levels to
+    // be readable at all on a seven-pixel blade. Revision 1 of this term moved
+    // between two tones four levels apart, which is not a temper line, it is a
+    // rounding error. The ji (the softer body above the hamon) is therefore a
+    // real grey-blue steel and only the ha below the line is near-white -- which
+    // is also what a photographed katana does, and keeps STYLE.md 5's
+    // "near-white sliver" true of the edge, where it matters.
+    vec3 hardened = mix(steel, vec3(0.985, 0.992, 1.0), 0.30);
+    vec3 ji = mix(steel, vec3(0.80, 0.84, 0.90), 0.60);
+    vec3 ink = mix(u_base, mix(ji, hardened, hamon), core);
 
     float alpha = max(core, edge * 0.30);
     // Thins toward the point instead of stopping, so the taper reads as a brush
-    // lifting rather than as geometry running out.
-    alpha *= 0.45 + 0.55 * (1.0 - smoothstep(0.84, 1.0, v_uv.y));
+    // lifting rather than as geometry running out. Gentler than revision 1's
+    // 0.45 floor over the last 16%: with a real kissaki authored in the mesh
+    // there is now geometry converging there, and dimming it as hard as well
+    // dissolved the point instead of resolving it.
+    alpha *= 0.66 + 0.34 * (1.0 - smoothstep(0.82, 1.0, v_uv.y));
 
-    // Mist barely touches steel. Revision 1 ran the figure's full fog weight over
-    // it, and since the fog colour is warm the blade measured R-heavy and
-    // B-light -- the one cool accent in the frame was not actually cool.
+    // Debt D2: the blade held full brightness where it crossed the fog band that
+    // had erased the figure's own legs, so it was not sitting in the same
+    // atmosphere as the rest of the picture -- the exact "shader effect over a
+    // sprite" tell the whole style is built to avoid.
+    //
+    // Revision 1 was over-corrected on the right instinct. Running the cloth's
+    // *tint* weight over steel does make the one cool accent in a warm frame
+    // measure R-heavy, so the tint stays modest; the attenuation belongs in
+    // alpha, where a warm ground shows through a dimmed blade instead of being
+    // painted onto it. At the tip, which is where the mist is, that costs about
+    // a third of the blade's opacity -- comparable to the 0.20 the cloth pays,
+    // and enough that the kissaki now fades into the same band the legs do.
     float fog = 0.0;
     for (int i = 0; i < 3; i++) {
         vec3 b = u_fogBands[i];
@@ -62,8 +106,8 @@ void main() {
         fog += b.z * (1.0 - smoothstep(0.0, 1.0, d));
     }
     fog = clamp(fog, 0.0, 1.0);
-    ink = mix(ink, u_fogColor, fog * 0.10);
-    alpha *= 1.0 - fog * 0.12;
+    ink = mix(ink, u_fogColor, fog * 0.16);
+    alpha *= 1.0 - fog * 0.34;
 
     // STYLE.md 2.2: only the clash bloom and the blade specular may approach
     // white, and neither ever reaches it.

@@ -458,22 +458,36 @@ public final class InkSkinnedRenderer {
         dx /= len;
         dy /= len;
 
-        final float[] along = {0f, 0.30f, 0.60f, 0.84f, 1.0f, 1.09f};
-        final float[] bright = {0.55f, 0.72f, 0.86f, 1.0f, 1.0f, 0.20f};
-        final float[] rail = {-1f, -0.30f, 0f, 0.30f, 1f};
-        final float[] railA = {0f, 0.74f, 1f, 0.74f, 0f};
-        final float halfWidth = 0.040f;
-        final float peak = 0.30f;
+        final float[] along = {0f, 0.30f, 0.60f, 0.84f, 1.0f, 1.10f};
+        // STYLE.md 5: the glow is stronger toward the tip, not uniform along the
+        // blade. Debt D2 recorded it as simply absent, which was half the
+        // authored amplitude being too low and half the profile being symmetric
+        // -- a symmetric halo around a two-pixel sliver reads as a slightly
+        // fatter sliver, not as light.
+        final float[] bright = {0.42f, 0.62f, 0.82f, 1.0f, 1.02f, 0.26f};
+        // ...and "stronger along the edge", which is the other half of 5. The
+        // rig authors +perp as the mune (spine) side, so the edge is negative:
+        // the profile below reaches 1.35 half-widths past the ha and only 0.85
+        // past the mune. Both outermost rails sit on zero alpha, so nothing here
+        // can print a straight boundary of its own.
+        final float[] rail = {-1.35f, -0.55f, 0f, 0.40f, 0.85f};
+        final float[] railA = {0f, 0.88f, 1f, 0.72f, 0f};
+        final float halfWidth = 0.052f;
+        final float peak = 0.40f;
 
         beginRibbon();
         for (int i = 0; i < along.length; i++) {
             float s = along[i];
-            float w = halfWidth * (1f - 0.50f * MathUtils.clamp(s, 0f, 1.15f));
+            float w = halfWidth * (1f - 0.42f * MathUtils.clamp(s, 0f, 1.15f));
             float px = bx + dx * len * s;
             float py = by + dy * len * s;
+            // Debt D2: the same mist the blade itself now fades into. Evaluated
+            // per row rather than once, because at the framing of the bind pose
+            // the guard is above the fog and the kissaki is inside it.
+            float clear = 1f - 0.34f * Atmosphere.fogAt(px, py, time);
             for (int j = 0; j < rail.length; j++) {
                 float off = rail[j] * w;
-                pushGlowVertex(px - dy * off, py + dx * off, peak * bright[i] * railA[j]);
+                pushGlowVertex(px - dy * off, py + dx * off, peak * bright[i] * railA[j] * clear);
             }
         }
         ribbonIndices(along.length, rail.length);
@@ -565,7 +579,12 @@ public final class InkSkinnedRenderer {
         float fade = f * f * f;
         for (int j = 0; j < rail.length; j++) {
             float d = len + rail[j];
-            pushGlowVertex(bx + dx * d, by + dy * d, peak * fade * railA[j]);
+            float px = bx + dx * d;
+            float py = by + dy * d;
+            // Same mist as the blade and its sheath -- a trail that stays bright
+            // through a band that has swallowed the figure's legs is the tell
+            // debt D2 is about, and it applies to the swept arc just as much.
+            pushGlowVertex(px, py, peak * fade * railA[j] * (1f - 0.34f * Atmosphere.fogAt(px, py, time)));
         }
     }
 

@@ -226,11 +226,21 @@ public final class SamuraiRig {
             buildTrunk(hips, spine, chest, skeleton.bone("neck"), skeleton.bone("head"));
             buildHaori(hips, spine, chest);
 
+            // The worn pair, over the haori and under everything on the near
+            // side. Their whole point is that they leave the garment silhouette
+            // behind the hip and carry on into open paper.
+            buildDaisho(hips, spine);
+
             // Near leg *under* its own hakama, not over it (rig-fixes-3 item 3):
             // a solid sliver composited on top of the skirt is what read as a
             // translucent tube with a bright centre seam.
             buildLimbSliver(chainPoints("thighL", "shinL", "footL", 0.44f, 0.40f, 0.14f), 0.055f, 1f, 0.45f, 0.95f);
             buildHakama(skeleton.bone("thighL"), skeleton.bone("shinL"), skeleton.bone("footL"), 1f);
+
+            // Over the skirt and over the scabbards' forward ends, which is
+            // physically where a sash sits and what makes it read as a wrap
+            // rather than a stripe.
+            buildObi(hips, spine);
 
             // The shoulder mass, drawn over everything on the trunk. This is the
             // widest horizontal in the figure by construction (rig-fixes-3 item 1).
@@ -241,33 +251,61 @@ public final class SamuraiRig {
             buildLimbSliver(chainPoints("upperArmL", "forearmL", "handL", 0.30f, 0.26f, 0.10f), 0.045f, 1f, 0.10f, 0.25f);
             buildSleeve(skeleton.bone("upperArmL"), skeleton.bone("forearmL"), skeleton.bone("handL"),
                     0.30f, 0.26f, 0.10f, 0.42f, 1f);
-            // Last: the join the references spend their whole interior budget on.
-            buildHand(skeleton.bone("handL"));
-            buildHilt(skeleton.bone("blade"));
+            // Last, and in this order, because this is the one cluster the
+            // references spend their whole interior budget on and nothing may
+            // composite over it. See buildGrip.
+            buildHand(skeleton.bone("handL"), skeleton.bone("blade"));
+            buildTsuka(skeleton.bone("blade"));
+            buildTsuba(skeleton.bone("blade"));
 
             return builder.build();
         }
+
+        /**
+         * The nagasa (edge length) as a fraction of the figure's own height,
+         * heel to crown. <strong>This number is the correction of a specification
+         * error.</strong> docs/system1-rig-fixes.md section 3 asked for 0.75 and
+         * that was simply wrong: measured in the bind pose the blade rendered at
+         * roughly 90% of body height and never terminated inside the frame. A
+         * katana's nagasa is about 70 cm on a 170 cm swordsman, so the number is
+         * 0.40, and rig-fixes section 3 is superseded on this point.
+         */
+        private static final float BLADE_NAGASA_FRACTION = 0.40f;
+
+        /** Heel (y=0.13) to crown (y=1.83) in the world-bind-space units of this file. */
+        private static final float FIGURE_HEIGHT = 1.70f;
 
         SkinnedMesh buildBlade() {
             builder = new SkinnedMesh.Builder();
             Bone blade = skeleton.bone("blade");
 
-            // rig-fixes section 3: ~0.75 of total figure height (~1.72), thin,
-            // with a slight sori curvature convex away from the edge so it
-            // doesn't read as a straight stick. Single bone, so the curve has
-            // to be baked into the authored geometry rather than a joint chain.
-            float len = 1.30f;
-            int n = 7;
+            // Thin, with a real kissaki inside the frame and a slight sori
+            // curvature convex away from the edge so it doesn't read as a
+            // straight stick. Single bone, so the curve has to be baked into the
+            // authored geometry rather than a joint chain.
+            float len = BLADE_NAGASA_FRACTION * FIGURE_HEIGHT;
+            // Thirteen rows rather than seven. The last fifth is where the
+            // profile has to resolve a point, and at seven rows the whole taper
+            // was two quads: the rasteriser dropped it and the blade ended by
+            // fading out at a constant two pixels rather than converging.
+            int n = 13;
             float[] d = new float[n];
             float[] halfWidth = new float[n];
             float[] bow = new float[n];
             for (int i = 0; i < n; i++) {
                 float t = i / (float) (n - 1);
                 d[i] = t * len;
-                // Widest just past the guard, tapering to a fine point.
-                halfWidth[i] = MathUtils.lerp(0.017f, 0f, t * t) * (1f - 0.15f * t);
-                // Peak curvature around the middle third, easing to 0 at both ends.
-                bow[i] = 0.030f * MathUtils.sin(t * MathUtils.PI) ;
+                // Real blade geometry, which is not a triangle: a gentle taper
+                // from the habaki to the yokote at ~0.86, then the kissaki
+                // converging to a genuine point over the last seventh. 0.0165
+                // is 7 px of blade at capture framing -- STYLE.md 5's "sliver".
+                float body = MathUtils.lerp(0.0165f, 0.0120f, Math.min(t / 0.86f, 1f));
+                float point = 1f - MathUtils.clamp((t - 0.86f) / 0.14f, 0f, 1f);
+                halfWidth[i] = body * point * point;
+                // Torii-zori: peak curvature near the middle, zero at both ends.
+                // 0.024 is about 5 px of bow over a 150 px blade, which is the
+                // proportion the reference katana carries.
+                bow[i] = 0.024f * MathUtils.sin(t * MathUtils.PI);
             }
             short[] left = new short[n];
             short[] right = new short[n];
@@ -336,8 +374,20 @@ public final class SamuraiRig {
             // That is both what references 1 and 2 do -- rust bleeding through
             // the breastplate over a near-black hakama -- and the only mesh-side
             // lever that moves the ink gravity of item 4 the right way.
-            float[] stainF = {0f, 0.07f, 0.15f, 0.17f, 0.09f, 0.02f, 0f, 0f, 0f, 0f};
-            float[] stainB = {0f, 0.08f, 0.16f, 0.18f, 0.10f, 0.02f, 0f, 0f, 0f, 0f};
+            //
+            // Rows 5-6 are new. The matched-scale comparison of STYLE.md 11.0
+            // lists "a loud ochre bloom over the thigh" among the parts
+            // reference image 1 still resolves at this figure height, and it is
+            // the single loudest mark in that painting. It goes on the garment
+            // panel over the thigh, not on the hakama ribbon: stain authored
+            // down a limb strip interpolates into a pair of bright vertical bars
+            // (the fault rig-fixes-3 item 3 fails on), whereas on the haori's
+            // wide front panel the shader's blotchy gate has room to cut it into
+            // an irregular bloom. Held under 0.29 so it stays on the soft side
+            // of ink_skin.frag's fitting threshold and blooms rather than
+            // printing as a flat leather tone.
+            float[] stainF = {0f, 0.07f, 0.15f, 0.17f, 0.09f, 0.14f, 0.11f, 0.03f, 0f, 0f};
+            float[] stainB = {0f, 0.08f, 0.16f, 0.18f, 0.10f, 0.06f, 0.03f, 0f, 0f, 0f};
 
             int n = frontY.length;
             short[] front = new short[n];
@@ -436,7 +486,13 @@ public final class SamuraiRig {
             // Wider at the base than revision 1: a sleeve that starts as a
             // two-pixel sliver at the shoulder has no interior for the shader
             // to keep solid, regardless of authored dissolve.
-            float[] halfWidth = scaled(scale, 0.135f, 0.140f, 0.145f, 0.165f, 0.190f, 0.235f, 0.290f);
+            float[] halfWidth = scaled(scale, 0.135f, 0.140f, 0.145f, 0.160f, 0.180f, 0.220f, 0.268f);
+            // The drape hangs *behind* the arm rather than centred on it
+            // (rig-fixes section 2's 1.4:1 asymmetry, and the reason the grip
+            // cluster now has open ground on its forward side). Positive is
+            // forward, so these push the sleeve's mass back toward the haori's
+            // own trailing cloud, where reference images 1 and 2 keep it.
+            float[] lateral = scaled(scale, 0f, 0f, -0.015f, -0.050f, -0.115f, -0.200f, -0.290f);
             float[] dissolve = {0f, 0f, 0.02f, 0.05f, 0.15f, 0.55f, 1.0f};
             float contrastFloor = scale < 1f ? 0.10f : 0f;
             for (int i = 0; i < dissolve.length; i++) {
@@ -450,7 +506,7 @@ public final class SamuraiRig {
             // hand, and printed as a bright warm blob over the one join the
             // references spend their whole interior budget resolving.
             float[] stainBase = {0f, 0.04f, 0.06f, 0.04f, 0f, 0f, 0f};
-            ribbon(pts, halfWidth, dissolve, wetness, stainBase);
+            ribbon(pts, halfWidth, lateral, dissolve, wetness, stainBase);
         }
 
         // -- torso/limbs: narrow, low dissolve, mostly hidden by cloth --------
@@ -567,47 +623,233 @@ public final class SamuraiRig {
             }
         }
 
-        // -- the hand / tsuba join: rig-fixes-3 item 2 ------------------------
+        // -- the grip cluster: hand + tsuka + tsuba (debt D1) -----------------
+        //
+        // Why this failed for five passes, and it was never a geometry problem.
+        // A hand mesh and a hilt mesh have existed since revision 3, both drawn
+        // last, both at the right place -- and the pass-5 review still recorded
+        // "the blade emerges directly out of the mantle mass with nothing
+        // between cloth and steel". They were authored at wetness 0.50-0.72
+        // against a sleeve authored at 0.52-0.85, i.e. *the same value*, and the
+        // whole cloth path resolves to a 30-level ramp between INK_INDIGO and
+        // INK_BLACK. Three marks that differ by four luminance levels are one
+        // mark however carefully they are shaped.
+        //
+        // So the fix is value and hue, not outline. Reading outward the cluster
+        // now steps sleeve (mid indigo) -> hand (warm mid, the leather-and-brass
+        // kote) -> tsuka (near-black) -> tsuba (black, the widest mark) -> steel
+        // (near-white). That is five values in about forty pixels, which is what
+        // makes the cluster survive downscaling in every Family A and B
+        // reference. Nothing composites over any of it -- see buildBody's order.
 
         /**
-         * A solid dark lozenge at the fist. References 3, 4 and 5 are near-black
-         * silhouettes and they still resolve the hand, because that join is what
-         * tells you a person is holding the sword; pass 2 had the blade starting
-         * in open paper about 8 px clear of the sleeve end.
+         * The fist, authored on the <em>blade</em>'s axis so it actually sits on
+         * the grip (the old mesh ran along the hand bone and missed the grip
+         * line by 16 px, which is why it read as part of the sleeve), but skinned
+         * to {@code handL} so a later IK solver driving the wrist carries it.
+         *
+         * <p>The warm channel is the point. {@code stainMask} at 0.60 puts this
+         * over the "fitting" threshold in ink_skin.frag, which trades the ochre's
+         * blotchy shibori gate for a muted, reliable leather-brown -- the one
+         * value in the cluster that is neither ink nor steel.
          */
-        private void buildHand(Bone hand) {
-            RibbonPoint[] pts = {
-                    RibbonPoint.of(hand, -0.03f),
-                    RibbonPoint.of(hand, 0.02f),
-                    RibbonPoint.of(hand, 0.08f),
-                    RibbonPoint.of(hand, 0.13f),
-            };
-            ribbon(pts,
-                    new float[] {0.044f, 0.062f, 0.058f, 0.040f},
-                    new float[] {0f, 0f, 0f, 0.05f},
-                    new float[] {0.50f, 0.60f, 0.58f, 0.50f},
-                    new float[] {0f, 0f, 0f, 0f});
+        private void buildHand(Bone hand, Bone blade) {
+            float[] d = {-0.190f, -0.150f, -0.105f, -0.062f};
+            float[] hw = {0.038f, 0.060f, 0.058f, 0.036f};
+            float[] wet = {0.60f, 0.55f, 0.57f, 0.64f};
+            float[] stn = {0.52f, 0.62f, 0.60f, 0.50f};
+            // Zero. At 26 px across, even a 0.05 dissolve buys a 6 px fray band
+            // against 13 px of half-width, and the mark stops being a mark.
+            float[] dis = {0f, 0f, 0f, 0f};
+            gripPiece(blade, hand, d, hw, dis, wet, stn);
         }
 
         /**
-         * Tsuka and tsuba, on the blade bone so they stay rigid with the steel.
-         * A solid dark lozenge with a flared guard is what the references draw
-         * and is all that is needed at this scale; the grip runs back far enough
-         * along the blade axis to bury itself in the hand mass above.
+         * The grip: a long near-black bar, deliberately the darkest cloth-path
+         * value in the figure, running from the kashira back at -0.23 to the
+         * fuchi just short of the guard.
          */
-        private void buildHilt(Bone blade) {
-            RibbonPoint[] pts = {
-                    RibbonPoint.of(blade, -0.26f),
-                    RibbonPoint.of(blade, -0.19f),
-                    RibbonPoint.of(blade, -0.09f),
-                    RibbonPoint.of(blade, -0.02f),
-                    RibbonPoint.of(blade, 0.02f),
-            };
-            ribbon(pts,
-                    new float[] {0.030f, 0.036f, 0.038f, 0.088f, 0.052f},
-                    new float[] {0.10f, 0f, 0f, 0f, 0f},
-                    new float[] {0.55f, 0.62f, 0.66f, 0.72f, 0.66f},
-                    new float[] {0f, 0f, 0f, 0f, 0f});
+        private void buildTsuka(Bone blade) {
+            float[] d = {-0.232f, -0.190f, -0.120f, -0.062f, -0.030f};
+            float[] hw = {0.026f, 0.030f, 0.030f, 0.028f, 0.025f};
+            float[] wet = {0.94f, 1.0f, 1.0f, 1.0f, 1.0f};
+            float[] stn = {0f, 0f, 0f, 0f, 0f};
+            float[] dis = {0.03f, 0f, 0f, 0f, 0f};
+            gripPiece(blade, blade, d, hw, dis, wet, stn);
+        }
+
+        /**
+         * The guard, as its own mass rather than one lozenge shared with the
+         * grip. It is the widest mark in the cluster and the one that reads
+         * longest as the figure shrinks: 10 x 30 px here against roughly 8 x 20
+         * in reference image 1 downscaled to this figure height.
+         */
+        private void buildTsuba(Bone blade) {
+            float[] d = {-0.030f, -0.014f, 0.004f, 0.020f};
+            float[] hw = {0.030f, 0.068f, 0.064f, 0.026f};
+            float[] wet = {1.0f, 1.0f, 1.0f, 1.0f};
+            // Stain-free. The guard is the black anchor the two bright things in
+            // the cluster -- the warm kote behind it and the steel in front --
+            // are both measured against, and a fitting tone here would collapse
+            // it into the hand.
+            float[] stn = {0f, 0f, 0f, 0f};
+            float[] dis = {0f, 0f, 0f, 0f};
+            gripPiece(blade, blade, d, hw, dis, wet, stn);
+        }
+
+        /** A short strip laid on the blade's own axis, skinned to whichever bone should carry it. */
+        private void gripPiece(Bone axis, Bone skin, float[] d, float[] hw,
+                                float[] dissolve, float[] wetness, float[] stain) {
+            int n = d.length;
+            short[] left = new short[n];
+            short[] right = new short[n];
+            float flow = angleToU(skeleton.worldRotationDeg(axis.index));
+            for (int i = 0; i < n; i++) {
+                float t = i / (float) (n - 1);
+                Vector2 pl = alongBone(axis, d[i], hw[i]);
+                Vector2 pr = alongBone(axis, d[i], -hw[i]);
+                left[i] = builder.vertex(pl.x, pl.y, 0f, t, dissolve[i], wetness[i], stain[i], flow, skin.index);
+                right[i] = builder.vertex(pr.x, pr.y, 1f, t, dissolve[i], wetness[i], stain[i], flow, skin.index);
+            }
+            for (int i = 0; i < n - 1; i++) {
+                builder.quad(left[i], left[i + 1], right[i + 1], right[i]);
+            }
+        }
+
+        // -- obi and daisho (debt D1) -----------------------------------------
+
+        /**
+         * The sash. Three rails, not two, because what makes an obi read at this
+         * scale is not its shape but the dark-light-dark sandwich: a heavy ink
+         * line where the haori folds over it, a warm linen band, another heavy
+         * line where the hakama is gathered under it.
+         *
+         * <p>It is also doing structural work the debt document calls out --
+         * without it the shoulder-heavy upper mass and the hakama are one
+         * uninterrupted 300 px column of indigo, and the eye has nothing to
+         * measure the figure's proportions against.
+         */
+        private void buildObi(Bone hips, Bone spine) {
+            float[] x =   {-0.268f, -0.208f, -0.120f, -0.020f,  0.076f,  0.156f,  0.216f};
+            float[] top = { 1.024f,  1.058f,  1.078f,  1.082f,  1.070f,  1.044f,  1.008f};
+            float[] mid = { 0.972f,  1.002f,  1.020f,  1.024f,  1.012f,  0.988f,  0.954f};
+            float[] bot = { 0.912f,  0.938f,  0.954f,  0.958f,  0.946f,  0.924f,  0.892f};
+            // Near zero across the body of the wrap; only the two ends, which
+            // disappear round the far side, are allowed to break up.
+            float[] dis = { 0.15f,   0.04f,   0f,      0f,      0f,      0.03f,   0.14f};
+            float[] stn = { 0.44f,   0.58f,   0.62f,   0.60f,   0.58f,   0.52f,   0.40f};
+
+            int n = x.length;
+            short[] hi = new short[n];
+            short[] md = new short[n];
+            short[] lo = new short[n];
+            for (int i = 0; i < n; i++) {
+                float s = i / (float) (n - 1);
+                float flow = angleToU(6f - 12f * s);   // the wrap runs across the body
+                hi[i] = builder.vertex(x[i], top[i], s, 0f, dis[i], 0.72f, 0.10f, flow,
+                        hips.index, 0.65f, spine.index, 0.35f);
+                md[i] = builder.vertex(x[i], mid[i], s, 0.5f, dis[i] * 0.6f, 0.52f, stn[i], flow,
+                        hips.index, 0.85f, spine.index, 0.15f);
+                lo[i] = builder.vertex(x[i], bot[i], s, 1f, dis[i], 0.80f, 0.08f, flow,
+                        hips.index, 1f, hips.index, 0f);
+            }
+            for (int i = 0; i < n - 1; i++) {
+                builder.quad(hi[i], hi[i + 1], md[i + 1], md[i]);
+                builder.quad(md[i], md[i + 1], lo[i + 1], lo[i]);
+            }
+        }
+
+        /**
+         * The worn pair -- katana in its saya and the shorter wakizashi -- thrust
+         * through the obi on the far hip, tsuka forward, scabbards trailing back
+         * and down. Reference images 1 and 2 both put a long pale diagonal here
+         * and it does more silhouette work than anything else in either picture:
+         * the kojiri of each ends 70-80 px <em>outside</em> the haori's back
+         * contour, in open paper, which is a readable part the garment cloud can
+         * never supply because it has no straight lines in it.
+         *
+         * <p>Both are skinned to {@code hips}, which is physically right (they
+         * are held by the sash) and means they swing with the hip rotation of the
+         * cut rather than floating.
+         */
+        private void buildDaisho(Bone hips, Bone spine) {
+            // Wakizashi: shorter, shallower, and drawn first so the katana
+            // crosses in front of it. The 12 degrees between the two axes is
+            // what stops them reading as a pair of rails.
+            sheathedSword(hips, spine, 0.160f, 1.104f, -0.500f, 0.902f,
+                    0.31f, 0.0262f, 0.44f);
+            sheathedSword(hips, spine, 0.322f, 1.176f, -0.566f, 0.638f,
+                    0.26f, 0.0330f, 0.50f);
+        }
+
+        /**
+         * One sheathed sword as a straight strip from the kashira at
+         * {@code (x0,y0)} to the kojiri at {@code (x1,y1)}. {@code tsukaFrac} is
+         * how much of that run is grip; everything past it is scabbard.
+         */
+        private void sheathedSword(Bone hips, Bone spine, float x0, float y0, float x1, float y1,
+                                    float tsukaFrac, float halfWidth, float sayaStain) {
+            float[] t = {0f, tsukaFrac * 0.55f, tsukaFrac, tsukaFrac + 0.035f,
+                         0.52f, 0.72f, 0.88f, 1f};
+            int n = t.length;
+            float dx = x1 - x0;
+            float dy = y1 - y0;
+            float len = (float) Math.sqrt(dx * dx + dy * dy);
+            float ux = dx / len;
+            float uy = dy / len;
+            // Perpendicular, so half-widths offset across the strip rather than
+            // along it.
+            float px = -uy;
+            float py = ux;
+            float flow = angleToU(MathUtils.atan2(dy, dx) * MathUtils.radiansToDegrees);
+
+            // Grip near-black like the drawn sword's, a small dark bump for the
+            // koiguchi fitting, then the lacquered saya -- which is the *lighter*
+            // of the two, as it is in both references, and is why it survives
+            // being laid over a near-black haori.
+            float[] hw = {halfWidth * 0.82f, halfWidth * 0.94f, halfWidth * 0.96f, halfWidth * 1.18f,
+                          halfWidth, halfWidth * 0.96f, halfWidth * 0.93f, halfWidth * 0.90f};
+            // Wet, not dry. The first p6 capture authored the scabbard bodies at
+            // 0.28-0.34 on the reasoning that a lacquered saya is lighter than
+            // the haori -- but low wetness in this material does not mean
+            // "lighter", it means "the brush was dry here": ink_skin.frag opens
+            // the paper tooth below wetness 0.45 and the cream reserves below
+            // 0.55, and both fired at once. The scabbards came out as pale
+            // ghosts wherever they left the garment, which is precisely the
+            // stretch that has to read. Fittings are solid objects: they are
+            // authored wet, and the *stain* carries the value and hue step.
+            float[] wet = {0.95f, 1.0f, 1.0f, 0.88f, 0.60f, 0.56f, 0.58f, 0.74f};
+            float[] stn = {0f, 0f, 0f, 0.20f, sayaStain, sayaStain, sayaStain * 0.9f, sayaStain * 0.5f};
+            // Flat zero, and this is the whole reason the first p6 capture lost
+            // both scabbards past two thirds of their length. frayPx is
+            // mix(0.22*halfPx + 1.5, 34, dissolve^0.75) -- an absolute width in
+            // pixels -- while a saya is 13 px across, so halfPx is about 6. A
+            // dissolve of 0.22 buys a 12.6 px fray band on a strip with 6 px of
+            // half-width: the entire object sits inside its own fray and the
+            // threshold never drops far enough for anything to survive. It
+            // rendered as two tapering spikes that stopped dead at the haori's
+            // edge, i.e. the exact opposite of the silhouette work it is here to
+            // do. Small hard objects get zero, always; the shader's own floor
+            // (0.22 * halfPx + 1.5, about 3 px here) is all the break-up a
+            // 13 px strip can afford.
+            float[] dis = {0.04f, 0f, 0f, 0f, 0f, 0f, 0f, 0f};
+
+            short[] left = new short[n];
+            short[] right = new short[n];
+            for (int i = 0; i < n; i++) {
+                float cx = x0 + dx * t[i];
+                float cy = y0 + dy * t[i];
+                // The forward end is tucked into the sash and rides the spine a
+                // little; the trailing end is pure hip.
+                float wSpine = 0.28f * (1f - MathUtils.clamp(t[i] / 0.55f, 0f, 1f));
+                left[i] = builder.vertex(cx + px * hw[i], cy + py * hw[i], 0f, t[i],
+                        dis[i], wet[i], stn[i], flow, hips.index, 1f - wSpine, spine.index, wSpine);
+                right[i] = builder.vertex(cx - px * hw[i], cy - py * hw[i], 1f, t[i],
+                        dis[i], wet[i], stn[i], flow, hips.index, 1f - wSpine, spine.index, wSpine);
+            }
+            for (int i = 0; i < n - 1; i++) {
+                builder.quad(left[i], left[i + 1], right[i + 1], right[i]);
+            }
         }
 
         // -- head: profile silhouette, face detail out of scope for System 1 --
@@ -718,16 +960,29 @@ public final class SamuraiRig {
             };
         }
 
-        /** Builds a quad-strip between two rails on either side of a bone chain. flowU is derived per-point from the bone's own bind rotation, so streaks run along the limb (contract section C). */
+        /** Symmetric ribbon: every row centred on the bone axis. */
         private void ribbon(RibbonPoint[] pts, float[] halfWidth, float[] dissolve, float[] wetness, float[] stainBase) {
+            ribbon(pts, halfWidth, new float[pts.length], dissolve, wetness, stainBase);
+        }
+
+        /**
+         * Builds a quad-strip between two rails on either side of a bone chain.
+         * flowU is derived per-point from the bone's own bind rotation, so
+         * streaks run along the limb (contract section C). {@code lateral}
+         * offsets each row's centre across the bone axis, which is how a hanging
+         * garment is made to trail behind the limb it hangs from instead of
+         * being a symmetric tube around it.
+         */
+        private void ribbon(RibbonPoint[] pts, float[] halfWidth, float[] lateral,
+                             float[] dissolve, float[] wetness, float[] stainBase) {
             int n = pts.length;
             short[] left = new short[n];
             short[] right = new short[n];
             for (int i = 0; i < n; i++) {
                 RibbonPoint p = pts[i];
                 float flow = angleToU(skeleton.worldRotationDeg(p.bone.index));
-                Vector2 pl = alongBone(p.bone, p.d, halfWidth[i]);
-                Vector2 pr = alongBone(p.bone, p.d, -halfWidth[i]);
+                Vector2 pl = alongBone(p.bone, p.d, lateral[i] + halfWidth[i]);
+                Vector2 pr = alongBone(p.bone, p.d, lateral[i] - halfWidth[i]);
                 float t = n <= 1 ? 0f : i / (float) (n - 1);
                 left[i] = builder.vertex(pl.x, pl.y, 0f, t, dissolve[i], wetness[i], stainAt(stainBase[i]), flow,
                         p.bone.index, 1f - p.blendWeight, p.blendBone.index, p.blendWeight);

@@ -138,6 +138,40 @@ section C:
 - **hakama** (trousers) — wide-legged, dissolve at ankles.
 - **torso/limbs** — narrow, low dissolve, mostly hidden by cloth.
 - **head** — simple; face detail is not in scope for System 1.
+
+Revision 3 adds the six regions below. **They are not decoration.** The list
+above is what the contract shipped with, and because a hand, a grip, a guard, a
+sash and the worn swords were never on it, no pass ever built them; the pass-5
+review recorded a figure that resolved "a torso, a topknot and a hairline white
+scratch" against a reference resolving fourteen parts at the same figure height
+(STYLE.md §11.0). No later system supplies any of these — IK moves an arm it
+does not create. This is mesh authoring and nothing else.
+
+All six are small, and small means `dissolve` at or near **zero**: `frayPx` is an
+absolute pixel width, so a hem-sized fray band does not soften a 26 px mark, it
+deletes it.
+
+- **hand** — the fist on the grip, authored on the *blade's* axis so it actually
+  sits on the tsuka, skinned to `handL` so a wrist IK solver carries it.
+- **tsuka** and **tsuba** — two distinct masses, not one lozenge. The guard is
+  the widest mark in the cluster and the last to survive downscaling.
+- **obi** — the sash. Three rails (dark / warm / dark), because what makes it
+  read is the sandwich, not the outline. It is also the only thing separating
+  the shoulder-heavy upper mass from the hakama.
+- **saya** and a **second sheathed sword** crossing behind the hip, skinned to
+  `hips`. Their trailing ends must finish *outside* the garment silhouette in
+  open paper; that is where they do their silhouette work.
+
+Value, not outline, is what makes the grip cluster read, and this is the part
+that took five passes to find. A hand and a hilt mesh existed from revision 3
+onward, correctly placed and drawn last, and the review still found nothing
+between cloth and steel — because they were authored at the same wetness as the
+sleeve around them, and the whole cloth path resolves into a ~30-level ramp
+between `INK_INDIGO` and `INK_BLACK`. Reading outward the cluster must step
+sleeve → hand (warm) → tsuka (near-black) → tsuba (black) → steel (near-white).
+The warm step comes from `stainMask` authored above ~0.5, which `ink_skin.frag`
+treats as a *fitting* rather than a dye bloom: reliable gate, muted amount.
+
 - **blade** — the one hard-edged mesh: `dissolve = 0` everywhere. Built into a
   **separate** `SkinnedMesh` returned by `bladeMesh()`, because it is the only part of
   the figure drawn with a different material (near-white, `emissive = true`) and
