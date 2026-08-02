@@ -159,17 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — hair now bimodal; combat engine and measurement tooling landed",
+  updated: "2026-08-02 — hair judged poetic; cloth failed on one cause; staging layer and pass 3 building",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 3 pass 2 in review \u2014 with tooling that audits the reviews themselves",
-    detail: "The hair is bimodal at last, which was the single named cause of pass 1's " +
-            "failure. Alongside it, two systems landed in parallel: the combat rules engine " +
-            "(headless, 90 tests) and a measurement library that immediately found two of this " +
-            "project's own recorded findings to be unfalsifiable. One value-floor regression " +
-            "is being fixed before the review runs."
+    title: "System 3 pass 3 \u2014 giving the cloth an edge, and the staging layer beside it",
+    detail: "The pass-2 review's verdict: <i>the hair is poetic, the cloth is correct in the " +
+            "solver and absent in the picture, the figure is poetic from the collar up and " +
+            "inert from the sash down.</i> Pass 3 is authorised to break a rendering identity " +
+            "it was previously told to hold \u2014 but only after proving the cheap half first. " +
+            "In parallel, the staging layer that maps ordinal combat events onto real time and " +
+            "space, which is the hinge System 4 is built on."
   },
 
   systems: [
@@ -177,7 +178,7 @@ const DATA = {
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
     { n:"02", name:"IK", status:"passed", passes:3,
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
-    { n:"03", name:"Verlet hair + cloth", status:"building", passes:2,
+    { n:"03", name:"Verlet hair + cloth", status:"building", passes:3,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
     { n:"3b", name:"Faces — expression + variety", status:"pending", passes:0,
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
@@ -253,6 +254,187 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 3", kind:"review", pass:2, verdict:"FAIL",
+      title:"\u201cPoetic from the collar up and inert from the sash down\u201d",
+      body:[
+        "<b>The hair is the first thing in this project judged poetic in material and motion " +
+        "together.</b> Not because the histogram moved \u2014 because at 4x through the knockback " +
+        "the mass streams and folds back over the skull while three escapees curl away on a " +
+        "slower clock and dissolve into sub-pixel. The reviewer's test: that crop would sit " +
+        "inside reference image 6 without argument, and nothing in pass 1 would have.",
+
+        "Verified through recorded boxes: mid-band share of mark widths 38% \u2192 <b>0%</b> " +
+        "against the reference's 12.5%; coverage 47.7% \u2192 <b>66.1%</b> against 57.1%. And it " +
+        "<b>survives the extreme</b>, which is where the aesthetic is supposed to die \u2014 " +
+        "through the whole knockback the mid-band sits at 10-19%, on the reference's number. " +
+        "The matched-scale part count goes from roughly a third of the reference's parts to " +
+        "roughly <b>two thirds</b>.",
+
+        "<b>And it failed on one cause: the cloth arrives with the body.</b> Measured through a " +
+        "recorded box anchored on the hips, the garment trails by <b>0.74 frames</b> where the " +
+        "motion law requires 4 to 8. Headless at 240 Hz the hem has <i>no reversal above the " +
+        "detection gate at all</i>, travelling 4.8 px while the shoulder travels 30.2. Against " +
+        "pass 1 it is a <b>regression in delivered pixels</b> \u2014 the identical box on the same " +
+        "beat registered 11.9 px of path before and 6.1 px now."
+      ],
+      notes:[
+        { kind:"crit", label:"The failure was in the instrument, and it is the second pass lost to it",
+          text:"The verification test measures <b>the last particle, not the picture</b>. Every " +
+               "cloth figure the pass stated is a reading of the solver's own internal state. " +
+               "Pass 1's finding was verbatim <i>\u201cwhatever the particle does, the picture " +
+               "does not show it\u201d</i> \u2014 and the instrument still reads the particle. Worse, " +
+               "<code>docs/feedback-loop.md</code>, written <i>during</i> pass 2, anticipates " +
+               "this trap precisely and records that nothing implements the fix yet. The tool " +
+               "that would have caught it was designed by the pass that needed it and left " +
+               "unwired." },
+        { kind:"fix", label:"The escalation was handled well \u2014 premise refuted, conclusion granted",
+          text:"Pass 2 declined to break a rendering identity it had been told to hold, " +
+               "documented why, and referred the decision upward. The reviewer read the code and " +
+               "<b>refuted its premise</b>: the cloth chains do own fully solid rows and do span " +
+               "the whole visible skirt, so <i>\u201cthe readable lower body has no cloth " +
+               "chain\u201d</i> is not true of the code as shipped. Then it <b>granted the " +
+               "conclusion anyway</b>, on a better reason: <i>a silhouette with a smooth " +
+               "continuous boundary cannot express a fold no matter how the bones underneath it " +
+               "rotate.</i> Coverage confirms it \u2014 the torso measures 97.0% covered where the " +
+               "style bible says ink skips." },
+        { kind:"crit", label:"The order of the fix is the ruling",
+          text:"Pass 3 may break the bind-pose identity, under four conditions \u2014 confined to " +
+               "the chain-driven rows, other captures within a level or two, a new baseline " +
+               "recorded in the same commit so the guard is re-armed rather than removed, and " +
+               "<b>the cheap half proven first</b>. Simulation parameters are bind-safe by " +
+               "construction, so the 4-to-8-frame lag must be reached on delivered pixels before " +
+               "any mesh is touched. If the garment still shows nothing at a correct lag, the " +
+               "mesh change is <i>proven</i> necessary rather than assumed." },
+        { kind:"crit", label:"An error of mine it caught",
+          text:"I told the reviewer that capture recipes now sit beside every capture. They did " +
+               "not \u2014 the feature landed <i>after</i> the graded frames were shot, so it had " +
+               "to recover a capture window by sweeping a hundred candidate start times and " +
+               "pixel-matching. Exactly the recovery the feature was written to prevent, " +
+               "performed by the reviewer I had assured it was unnecessary for." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 5", kind:"build",
+      title:"Combat events carry staging \u2014 and the no-simultaneity rule becomes a theorem",
+      body:[
+        "The engine now carries what the animation layer needs and previously lacked: " +
+        "intra-beat phases, contact points, overlap hints, death staging, camera focus and " +
+        "force \u2014 all of it ordinal and unit-free, because the moment the engine learns what a " +
+        "second is, the reproducibility the review loop depends on becomes a rendering concern.",
+
+        "<b>The overlap design is the piece worth reading.</b> Overlap is measured in parts of " +
+        "the previous beat's <i>recovery</i>, never of the whole beat. Recovery begins after " +
+        "the previous contact ends, and every phase set has a strictly positive wind-up \u2014 so " +
+        "<b>a beat honouring its hint necessarily makes contact after the previous one did</b>, " +
+        "however the renderer scales the beats. The rule against everything peaking together " +
+        "stops being a consigne left to the renderer's taste and becomes a <b>theorem</b>, " +
+        "asserted as one."
+      ],
+      notes:[
+        { kind:"fix", label:"Two judgements worth keeping",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>A beat that kills does not forbid the next from starting early.</b> " +
+               "Beat 3 resolves differently when beat 2 cleared its target, but the <i>gesture</i> " +
+               "does not \u2014 the body winds up and cuts from the same place whether anything is " +
+               "standing there. Treating a kill as a dependency would zero nearly every overlap " +
+               "in the game. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>Force is drive, not speed</b>, " +
+               "so a shove reads <i>softer</i> than a deliberate step. That looks wrong until the " +
+               "style bible is read: a launch is the failure mode, and a stride has more muscle " +
+               "behind it than being carried does." },
+        { kind:"crit", label:"It resolved an ambiguity I had written into the rubric",
+          text:"\u201c40% wind-up / 15% travel / 45% follow-through\u201d never said whether two " +
+               "blades meet at the <i>start</i> of the middle span or its <i>end</i>. The answer " +
+               "is the start, and §7.1 now says so: a parry is required to be a deflection curve " +
+               "rather than a collision, and <b>a deflection takes time</b>. The blades meet at " +
+               "40, slide through the span, and part at 55. Reading the middle span as " +
+               "travel-toward-a-hit puts the meeting at 55 and collapses the deflection to a " +
+               "point \u2014 which is the collision the whole document exists to forbid. It also " +
+               "found that the shoulder-versus-hilt contact distinction I asked for is currently " +
+               "<i>unreachable through play</i>, because enemies re-face for free, and is " +
+               "therefore coupled to an open balance item." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 3", kind:"build",
+      title:"Value floor breached and fixed \u2014 my hypothesis was wrong and was refuted experimentally",
+      body:[
+        "The measurement tooling found pixels below the <code>#161A22</code> floor, an invariant " +
+        "every pass had held since the project began. I named the wet-bleed pass as the " +
+        "near-certain cause.",
+
+        "<b>It was not, and the agent disproved it rather than accepting my framing.</b> It " +
+        "disabled the bleed entirely, remeasured, found the breach unchanged \u2014 then showed it " +
+        "<i>could not</i> be the cause, because alpha-compositing ink-black over ink-black is a " +
+        "fixed point. The real culprit was one shader line where three modulation terms, each " +
+        "centred a little below 1.0, multiplied out to 0.744x on a colour already sitting " +
+        "exactly on the floor.",
+
+        "<b>And it found a second defect hiding inside the first.</b> The pooling term passed " +
+        "its interpolation bounds reversed, which the shading language leaves undefined \u2014 so " +
+        "<b>the pooling ran backwards</b>, and the trailing rail that the style bible says must " +
+        "be darkest was the <i>lightest</i> part of the plume. A style violation hiding behind a " +
+        "value violation."
+      ],
+      notes:[
+        { kind:"fix", label:"The rule that replaces it, now in the rubric",
+          text:"<b>When the base colour already sits on the floor, pool by lifting everything " +
+               "else.</b> A material authored <i>at</i> the floor cannot express \u201cink " +
+               "collects here\u201d by darkening \u2014 it has nothing left to darken into. Every " +
+               "multiplier applied to an ink value now has a minimum of exactly 1.0, the pooling " +
+               "rail sits on the floor, and everything else lifts off it. Every contrast ratio " +
+               "is preserved exactly; only the anchor moves. It also found two breached capture " +
+               "windows my brief had not listed." },
+        { kind:"fix", label:"Captures now record their own recipe",
+          text:"The same agent had to recover eight capture recipes by md5-matching frame 0 " +
+               "against a sweep of start times, because <b>nothing in the repository recorded how " +
+               "any capture had been made</b>. Captures now write the exact reproducing command " +
+               "beside their frames. A capture whose recipe is lost cannot be re-shot after a " +
+               "fix, so it cannot serve as a before and after \u2014 which is most of what captures " +
+               "are for here." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 5", kind:"build",
+      title:"The enemy cycle was a parity lock, not a balance problem",
+      body:[
+        "You asked to keep the attack-then-retreat-then-return rhythm and to have the real cause " +
+        "explained. It was not the retreat.",
+
+        "<b>The retreat was executed in the same step as the strike</b>, making the enemy cycle " +
+        "exactly two beats. The hero's cadence is also even \u2014 banking <i>n</i> tiles then " +
+        "executing is period <i>n+1</i>, and any bank/execute rhythm lands on the same parity. " +
+        "<b>Two cycles of the same parity phase-lock</b>: not \u201cmisses often\u201d but never " +
+        "connects, deterministically and forever. Twenty of forty-five starting configurations " +
+        "were infinite. No tuning of damage or hit points can unstick that \u2014 only a change of " +
+        "<i>period</i> can.",
+
+        "Ungluing them gives a three-beat cycle and bounds first contact at <b>distance + 4 " +
+        "turns</b> from every starting phase. It also makes the retreat legible: the body now " +
+        "stands having struck, then withdraws, instead of teleporting backward in the instant it " +
+        "hits you \u2014 which is a three-part phrase where there was none."
+      ],
+      notes:[
+        { kind:"crit", label:"Three corrections, all of which correct me",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>My earlier fix never existed in the code.</b> " +
+               "I had written \u201cenemies give ground only when wounded\u201d into the design " +
+               "document as a settled resolution; it was never implemented, so the defect stayed " +
+               "live while the document said it was fixed. Now a standing rule: <b>a resolution " +
+               "written into a design document is not an implementation.</b> " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>My period argument was the wrong invariant.</b> " +
+               "The load-bearing property is the <i>contact window</i> \u2014 the body now stands in " +
+               "contact across two consecutive hero turns, and a period-2 cadence cannot miss a " +
+               "window of two whatever its phase. \u201cPeriod 3 never locks\u201d is false: a " +
+               "three-beat hero cadence still locks on one residue class in three, measured at no " +
+               "contact in 60 turns. That residual lock is <i>correct</i>, because the player " +
+               "chose it and one hold undoes it \u2014 which is what makes tactical patience " +
+               "mechanically real. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>And my invariant was already satisfied by the broken engine.</b> " +
+               "Sharpened to the version that actually bites: <i>a body that resolves a " +
+               "telegraphed attack must still be standing where it struck when the hero's next " +
+               "turn begins.</i>" }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 6", kind:"build",
       title:"Measurement tooling \u2014 which immediately audited this project and found two decided findings that do not hold",
