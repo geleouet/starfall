@@ -17,3 +17,7 @@ out/**/frame_*.png
 
 # Stray class files from ad-hoc javac runs
 *.class
+
+# Regenerable analysis output
+out/timing/
+out/tmp/

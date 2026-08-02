@@ -159,19 +159,19 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — cloth acceptance criterion refuted by control; system 4 joining the whole stack",
+  updated: "2026-08-03 — a harness bug corrupted every capture ever taken; two figures on screen; system 3 at its final pass",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 4 \u2014 running the whole stack, and two figures for the first time",
-    detail: "Every layer below is built and tested and <b>none of them has ever run " +
-            "together</b>. Combat rules, staging, IK, simulation and renderer now join up " +
-            "behind a director that consumes a schedule and drives the rig frame by frame. And " +
-            "there have never been two figures on screen \u2014 in a project that exists for the " +
-            "animation of interaction <i>between two bodies</i>. The gate is whether a " +
-            "five-beat phrase reads as one phrase rather than five events, and whether a parry " +
-            "reads as a deflection rather than a collision."
+    title: "System 3 pass 5 \u2014 the final pass, with an honest negative allowed",
+    detail: "A harness bug found by System 4 had been compositing every captured frame with " +
+            "its own mirror image since day one \u2014 <b>76-79% of pixels affected</b>, through a " +
+            "dozen reviews. Regraded on clean captures, the cloth simulation turns out to be " +
+            "<b>invisible</b> on the scene the aesthetic is judged on: a garment welded rigid " +
+            "to the hips produces the same picture. Pass 5 must make the solver visible or " +
+            "demonstrate honestly that this mechanism cannot \u2014 and a well-proven negative " +
+            "closes the system rather than failing it."
   },
 
   systems: [
@@ -179,13 +179,13 @@ const DATA = {
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
     { n:"02", name:"IK", status:"passed", passes:3,
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
-    { n:"03", name:"Verlet hair + cloth", status:"building", passes:3,
+    { n:"03", name:"Verlet hair + cloth", status:"building", passes:5,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
     { n:"3b", name:"Faces — expression + variety", status:"pending", passes:0,
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
-    { n:"04", name:"Procedural interaction", status:"building", passes:0,
+    { n:"04", name:"Procedural interaction", status:"review", passes:1,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
     { n:"05", name:"Combat + action queue", status:"partial", passes:0,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
@@ -255,6 +255,169 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 3", kind:"review", pass:4, verdict:"FAIL",
+      title:"Regraded on clean captures \u2014 the cloth is not merely weak, it is absent",
+      body:[
+        "The reviewer re-shot <b>every</b> capture on the fixed harness before grading, and " +
+        "re-shot the previous pass from a detached worktree with the fix grafted on, so both " +
+        "sides of every comparison sit on the same apparatus. Three of the pass's five " +
+        "headline results did not survive \u2014 <i>void rather than wrong</i>, since the pass " +
+        "measured what the harness gave it and measured it carefully.",
+
+        "<b>The decisive finding is not a statistic.</b> On the slow scene \u2014 the one the " +
+        "one-sentence test is answered on \u2014 the simulation is invisible. Live drape 13.88 px " +
+        "against <b>13.50 px welded rigid</b>: a separation of <b>1.03\u00d7</b>. Confirmed by eye " +
+        "as well as by number, at 5.6-9.6 levels of difference over the whole skirt \u2014 the " +
+        "same picture at 2x. On a hard reversal the solver <i>is</i> visible. <b>The cloth " +
+        "exists during a violent beat and vanishes on the quiet one.</b> Three passes of Verlet " +
+        "cloth have produced an image a weld reproduces to within six levels of grey.",
+
+        "The mechanical reason is blunt: <b>two of the six particles on the main rail sweep " +
+        "below the drawn figure entirely</b> and paint nothing, and the nominated cloth box " +
+        "contains only two of the rest. A six-particle rail carrying a two-particle signal is " +
+        "why no statistic could move.",
+
+        "And the pass's one new visual element \u2014 splatter \u2014 is <b>flat grey polygons with " +
+        "a one-pixel edge and no halo</b>, which is two fail-on-sight rows at once in a document " +
+        "whose first material rule is that nothing but the blade has a hard edge. It also " +
+        "widened the detected figure box by 31%, silently destabilising every figure-space " +
+        "region in the project."
+      ],
+      notes:[
+        { kind:"fix", label:"The reviewer killed its own proposed criterion before publishing it",
+          text:"Four cloth statistics have now been tested against their null case. Three were " +
+               "already dead; the reviewer proposed a fourth, a silhouette-shape residual, " +
+               "measured it separating <b>2.80\u00d7 on one scene and 0.51\u00d7 on another with the " +
+               "dead garment scoring higher</b>, and killed it. Then gave the structural reason " +
+               "rather than a statistical one: <b>the skirt's readable mass is skinned to the " +
+               "hips and legs</b>, so clamping the simulation does not yield an absent garment \u2014 " +
+               "it yields a <i>fully animated</i> one driven by the body. The simulation is a " +
+               "small perturbation on a large skinned motion, and any scalar through a box is " +
+               "dominated by the body." },
+        { kind:"fix", label:"So the criterion is no longer a number",
+          text:"<b>A paired capture and a forced choice.</b> Every graded window is shot twice \u2014 " +
+               "live and clamped rigid, same scene, same clock, same harness \u2014 and presented " +
+               "without labels. <b>If the reviewer cannot pick the simulated one, the cloth has " +
+               "failed</b>, whatever any number says. The null case lives in the <i>procedure</i> " +
+               "rather than in the statistic, which is why it cannot die the way its four " +
+               "predecessors did. Its own null was run the same day: the live capture was picked " +
+               "instantly on the fast scene and was indistinguishable on the slow one. One " +
+               "scalar gate survives alongside it, because <i>its</i> null is structural: no " +
+               "simulated particle may sweep outside the drawn figure. It should read zero." },
+        { kind:"crit", label:"Two findings reversed, and one amendment cancelled",
+          text:"On clean pixels the fray result <b>reverses</b> \u2014 pass 3 frays more than pass 4 " +
+               "at the very frame pass 4 nominated as its result, and the <i>welded control</i> " +
+               "scores five runs, so that statistic was never measuring cloth at all. Coverage " +
+               "also reversed, 97.1% \u2192 97.5%, slightly worse rather than better. And the " +
+               "return-window gate that pass 4 reported as \u201cslightly too fast\u201d is " +
+               "correct at 0.157 s \u2014 that reading was the ghost, so I have <i>not</i> amended " +
+               "the rubric for it. Three claims void, one amendment withdrawn." }
+      ]
+    },
+    {
+      ts:"2026-08-03", system:"Harness", kind:"build",
+      title:"Every capture this project ever took was composited with its own mirror image",
+      body:[
+        "<code>CaptureApp.flipVertically</code> \u2014 code I wrote on the first day \u2014 uses " +
+        "<code>Pixmap.drawPixel</code>, and a Pixmap defaults to source-over blending. So the " +
+        "vertical flip <b>composited instead of assigning</b>, and every captured frame carried " +
+        "a copy of itself mirrored about the horizontal centre line.",
+
+        "Measured on a bind-pose re-capture: <b>408,557 of 518,400 pixels differ \u2014 78.8% of " +
+        "the frame</b>, max channel delta 176. Not a faint artefact.",
+
+        "<b>It survived roughly a dozen reviews because every scene until now centred a single " +
+        "figure vertically</b>, so the ghost landed on the figure it came from: the lower " +
+        "body's ink was added to the upper body and the upper body's to the lower. The first " +
+        "two-figure capture, framed 4:3, put it in the empty sky where it was instantly obvious.",
+
+        "The consequences are wide and are being handled rather than hidden. The band profile " +
+        "that established the ink gravity was inverted \u2014 chest darker than hem \u2014 is " +
+        "<i>exactly the shape this bug produces</i>, since the skirt's ink was composited onto " +
+        "the chest. The 97-100% coverage figures two passes were spent trying to reduce were " +
+        "inflated by the figure's own mirror. Every baseline hash in the project is invalidated."
+      ],
+      notes:[
+        { kind:"fix", label:"The rubric gains a section on the apparatus",
+          text:"Everything in the review protocol governed the <b>subject</b>. Nothing governed " +
+               "the <b>apparatus</b> \u2014 which sits upstream of every rule in it. §11.2b now " +
+               "requires: a <b>calibration card</b> asserted in the test suite, a synthetic frame " +
+               "pushed through the capture path whose correct measurement is known analytically " +
+               "and is <i>deliberately asymmetric in every axis the pipeline touches</i> \u2014 " +
+               "this bug dies to the single assertion <i>a figure drawn only in the top third " +
+               "must leave the bottom two thirds at paper</i>. Plus: bit-identity across paths " +
+               "that share code proves nothing (two capture paths were celebrated as identical; " +
+               "they agreed because they shared the broken function). And prefer differences to " +
+               "absolutes \u2014 every claim that survived the re-capture was relative, every claim " +
+               "that died was absolute." },
+        { kind:"crit", label:"The rule that names this class of bug",
+          text:"<b>Anything symmetric about an axis of the subject cannot be tested on the " +
+               "subject.</b> So once per system, capture the subject where it <i>cannot hide the " +
+               "artefact</i> \u2014 off-centre, off-frame, doubled, or absent. This was not a bug " +
+               "that made the picture wrong; it was a bug that made it wrong <i>in the same " +
+               "place the subject already was</i>. That is why a dozen careful reviews and every " +
+               "measurement discipline this project invented walked past it, and why one " +
+               "unfamiliar aspect ratio found it in a single frame." },
+        { kind:"fix", label:"Found and reported rather than worked around",
+          text:"The System 4 agent hit it, correctly identified that it belonged to a file it " +
+               "did not own, and reported it with the diagnosis and the one-line fix rather than " +
+               "patching around it in its own scenes. It is the single most valuable thing any " +
+               "agent has found in this project." }
+      ]
+    },
+    {
+      ts:"2026-08-03", system:"System 4", kind:"build", pass:1,
+      title:"The whole stack runs, and there are two figures for the first time",
+      sheet:"out/captures/s4-p1-parry-contact/frame_000.png",
+      sheetNote:"A dark duellist against a pale one \u2014 reference family B\u2019s exact " +
+                "composition. Note that this frame still carries the mirror ghost; it was " +
+                "captured before the harness fix that this pass discovered.",
+      body:[
+        "Combat rules, staging, IK, simulation and renderer joined behind a director that " +
+        "consumes a schedule and drives every figure in the contract's order. Three duel scenes " +
+        "with debug siblings, each driven by a real combat engine through a real scheduler.",
+
+        "<b>Two rigs worked \u2014 after four fixes.</b> The renderer latched cloth colour per " +
+        "flush rather than per draw, so a pale figure drawn before a dark one came out dark. " +
+        "The body-carried IK poles ignored mirroring, so a left-facing figure's knee poles " +
+        "landed <i>behind</i> the pelvis. Both figures were painted with bit-identical ink. And " +
+        "the fourth was the harness bug above.",
+
+        "<b>The phrase reads as one phrase</b>, on three independent readings: the trunk chain's " +
+        "weight never returns to zero across all five clauses; in delivered pixels the pelvis's " +
+        "longest stationary moment is 0.075 s, so it never comes to rest between clauses; and by " +
+        "eye the follow-through of one clause is still running as the next wind-up starts. Hip " +
+        "excursion is <b>17.7% of the hand's</b> \u2014 System 2 was failed on 1.5%. <b>And the " +
+        "parry reads as a deflection</b>: the blades meet, slide through the contact span, and " +
+        "the defender's arm gives ground along a second target through the recovery \u2014 three " +
+        "targets through one chain with continuous weight, which is an arc rather than a held " +
+        "point."
+      ],
+      notes:[
+        { kind:"crit", label:"Eight things the layers below failed to provide",
+          text:"All reported rather than worked around silently. The trunk anchor sits at hip " +
+               "height while the chain it names ends at the neck, so applied literally the chain " +
+               "saturates every frame. Nothing in the directive vocabulary <i>translates a " +
+               "body</i>, so a figure crossing a tile stretches its legs a metre unless the " +
+               "pelvis is carried too. Foot anchors sit on the ground while the leg chains end " +
+               "at the ankle, saturating both legs permanently. And the region set does not " +
+               "describe a two-figure frame at all \u2014 every box now resolves against a figure " +
+               "box spanning <i>both</i> bodies, so no pixel lag claim can be made on these " +
+               "scenes until a two-figure region set exists." },
+        { kind:"crit", label:"And six places the rubric is wrong when you build against it",
+          text:"The sharpest: <b>a pixel timing claim is not separable from the camera on any " +
+               "scene that obeys \u00a79</b>. The rubric requires timing measured in delivered " +
+               "pixels; the camera section requires the camera to glide during the beat and " +
+               "never be still. Its first knockback measurement read 0.147 s until a camera-scale " +
+               "proxy showed the zoom had changed 1.443\u00d7 across the window. Every timing number " +
+               "it reports is now either camera-stable with the proxy quoted, or normalised by " +
+               "the figure's own span. Also: the tile width is too narrow for this rig once the " +
+               "wet bleed is accounted for, so two bodies on adjacent tiles <i>merge into one " +
+               "mass</i> \u2014 where the references put a body-width of clear paper between " +
+               "duellists and cross only the blades." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 3", kind:"build", pass:3,
       title:"The acceptance criterion was refuted \u2014 by a control experiment nobody asked for",
