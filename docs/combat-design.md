@@ -239,8 +239,24 @@ only interesting once something refuses it.
 STYLE.md §8 governs, and it is restrictive by design: no chrome, no panels, no bars, no
 borders. Specifically here:
 
-- The **queue** is three ink cartouches. Because execution is LIFO, the reading order must
-  make that legible without a tutorial — the stack reads top-down as "what happens next".
+- The **queue is a vertical column**, not a horizontal bar, and new tiles **enter at the
+  top**. This is the single most important UI decision in the game and it is settled.
+
+  Vertical is the only orientation that does not fight LIFO. A horizontal bar read
+  left-to-right implies the leftmost tile resolves first, which is the opposite of what
+  happens, so it forces the rule to be *explained* and re-explained. A column reads top-down
+  as "what happens next", which is the natural metaphor for a stack. And inserting at the top
+  makes the rule disappear entirely: what you wrote last is at the top and goes first, so the
+  player never learns "LIFO", they just read downward. Appending at the bottom would put the
+  first-to-resolve tile at the bottom and reintroduce the whole problem.
+
+  Three supporting reasons. The lane is horizontal and long, so a horizontal bar sits
+  *parallel* to it — two horizontal rows of similarly sized elements read as one confusable
+  thing, whereas a column is orthogonal to the board and can never be mistaken for it. The
+  camera glides horizontally toward the exchange on execution (§9), and a side column stays
+  out of that path. And it is thematically correct: `STORY.md` names the queue the **Ink
+  Stanza**, and a stanza is read downward on a hanging scroll — a horizontal hand of cards
+  reads as a deckbuilder hotbar, which is precisely the generic UI STYLE.md §8 forbids.
 - **Cooldowns** are strokes that dry out and refill, not numeric counters.
 - **Health** is a column of ink strokes that dry and fade.
 - **Intent telegraphs** are vermillion washes over threatened tiles, arriving by bleed.
@@ -281,6 +297,21 @@ there.
 
 The two heroes keep their verbs and are renamed to fit: **the Warden** pushes, **the
 Pilgrim** swaps.
+
+---
+
+## 3c. On the generated maquettes
+
+`tmp/maquettes/` holds AI-generated mockups. **They are loose inspiration and are explicitly
+not faithful to the target render.** They are not composition targets, not UI targets, and
+not material ground truth. The eight paintings in `inspirations/` remain the only ground
+truth, per STYLE.md's preamble.
+
+One observation from them is worth keeping, because it arrived independently: their hair is
+drawn as a **solid black mass with one-to-two-pixel wisps escaping it, and nothing in
+between** — which is exactly the bimodal structure the System 3 review measured in the
+references and made the single named cause of that pass's failure. Two unrelated routes to
+the same finding.
 
 ---
 
