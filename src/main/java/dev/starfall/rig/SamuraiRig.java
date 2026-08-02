@@ -231,8 +231,13 @@ public final class SamuraiRig {
             Bone spine = skeleton.bone("spine");
             Bone hips = skeleton.bone("hips");
 
-            buildLimbSliver(chainPoints("thighR", "shinR", "footR", 0.44f, 0.40f, 0.14f), 0.040f, 0.16f, 0.42f, 0.88f);
-            buildHakama(skeleton.bone("thighR"), skeleton.bone("shinR"), skeleton.bone("footR"), 0.84f);
+            // 0.40/0.36, which is what the far leg's bones actually are (the
+            // near leg's are 0.44/0.40). Both legs used to be authored with the
+            // near leg's lengths.
+            buildLimbSliver(chainPoints("thighR", "shinR", "footR", 0.40f, 0.36f, 0.13f), 0.040f, 0.16f, 0.50f, 0.92f);
+            buildHakama(skeleton.bone("thighR"), skeleton.bone("shinR"), skeleton.bone("footR"),
+                    0.40f, 0.36f, 0.84f);
+            buildFoot(skeleton.bone("footR"), 0.86f);
             buildLimbSliver(chainPoints("upperArmR", "forearmR", "handR", 0.19f, 0.14f, 0.09f), 0.028f, 0.18f, 0.06f, 0.14f);
             buildSleeve(skeleton.bone("upperArmR"), skeleton.bone("forearmR"), skeleton.bone("handR"),
                     0.19f, 0.14f, 0.09f, 0.22f, 0.78f);
@@ -248,8 +253,10 @@ public final class SamuraiRig {
             // Near leg *under* its own hakama, not over it (rig-fixes-3 item 3):
             // a solid sliver composited on top of the skirt is what read as a
             // translucent tube with a bright centre seam.
-            buildLimbSliver(chainPoints("thighL", "shinL", "footL", 0.44f, 0.40f, 0.14f), 0.055f, 1f, 0.45f, 0.95f);
-            buildHakama(skeleton.bone("thighL"), skeleton.bone("shinL"), skeleton.bone("footL"), 1f);
+            buildLimbSliver(chainPoints("thighL", "shinL", "footL", 0.44f, 0.40f, 0.14f), 0.055f, 1f, 0.62f, 1f);
+            buildHakama(skeleton.bone("thighL"), skeleton.bone("shinL"), skeleton.bone("footL"),
+                    0.44f, 0.40f, 1f);
+            buildFoot(skeleton.bone("footL"), 1f);
 
             // Over the skirt and over the scabbards' forward ends, which is
             // physically where a sash sits and what makes it read as a wrap
@@ -358,9 +365,29 @@ public final class SamuraiRig {
             // Collar sits below the throat (head's lowest point is ~1.55) so the
             // neck -- not the garment -- is what connects to the head.
             float[] frontY = {1.46f, 1.36f, 1.22f, 1.06f, 0.92f, 0.74f, 0.56f, 0.40f, 0.26f, 0.14f};
-            float[] frontX = {0.10f, 0.30f, 0.26f, 0.21f, 0.16f, 0.16f, 0.18f, 0.16f, 0.11f, 0.04f};
+            // Debt D5, the mass half of it. Measured across the p6 bind capture
+            // the garment ran 144 px wide at the chest, pinched to 79 at the
+            // waist and only recovered to 90 at the knee -- so the lower third
+            // was not only pale, it was the *narrowest* part of the figure below
+            // the collar. The debt's own postscript on contrast is explicit that
+            // what separates a good capture from a washed-out one is coverage
+            // and mass rather than value, and no amount of pooling can darken a
+            // band that has nothing in it.
+            //
+            // Reference images 1 and 2 make the thigh-and-knee cloud the widest
+            // passage in the painting, wider than the shoulders. That is not
+            // available here: rig-fixes-3 item 1 established the shoulder mantle
+            // as the widest horizontal (1.04 units, 234 px) to kill the cone
+            // silhouette that read as a wraith, and inverting it again would
+            // undo three passes. So the knee cloud goes to 0.57 units (128 px),
+            // second-widest in the figure and 1.8x narrower than the shoulder --
+            // an ink cloud around the knees rather than a rival to the mantle.
+            // The back rows widen more than the front, which is the 1.35:1
+            // trailing asymmetry rig-fixes section 2 asks for and is where
+            // reference 1 throws its cloud.
+            float[] frontX = {0.10f, 0.30f, 0.26f, 0.21f, 0.17f, 0.21f, 0.25f, 0.22f, 0.14f, 0.05f};
             float[] backY = {1.46f, 1.40f, 1.28f, 1.12f, 0.96f, 0.78f, 0.58f, 0.36f, 0.12f, -0.16f};
-            float[] backX = {-0.08f, -0.34f, -0.32f, -0.25f, -0.19f, -0.20f, -0.22f, -0.24f, -0.26f, -0.23f};
+            float[] backX = {-0.08f, -0.34f, -0.32f, -0.25f, -0.20f, -0.26f, -0.32f, -0.33f, -0.30f, -0.24f};
             // Genuinely 0 through the shoulder-to-waist run (rows 0-3): the
             // dense core. Climbs only once the flare starts (row 4+).
             // The fray starts lower than revision 2 had it and then goes off a
@@ -370,14 +397,37 @@ public final class SamuraiRig {
             // shows through it and it measures pale no matter how wet it is
             // authored. Keeping the skirt genuinely opaque down to the last two
             // rows is what lets the pigment pooling below actually print.
-            float[] dissolveF = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.10f, 0.55f, 1.0f};
-            float[] dissolveB = {0f, 0f, 0f, 0f, 0f, 0f, 0.05f, 0.20f, 0.70f, 1.0f};
+            //
+            // Debt D5. The cliff moves down by one row. Row 6 sits at world
+            // y=0.56/0.58, which is the knee (the near knee lands at y=0.532),
+            // and that row is where reference images 1 and 2 put the heaviest
+            // black in the whole painting. Pass 6 was already 0.05 dissolved on
+            // the back at that row and 0.10-0.20 the row below, so the fray was
+            // opening exactly where the ink is meant to be densest.
+            float[] dissolveF = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.06f, 0.42f, 1.0f};
+            float[] dissolveB = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.14f, 0.58f, 1.0f};
             // rig-fixes-3 item 4, the ink gravity. The chest is now the *lightest*
             // part of the wash and the pigment pools to near-black in the row
             // immediately above the fray line -- pass 2 measured luminance 60 at
             // the mid-torso against 137-160 at the hem, i.e. exactly backwards.
-            float[] wetF = {0.03f, 0.06f, 0.12f, 0.22f, 0.36f, 0.55f, 0.74f, 0.92f, 1.0f, 0.85f};
-            float[] wetB = {0.04f, 0.08f, 0.16f, 0.28f, 0.44f, 0.63f, 0.82f, 0.96f, 1.0f, 0.82f};
+            //
+            // Debt D5 again, and this is the change that gives the leg tubes
+            // somewhere to read *against*. The wetness peak used to sit at row 8
+            // (world y=0.26, i.e. mid-shin) at the same 1.0 the hakama carries,
+            // so the garment cloud and the legs inside it were the identical
+            // value and merged into one column -- the D1 lesson (four luminance
+            // levels on a thirty-level ramp is one mark, however carefully it is
+            // shaped) applied to the lower body instead of the grip.
+            //
+            // So the peak moves up to rows 6-7, the knee, and the last two rows
+            // come back down to a dilute smoke. That is also what the reference
+            // does: the black is at the thighs and knees, and below the ankles
+            // the painting goes pale again and the *legs* are what stay dark.
+            // Row 9 is held at 0.62 rather than lower because ink_skin.frag
+            // opens the cream reserves below wetness 0.55 and the paper tooth
+            // below 0.45, and either firing here would bleach the hem again.
+            float[] wetF = {0.03f, 0.06f, 0.13f, 0.26f, 0.46f, 0.72f, 0.95f, 1.0f, 0.86f, 0.62f};
+            float[] wetB = {0.04f, 0.09f, 0.18f, 0.32f, 0.54f, 0.80f, 1.0f, 1.0f, 0.84f, 0.60f};
             // Ochre lives in the chest and ribs, not the skirt: down at the
             // thigh it printed as a bright warm blob right where item 4 wants
             // the darkest ink in the figure.
@@ -400,8 +450,17 @@ public final class SamuraiRig {
             // an irregular bloom. Held under 0.29 so it stays on the soft side
             // of ink_skin.frag's fitting threshold and blooms rather than
             // printing as a flat leather tone.
-            float[] stainF = {0f, 0.07f, 0.15f, 0.17f, 0.09f, 0.14f, 0.11f, 0.03f, 0f, 0f};
-            float[] stainB = {0f, 0.08f, 0.16f, 0.18f, 0.10f, 0.06f, 0.03f, 0f, 0f, 0f};
+            //
+            // Debt D5 moves the bloom up one row. Rows 5-6 are world y=0.74 and
+            // 0.56 -- the second of those is the knee, and OCHRE is luminance
+            // 130 against an ink floor of 26, so a bloom there was lifting the
+            // one band that has to be the darkest in the picture by twenty
+            // levels. Reference image 1 puts its bloom over the *thigh*, above
+            // the knee, which is rows 4-5. It is also stronger there now: it is
+            // the loudest mark in that painting and this is the only place in
+            // the figure it is allowed to be loud.
+            float[] stainF = {0f, 0.07f, 0.15f, 0.17f, 0.14f, 0.19f, 0.04f, 0f, 0f, 0f};
+            float[] stainB = {0f, 0.08f, 0.16f, 0.18f, 0.11f, 0.07f, 0f, 0f, 0f, 0f};
 
             int n = frontY.length;
             short[] front = new short[n];
@@ -443,26 +502,59 @@ public final class SamuraiRig {
 
         // -- hakama: wide-legged trousers, dissolve at the ankles -------------
 
-        private void buildHakama(Bone thigh, Bone shin, Bone foot, float scale) {
+        private void buildHakama(Bone thigh, Bone shin, Bone foot,
+                                  float thighLen, float shinLen, float scale) {
             // Revision 3: every row now hangs off the thigh or the shin, never
             // off the foot. footL/footR bind to world rotation 0 (they point
             // +X), so a half-width on a foot row offsets *vertically* -- the two
             // trailing rows of revision 2 were therefore a pair of 0.66-tall
             // vertical smears thrown forward from each ankle, and between them
             // they were the widest thing in the figure by a wide margin.
+            // Debt D5 / "legs and feet". The row at shin 0.40 is the *ankle*
+            // (world y=0.133 on the near leg, which is where SamuraiRig's units
+            // put the sole), and pass 6 had no row there at all: it went shin
+            // 0.38 at dissolve 0.30 straight to shin 0.54 at dissolve 1.0, i.e.
+            // the tube was already three-tenths erased above the ankle and gone
+            // entirely below it. Measured on the p6 bind capture, ink coverage
+            // over the leg band collapsed from 69% at the knee to 23% at the
+            // ankle and 12% below it. That is the "ends in erasure" the debt
+            // names: the figure has no ankle, so it can have no foot.
+            //
+            // Now the tube stays genuinely solid through the ankle and only the
+            // single row *below* the sole frays, which is ink smoke pooling on
+            // the ground rather than a leg being deleted.
+            // <strong>Fractions of the actual bone lengths, not absolute
+            // distances.</strong> Pass 6 hard-coded the near leg's 0.44/0.40 for
+            // both legs, but the far leg's bones are 0.40/0.36 -- so every row
+            // below the far knee was authored past where that leg actually is,
+            // and the last one landed at world y=0.037 against a far sole at
+            // y=0.216. The far leg was rendering a 40 px dark spike straight
+            // through its own foot and into the ground, which is a large part of
+            // why nothing down there read as a foot: the mark was there, but it
+            // was drawn as a tapering spear.
             RibbonPoint[] pts = {
-                    RibbonPoint.of(thigh, 0.02f),
-                    RibbonPoint.of(thigh, 0.24f),
-                    RibbonPoint.blended(thigh, 0.44f, shin, 0.4f),
-                    RibbonPoint.of(shin, 0.20f),
-                    RibbonPoint.of(shin, 0.38f),
-                    RibbonPoint.blended(shin, 0.54f, foot, 0.25f), // gathered past the ankle, into ink
+                    RibbonPoint.of(thigh, 0.05f * thighLen),
+                    RibbonPoint.of(thigh, 0.55f * thighLen),
+                    RibbonPoint.blended(thigh, thighLen, shin, 0.4f),      // the knee
+                    RibbonPoint.of(shin, 0.45f * shinLen),
+                    RibbonPoint.of(shin, 0.80f * shinLen),
+                    RibbonPoint.blended(shin, shinLen, foot, 0.35f),       // the ankle
+                    RibbonPoint.blended(shin, 1.35f * shinLen, foot, 0.6f), // below the sole
             };
             // Wide-legged at the thigh, gathered at the ankle -- which is what a
             // hakama actually does, and is the shape in references 1 and 2 where
-            // the leg below the knee is a narrow dark tube.
-            float[] halfWidth = scaled(scale, 0.088f, 0.112f, 0.104f, 0.080f, 0.063f, 0.054f);
-            float[] dissolve = {0f, 0f, 0f, 0f, 0.30f, 1.0f};
+            // the leg below the knee is a narrow dark tube. The last row flares
+            // slightly again: what is below the ankle is not cloth any more, it
+            // is the wet pool the figure is standing in.
+            float[] halfWidth = scaled(scale, 0.088f, 0.112f, 0.104f, 0.084f, 0.068f, 0.060f, 0.076f);
+            // The ankle row is 0.03 rather than 0.08. frayPx on a 27 px tube is
+            // 4.5 px at zero dissolve and 8.9 px at 0.08, and the wider band was
+            // opening a bright horizontal gap between the bottom of the tube and
+            // the top of the foot -- the join being visibly cut is worse than the
+            // join being visibly soft. The last row is 0.94: what is below the
+            // sole should be a scatter of flecks in the wet ground, and at 0.88
+            // it was still solid enough to print as a grey puddle.
+            float[] dissolve = {0f, 0f, 0f, 0f, 0f, 0.03f, 0.94f};
             // Far leg gets a higher dissolve floor throughout -- it never reads
             // as fully solid, which is what "lower contrast / recedes behind
             // the body" means when both legs share one InkMaterial draw call.
@@ -471,13 +563,71 @@ public final class SamuraiRig {
                 dissolve[i] = Math.max(dissolve[i], contrastFloor);
             }
             // Hakama and legs are the darkest masses in the figure (rig-fixes-3
-            // item 4): wetness climbs hard and peaks just above the fray. Stain
-            // is now zero throughout -- the ochre in the lower body printed as a
-            // pair of bright vertical bars down the legs, which is exactly the
+            // item 4): wetness climbs hard and holds at the ceiling from the
+            // knee all the way through the ankle. It has to *hold* rather than
+            // peak-and-fall, because the haori's own cloud is now authored to
+            // fall away below the knee (0.86 then 0.62) -- that difference is
+            // the value step that makes the tube read as a leg inside a garment
+            // instead of the two merging into one column, which is the same
+            // lesson the grip cluster learned in D1.
+            //
+            // Stain is zero throughout -- the ochre in the lower body printed as
+            // a pair of bright vertical bars down the legs, which is exactly the
             // "bright vertical seam" item 3 fails on.
-            float[] wetness = {0.42f, 0.62f, 0.80f, 0.94f, 1.0f, 0.78f};
-            float[] stainBase = {0f, 0f, 0f, 0f, 0f, 0f};
+            float[] wetness = {0.50f, 0.72f, 0.92f, 1.0f, 1.0f, 1.0f, 0.88f};
+            float[] stainBase = {0f, 0f, 0f, 0f, 0f, 0f, 0f};
             ribbon(pts, halfWidth, dissolve, wetness, stainBase);
+        }
+
+        // -- feet: the part the matched-scale comparison says is missing -------
+
+        /**
+         * A small solid wedge on the foot bone, authored the way the grip
+         * cluster of D1 is and for the same reason: a foot at this framing is
+         * roughly 38 x 16 px, and the shader's fray band is an absolute width in
+         * pixels, so any authored dissolve at all on an object that size puts
+         * the whole object inside its own fray and deletes it. Small hard things
+         * get dissolve 0 and let the shader's own floor (0.22 * halfPx + 1.5,
+         * about 3 px here) do all the break-up they can afford.
+         *
+         * <p>It is also authored at the wetness ceiling. The reference resolves
+         * two feet at matched scale because they are the darkest marks on a pale
+         * wet ground, not because they are detailed; here they sit on the mist,
+         * which is the brightest region in the frame, so the value contrast is
+         * doing all the work.
+         *
+         * <p>{@code lateral} hangs the mass below the bone axis: the foot bone
+         * sits at the ankle, and the sole is a few centimetres under it.
+         */
+        private void buildFoot(Bone foot, float scale) {
+            RibbonPoint[] pts = {
+                    RibbonPoint.of(foot, -0.052f),   // heel
+                    RibbonPoint.of(foot, -0.012f),
+                    RibbonPoint.of(foot, 0.048f),
+                    RibbonPoint.of(foot, 0.104f),
+                    RibbonPoint.of(foot, 0.152f),    // toe
+            };
+            float[] halfWidth = scaled(scale, 0.046f, 0.052f, 0.045f, 0.034f, 0.019f);
+            float[] lateral = scaled(scale, -0.010f, -0.018f, -0.028f, -0.036f, -0.042f);
+            // Flat zero on both legs, and the first attempt at this got it
+            // wrong. frayPx is mix(0.22 * halfPx + 1.5, 34, dissolve^0.75) -- an
+            // absolute width in pixels -- and a foot is about 20 px across, so
+            // halfPx is 5. The far foot was authored at the 0.09 contrast floor
+            // the far leg and far sleeve carry, which buys a 7.3 px fray band on
+            // a strip with 4 px of half-width: the whole object sat inside its
+            // own fray and never appeared at all. Even the near foot's 0.04-0.05
+            // end caps were costing it its heel and its toe.
+            //
+            // This is the identical trap sheathedSword documents and it is worth
+            // restating: a contrast floor is a *value* device on a large soft
+            // mass and a delete key on a small hard one. The far foot recedes by
+            // being wetter-but-lighter than the near one, not by dissolving.
+            float[] dissolve = {0f, 0f, 0f, 0f, 0f};
+            float[] wetness = scale < 1f
+                    ? new float[] {0.68f, 0.74f, 0.74f, 0.74f, 0.66f}
+                    : new float[] {0.94f, 1.0f, 1.0f, 1.0f, 0.92f};
+            float[] stainBase = {0f, 0f, 0f, 0f, 0f};
+            ribbon(pts, halfWidth, lateral, dissolve, wetness, stainBase);
         }
 
         // -- sleeves: wide, hanging, heavy dissolve at the opening ------------
@@ -559,10 +709,42 @@ public final class SamuraiRig {
             // between shoulders and skull instead of a pale narrow stalk
             // (rig-fixes review, finding C).
             Bone[] chain = {hips, spine, chest, neck, head};
-            float[] hw = {0.105f, 0.110f, 0.120f, 0.080f, 0.074f};
+            // Debt D7. The neck rows were 0.080/0.074 half-width -- a 36 px
+            // column of very nearly constant width, so its two rails were a pair
+            // of near-parallel straight lines, and the review's exact words were
+            // "a pale vertical neck column whose left boundary is a straight
+            // line". A real neck narrows going up and the *back* of it is eaten
+            // by the collar, so the taper is now steep and asymmetric-by-fray
+            // rather than by shape.
+            float[] hw = {0.105f, 0.110f, 0.120f, 0.066f, 0.050f};
             // Ink gravity again: the trunk is the lightest thing in the figure
             // at the top and pools toward the hips, matching the haori over it.
-            float[] wet = {0.55f, 0.30f, 0.10f, 0.06f, 0.06f};
+            //
+            // The two neck rows are the exception, and D7 is why. At 0.06 the
+            // column landed near INK_INDIGO *and* sat under both of
+            // ink_skin.frag's low-wetness gates -- cream reserves open below
+            // 0.55 and the paper tooth below 0.45 -- so it printed as a mottled
+            // pale slab, brighter than anything else on the figure and reading
+            // as a gap rather than as a body part. At 0.44 it is a mid value:
+            // clearly lighter than the head above it and the jaw wedge across
+            // it, clearly darker than paper.
+            // The two neck rows land at luminance ~44 against a jaw wedge at 26
+            // and a hair mass at 31 -- roughly two thirds of the thirty-level
+            // cloth ramp, which is what makes the wedge read as a *separation*
+            // rather than as more head. 0.28 is as light as this material goes
+            // without reopening the low-wetness gates: `dark` starts at 0.14
+            // before wetness contributes at all, so the pooled half of the ramp
+            // is the only half a garment can reach, and anything paler than
+            // INK_INDIGO has to come from the cream reserves -- which is what
+            // printed the mottled pale slab the review measured.
+            float[] wet = {0.62f, 0.38f, 0.16f, 0.28f, 0.32f};
+            // Nonzero only at the neck. The trunk core is meant to be solid, but
+            // a strip whose fray band is the shader's 3 px floor reproduces its
+            // own polygon rail exactly, offset inward -- which is what printed
+            // the straight boundary. 0.06 buys about 8 px of fray band and a
+            // +-3 px wander on a 30 px column: enough that the contour is a
+            // noise contour, nowhere near enough to delete it.
+            float[] dis = {0f, 0f, 0f, 0.06f, 0.09f};
             int n = chain.length;
             short[] left = new short[n];
             short[] right = new short[n];
@@ -570,9 +752,9 @@ public final class SamuraiRig {
                 Vector2 o = skeleton.worldPosition(chain[i].index, new Vector2());
                 float t = i / (float) (n - 1);
                 float flow = angleToU(90f);
-                left[i] = builder.vertex(o.x - hw[i], o.y, 0f, t, 0f, wet[i], 0f, flow,
+                left[i] = builder.vertex(o.x - hw[i], o.y, 0f, t, dis[i], wet[i], 0f, flow,
                         chain[i].index, 1f, chain[i].index, 0f);
-                right[i] = builder.vertex(o.x + hw[i], o.y, 1f, t, 0f, wet[i], 0f, flow,
+                right[i] = builder.vertex(o.x + hw[i], o.y, 1f, t, dis[i], wet[i], 0f, flow,
                         chain[i].index, 1f, chain[i].index, 0f);
             }
             for (int i = 0; i < n - 1; i++) {
@@ -888,16 +1070,56 @@ public final class SamuraiRig {
             Vector2 c = skeleton.worldPosition(head.index, new Vector2());
             float cx = c.x + 0.012f;
             float cy = c.y + 0.048f;
-            // rig-fixes-3 item 7: a *directional* mass, not a radially uniform
-            // blob. Angle 0 is +X, the way the figure faces. Three things carry
-            // the read at 45 px: a solid opaque crown that bulges up and back
-            // (the hair mass), a clean interruption on the jaw side at 225-300
-            // where the profile cuts in and the neck takes over, and the topknot
-            // as a separate lobe below.
-            float[] angle =  {0f, 25f, 50f, 75f, 100f, 125f, 150f, 175f, 200f, 225f, 250f, 275f, 300f, 330f};
-            float[] radius = {0.128f, 0.132f, 0.142f, 0.152f, 0.162f, 0.170f, 0.167f, 0.150f,
-                              0.127f, 0.104f, 0.094f, 0.114f, 0.112f, 0.122f};
-            headLobe(head, cx, cy, angle, radius, 0.55f, 0f, 0.02f, 0.62f);
+            // rig-fixes-3 item 7 gave this a *directional* mass rather than a
+            // radially uniform blob, at 25-30 degree angular resolution. Debt
+            // D7 is that that is not enough: at 25 degrees the front quadrant
+            // gets four samples over the whole of brow, nose, lip and chin, so
+            // the profile can only ever be a smooth arc and the head reads as a
+            // dark blob with a hat.
+            //
+            // STYLE.md 4b.3 asks for brow-nose-lip-chin as *one continuous
+            // contour*. That is a silhouette property -- it is this mesh, not
+            // System 3b's face -- and it needs samples where the contour turns.
+            // The front quadrant (angles 340 through 60) now carries eight of
+            // the twenty-two samples and the back half keeps its old coarse
+            // spacing, because nothing there turns.
+            //
+            // Reading down the face side from the crown: forehead (58, 40),
+            // brow ridge (24), then the bridge *recesses* at 12 -- a smaller
+            // radius between two larger ones is a concave notch, and that notch
+            // is the single mark that makes a profile read as a face rather
+            // than an egg -- then the nose juts at 0 and 352, the lip recesses
+            // at 338, the chin juts at 324, and 308 cuts back hard under the
+            // jaw. 272-252 is the under-jaw and nape, which is where the neck
+            // takes over and where the wedge below attaches.
+            float[] angle =  {  0f,  12f,  24f,  40f,  58f,  78f, 100f, 122f,
+                              145f, 168f, 190f, 212f, 232f, 252f, 272f, 290f,
+                              308f, 324f, 338f, 352f};
+            float[] radius = {0.152f, 0.134f, 0.141f, 0.146f, 0.152f, 0.158f, 0.164f, 0.170f,
+                              0.172f, 0.166f, 0.152f, 0.134f, 0.112f, 0.094f, 0.088f, 0.100f,
+                              0.114f, 0.146f, 0.132f, 0.147f};
+            headLobe(head, cx, cy, angle, radius, 0.55f, 0f, 0.02f, 0.78f);
+
+            // ...and the lobe alone cannot carry that contour, which is why the
+            // first attempt at this only moved the numbers. ink_skin.frag sizes
+            // its fray band off the strip's own thickness -- 0.22 * halfPx + 1.5
+            // -- and the head is a 68 px disc, so halfPx is 34 and the rim frays
+            // over 10 px with a +-4 px wander on top. A nose is 6 px of
+            // protrusion at this framing. The band was eating the feature whole.
+            //
+            // This is the same problem the grip cluster hit in D1 and it takes
+            // the same answer: a small hard mark gets its own narrow strip, so
+            // its half-width and therefore its fray floor are small. The profile
+            // strip is 12 px across, which buys a 2.8 px band -- fine enough to
+            // keep a nose and a chin.
+            buildFaceEdge(head, cx, cy);
+
+            // The jaw-neck wedge of STYLE.md 4b.3, and the second half of D7.
+            // A profile head does not sit on a column; it overhangs one, and the
+            // dark under-jaw is what separates the two. Without it the neck runs
+            // straight up into the skull and the eye has nothing to tell it
+            // where the head ends -- which is the "headless with a hat" read.
+            buildJawWedge(head, skeleton.bone("neck"), cx, cy);
 
             // Topknot: offset up and back far enough that it clears the skull
             // outline and reads as its own lobe, but overlapping enough that it
@@ -907,7 +1129,7 @@ public final class SamuraiRig {
             float ly = cy + MathUtils.sinDeg(140f) * 0.146f;
             float[] knotAngle = {0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f};
             float[] knotRadius = {0.070f, 0.078f, 0.076f, 0.082f, 0.074f, 0.064f, 0.062f, 0.066f};
-            headLobe(head, lx, ly, knotAngle, knotRadius, 0.50f, 0f, 0.05f, 0.70f);
+            headLobe(head, lx, ly, knotAngle, knotRadius, 0.50f, 0f, 0.05f, 0.88f);
         }
 
         /**
@@ -943,6 +1165,103 @@ public final class SamuraiRig {
                 int k2 = (k + 1) % n;
                 builder.triangle(center, inner[k], inner[k2]);
                 builder.quad(inner[k], inner[k2], outer[k2], outer[k]);
+            }
+        }
+
+        /**
+         * The front contour of STYLE.md 4b.3 -- brow, nose, lip, chin as one
+         * continuous line -- as a narrow strip laid over the front arc of the
+         * skull lobe, running from the forehead round to under the jaw.
+         *
+         * <p>Its outer rail is the profile and it sits a few percent proud of
+         * the lobe beneath, so the union's silhouette is this strip's edge
+         * rather than the lobe's. The inner rail is well inside the lobe, which
+         * is what welds the two: two strips that meet rail-to-rail each lose
+         * their own fray band and print a bright seam between them, which is
+         * exactly what the first version of the jaw wedge did.
+         *
+         * <p>Angles are measured with 0 = +X, the way the figure faces, and run
+         * negative down the face. The feature that does the work is the notch at
+         * 10 degrees: a smaller radius between the brow above and the nose tip
+         * below is a concave bridge, and a concave bridge is the one mark that
+         * separates a profile from an egg. Everything else here -- the lip
+         * setback at -22, the chin at -34, the hard cut under it at -50 -- is
+         * about 6 px of relief, which is what the reference carries at matched
+         * scale.
+         */
+        private void buildFaceEdge(Bone head, float cx, float cy) {
+            float[] a = { 42f,  25f,  10f,  -2f, -12f, -22f, -34f, -50f, -66f};
+            float[] r = {0.150f, 0.146f, 0.134f, 0.162f, 0.130f, 0.126f, 0.154f, 0.106f, 0.090f};
+            int n = a.length;
+            short[] outer = new short[n];
+            short[] inner = new short[n];
+            for (int i = 0; i < n; i++) {
+                float t = i / (float) (n - 1);
+                float ca = MathUtils.cosDeg(a[i]);
+                float sa = MathUtils.sinDeg(a[i]);
+                float rOut = r[i] * 1.02f;
+                float rIn = r[i] * 0.58f;
+                float flow = angleToU(a[i] - 90f);   // the stroke runs down the face
+                // Zero dissolve the whole way. STYLE.md 4b.1: the face is exempt
+                // from the ink dissolve, because the dissolve exists to destroy
+                // edges and this is the one edge in the figure that carries
+                // identity.
+                outer[i] = builder.vertex(cx + rOut * ca, cy + rOut * sa, 1f, t, 0f, 0.60f, 0f, flow,
+                        head.index, 1f, head.index, 0f);
+                inner[i] = builder.vertex(cx + rIn * ca, cy + rIn * sa, 0f, t, 0f, 0.66f, 0f, flow,
+                        head.index, 1f, head.index, 0f);
+            }
+            for (int i = 0; i < n - 1; i++) {
+                builder.quad(inner[i], inner[i + 1], outer[i + 1], outer[i]);
+            }
+        }
+
+        /**
+         * The dark wedge of STYLE.md 4b.3 that separates head from body, hung
+         * off the head lobe's lower contour between the chin (angle 324) and
+         * the nape (252) and dropping toward the collar.
+         *
+         * <p>Two things make it work and both are measured rather than shaped.
+         * It is authored at the wetness ceiling, so it is the near-black end of
+         * the ramp against a neck column the trunk now authors at 0.44 -- about
+         * a third of the thirty-level cloth ramp, where D1's post-mortem
+         * established that four levels is invisible. And its front point sits
+         * roughly 19 px forward of the throat rail, so against open paper the
+         * silhouette turns a corner there: that corner is the jaw line, and it
+         * is the only thing at this scale that says the head overhangs the neck
+         * rather than resting on it.
+         *
+         * <p>Deepest at the back and shallowest under the chin, which is the way
+         * the shadow actually falls and which leaves a sliver of neck visible in
+         * front of it. A wedge that reached the collar everywhere would delete
+         * the neck instead of explaining it.
+         */
+        private void buildJawWedge(Bone head, Bone neck, float cx, float cy) {
+            // The top rail runs ~8 px *inside* the lobe, not along its boundary.
+            // Authored flush the two strips each lost their own fray band and a
+            // bright seam opened between them, which printed the wedge as a
+            // detached lozenge floating under the chin -- worse than no wedge.
+            float[] tx = { 0.116f,  0.062f,  0.008f, -0.040f};
+            float[] ty = {-0.046f, -0.052f, -0.052f, -0.050f};
+            float[] bx = { 0.090f,  0.040f, -0.008f, -0.048f};
+            float[] by = {-0.112f, -0.132f, -0.138f, -0.128f};
+            // Zero through the body of the wedge. It is 36 x 15 px, the same
+            // size class as the grip cluster, and the fray band is an absolute
+            // width in pixels: anything but zero here eats the whole mark.
+            float[] dis = {0.05f, 0f, 0f, 0.08f};
+            int n = tx.length;
+            short[] hi = new short[n];
+            short[] lo = new short[n];
+            for (int i = 0; i < n; i++) {
+                float s = i / (float) (n - 1);
+                float flow = angleToU(200f - 30f * s);
+                hi[i] = builder.vertex(cx + tx[i], cy + ty[i], s, 0f, dis[i], 1f, 0f, flow,
+                        head.index, 1f, head.index, 0f);
+                lo[i] = builder.vertex(cx + bx[i], cy + by[i], s, 1f, dis[i], 0.96f, 0f, flow,
+                        head.index, 0.72f, neck.index, 0.28f);
+            }
+            for (int i = 0; i < n - 1; i++) {
+                builder.quad(hi[i], hi[i + 1], lo[i + 1], lo[i]);
             }
         }
 

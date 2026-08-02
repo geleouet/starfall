@@ -193,6 +193,74 @@ Any later refactor that breaks one of these is a regression, not a trade.
 
 ---
 
+## Corrections from the pass-7 debt-paydown (D5, D7, D3, D4)
+
+Measured against `out/captures/s1-p7-bind/` and `out/captures/s1-p7-swing/`, with
+`out/captures/s1-p6-bind/frame_000.png` as the before. Three of the four items in
+scope needed correcting, and one of them was materially wrong.
+
+**D3's edge complaint was already discharged by pass 6 and should not be re-fought.**
+D3 was recorded against pass 5, where the shoulder transition was three pixels with
+paper holding 218-222 right up to the step. Swept across eighteen scanlines of the
+upper silhouette on the p6 capture, the paper-to-ink transition is 1-76 px wide and
+the halo runs 10-131 px before it. It is no longer a polygon cut and STYLE.md 3.2 is
+not "absent above the waist entirely".
+
+**D3's remaining half — "the interior, not the edge" — does not survive measurement
+either, in the direction it was written.** The document names the hem passage at
+(420-560, 350-450) as "the best square inch in the capture and the target for the
+rest of the figure". Measured on strictly *interior* windows, with no edge or paper
+in them, the p6 numbers are:
+
+| window | mean | std | std below 9 px |
+|---|---|---|---|
+| shoulder mantle interior | 58.2 | 11.0 | 4.3 |
+| skirt interior | 48.9 | **7.1** | **3.7** |
+
+The hem interior is **flatter than the mantle interior**. What made that square inch
+look like "genuinely wet, dilute, cloudy" is its frayed boundary and its fleck field
+— which is D4's territory, not D3's — and the large std the whole-window measurement
+reported was the ink/paper boundary running through the window. The mantle was still
+worth improving and pass 7 does improve it (std 11.0 -> 12.0, fine-scale 4.3 -> 5.1,
+mean unchanged at 58.1), but *anyone who chases the hem's interior as a target is
+chasing a measurement artefact*.
+
+**D4 was substantially discharged by pass 6 too.** The mark field runs octaves at
+73/31/15/9.4/5.6/3.5 px, the fray wobble adds 5.0 and 3.2 px, and a separate splatter
+cut reads only the two finest. Detached islands on the p6 capture measure 1.1 to 18.2
+px equivalent diameter with twelve of twenty-eight at or below 2 px — a real size
+distribution, not "smooth ellipses all roughly 8x6 px". The remaining headroom below
+3.5 px is not usable at this framing: STYLE.md 3b.1's own fade takes an octave to zero
+between 6 px and 2 px, so a 2.8 px octave arrives at 11% amplitude and a 2.3 px octave
+at 1%. **The floor is not the binding constraint; the fade is.** Pass 7 therefore added
+no octaves, which is the right answer to a warning that says "this is a number, not a
+design".
+
+**D5's largest single term was not in the shader or the mesh — it was the grass.**
+`PaperBackground`'s overlay pass draws grass strokes *over* the figure at luminance 163
+and up to 0.88 alpha, and they reached to world y=0.48, which is above the knee. Every
+stroke that crossed a leg lifted near-black ink to about 150. The "146 descending to
+the hem" in D5's own measurement is substantially grass painted on top of a figure that
+was already dark underneath. The second largest term was the figure's fog response
+(`alpha *= 1 - fog*0.20` with a mist that is *brighter* than the paper), and only the
+third was the mesh. D5 named the mist and the mesh; it did not name the overlay.
+
+**A plain bug, unrelated to any debt item.** `buildHakama` was authored with absolute
+distances along the bone chain and called with the near leg's lengths for both legs.
+The far leg's bones are 0.40/0.36 against the near leg's 0.44/0.40, so every row below
+the far knee landed past where that leg actually is and the last one at world y=0.037
+against a far sole at y=0.216 — the far leg rendered as a 40 px spike through its own
+foot into the ground. It is now parameterised by fractions of the real bone lengths.
+
+**The fray band is an absolute width in pixels, and this keeps biting.**
+`sheathedSword` already documents it; the feet hit it again. A foot is ~20 px across,
+so `halfPx` is 5 and a 0.09 dissolve — the same "contrast floor" the far leg and far
+sleeve carry harmlessly — buys a 7.3 px fray band and deletes the object outright. A
+contrast floor is a value device on a large soft mass and a delete key on a small hard
+one. **Small hard marks get dissolve 0 and recede by value instead.**
+
+---
+
 ## On contrast — a correction worth carrying forward
 
 The pass-5 frame reads washed out compared with pass 2, and the intuitive fix — darken the

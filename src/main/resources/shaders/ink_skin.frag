@@ -433,10 +433,49 @@ void main() {
     // decoration on top of a value it has already set. Authored 0.03 lands on
     // INK_INDIGO, the "dominant body/cloth tone" of STYLE.md 2.1; authored 1.0
     // lands on INK_BLACK.
+    // Debt D3's own correction, which is the part of it that is still true.
+    // "Make the shoulder look like the hem" is wrong advice about the *edge* --
+    // measured, the hem's edge is the harder of the two -- but it is exactly
+    // right about the interior, and the interior is still flat. Measured on the
+    // p6 bind capture over the shoulder mantle, luminance standard deviation is
+    // 11.2 with 5.8 of that below the 9 px scale, against 33-50 and 20-29 for
+    // every band from the chest down.
+    //
+    // The cause is in the line above. Every term that varies value is either
+    // multiplied by `wetness` (poolNoise) or is a pooling term, and pooling only
+    // ever darkens -- so cloth authored at the mantle's 0.03-0.20 has almost
+    // nothing to pool and receives almost no variation at all. It then lands
+    // just above 0.5 in the resolve's value mapping, which is the compressed
+    // half of that curve: 0.1 of pool is worth 14 luminance levels below 0.5 and
+    // 7 above it. Flat input into the shallow half of the ramp.
+    //
+    // So dry cloth gets its own zero-mean term, largest exactly where the
+    // pooling terms are smallest and gone by the time the cloth is wet. It is
+    // built from the two fields that already exist -- no new frequency enters
+    // the image, which matters because STYLE.md 3's postscript records that the
+    // last frequency artefact misdiagnosed as structural cost two passes.
+    // Zero-mean is the point: the debt is explicit that the upper figure reading
+    // washed out is a *coverage* fault and cannot be fixed, or caused, by value.
+    // This must move the variance and leave the mean alone.
+    //
+    // The field has to be contrast-expanded first, and the first version of
+    // this term did not do that and was worth almost nothing: it moved the
+    // mantle's standard deviation from 11.2 to 11.4. This shader already knows
+    // why -- "an fbm sum piles up around 0.5" -- and the raw mix is only about
+    // +-0.12 wide, so a 0.40 gain buys +-0.05 of `dark`, which lands inside the
+    // compressed half of the resolve's value curve and disappears. Expanded to
+    // roughly the same width `field` uses, and at a gain that carries the value
+    // across 0.5 into the *dilute* half where the curve is twice as steep, it
+    // is worth about seventeen luminance levels.
+    float dryField = clamp(0.5 + (mix(wash, marks, 0.35) - 0.5) * 2.60, 0.0, 1.0);
+    float dryVar = (1.0 - smoothstep(0.10, 0.52, wetness))
+                 * (dryField - 0.5) * 0.60;
+
     float dark = clamp(0.14
                      + wetness * (0.85 + 0.16 * poolNoise)
                      + blot * 0.16
-                     + hang * 0.10, 0.0, 1.0);
+                     + hang * 0.10
+                     + dryVar, 0.0, 1.0);
 
     // -- cream reserves (STYLE.md 3b.0, debt D3) ------------------------------
     // Pooling only ever darkens, and above the waist there is almost nothing to

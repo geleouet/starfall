@@ -286,7 +286,12 @@ public final class PaperBackground {
             // the same strokes read against the pale haze and against the dark
             // hem they cross.
             + "        float base = 0.02 + 0.035 * vnoise(vec2(w.x * 2.6, 1.0));\n"
-            + "        float len = 0.14 + 0.34 * vnoise(vec2(w.x * 0.75, 7.0));\n"
+            // Debt D5. These reached to world y = 0.48, which is above the near
+            // knee (0.53 is the joint, the shin runs 0.53 down to 0.13), so the
+            // strokes were crossing the entire lower leg rather than the hem.
+            // Shortened to reach y = 0.31, which crosses the ankle and the foot
+            // and leaves the shin alone.
+            + "        float len = 0.11 + 0.20 * vnoise(vec2(w.x * 0.75, 7.0));\n"
             + "        float lean = (vnoise(vec2(w.x * 5.5, 3.0)) - 0.5) * 0.55;\n"
             + "        float xs = w.x + (w.y - base) * lean;\n"
             + "        float blade = smoothstep(0.72, 0.94, vnoise(vec2(xs * 52.0, 2.0)))\n"
@@ -296,8 +301,23 @@ public final class PaperBackground {
             + "        float clump = (0.28 + 0.72 * smoothstep(0.20, 0.60, vnoise(vec2(w.x * 1.15, 11.0))))\n"
             + "                    * (0.60 + 0.40 * smoothstep(2.4, 0.0, abs(w.x)));\n"
             + "        float taper = mix(1.0, 0.35, smoothstep(base + len * 0.2, base + len, w.y));\n"
-            + "        a = clamp(blade, 0.0, 1.0) * up * down * clump * taper * 0.88;\n"
-            + "        col = mix(u_mist, u_inkIndigo, 0.42);\n"
+            + "        a = clamp(blade, 0.0, 1.0) * up * down * clump * taper * 0.62;\n"
+            // Debt D5, and this was the single largest bleaching term in the
+            // lower third -- larger than the fog and larger than the mesh. At
+            // mix 0.42 these strokes are luminance 163 and they were composited
+            // at up to 0.88 alpha *over the figure*, so every stroke that
+            // crossed the leg lifted near-black ink (26) to about 150. The
+            // measured "146 descending to the hem" of the debt record is
+            // substantially this, painted on top of a figure that was already
+            // dark underneath.
+            //
+            // Reference image 2 does draw grass across the figure's legs, which
+            // is where this came from and it is worth keeping -- but there the
+            // strokes are *darker* than the pale ground and lighter than the
+            // figure, so they read against both without erasing either. At 0.70
+            // they are luminance 112: still clearly visible on the mist, no
+            // longer able to bleach a leg.
+            + "        col = mix(u_mist, u_inkIndigo, 0.70);\n"
             + "    }\n"
             + "\n"
             + "    gl_FragColor = vec4(clamp(col, vec3(0.06), vec3(0.965)), clamp(a, 0.0, 1.0));\n"

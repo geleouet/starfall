@@ -196,12 +196,30 @@ void main() {
     // Shared with paper.frag through dev.starfall.render.Atmosphere, so the
     // figure fades into the same mist the paper shows.
     //
-    // The tint is 0.18 rather than 0.30 (item 7). All three bands sit on the
-    // figure's lower third, which is exactly where STYLE.md 3.4 wants the
-    // darkest ink in the picture, and a 30% lift toward #D6D2CE there was
-    // fighting the ink gravity this revision is trying to restore. Occlusion
-    // still reads: the paper behind is fogged by the same bands, and alpha
-    // still drops.
+    // Debt D5, and this is the largest single term in it. Measured on the p6
+    // bind capture, mean ink luminance ran 65 at the chest and 125-159 from the
+    // knee down, where references 1 and 2 put their single darkest passage
+    // exactly at the knee. Two of the three fog bands overlap across the whole
+    // lower leg, so `fog` saturates there, and the figure was paying for it
+    // twice: a 20% alpha cut let a mist that is *brighter than the paper*
+    // (250,241,208) show straight through the hem, and a 6% tint lifted what
+    // survived.
+    //
+    // The mistake is a depth mistake, not a strength one. STYLE.md 6 puts fog
+    // *between* depth layers and reserves "lose saturation and contrast and
+    // gain fog until they are barely more than a value shape" for **background**
+    // figures; in image 8 the foreground woman keeps a dark garment to the
+    // bottom of frame while the receding figures dissolve. The hero stands in
+    // front of these bands. So the bands keep their full strength on the paper
+    // -- the ground pass is untouched, the band geometry in
+    // dev.starfall.render.Atmosphere is untouched, and depth still reads,
+    // because a dark figure against a band of luminous mist is *more*
+    // separated from the ground than one against bare paper, not less.
+    //
+    // What is left on the figure is a residual: enough that it is demonstrably
+    // in the same air as everything else, far too little to erase it. When
+    // System 3 gives the lane real depth layers, the scale factor here is the
+    // knob a background figure turns back up.
     float fog = 0.0;
     for (int i = 0; i < 3; i++) {
         vec3 b = u_fogBands[i];
@@ -214,8 +232,15 @@ void main() {
         fog += b.z * (1.0 - smoothstep(0.0, 1.0, d));
     }
     fog = clamp(fog, 0.0, 1.0);
-    ink = mix(ink, u_fogColor, fog * 0.06);
-    alpha *= 1.0 - fog * 0.20;
+    // The tint is weighted by how dilute the passage is. A loaded black
+    // passage physically holds its value through thin mist and a dry frayed
+    // one does not, and it is the frayed hem that is *supposed* to dissolve --
+    // so the ink cloud at the knee keeps its density while the smoke below it
+    // still goes into the air. pool is signed around 0.5; 0.62 upward is the
+    // pooled half of the ramp.
+    float dense = smoothstep(0.52, 0.86, pool);
+    ink = mix(ink, u_fogColor, fog * 0.05 * (1.0 - 0.75 * dense));
+    alpha *= 1.0 - fog * 0.06 * (1.0 - 0.6 * dense);
 
     // Sub-LSB dither. The material buffer is 8-bit and several of the fields
     // above are smooth ramps across large areas; without this they quantise into
