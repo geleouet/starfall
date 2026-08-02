@@ -159,19 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — system 1 closed with logged debt; IK solvers landed; correcting my two spec errors",
+  updated: "2026-08-02 — system 1 spec errors corrected (part count 3 → 13); wiring IK to the rig next",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 1 — pass 3, giving the figure shoulders and the blade a material",
-    detail: "Two reviews have now failed this system, each with pixel measurements, and both " +
-            "corrected me on something I had diagnosed wrong. The top-ranked fix is the " +
-            "silhouette: shoulders measure 0.3x the hip span where every reference is about " +
-            "1.6x the other way, which is why the figure reads as a cloaked wraith rather than " +
-            "a samurai. The ink material revision is in flight now — merged coverage buffer to " +
-            "kill the torso banding, a real blade glow and swept trail, multi-octave dissolve, " +
-            "and chroma back on the ochre. The rig revision is specced and fires next."
+    title: "System 2 — wiring the IK solvers to the rig and reviewing them visually",
+    detail: "System 1 is closed at its five-pass cap with its debt recorded in " +
+            "<code>docs/system1-debt.md</code>, and the two defects that were my own " +
+            "specification errors have since been corrected — the figure now resolves 13 of the " +
+            "reference's 16 parts at matched scale, against 3 before. The IK solvers exist with " +
+            "83 tests and continuity proved by sweep, but they have never been wired to the " +
+            "actual rig or seen on screen. That, and their first visual review, is next."
   },
 
   systems: [
@@ -245,6 +244,66 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 1", kind:"build",
+      title:"Spec errors corrected — matched-scale part count goes from 3 to 13",
+      sheet:"out/captures/s1-p6-bind/frame_000.png",
+      sheetNote:"The bind pose, which is the honest test — swing frames overlay trail geometry " +
+                "that misled two earlier reviews into praising a blade that was twice too long.",
+      body:[
+        "Measured the way §11.0 now requires — reference image 1 downscaled to the same 378 px " +
+        "figure height — the reference resolves about 16 readable parts. Pass 5 resolved 3. This " +
+        "resolves <b>13</b>. Still absent: face, legs, feet and hair strands, which belong to " +
+        "Systems 3 and 3b and to the remaining debt.",
+
+        "<b>And the reason five passes missed this is not geometry.</b> A hand and a hilt have " +
+        "existed since rig revision 3 — correctly sized, correctly placed, drawn last. They were " +
+        "authored at wetness 0.50-0.72 against a sleeve at 0.52-0.85, and the cloth path resolves " +
+        "to a roughly 30-level ramp between the two ink tones. <b>Three marks four levels apart " +
+        "are one mark.</b> Value, not outline, is what makes a small part read — and my own " +
+        "instruction to \"verify the hand reads and enlarge or darken it if not\" pointed at the " +
+        "wrong lever entirely. The fix is an authored value and hue <i>sequence</i>: sleeve, warm " +
+        "hand, near-black tsuka, black tsuba, steel.",
+
+        "Built: the hand re-authored on the blade's axis so it actually sits on the grip; tsuka " +
+        "and tsuba as two distinct masses rather than one lozenge; the obi as three rails, because " +
+        "at this scale the dark/warm/dark sandwich is what reads and the outline is not; and a " +
+        "daisho skinned to the hips whose kojiri finishes 70-80 px <i>outside</i> the haori's back " +
+        "contour in open paper — the largest single silhouette gain in the pass.",
+
+        "The blade went from 0.77 to <b>0.40</b> of heel-to-crown, with thirteen rows so the " +
+        "kissaki actually resolves, a real profile taper to the yokote and then a point, sori " +
+        "scaled to 3% of nagasa, an asymmetric glow, and a hamon worth about 20 luminance levels. " +
+        "Blade, sheath and arc-trail now take the same fog attenuation as everything else — a " +
+        "weapon at full brightness inside a band that has erased the figure's own legs is not in " +
+        "the picture, it is on top of it."
+      ],
+      notes:[
+        { kind:"fix", label:"Coverage, which was the real diagnosis behind 'washed out'",
+          text:"Per-band coverage from chest to hem rose from 30/76/58/55/48/56/39% to " +
+               "34/78/67/61/57/62/43%. The value floor and ceiling held, anchoring was verified " +
+               "across swing frames 08-11, and the swing envelope is unchanged. This is the fix " +
+               "the previous review predicted would be needed — mass, not darkness." },
+        { kind:"crit", label:"The debt document was wrong in four places, and said so",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>\"The hem does this correctly\" — it does not.</b> " +
+               "Measured, the hem edge falls 213→140→68 in <i>two</i> pixels, harder than the " +
+               "shoulder. What makes that square inch good is its <i>interior</i>, not its edge, " +
+               "and the wet-bleed halo was absent everywhere rather than only above the waist. " +
+               "\"Make the shoulder look like the hem\" would not have fixed anything — the halo " +
+               "had to be built. Also: the blade did not literally run off frame (it ended at " +
+               "x≈821 of 960; the alpha taper dissolved the last 16% into paper), and the quoted " +
+               "octave periods were computed at the wrong pixels-per-unit. Neither changes the " +
+               "verdicts, and I would rather have the corrections than a report that agrees with me." },
+        { kind:"crit", label:"One item declined, with reasons I accept",
+          text:"Hairline tendrils shooting past the silhouette were declined on two grounds. " +
+               "Coverage is only evaluated inside rasterised triangles, so nothing can extend " +
+               "beyond authored geometry — that is mesh work, not a shader change. And the only " +
+               "cheap way to get thread-shaped peaks is a rotated stroke frame, which this " +
+               "project's own shader header records as having printed a fringe of radial spokes " +
+               "around the head and cost a review. Declining a request by citing the specific " +
+               "prior failure it would reproduce is exactly right." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 2", kind:"build", pass:1,
       title:"IK solvers land — continuity treated as a hard, testable requirement",
