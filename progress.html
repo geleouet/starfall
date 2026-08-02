@@ -246,6 +246,86 @@ const DATA = {
 
   log: [
     {
+      ts:"2026-08-02", system:"System 1", kind:"review", pass:3, verdict:"FAIL",
+      title:"Independent review of pass 3 — verdict HYBRID, and the architecture is to be demoted rather than kept or reverted",
+      body:[
+        "<b>The decisive finding, arrived at before the reviewer opened any source and confirmed " +
+        "by it afterwards: the merged buffer made the mesh <i>more</i> visible, not less.</b> The " +
+        "three rectangular bars through the torso are ribbon rails printing directly. The merge " +
+        "was built with max-blending on a topmost-wins basis, so each ribbon <i>replaces</i> its " +
+        "neighbour's value inside its own quad and the quad's rail prints as a hard step. Pass 2 " +
+        "had no such artefact for exactly the reason the refactor removed: per-ribbon alpha " +
+        "compositing <i>averaged</i> neighbours. The change I ordered to remove a visible mesh " +
+        "signature installed a louder one, then spent a full-screen resolve pass trying to blur " +
+        "it back out.",
+
+        "<b>And the metrics could never have settled the argument, because the two changes were " +
+        "bundled.</b> Pass 3 contains both the frequency correction and the architecture rewrite. " +
+        "The corrected octave frequencies live entirely on the material-space side and would have " +
+        "applied unchanged to pass 2's shading path. The reviewer goes further than the " +
+        "implementer did: pass 2's 2.5 px dry-brush octave <b>already violated the project's own " +
+        "written hard floor</b> — the anti-shimmer rule in §3b.1 that says no octave may " +
+        "contribute below about a 2 px period. The fix was already written down. It did not need " +
+        "an architecture.",
+
+        "<b>The cut line is unusually clean, and it is what makes this recoverable:</b> almost " +
+        "everything pass 3 improved lives in the material-space shader, and almost everything it " +
+        "broke lives in the merge rule and the screen-space resolve. So the verdict is neither " +
+        "keep nor revert but <b>demote</b>. The coverage buffer survives, supplying exactly two " +
+        "things — the wide wet bleed, which is genuinely worth keeping and which pass 2 simply " +
+        "cannot produce, and a small bounded bias on the dissolve threshold. Everything that " +
+        "actually cuts the silhouette goes back to full-resolution material-space evaluation, " +
+        "carrying pass 3's corrected frequencies.",
+
+        "The reviewer also notes that a \"keep pass 3 and fix its regressions\" path converges on " +
+        "the same destination: to fix the blocks you must make the merge blend rather than " +
+        "replace, and to fix the melted-wax edges you must restore a full-resolution " +
+        "high-frequency field as the dominant edge cutter — do both and you have rebuilt pass 2's " +
+        "edge behaviour on top of the merged buffer. There is no version of keeping pass 3 that " +
+        "is not this."
+      ],
+      notes:[
+        { kind:"crit", label:"My mistake, and its cost",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>I specified a fix architecturally instead of asking what the artefact actually was.</b> " +
+               "I had a measurement — a regular 3-5 pixel period, pixel-identical across frames — " +
+               "which points straight at a frequency near the pixel grid, and I reasoned my way to " +
+               "a compositing story instead. Worse, the project's own style bible already " +
+               "contained the rule that would have caught it. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>And I had not put this project under version control</b>, " +
+               "so pass 2's shader was overwritten with no backup and cannot simply be restored — " +
+               "its behaviour has to be rebuilt from the reviewer's description. A repository now " +
+               "exists and the current state is committed; that will not happen twice." },
+        { kind:"fix", label:"Carry forward regardless of path — seven things pass 3 got right",
+          text:"The corrected octave frequencies (the actual banding fix). The directional-smear " +
+               "noise that replaced the rotating stroke frame, which genuinely killed the radial " +
+               "fringe at the head. Two-dimensional stain gating, so stains form isolated blooms " +
+               "instead of per-row horizontal stripes. The stronger stain colour — right hue, " +
+               "broken boundary. The blade glow sheath, a real §5 requirement newly satisfied. " +
+               "The wide bleed's roughly 50 px reach against a 10-15 px fray, which is the ratio " +
+               "the style asks for and the one thing that justifies keeping the offscreen buffer " +
+               "at all. And the idea of a two-dimensional distance-to-silhouette — keep the field, " +
+               "change how it is used." },
+        { kind:"crit", label:"The most interesting thing in the review",
+          text:"The \"black dandelion\" fringe that two reviews flagged as a defect, and that pass " +
+               "3 correctly fixed, <b>was reading at this framing as a wind-blown topknot</b> — " +
+               "and the reviewer calls it the single most reference-accurate feature in any " +
+               "capture so far. It was a fortuitous artefact standing in for hair that System 1 " +
+               "does not own. The fix is right and the loss is real, so it is now a budgeted " +
+               "requirement for System 3 rather than an accident to be mourned. Also worth " +
+               "recording: the earlier \"torn wet cardboard\" criticism of pass 2 was fair, but " +
+               "cardboard is a mark-making edge and a thresholded gaussian is a lava lamp. " +
+               "Cardboard is much closer to ink than wax is, and is the better thing to iterate from." },
+        { kind:"crit", label:"Staging — the part that matters more than the label",
+          text:"Step one on its own: rebuild the full-resolution material-space shading path, " +
+               "carrying <i>only</i> the corrected frequencies, then capture and review. That " +
+               "isolates my diagnosis against the implementer's as a testable claim rather than an " +
+               "argument, and it is the state to ship if everything after it fails. Step two, as a " +
+               "separately reviewable change: reintroduce the coverage buffer for the bleed and a " +
+               "bounded threshold bias only. The two must not be folded together again — bundling " +
+               "them is what made pass 3 unattributable." }
+      ]
+    },
+    {
       ts:"2026-08-02", system:"System 1", kind:"build", pass:3,
       title:"Pass 3 — the metric improved and the image got worse",
       sheet:"out/captures/s1-p3-swing/contact-sheet.png",
