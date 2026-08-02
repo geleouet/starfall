@@ -1,17 +1,24 @@
-// Fragment stage for the hair ribbons of STYLE.md 4.
+// Fragment stage for the hair of STYLE.md 4.
 //
-// Three jobs, in order of how much they matter:
+// Three marks, in one shader, selected by v_mode. They are three marks rather
+// than one parameterised mark because the pass-1 review's whole finding was that
+// hair is *bimodal* -- "a 30-55 px near-opaque mass, plus 1-2 px hairlines
+// peeling off it, with nothing in between" -- and a single path with a width
+// uniform is exactly how a pass ends up authoring the register in between, which
+// reads as cord.
 //
-//  1. Feather the ribbon across its width. STYLE.md 3 opens with "nothing in
-//     this game has a hard edge except the blades", and a 4 px ribbon with two
-//     hard rails is two hard edges. The falloff runs to zero at the rails, so
-//     the mark has no boundary of its own anywhere.
-//
-//  2. Break the ink up along the strand, and break the last third of it into
-//     separate flecks so the tip reads as a brush leaving the paper rather than
-//     as a line being cut off.
-//
-//  3. Fade into the same mist everything else does.
+//   MODE_BLEED (2)    STYLE.md 3.2's wet bleed. Wide, very soft, no threshold of
+//                     any kind. Drawn under the mass so the mass sits *in* the
+//                     paper rather than on it.
+//   MODE_MASS (0)     The plume. A real plateau across its middle at INK_BLACK,
+//                     a shoulder, and a rail eroded by the material noise so the
+//                     silhouette breaks into flecks before it vanishes
+//                     (STYLE.md 3.1). Dry-brush streaks run *along* the stroke
+//                     (3.3) and the trailing rail pools darker (3.4).
+//   MODE_HAIRLINE (1) One hair. At roughly a pixel across there is no room for
+//                     an interior, so all it has is a feathered cross-section, a
+//                     fleck threshold along its length, and a root that emerges
+//                     rather than starts.
 //
 // -- material-space anchoring (STYLE.md 3.5) --------------------------------
 //
@@ -25,14 +32,24 @@
 //
 // -- the frequency budget (STYLE.md 3b.1) -----------------------------------
 //
-// Two octaves, and their periods are declared rather than tuned by eye. At the
-// capture framing the camera covers 3.0 world units over 540 px, so one world
-// unit is 180 px. The coarse octave samples arc * 5.5, i.e. one noise cell per
-// 0.182 units = 33 px, and value noise's characteristic wavelength is about two
-// cells, so it runs at ~65 px. The fine octave is 11.0, i.e. 33 px. Nothing here
-// is anywhere near the 2 px floor, and deliberately so: a hair ribbon is 2-5 px
-// across, so an along-strand octave finer than about 8 px would be shimmer on an
-// object with no room to hide it.
+// At capture framing the camera covers 4.91 world units over 960 px, so one
+// world unit is 196 px, and value noise's characteristic wavelength is about two
+// cells. Every octave below, in world-space period and then in pixels:
+//
+//   along, coarse    arc * 5.5    0.182 u   36 px cell    71 px wavelength
+//   along, fine      arc * 11.0   0.091 u   18 px cell    36 px wavelength
+//   along, dissolve  arc * 22.0   0.045 u    9 px cell    18 px wavelength
+//   along, streak    arc * 2.2    0.455 u   89 px cell   178 px wavelength
+//   across, mass     w   * 33.0   0.030 u    6 px cell    12 px wavelength
+//   across, streak   w   * 60.0   0.017 u    3 px cell     7 px wavelength
+//
+// The finest is 7 px, well clear of 3b.1's 2 px floor, and deliberately so: a
+// mass is 30-50 px across and a hairline is one, so an across-octave finer than
+// this would be shimmer on an object with no room to hide it. The across terms
+// are scaled by the *world* half-width rather than by the rail, so their period
+// is the same on every strand -- scaling by the rail made the fleck threshold cut
+// a band right across the ribbon, invisible on a wisp and a stack of hard-edged
+// rectangular blocks on the widest mass.
 //
 // The time term shifts the coarse octave by 0.09 cells per second, so a full
 // pattern turnover takes about eleven seconds -- STYLE.md 3.6's "several
@@ -43,11 +60,13 @@ precision highp float;   // the fract()-based hashes below smear badly at medium
 #endif
 
 varying vec3 v_mat;       // x seed, y arc length, z s along the strand
+varying float v_mode;
 varying vec4 v_color;
 varying float v_across;
 varying float v_subpixel;
 varying vec2 v_world;
 varying float v_halfWidth;
+varying float v_halfPx;
 
 uniform float u_time;
 uniform vec3 u_fogColor;
@@ -95,52 +114,100 @@ void main() {
     float seed = v_mat.x;
     float arc = v_mat.y;
     float s = v_mat.z;
-
-    // Across the ribbon as well as along it, and measured in world units rather
-    // than in rails. A noise argument that ignores the width is constant across
-    // the whole cross-section, so the fleck threshold cuts a *band* right across
-    // the ribbon: on a 2 px wisp that is invisible and on the 17 px scalp mass
-    // it printed a stack of hard-edged rectangular blocks. Scaling by the real
-    // half-width instead of by the rail keeps the world-space period the same on
-    // every strand, which is what STYLE.md 3b.1 requires -- on the widest strand
-    // the across octaves run at about 11 px and 7 px, and on a hairline wisp the
-    // term is a fraction of a cell and contributes nothing at all.
     float acrossW = v_across * v_halfWidth;
-    float n = 0.62 * vnoise(vec2(seed + acrossW * 18.0, arc * 5.5 + u_time * 0.09))
-            + 0.38 * vnoise(vec2(seed * 1.7 + 11.3 + acrossW * 30.0, arc * 11.0));
+    float rail = 1.0 - abs(v_across);   // 1 at the spine, 0 at the rail
 
-    // Across the ribbon. Zero at both rails, so the mark never draws its own
-    // boundary anywhere. A power curve rather than a smoothstep plateau: a
-    // 4 px ribbon with a flat middle and a short shoulder still reads as a band
-    // with two edges, and STYLE.md 3's first line is that nothing in this game
-    // has a hard edge except the blades. This has no flat part at all.
-    float e = clamp(1.0 - v_across * v_across, 0.0, 1.0);
-    float edge = pow(e, 0.55);
+    vec3 ink = v_color.rgb;
+    float a;
 
-    // Coverage along the strand. Ink skips everywhere -- the first version only
-    // thresholded the last 45% and the first half of every strand came out as a
-    // flat band, which at 7x was unmistakably a polygon rather than a brush
-    // mark. So the threshold starts at 0.20 and climbs to 0.78, and by the tip
-    // the strand is a run of separate flecks rather than a line being cut off.
-    float tip = smoothstep(0.42, 1.0, s);
-    float thr = 0.15 + 0.62 * tip;
-    float cut = smoothstep(thr - 0.19, thr + 0.19, n);
+    if (v_mode > 1.5) {
+        // -- STYLE.md 3.2, the wet bleed -----------------------------------
+        //
+        // "Outside the dissolve band, a low-alpha halo of the garment colour
+        // extends several pixels further, blurred, like pigment wicking into
+        // damp paper. This halo must be *softer and larger* than the dissolve
+        // band, so the figure reads as sitting *in* the paper rather than on
+        // it." No threshold, no fleck, no rail: a power falloff and a slow
+        // bloom, which is the only shape a wicking front has.
+        //
+        // The review measured pass 1's hair going paper-to-core in one pixel
+        // with no halo at all, beside a garment transitioning over 1-76 px
+        // behind a 10-131 px halo, and called the hair "the only thing on the
+        // figure with a hard edge". At 2.6x the mass's half-width this halo runs
+        // 25-30 px past the plume's own shoulder.
+        float bloom = 0.55 + 0.90 * vnoise(vec2(seed * 1.9 + 4.1, arc * 3.1 + u_time * 0.05));
+        a = v_color.a * pow(rail, 1.9) * bloom;
+    } else if (v_mode > 0.5) {
+        // -- one hair -------------------------------------------------------
+        float n = 0.62 * vnoise(vec2(seed + acrossW * 18.0, arc * 5.5 + u_time * 0.09))
+                + 0.38 * vnoise(vec2(seed * 1.7 + 11.3, arc * 11.0));
 
-    // The root does not end; it emerges. Without this the first row of the
-    // ribbon is a flat cap sitting on open paper -- a straight edge, drawn
-    // perpendicular to the strand, on the one object in the figure whose whole
-    // job is to have no boundary.
-    float root = smoothstep(0.0, 0.055, s);
+        // Across the hair. Zero at both rails, so the mark never draws its own
+        // boundary anywhere. A power curve rather than a smoothstep plateau: at
+        // roughly a pixel across, a flat middle with a short shoulder still
+        // reads as a band with two edges.
+        float e = clamp(1.0 - v_across * v_across, 0.0, 1.0);
+        float edge = pow(e, 0.55);
 
-    float a = v_color.a * v_subpixel * edge * cut * root * (0.74 + 0.30 * n);
+        // Coverage along the hair. Ink skips everywhere, and by the tip the hair
+        // is a run of separate flecks rather than a line being cut off.
+        float tip = smoothstep(0.45, 1.0, s);
+        float thr = 0.14 + 0.60 * tip;
+        float cut = smoothstep(thr - 0.20, thr + 0.20, n);
 
-    // Value varies with the same field, so a strand is not a flat fill even
-    // where it is only two pixels wide -- STYLE.md 3b.5's first anti-pattern.
-    vec3 ink = v_color.rgb * (0.88 + 0.20 * n);
+        // The root does not end; it emerges. Without this the first row of the
+        // ribbon is a flat cap drawn perpendicular to the hair, on the one
+        // object in the figure whose whole job is to have no boundary.
+        float root = smoothstep(0.0, 0.05, s);
+
+        a = v_color.a * v_subpixel * edge * cut * root * (0.78 + 0.28 * n);
+        ink *= 0.88 + 0.20 * n;
+    } else {
+        // -- the mass -------------------------------------------------------
+        float n = 0.62 * vnoise(vec2(seed + acrossW * 33.0, arc * 5.5 + u_time * 0.09))
+                + 0.38 * vnoise(vec2(seed * 1.7 + 11.3 + acrossW * 33.0, arc * 11.0));
+
+        // STYLE.md 3.1: the silhouette breaks into discrete brush flecks before
+        // it vanishes, over a soft band. The rail is *eroded* by the noise
+        // rather than thresholded at it, so the boundary wanders in and out by
+        // several pixels and takes the shoulder with it; the erosion grows
+        // toward the tip, so a plume ends by coming apart rather than by
+        // stopping.
+        float dis = vnoise(vec2(seed * 2.3 + 7.7 + acrossW * 33.0, arc * 22.0 + u_time * 0.06));
+        float erode = (0.10 + 0.40 * s) * dis * dis;
+
+        // A plateau, which is what "near-opaque mass" means and what pass 1 had
+        // nowhere: its widest ribbon was a dome, so even 17 px of authored width
+        // was never solid anywhere but on its centre line. The shoulder is
+        // stated in pixels and converted, so it is 3 px on the mass and cannot
+        // swallow a narrower mark whole.
+        float sh = clamp(3.0 / max(v_halfPx, 0.5), 0.12, 0.80);
+        float body = smoothstep(0.0, sh, rail - erode);
+
+        // Coverage along the plume: solid through the first half, breaking up
+        // over the last third. STYLE.md 3.1's smoothstep band is ~0.12 wide, so
+        // flecks have feathered edges rather than aliased ones.
+        float tip = smoothstep(0.52, 1.0, s);
+        float thr = 0.08 + 0.66 * tip;
+        float cut = smoothstep(thr - 0.13, thr + 0.13, n);
+
+        // STYLE.md 3.3: dry-brush breakup *aligned with the stroke*. The along
+        // term is very coarse and the across term is fine, so the field is a set
+        // of streaks running down the plume rather than a blotch field. Kept
+        // shallow on purpose -- it must read as ink skipping, not as holes.
+        float streak = vnoise(vec2(arc * 2.2 + seed, acrossW * 60.0));
+
+        // STYLE.md 3.4: value pooling. Ink collects at the trailing edge of a
+        // wash, so the underside rail is darker than the spine.
+        float pool = 0.86 + 0.14 * smoothstep(-0.2, -1.0, v_across);
+
+        a = v_color.a * v_subpixel * body * cut * (0.86 + 0.18 * streak);
+        ink *= pool * (0.92 + 0.14 * streak) * (0.94 + 0.12 * n);
+    }
 
     float fog = fogAt(v_world) * u_fogStrength;
     ink = mix(ink, u_fogColor, 0.55 * fog);
     a *= 1.0 - 0.45 * fog;
 
-    gl_FragColor = vec4(ink, a);
+    gl_FragColor = vec4(ink, clamp(a, 0.0, 1.0));
 }

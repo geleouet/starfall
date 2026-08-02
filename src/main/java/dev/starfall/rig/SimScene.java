@@ -77,7 +77,7 @@ public class SimScene implements Scene {
         // half a body-length behind the head and the knockback carries the whole
         // figure another 0.55 units the same way, and open paper behind the
         // figure is where the wisps do their work.
-        float cx = kind == SimScript.Kind.EXTREME ? -0.22f : -0.06f;
+        float cx = kind == SimScript.Kind.SWAY ? -0.06f : -0.22f;
         camera.position.set(cx, 1.02f, 0f);
         camera.update();
     }

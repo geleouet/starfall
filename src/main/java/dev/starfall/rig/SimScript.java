@@ -48,11 +48,45 @@ public final class SimScript {
         /** The aesthetic scene: a weight shift with one smooth reversal, under a steady breeze. */
         SWAY,
         /** STYLE.md 7.2: two hard reversals, an impact, a knockback drift, and a long settle. */
-        EXTREME
+        EXTREME,
+        /**
+         * STYLE.md 7.2's overshoot test, and nothing else: <b>one impulse, with
+         * every ambient input switched off</b>.
+         *
+         * <p>This scene exists because the pass-1 review refused to grade the
+         * one it was offered, and was right to. Two things were wrong with
+         * measuring "at most one soft return" on {@link #EXTREME}:
+         *
+         * <ul>
+         *   <li>the knockback drives in the <em>same direction</em> as the steady
+         *       breeze, and the breeze is never switched off, so the response and
+         *       the driver are collinear and inseparable;</li>
+         *   <li>the 60 Hz window that was delivered is pure acceleration -- every
+         *       tracked region's speed rises monotonically to the last frame --
+         *       so there is no arrival, no settle and no return in it at all.</li>
+         * </ul>
+         *
+         * <p>7.2 now says so in as many words: "Kill the ambient input, apply one
+         * impulse, and count the returns." Here the figure stands still under
+         * dead air until t = 1.0, takes one strike, and is then left alone for
+         * three seconds. There is no steady breeze, no gust sinusoid and no
+         * per-strand turbulence, so every motion in the capture after t = 1.9 is
+         * the simulation returning to rest and the count is a question with an
+         * answer.
+         *
+         * <p>It is a <b>measurement rig</b>, and it carries exactly the narrow
+         * exemption {@code docs/system2-debt.md} grants {@code ik-extreme}: it is
+         * not obliged to answer the one-sentence test as a composition, because
+         * dead air is not a condition any reference is painted in. It <b>is</b>
+         * obliged never to produce a frame violating 7.2. The exemption is from
+         * composition, not from the aesthetic.
+         */
+        IMPULSE
     }
 
     private static final float SWAY_DURATION = 4.0f;
     private static final float EXTREME_DURATION = 4.4f;
+    private static final float IMPULSE_DURATION = 4.6f;
 
     // -- propagation delays, STYLE.md 7.0 point 1 and 7.1 --------------------
     //
@@ -159,7 +193,23 @@ public final class SimScript {
     }
 
     public static float durationOf(Kind kind) {
-        return kind == Kind.SWAY ? SWAY_DURATION : EXTREME_DURATION;
+        return switch (kind) {
+            case SWAY -> SWAY_DURATION;
+            case EXTREME -> EXTREME_DURATION;
+            case IMPULSE -> IMPULSE_DURATION;
+        };
+    }
+
+    /**
+     * How much of each strand's own turbulence this scene runs. 1 everywhere
+     * except {@link Kind#IMPULSE}, which is 0.
+     *
+     * <p>The driver applies it at construction, so a scene's ambient policy is a
+     * property of the scene rather than something a caller has to remember --
+     * and so a measurement that overrides it afterwards still can.
+     */
+    public float ambientTurbulence() {
+        return kind == Kind.IMPULSE ? 0f : 1f;
     }
 
     public float duration() {
@@ -171,6 +221,8 @@ public final class SimScript {
             case SWAY -> "Verlet hair + cloth: weight shift with one smooth reversal, steady breeze "
                     + "(STYLE.md 4, 7.0, 7.1)";
             case EXTREME -> "Verlet extreme (STYLE.md 7.2): two hard reversals, impact, 0.8s knockback drift, long settle";
+            case IMPULSE -> "STYLE.md 7.2 overshoot test: dead air, one impulse at t=1.0, 3s of settle. "
+                    + "No breeze, no gusts, no per-strand turbulence";
         };
     }
 
@@ -181,6 +233,22 @@ public final class SimScript {
      * reading of this one function.
      */
     private float drive(float t) {
+        if (kind == Kind.IMPULSE) {
+            // Flat before the strike, so the bundle is genuinely at rest and the
+            // impulse is the only thing that has ever moved it; then one soft
+            // give and one slow recovery, which is 7.3's "yielding" and is the
+            // only body motion in the scene.
+            if (t < IMPULSE_TIME) {
+                return 0f;
+            }
+            // One eased arrival and then nothing. Deliberately monotone: a body
+            // that yielded and then straightened would be a *second* impulse in
+            // the other direction, and the returns after it would be the script's
+            // rather than the solver's -- which is the exact fault this scene
+            // exists to remove from the measurement. 7.2: the struck figure ends
+            // up somewhere else, and the poetry is in how long it takes.
+            return lerp(0f, -0.85f, smoothstep((t - IMPULSE_TIME) / 0.80f));
+        }
         if (kind == Kind.SWAY) {
             if (t < 0.60f) {
                 return 0f;
@@ -253,9 +321,16 @@ public final class SimScript {
 
     // -- knockback ---------------------------------------------------------------
 
+    /** When {@link Kind#IMPULSE} strikes. Early, so three seconds of settle fit after it. */
+    private static final float IMPULSE_TIME = 1.00f;
+
     /** Impact time, or a negative number for a scene that has none. */
     private float impactTime() {
-        return kind == Kind.EXTREME ? 1.90f : -1f;
+        return switch (kind) {
+            case EXTREME -> 1.90f;
+            case IMPULSE -> IMPULSE_TIME;
+            case SWAY -> -1f;
+        };
     }
 
     /**
@@ -334,6 +409,28 @@ public final class SimScript {
      * the eye can lock onto, plus the impact gust.
      */
     private void wind(float t) {
+        if (kind == Kind.IMPULSE) {
+            // Dead air, and one strike. This is 7.2's overshoot test taken at its
+            // word: "Kill the ambient input, apply one impulse, and count the
+            // returns." Nothing here is periodic, nothing is steady, and after
+            // about t = 2.2 the air is exactly zero, so every pixel that moves
+            // in the last two seconds of the capture is the simulation coming to
+            // rest.
+            //
+            // The impulse pushes *back* along the hair's own rest lie rather than
+            // across it, for the reason 4b.1 gives: a gust that threw the bundle
+            // forward would drape it over the one surface in the figure that is
+            // exempt from the ink dissolve.
+            windX = 0f;
+            windY = 0f;
+            float u = t - IMPULSE_TIME;
+            if (u >= 0f) {
+                float env = u < 0.10f ? u / 0.10f : (float) Math.exp(-(u - 0.10f) / 0.26f);
+                windX = -5.2f * env;
+                windY = 1.5f * env;
+            }
+            return;
+        }
         // The gust amplitude is a fifth of the base rather than a third, and the
         // number is the outcome of a measurement rather than a taste. The lag
         // requirement of 7.1 is a statement about how long the *body's* motion

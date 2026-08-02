@@ -46,6 +46,29 @@ import java.util.List;
 public final class HairSim {
 
     /**
+     * What a strand <em>is</em>, which after the pass-1 review is the single most
+     * important fact about it.
+     *
+     * <p>The review's finding, measured at matched scale: the reference's hair is
+     * <b>bimodal</b> -- a 30-55 px near-opaque mass plus 1-2 px hairlines peeling
+     * off it, with nothing in between -- and pass 1's was unimodal at 5-11 px,
+     * "the one register that reads as neither mass nor wisp. It reads as cord."
+     *
+     * <p>So width is no longer a per-strand number on a continuum; it is a class,
+     * and there are exactly two of them. A {@link #MASS} spine carries the
+     * near-opaque black plume, and every other spine is drawn only as hairlines.
+     * Nothing in the bundle is ever authored between the two.
+     */
+    public enum Kind {
+        /** The dark mass near the scalp: wide, near-opaque, at the head's own value. */
+        MASS,
+        /** A lock of hairlines. Its spine is simulated but never drawn as a ribbon of its own. */
+        WISP,
+        /** STYLE.md 4's escapee: a lock that floats, lags dramatically and curls far into open air. */
+        ESCAPEE
+    }
+
+    /**
      * One strand: its solver chain, where it is rooted on the carrier bone, and
      * everything the renderer needs to draw it as a tapered ribbon.
      */
@@ -74,9 +97,33 @@ public final class HairSim {
         public final float seed;
         public final boolean escapee;
 
+        /** Which of the two width registers this spine belongs to. Never anything between them. */
+        public final Kind kind;
+        /**
+         * How many sub-pixel hairlines the renderer fans off this spine.
+         *
+         * <p>This is the pass-2 answer to a real conflict between the review and
+         * STYLE.md 4. The review wants the reference's hairline population, which
+         * is fifty-odd separate 1-2 px marks; 4 caps the <em>simulation</em> at
+         * "12-24 strands, 8-14 particles each". Both are satisfied by reading 4
+         * as what it says -- it is a clause about what is simulated, and the
+         * sentence after it is a separate clause about what is drawn. So the
+         * solver still runs a bundle inside 4's budget, and each simulated spine
+         * is a <em>lock</em> that renders as several hairlines splaying off it,
+         * which is what a lock of hair is. Every hairline moves with its lock and
+         * separates from its neighbours along the lock, so 10's "uniform hair
+         * motion" is answered by the same construction rather than despite it.
+         */
+        public final int hairlines;
+        /** Lateral fan of the outermost hairline at the tip, world units. 0 at the root. */
+        public final float hairlineSpread;
+        /** Half-width of one hairline, world units. Authored to land at 0.5-1.0 px at capture framing. */
+        public final float hairlineHalfWidth;
+
         Strand(VerletChain chain, float localX, float localY, float restDirLocalDeg,
                float windScale, float gravityScale, float turbulence, float turbPhase, float turbFreq,
-               float rootHalfWidth, float valueBias, float rootAlpha, float seed, boolean escapee) {
+               float rootHalfWidth, float valueBias, float rootAlpha, float seed, boolean escapee,
+               Kind kind, int hairlines, float hairlineSpread, float hairlineHalfWidth) {
             this.chain = chain;
             this.localX = localX;
             this.localY = localY;
@@ -91,6 +138,10 @@ public final class HairSim {
             this.rootAlpha = rootAlpha;
             this.seed = seed;
             this.escapee = escapee;
+            this.kind = kind;
+            this.hairlines = hairlines;
+            this.hairlineSpread = hairlineSpread;
+            this.hairlineHalfWidth = hairlineHalfWidth;
         }
 
         public int particleCount() {
@@ -144,6 +195,14 @@ public final class HairSim {
         public float rootAlpha = 0.95f;
         public boolean escapee;
         public int seed;
+        /** Which width register. {@code MASS} is the only one drawn as a wide ribbon. */
+        public Kind kind = Kind.WISP;
+        /** How many sub-pixel hairlines the renderer fans off this spine. */
+        public int hairlines = 4;
+        /** Lateral fan of the outermost hairline at the tip, world units. */
+        public float hairlineSpread = 0.030f;
+        /** Half-width of one hairline, world units. */
+        public float hairlineHalfWidth = 0.0026f;
     }
 
     /**
@@ -164,9 +223,28 @@ public final class HairSim {
 
     private final List<Strand> strands = new ArrayList<>();
 
-    private float colliderLocalX;
-    private float colliderLocalY;
-    private float colliderRadius;
+    /**
+     * The bodies the bundle is pushed out of, each carried by its own bone.
+     *
+     * <p>Pass 1 registered one, the skull, and the pass-2 review is blunt about
+     * the cost: "cyan tips already terminate deep inside the chest at rest; it is
+     * hidden only because the torso is dark." A collider list rather than a
+     * second field because the torso is not a sphere and is spent as two circles
+     * up the spine, and because each body has to follow a <em>different</em> bone
+     * -- the skull turns 13 degrees under the script while the chest counters it,
+     * so a torso circle carried by the head would swing away from the torso.
+     */
+    private static final int MAX_COLLIDERS = VerletChain.MAX_COLLIDERS;
+    private int colliderCount;
+    private final int[] colliderBone = new int[MAX_COLLIDERS];
+    private final float[] colliderBindX = new float[MAX_COLLIDERS];
+    private final float[] colliderBindY = new float[MAX_COLLIDERS];
+    private final float[] colliderBindRot = new float[MAX_COLLIDERS];
+    private final float[] colliderLocalX = new float[MAX_COLLIDERS];
+    private final float[] colliderLocalY = new float[MAX_COLLIDERS];
+    private final float[] colliderRadius = new float[MAX_COLLIDERS];
+    private final float[] colliderWorldX = new float[MAX_COLLIDERS];
+    private final float[] colliderWorldY = new float[MAX_COLLIDERS];
 
     private float windX;
     private float windY;
@@ -191,15 +269,40 @@ public final class HairSim {
 
     /** The skull, in world-bind space. Strands are pushed out of it so hair cannot sink through the head. */
     public HairSim collider(float worldBindX, float worldBindY, float radius) {
-        float dx = worldBindX - bindX;
-        float dy = worldBindY - bindY;
-        float c = SimMath.cosDeg(-bindRotDeg);
-        float s = SimMath.sinDeg(-bindRotDeg);
-        this.colliderLocalX = dx * c - dy * s;
-        this.colliderLocalY = dx * s + dy * c;
-        this.colliderRadius = radius;
+        return collider(skeleton.bone(carrierIndex).name, worldBindX, worldBindY, radius);
+    }
+
+    /**
+     * Adds a body the bundle is pushed out of, carried by {@code boneName} and
+     * expressed in world-bind space.
+     *
+     * @param boneName the bone this circle rides. The skull's is the hair's own
+     *                 carrier; the torso's is the chest, which counter-rotates
+     *                 against the head under every scene in the corpus.
+     */
+    public HairSim collider(String boneName, float worldBindX, float worldBindY, float radius) {
+        if (colliderCount >= MAX_COLLIDERS) {
+            throw new IllegalStateException("at most " + MAX_COLLIDERS + " hair colliders");
+        }
+        int slot = colliderCount++;
+        int bone = skeleton.bone(boneName).index;
+        skeleton.worldPosition(bone, scratch);
+        float bx = scratch.x;
+        float by = scratch.y;
+        float brot = skeleton.worldRotationDeg(bone);
+        colliderBone[slot] = bone;
+        colliderBindX[slot] = bx;
+        colliderBindY[slot] = by;
+        colliderBindRot[slot] = brot;
+        float dx = worldBindX - bx;
+        float dy = worldBindY - by;
+        float c = SimMath.cosDeg(-brot);
+        float s = SimMath.sinDeg(-brot);
+        colliderLocalX[slot] = dx * c - dy * s;
+        colliderLocalY[slot] = dx * s + dy * c;
+        colliderRadius[slot] = radius;
         for (Strand strand : strands) {
-            strand.chain.collider(0f, 0f, radius);
+            strand.chain.colliderCount(colliderCount);
         }
         return this;
     }
@@ -228,9 +331,7 @@ public final class HairSim {
             chain.segment(i, segLen, spec.curlDeg * ramp * jitter, tau);
         }
         chain.dragTau(spec.dragTau).iterations(8).gravity(0f, -GRAVITY * spec.gravityScale);
-        if (colliderRadius > 0f) {
-            chain.collider(0f, 0f, colliderRadius);
-        }
+        chain.colliderCount(colliderCount);
 
         float dx = spec.rootX - bindX;
         float dy = spec.rootY - bindY;
@@ -242,7 +343,8 @@ public final class HairSim {
                 spec.restDirDeg - bindRotDeg,
                 spec.windScale, spec.gravityScale, spec.turbulence, spec.turbPhase, spec.turbFreq,
                 spec.rootHalfWidth, spec.valueBias, spec.rootAlpha,
-                SimMath.hash01(spec.seed) * 64f, spec.escapee);
+                SimMath.hash01(spec.seed) * 64f, spec.escapee,
+                spec.kind, spec.hairlines, spec.hairlineSpread, spec.hairlineHalfWidth);
         strands.add(strand);
         return strand;
     }
@@ -302,8 +404,18 @@ public final class HairSim {
         float s = SimMath.sinDeg(rot);
         float turned = rot - bindRotDeg;
 
-        float colX = hx + colliderLocalX * c - colliderLocalY * s;
-        float colY = hy + colliderLocalX * s + colliderLocalY * c;
+        // Each collider rides its own bone: the skull's turns with the head, the
+        // torso's with the chest, and under every scene in the corpus those two
+        // rotate against each other.
+        for (int k = 0; k < colliderCount; k++) {
+            int bone = colliderBone[k];
+            skeleton.worldPosition(bone, scratch);
+            float br = skeleton.worldRotationDeg(bone);
+            float bc = SimMath.cosDeg(br);
+            float bs = SimMath.sinDeg(br);
+            colliderWorldX[k] = scratch.x + colliderLocalX[k] * bc - colliderLocalY[k] * bs;
+            colliderWorldY[k] = scratch.y + colliderLocalX[k] * bs + colliderLocalY[k] * bc;
+        }
 
         for (int i = 0; i < strands.size(); i++) {
             Strand st = strands.get(i);
@@ -311,8 +423,8 @@ public final class HairSim {
             float ay = hy + st.localX * s + st.localY * c;
             st.chain.anchor(ax, ay);
             st.chain.rootDirDeg(st.restDirLocalDeg + rot);
-            if (colliderRadius > 0f) {
-                st.chain.collider(colX, colY, colliderRadius);
+            for (int k = 0; k < colliderCount; k++) {
+                st.chain.collider(k, colliderWorldX[k], colliderWorldY[k], colliderRadius[k]);
             }
 
             // Per-strand turbulence, so the bundle never moves in unison
@@ -329,6 +441,24 @@ public final class HairSim {
     }
 
     private float turnedLast;
+
+    /** How many bodies the bundle is currently pushed out of. */
+    public int colliderCount() {
+        return colliderCount;
+    }
+
+    /** Collider {@code i}'s world centre x, as of the last {@link #refresh}. Debug overlays. */
+    public float colliderX(int i) {
+        return colliderWorldX[i];
+    }
+
+    public float colliderY(int i) {
+        return colliderWorldY[i];
+    }
+
+    public float colliderRadius(int i) {
+        return colliderRadius[i];
+    }
 
     /** How far the carrier bone has turned from its bind rotation, for debug overlays. */
     public float carrierTurnDeg() {

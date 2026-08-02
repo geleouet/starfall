@@ -205,10 +205,10 @@ public final class SamuraiRig {
         // authored garment already was, so the skinning matrices are identity
         // and switching the simulation off reproduces System 1's figure to the
         // bit.
-        addClothChain(bones, hips, HAORI_BACK_X, HAORI_BACK_Y, HAORI_CLOTH_ROW0,
-                "clothBackA", "clothBackB", "clothBackC");
-        addClothChain(bones, hips, HAORI_FRONT_X, HAORI_FRONT_Y, HAORI_CLOTH_ROW0,
-                "clothFrontA", "clothFrontB");
+        addClothChain(bones, hips, HAORI_BACK_X, HAORI_BACK_Y, HAORI_BACK_ROW0,
+                "clothBackA", "clothBackB", "clothBackC", "clothBackD", "clothBackE");
+        addClothChain(bones, hips, HAORI_FRONT_X, HAORI_FRONT_Y, HAORI_FRONT_ROW0,
+                "clothFrontA", "clothFrontB", "clothFrontC");
         addSleeveChain(bones, handL);
 
         return new Skeleton(bones);
@@ -221,8 +221,37 @@ public final class SamuraiRig {
 
     // -- cloth bone authoring -------------------------------------------------
 
-    /** First haori row the cloth chains take over. Rows above it stay on hips/spine/chest. */
-    private static final int HAORI_CLOTH_ROW0 = 6;
+    /**
+     * First haori row each cloth chain takes over. Rows above it stay on
+     * hips/spine/chest.
+     *
+     * <p>Pass 2 moves the back rail's pivot from row 6 up to row 4 and the
+     * front's to row 5, and the reason is the pass-1 review's third finding:
+     *
+     * <blockquote><b>Build the cloth. It currently produces no readable
+     * mark.</b> The debug overlay shows the entire cloth simulation as three
+     * chains of four particles... Measured, a tight hem-tip box registers
+     * <b>0.00 px</b> across all 23 inter-frame steps, and the skirt silhouette is
+     * the same shape through an entire knockback. Cloth is half this system's
+     * title. Three chains of four particles cannot bend -- the hem needs enough
+     * chain to curve and enough render weight to change the silhouette.
+     * </blockquote>
+     *
+     * <p>Row 4 is at the hip line (y = 0.96 on the back rail, and the hips bone
+     * is at 0.98), so the chain now starts where the garment stops being a torso
+     * covering and starts being a hanging mass -- which is also where every
+     * reference throws its ink cloud from. Six particles rather than four is the
+     * difference between a hem that can hold an S and one that can only hold a
+     * straight line at an angle.
+     *
+     * <p>This does not move the bind pose by a micron: every cloth bone is
+     * authored to sit exactly on its row with its +x along the rail, so its
+     * skinning matrix at bind is identity, exactly like the trunk blend it
+     * replaces there. {@code s3-p2-bind-regress} is md5-identical to
+     * {@code s1-p7-bind}.
+     */
+    private static final int HAORI_BACK_ROW0 = 4;
+    private static final int HAORI_FRONT_ROW0 = 5;
 
     // The haori's two rails, hoisted to class scope because System 3's cloth
     // bones are authored onto the same rows the mesh is. Two copies of these
@@ -598,32 +627,55 @@ public final class SamuraiRig {
             int n = frontY.length;
             short[] front = new short[n];
             short[] back = new short[n];
-            // The rows the cloth chains take over, per rail. Row 6 is the pivot
-            // and stays mostly on the hips -- a vertex sitting exactly on a
-            // bone's origin is unmoved by that bone's rotation, so this blend is
-            // about how the weights *interpolate* across the quads above it, not
-            // about row 6 itself. Below that each row hangs off the bone whose
-            // tip it is, which is the standard chain weighting: rotating bone A
-            // moves everything from its tip outward and nothing above it.
+            // The rows the cloth chains take over, per rail. The pivot row stays
+            // mostly on the hips -- a vertex sitting exactly on a bone's origin
+            // is unmoved by that bone's rotation, so this blend is about how the
+            // weights *interpolate* across the quads above it, not about the
+            // pivot row itself. Below that each row hangs off the bone whose tip
+            // it is, which is the standard chain weighting: rotating bone A moves
+            // everything from its tip outward and nothing above it.
+            //
+            // Pass 2 hands five bones to the back rail and three to the front,
+            // starting two rows higher. The review measured pass 1's hem tip
+            // moving 0.00 px across every inter-frame step of a knockback, and a
+            // hem that cannot move is not a cloth simulation -- it is a garment
+            // with a chain drawn on it in the debug overlay.
             Bone backA = skeleton.bone("clothBackA");
             Bone backB = skeleton.bone("clothBackB");
             Bone backC = skeleton.bone("clothBackC");
+            Bone backD = skeleton.bone("clothBackD");
+            Bone backE = skeleton.bone("clothBackE");
             Bone frontA = skeleton.bone("clothFrontA");
             Bone frontB = skeleton.bone("clothFrontB");
+            Bone frontC = skeleton.bone("clothFrontC");
             BoneBlend[] clothF = new BoneBlend[n];
             BoneBlend[] clothB = new BoneBlend[n];
-            clothB[6] = new BoneBlend(hips, 0.45f, backA, 0.55f);
-            clothB[7] = new BoneBlend(backA, 1f, backA, 0f);
-            clothB[8] = new BoneBlend(backB, 1f, backB, 0f);
-            clothB[9] = new BoneBlend(backC, 1f, backC, 0f);
-            clothF[6] = new BoneBlend(hips, 0.45f, frontA, 0.55f);
-            clothF[7] = new BoneBlend(frontA, 1f, frontA, 0f);
-            // The front chain is two bones rather than three: the front hem rises
-            // to clear the leg and its last two rows are 0.16 units of frayed
-            // smoke, so a third bone would buy a swing nobody can see against the
-            // one spare the 32-bone cap has left after the sleeve.
-            clothF[8] = new BoneBlend(frontB, 1f, frontB, 0f);
-            clothF[9] = new BoneBlend(frontB, 1f, frontB, 0f);
+            // The back rail's pivot keeps the *spine* share {@code trunkBlend}
+            // gave it, with only the hips share handed to the chain. The back
+            // rail reads that blend at 1.05x its row parameter, so row 4 lands at
+            // s = 0.467, where the old weights were spine 0.417 / hips 0.583, and a
+            // scene that runs no cloth simulation -- every System 2 IK scene --
+            // leaves clothBackA at bind, i.e. rigidly on the hips. Handing the
+            // whole row to the chain therefore silently took the spine's lean out
+            // of the garment in those scenes: measured against a pre-System-3
+            // capture of ik-gesture it moved 76 pixels of a 518,400 px frame by
+            // more than four levels. Small, and still a regression in a system
+            // this pass does not own.
+            clothB[4] = new BoneBlend(spine, 0.417f, backA, 0.583f);
+            clothB[5] = new BoneBlend(backA, 1f, backA, 0f);
+            clothB[6] = new BoneBlend(backB, 1f, backB, 0f);
+            clothB[7] = new BoneBlend(backC, 1f, backC, 0f);
+            clothB[8] = new BoneBlend(backD, 1f, backD, 0f);
+            clothB[9] = new BoneBlend(backE, 1f, backE, 0f);
+            clothF[5] = new BoneBlend(hips, 0.45f, frontA, 0.55f);
+            clothF[6] = new BoneBlend(frontA, 1f, frontA, 0f);
+            clothF[7] = new BoneBlend(frontB, 1f, frontB, 0f);
+            // The front rail's last two rows share the last bone: they are 0.16
+            // units of frayed smoke that clears the leg, so a fourth bone would
+            // buy a swing nobody can see against the one spare the 32-bone cap
+            // has left after the sleeve.
+            clothF[8] = new BoneBlend(frontC, 1f, frontC, 0f);
+            clothF[9] = new BoneBlend(frontC, 1f, frontC, 0f);
 
             for (int i = 0; i < n; i++) {
                 float s = i / (float) (n - 1);
@@ -644,7 +696,7 @@ public final class SamuraiRig {
         private record BoneBlend(Bone boneA, float weightA, Bone boneB, float weightB) {
         }
 
-        /** s=0 at the collar, s=1 at the hem: chest -> spine -> hips. Rows at or below {@link #HAORI_CLOTH_ROW0} use the cloth chains instead. */
+        /** s=0 at the collar, s=1 at the hem: chest -> spine -> hips. Rows at or below {@link #HAORI_BACK_ROW0} / {@link #HAORI_FRONT_ROW0} use the cloth chains instead. */
         private static BoneBlend trunkBlend(float s, Bone hips, Bone spine, Bone chest) {
             if (s < 0.15f) {
                 return new BoneBlend(chest, 1f, chest, 0f);

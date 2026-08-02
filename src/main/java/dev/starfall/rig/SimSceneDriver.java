@@ -54,6 +54,10 @@ public final class SimSceneDriver {
         this.script = new SimScript(kind, skeleton);
         this.ik = new RigIk(skeleton);
         this.sim = new RigSim(skeleton);
+        // The scene's own ambient policy, applied here rather than in start() so
+        // that a measurement which wants to override it still can. IMPULSE runs
+        // in dead air; everything else runs the shipped bundle.
+        this.sim.hair().turbulenceScale(script.ambientTurbulence());
     }
 
     /** Null in a {@link #headless} run. */

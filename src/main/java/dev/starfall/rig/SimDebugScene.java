@@ -182,12 +182,17 @@ public class SimDebugScene implements Scene {
             shapes.circle(st.x(last), st.y(last), 0.011f, 10);
         }
 
-        // The skull collider, so a strand sinking into the head is obviously a
-        // collider problem rather than a solver one.
+        // Every collider, read off the sim rather than re-derived here -- the
+        // skull and, since pass 2, the torso. Re-deriving them would let the
+        // overlay disagree with the solver, which is the one thing an
+        // instrument may never do; the pass-1 overlay drew the skull at 0.92 of
+        // its radius while the solver used 0.70, so the picture showed strands
+        // "sinking into" a circle they were never tested against.
         shapes.setColor(Palette.alpha(Palette.INK_SLATE, 0.4f));
+        for (int i = 0; i < hairSim.colliderCount(); i++) {
+            ring(hairSim.colliderX(i), hairSim.colliderY(i), hairSim.colliderRadius(i));
+        }
         driver.skeleton().worldPosition(driver.skeleton().bone("head").index, a);
-        ring(a.x + SamuraiRig.HEAD_LOBE_DX, a.y + SamuraiRig.HEAD_LOBE_DY,
-                SamuraiRig.SKULL_RADIUS * 0.92f);
 
         // Wind, drawn from the head as an arrow-less bar whose length is the
         // acceleration: it is the only input to the sim that is not visible in

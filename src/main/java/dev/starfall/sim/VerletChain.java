@@ -93,10 +93,18 @@ public final class VerletChain implements VerletSolver.Stepped {
     private float dragTau = 0.25f;
     private int iterations = 8;
 
-    private boolean colliderOn;
-    private float colliderX;
-    private float colliderY;
-    private float colliderR;
+    /**
+     * How many bodies a chain can be pushed out of. Four, because the figure has
+     * two: the skull and the torso. The torso is not a sphere, so it is spent as
+     * two circles stacked up the spine, and the spare pair is the room a shield
+     * arm or a second fighter's guard will need in System 4.
+     */
+    public static final int MAX_COLLIDERS = 4;
+
+    private int colliderCount;
+    private final float[] colliderX = new float[MAX_COLLIDERS];
+    private final float[] colliderY = new float[MAX_COLLIDERS];
+    private final float[] colliderR = new float[MAX_COLLIDERS];
 
     /** {@link #bendTau} converted to a per-round fraction; see {@link #refreshPerRound}. Hoisted: this runs 240 times a second per chain and must not allocate. */
     private final float[] perRound;
@@ -188,11 +196,40 @@ public final class VerletChain implements VerletSolver.Stepped {
 
     /** A circle particles are pushed out of -- the skull, so hair cannot sink through the head. */
     public VerletChain collider(float cx, float cy, float radius) {
-        this.colliderOn = radius > 0f;
-        this.colliderX = cx;
-        this.colliderY = cy;
-        this.colliderR = radius;
+        this.colliderCount = radius > 0f ? 1 : 0;
+        return collider(0, cx, cy, radius);
+    }
+
+    /**
+     * How many collider slots are live. Set once at authoring time; the owner
+     * then refreshes each slot's centre every frame from whatever bone carries
+     * it.
+     */
+    public VerletChain colliderCount(int n) {
+        this.colliderCount = Math.max(0, Math.min(MAX_COLLIDERS, n));
         return this;
+    }
+
+    /**
+     * One collider's circle, in world space.
+     *
+     * <p>Two bodies rather than one is not a refinement. With only the skull
+     * registered, every strand's lower half passed straight through the chest --
+     * hidden at rest only because the torso is dark, and System 4 throws the
+     * bundle forward across the body and across the grip/guard cluster, which
+     * {@code docs/system2-debt.md} E2 already names as the figure's most fragile
+     * small mark. A hairline crossing it is a hairline drawn over the one thing
+     * that tells the eye where the body ends and the weapon begins.
+     */
+    public VerletChain collider(int slot, float cx, float cy, float radius) {
+        colliderX[slot] = cx;
+        colliderY[slot] = cy;
+        colliderR[slot] = radius;
+        return this;
+    }
+
+    public int colliderCount() {
+        return colliderCount;
     }
 
     // -- per-frame inputs ------------------------------------------------------
@@ -281,7 +318,7 @@ public final class VerletChain implements VerletSolver.Stepped {
         refreshPerRound(dt);
         for (int it = 0; it < iterations; it++) {
             bendPass();
-            if (colliderOn) {
+            if (colliderCount > 0) {
                 collidePass();
             }
             distancePass();
@@ -454,16 +491,24 @@ public final class VerletChain implements VerletSolver.Stepped {
     }
 
     private void collidePass() {
-        for (int i = 1; i < count; i++) {
-            float dx = x[i] - colliderX;
-            float dy = y[i] - colliderY;
-            float d = SimMath.length(dx, dy);
-            if (d >= colliderR || d < SimMath.EPS) {
+        for (int c = 0; c < colliderCount; c++) {
+            float cx = colliderX[c];
+            float cy = colliderY[c];
+            float r = colliderR[c];
+            if (r <= 0f) {
                 continue;
             }
-            float push = (colliderR - d) / d;
-            x[i] += dx * push;
-            y[i] += dy * push;
+            for (int i = 1; i < count; i++) {
+                float dx = x[i] - cx;
+                float dy = y[i] - cy;
+                float d = SimMath.length(dx, dy);
+                if (d >= r || d < SimMath.EPS) {
+                    continue;
+                }
+                float push = (r - d) / d;
+                x[i] += dx * push;
+                y[i] += dy * push;
+            }
         }
     }
 

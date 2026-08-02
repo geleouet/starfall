@@ -48,8 +48,8 @@ public final class RigSim {
      * slowest because it hangs off a wrist, which is the fastest-moving anchor
      * in the figure and therefore the one whose lag reads loudest.
      */
-    private static final float BACK_TAU = 0.115f;
-    private static final float FRONT_TAU = 0.115f;
+    private static final float BACK_TAU = 0.095f;
+    private static final float FRONT_TAU = 0.095f;
     private static final float SLEEVE_TAU = 0.125f;
 
     /** Cloth is a hanging mass and falls harder than hair, but still nothing like 9.81 -- see {@code HairSim}. */
@@ -68,17 +68,40 @@ public final class RigSim {
 
         // The trailing hem: the biggest garment mass in the figure, the one
         // reference images 1 and 2 throw their ink cloud from, and the only one
-        // with three bones. Its swing limit is the widest because it is the only
-        // chain with room to swing without colliding with a leg.
-        cloth.addChain(new String[] {"clothBackA", "clothBackB", "clothBackC"},
-                0.286f, BACK_TAU, 0.085f, CLOTH_GRAVITY, 0.55f, 34f);
+        // long enough to hold a curve. Its swing limit is the widest because it
+        // is the only chain with room to swing without colliding with a leg.
+        //
+        // Five bones and six particles, up from three and four. The pass-1
+        // review measured this hem's tip at 0.00 px across every inter-frame step
+        // of a knockback and put the cause plainly: "three chains of four
+        // particles cannot bend -- the hem needs enough chain to curve and enough
+        // render weight to change the silhouette." Two of the three numbers
+        // below moved with it and neither is cosmetic:
+        //
+        //   * The swing limit is 34 degrees *per joint*, so a four-particle chain
+        //     could only ever be a straight panel at an angle -- the shape a hem
+        //     makes is the sum of five small deviations, not one large one, and
+        //     the soft ceiling is now reached by none of them.
+        //   * The wind gain rises from 0.55 to 0.95. A hem is the largest sail on
+        //     the figure and was feeling half the air a hair does. Measured, this
+        //     term sets where the hem *hangs* rather than how far it swings --
+        //     the swing range is set by the bend stiffness -- so it is what
+        //     decides whether the trailing panel reads as blown back at all.
+        //   * The bend recovery drops from 0.085 s to 0.060 s. On a five-joint
+        //     chain the old figure put the hem's onset 12 frames behind the hips,
+        //     outside 7.1's 4-8 band; 0.060 lands it at 8 with the largest swing
+        //     the band allows. Measured per bone over the delivered extreme
+        //     window, the chain now deviates 13-21 degrees from bind where four
+        //     particles could only ever hold one angle.
+        cloth.addChain(new String[] {"clothBackA", "clothBackB", "clothBackC", "clothBackD", "clothBackE"},
+                0.286f, BACK_TAU, 0.060f, CLOTH_GRAVITY, 0.95f, 30f);
         // The front hem clears the near leg, so it is limited harder: a front
-        // panel free to swing 34 degrees intersects the thigh it is meant to
-        // hang in front of.
-        cloth.addChain(new String[] {"clothFrontA", "clothFrontB"},
-                0.160f, FRONT_TAU, 0.082f, CLOTH_GRAVITY, 0.45f, 24f);
+        // panel free to swing 26 degrees per joint intersects the thigh it is
+        // meant to hang in front of.
+        cloth.addChain(new String[] {"clothFrontA", "clothFrontB", "clothFrontC"},
+                0.160f, FRONT_TAU, 0.060f, CLOTH_GRAVITY, 0.80f, 20f);
         cloth.addChain(new String[] {"sleeveA", "sleeveB"},
-                0.210f, SLEEVE_TAU, 0.060f, 2.2f, 0.70f, 30f);
+                0.210f, SLEEVE_TAU, 0.060f, 2.2f, 1.00f, 30f);
 
         hair.register(solver);
         cloth.register(solver);

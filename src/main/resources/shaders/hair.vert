@@ -1,12 +1,13 @@
-// Vertex stage for the hair ribbons of STYLE.md 4.
+// Vertex stage for the hair of STYLE.md 4.
 //
 // The CPU builds a smooth spine (Catmull-Rom through the Verlet particles) and
 // hands this shader, per spine sample, the point, its normal, its half-width and
 // which rail this vertex is. The widening happens here rather than on the CPU
-// for one reason, and it is the reason the tips read as brush lift-off at all:
+// for one reason, and it is the reason the hairlines read as brush marks at all:
 //
-//   STYLE.md 4 asks the taper to reach *sub-pixel*. A polygon narrower than a
-//   pixel is not narrow, it is absent -- the rasteriser drops it, which is
+//   STYLE.md 4 asks the taper to reach *sub-pixel*, and the pass-2 hairlines are
+//   authored at roughly one pixel across their whole length. A polygon narrower
+//   than a pixel is not narrow, it is absent -- the rasteriser drops it, which is
 //   exactly what debt D2 recorded about the blade's kissaki ("the last fifth was
 //   two quads: the rasteriser dropped it and the blade ended by fading out at a
 //   constant two pixels rather than converging"). So the geometry stops
@@ -22,7 +23,7 @@
 // back a rendered edge, this is a constant handed down from the camera.
 
 attribute vec2 a_position;      // spine point, world space
-attribute vec3 a_texCoord0;     // x strand seed, y arc length along the strand (world units), z s in 0..1
+attribute vec4 a_texCoord0;     // x strand seed, y arc length (world), z s in 0..1, w mode
 attribute vec4 a_color;         // rgb ink value, a authored opacity
 attribute vec4 a_generic;       // xy unit normal, z half-width (world), w rail (-1 or +1)
 
@@ -30,22 +31,27 @@ uniform mat4 u_projTrans;
 uniform float u_pxWorld;
 
 varying vec3 v_mat;
+varying float v_mode;
 varying vec4 v_color;
 varying float v_across;
 varying float v_subpixel;
 varying vec2 v_world;
 /** World half-width of this ribbon here, so the fragment stage can measure across it in metres rather than in rails. */
 varying float v_halfWidth;
+/** Half-width in pixels, which is what decides whether a mark can afford a shoulder at all. */
+varying float v_halfPx;
 
 void main() {
     float wMin = 0.55 * u_pxWorld;
     float halfW = max(a_generic.z, wMin);
     v_subpixel = min(1.0, a_generic.z / max(wMin, 1e-7));
 
-    v_mat = a_texCoord0;
+    v_mat = a_texCoord0.xyz;
+    v_mode = a_texCoord0.w;
     v_color = a_color;
     v_across = a_generic.w;
     v_halfWidth = halfW;
+    v_halfPx = halfW / u_pxWorld;
 
     vec2 p = a_position + a_generic.xy * (halfW * a_generic.w);
     v_world = p;
