@@ -159,7 +159,7 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — IK wired to the rig and captured; independent review in flight",
+  updated: "2026-08-02 — IK failed as “merely correct”; pass 3 giving the motion an origin",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
@@ -176,7 +176,7 @@ const DATA = {
   systems: [
     { n:"01", name:"Skeleton + skinning", status:"failed", passes:5,
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
-    { n:"02", name:"IK", status:"review", passes:2,
+    { n:"02", name:"IK", status:"building", passes:3,
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
     { n:"03", name:"Verlet hair + cloth", status:"pending", passes:0,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
@@ -250,6 +250,62 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 2", kind:"review", pass:2, verdict:"FAIL",
+      title:"“Merely correct — emphatically, measurably, and rather admirably correct, and not poetic”",
+      body:[
+        "That is the reviewer's verdict verbatim, and it is the most useful sentence anyone has " +
+        "written about this project. It went looking for a snap across 36 frames in three scenes " +
+        "using four independent measures and <b>did not find one</b>. The solver never flips a " +
+        "bent elbow, never stretches a bone, eases asymptotically into extension rather than " +
+        "hitting a wall, unwraps its blend so an antipodal pose cannot pop, and settles " +
+        "monotonically to the pixel. It called that a real achievement.",
+
+        "<b>And then failed it, correctly.</b> Because every one of those properties is a " +
+        "<i>negative</i> — the absence of a defect. Add them all up and you get a limb that never " +
+        "does anything wrong, which is not the same thing as a limb that does something.",
+
+        "<b>The measurement that exposed it is brutal.</b> Across four seconds containing two " +
+        "teleports and two hard reversals, the hip centroid moved <b>2 px</b> and the head " +
+        "<b>4 px</b>, while the hand travelled 130 px. The chain root sits at the same pixel in " +
+        "all 24 frames. On a 340 px figure that is a statue with one moving arm.",
+
+        "<b>The diagnosis:</b> \"A brushstroke has a <i>source</i> — the reference figures all " +
+        "show you where the movement came from, because the hip turned before the shoulder, which " +
+        "turned before the elbow, which turned before the tip. Here the movement has no source. " +
+        "It simply begins at the hand.\" And separately: the arm holds straight and horizontal at " +
+        "shoulder height for four consecutive frames, a pose that <b>appears nowhere in any of the " +
+        "eight references</b> — in all of them the elbow is bent 90-130°, the upper arm hangs near " +
+        "the torso axis, and the <i>blade</i> does the reaching."
+      ],
+      notes:[
+        { kind:"fix", label:"It verified my claims rather than trusting them — including one I flagged",
+          text:"I had asked it to independently check the implementer's assertion that the parry's " +
+               "worst 26.08° step was the animation's own cut rather than anything IK added. <b>It " +
+               "verified that two ways from pixels alone</b>: the debug weight bars are non-zero " +
+               "only on frames 01-04 while the two largest inter-frame changes fall in the " +
+               "weight-zero window, and the same peak appears in the same relative position in the " +
+               "System 1 swing captures that predate IK entirely. It also <i>corrected</i> the " +
+               "settle window — frames 17-21, not 20-23 — and found the disclosed blade-trail " +
+               "clipping caveat to be <b>over</b>-stated: measured at one luminance level over " +
+               "paper, nothing perceptible leaves the frame. But it found a real composition " +
+               "problem underneath: the guard-raise puts the blade tip at 12% frame height, and " +
+               "the corpus always puts the crossing point near centre. That bites the moment the " +
+               "camera pushes in." },
+        { kind:"crit", label:"This was a gap in my rubric, not only in the code",
+          text:"STYLE.md §7.2 is entirely a list of ways to fail, and I had been grading against it " +
+               "as though passing it were sufficient. It is not. <b>§7.0 is now written</b> and " +
+               "states three positives every motion system is graded on: motion must have a " +
+               "<i>source</i> (with the measurable criterion that the body's own centroids must " +
+               "move during a limb action); <i>effort</i> must be visible (a limb that declines to " +
+               "straighten reads as a brushstroke, one that extends because a coordinate permitted " +
+               "it reads as a linkage); and <b>nothing may arrive at the same time</b> — which " +
+               "applies <i>within</i> a chain, not only between body and cloth. Everything " +
+               "currently stops on the same frame, which trips §10's fail-on-sight row. The " +
+               "reviewer calls decoupling settle times down the chain \"the cheapest poetry " +
+               "available\"." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 2", kind:"build", pass:2,
       title:"IK wired to the rig — and the tests were measuring the wrong layer",

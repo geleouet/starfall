@@ -466,6 +466,42 @@ is the point of visual focus in every duel reference.
 
 > Motion is choreography, not physics. Every movement is a brushstroke being drawn.
 
+### 7.0 The positive test — §7.2 is necessary and nowhere near sufficient
+
+**Everything in §7.2 is a negative.** No snapping, no overshoot, no stretching, no strobing.
+A system can satisfy every one of them and still read as a machine, because a list of ways
+to fail is not a recipe for succeeding. Add all the absences together and you get motion
+that never does anything wrong, which is not the same as motion that does something.
+
+This was learned from System 2's first visual pass, where a solver that provably never
+flipped an elbow, never stretched a bone, never overshot and settled monotonically to the
+pixel was still, correctly, failed. The measurement that exposed it: across four seconds
+containing two teleports and two hard reversals, **the hip moved 2 px and the head 4 px
+while the hand travelled 130 px.**
+
+So alongside §7.2, every motion system is graded on three positives:
+
+1. **Motion must have a source.** In every reference image the figure is a spiral — the hip
+   turns before the shoulder, which turns before the elbow, which turns before the tip. The
+   arm is never the subject; it is the end of a sentence the body started. Movement that
+   simply begins at the effector reads instantly as a puppet, before any analysis.
+   *Acceptance criterion: the body's own centroids must move measurably during any limb
+   action. A frozen torso fails regardless of how good the limb is.*
+
+2. **Effort must be visible.** The corpus's limbs are gravity-loaded and reluctant — elbows
+   held between 90° and 130°, upper arms hanging near the torso axis, the *blade* doing the
+   reaching. A limb that extends fully because a coordinate permitted it reads as a linkage.
+   A limb that declines to straighten reads as a brushstroke.
+
+3. **Nothing may arrive at the same time.** §10's last row bans everything peaking on the
+   same frame, and it applies *within* a chain, not only between body and cloth. The wrist
+   should arrive after the elbow; the blade tip should drift a beat after the hand has
+   stopped. This is the cheapest poetry available and it is almost free — it requires only
+   that settle times differ down the chain rather than being shared.
+
+A reviewer should state explicitly whether motion is **poetic or merely correct**, and if
+merely correct, say what would give it an origin.
+
 ### 7.1 Timing
 
 - **Slow in, slower out.** Nothing arrives at rest abruptly. Terminal damping should let a
