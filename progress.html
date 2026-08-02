@@ -187,7 +187,7 @@ const DATA = {
     { n:"04", name:"Procedural interaction", status:"pending", passes:0,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
     { n:"05", name:"Combat + action queue", status:"pending", passes:0,
-      summary:"15-tile lane, 3-slot queue, intent telegraphs, dynamic camera, chrome-free ink UI." },
+      summary:"Lane of 5 to 15 tiles, LIFO 3-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
     { n:"06", name:"Capture harness + MCP", status:"partial", passes:0,
       summary:"Offscreen capture and contact sheets are already live and load-bearing. HTTP debug API and MCP server still to come." }
   ],
@@ -199,8 +199,8 @@ const DATA = {
       w:"No external art dependency, so the iterate→capture→review loop runs at full speed." },
     { k:"Visual direction", v:"The 8 reference images",
       w:"Codified into STYLE.md, which is the grading rubric for every review." },
-    { k:"Board",       v:"Linear 15-tile lane",
-      w:"Keeps facing/rotation tactics meaningful and shows figures in profile." },
+    { k:"Board",       v:"Linear lane, 5 to 15 tiles",
+      w:"Length is a composition dial: 5 is a knife fight, 15 is an approach." },
     { k:"Framing",     v:"Wide to plan, push in to strike",
       w:"Tactical readability while planning, reference-image intimacy on execution." },
     { k:"Combat",      v:"Faithful action-queue, LIFO",
@@ -274,7 +274,7 @@ const DATA = {
         "chip with no contact — out, however well they work in the source.",
 
         "Scope is <b>one excellent encounter</b>: the full LIFO queue, cooldowns, intent " +
-        "telegraphs, enemy traits, statuses and combos on the 15-tile lane, with no regions, " +
+        "telegraphs, enemy traits, statuses and combos on the lane, with no regions, " +
         "shops, skills or NG+. Those are additive and none of them is needed to prove the thing " +
         "this project is actually about."
       ],

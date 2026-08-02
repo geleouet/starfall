@@ -5,7 +5,7 @@ this file and against the eight reference images in `inspirations/`. When this d
 a reviewer's personal taste disagree, this document wins. When this document and the
 reference images disagree, **the reference images win** and this document gets corrected.
 
-Project codename: **Starfall**. A 2D turn-based tactical duel on a linear 15-tile lane,
+Project codename: **Starfall**. A 2D turn-based tactical duel on a linear lane of 5 to 15 tiles,
 samurai/shogun, rendered as a half-remembered ink painting.
 
 ---
@@ -533,7 +533,7 @@ Poetic beats, not physical impacts. The vocabulary:
 
 Per the chosen framing: **wide to plan, push in to strike.**
 
-- **Planning framing:** the full 15-tile lane readable, figures small, heavy fog, Family C
+- **Planning framing:** the full lane readable, figures small, heavy fog, Family C
   mood. Slight slow drift — the camera is never perfectly still.
 - **Execution framing:** on queue execution, the camera glides (never cuts) toward the
   exchange over ~0.5 s with a soft ease, ending near the intimacy of images 3/4/5 — figures

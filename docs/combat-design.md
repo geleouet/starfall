@@ -1,6 +1,6 @@
 # Combat design — Starfall
 
-Scope decision: **one excellent encounter first.** A single fight on the 15-tile lane,
+Scope decision: **one excellent encounter first.** A single fight on the lane,
 complete — LIFO action queue, cooldowns, intent telegraphs, enemy traits, statuses,
 combos. No regions, no shops, no skills, no days, no NG+. The roguelike structure layers
 on top later without breaking anything.
@@ -90,19 +90,38 @@ Renamed to fit the world; mechanics unchanged.
   double strike, marking, or **free-play** (adding it costs no turn, at a cooldown
   penalty).
 
-### 1.6 The 15-tile lane changes the balance, and this needs care
+### 1.6 Lane length is a design parameter, not a constant
 
-The source is balanced for **5 to 9 tiles**. Ours is **15**. Numbers do not transpose:
+**The lane runs from 5 to 15 tiles**, chosen per encounter. The source varies 5/7/9 for the
+same reason; we extend the top end.
 
-- Ranged attacks and dashes are worth far more on a long lane; melee-only enemies risk
-  spending several turns simply walking.
-- Positioning has more room, so "retreat" is a real option rather than a wall.
-- Enemy waves need to arrive with mixed approach speeds or the lane reads as empty.
+This is the single strongest composition dial in the game, because length changes what the
+fight *is*:
 
-**Consequence for design:** the extra length must buy something. It buys the *approach* —
-the slow closing of distance that makes the first contact land. That is a gift for the
-camera choreography of STYLE.md §9 (wide to plan, push in to strike) and it should be
-designed for deliberately, not merely tolerated.
+| Length | What the fight becomes |
+|---|---|
+| **5-7** | A knife fight. Everything is already in reach, so tactics are about *ordering* — what resolves first, and what you are exposed to while banking a tile. Closest to the source's balance. |
+| **9-11** | Middle game. Closing distance costs turns but is not the whole problem. Ranged and mobility start to pay. |
+| **13-15** | The approach. Several turns of closing before contact, retreat is genuinely viable, and ranged attacks and dashes dominate unless the enemy mix pushes forward. |
+
+Two things follow, and both must be designed rather than tolerated:
+
+- **Numbers do not transpose from the source**, which is balanced for the short end only.
+  On a long lane a melee-only enemy can spend several turns simply walking, so waves need
+  mixed approach speeds or the board reads as empty. The Charger trait exists partly to
+  solve this.
+- **Maximum simultaneous enemies scales with length.** A 15-tile lane with three enemies
+  is a corridor; a 5-tile lane with three enemies is a crisis.
+
+**What the long end buys** is the *approach* — the slow closing of distance that makes the
+first contact land. That is exactly what the camera plan of STYLE.md §9 needs, and it means
+long lanes and the push-in are the same design idea seen from two directions.
+
+**Camera consequence.** The planning framing must fit the lane, so a 5-tile lane is already
+near-intimate while a 15-tile lane is genuinely wide. The push-in is therefore a *small*
+move on short lanes and a *large* one on long lanes — which is correct, because a short
+lane has no approach to dramatise and a long one has nothing but. The camera should derive
+its wide framing from lane length rather than using a fixed value.
 
 ---
 
@@ -131,7 +150,7 @@ as poetic, the interaction layer is genuinely general.
 ### 2.2 Tiles
 
 Small, and every one is a contact event. Numbers are placeholders to be tuned on a
-15-tile lane, not inherited.
+lane whose length varies from 5 to 15, not inherited.
 
 | Tile | Effect | Choreography beat |
 |---|---|---|
