@@ -159,24 +159,24 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — setting re-skinned to the Atlas; IK pass 3 gave the motion an origin",
+  updated: "2026-08-02 — system 2 PASSED, the first of the run; paying down system 1 debt",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 2 — wiring the IK solvers to the rig and reviewing them visually",
-    detail: "System 1 is closed at its five-pass cap with its debt recorded in " +
-            "<code>docs/system1-debt.md</code>, and the two defects that were my own " +
-            "specification errors have since been corrected — the figure now resolves 13 of the " +
-            "reference's 16 parts at matched scale, against 3 before. The IK solvers exist with " +
-            "83 tests and continuity proved by sweep, but they have never been wired to the " +
-            "actual rig or seen on screen. That, and their first visual review, is next."
+    title: "Paying down System 1 debt \u2014 the head, and the darkness below the hip",
+    detail: "System 2 <b>passed</b>, the first pass of the run, with its gesture scene judged " +
+            "genuinely poetic. Both reviewers now agree the ceiling on everything else is " +
+            "System 1's recorded debt: at matched scale the reference resolves a face, a jaw, " +
+            "a neck join, two legs and two feet, while the capture resolves a topknot floating " +
+            "over a shoulder mass. The single highest-value investment across the whole project " +
+            "is two silhouette curves \u2014 the brow-nose-chin contour and the jaw-neck wedge."
   },
 
   systems: [
     { n:"01", name:"Skeleton + skinning", status:"failed", passes:5,
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
-    { n:"02", name:"IK", status:"building", passes:3,
+    { n:"02", name:"IK", status:"passed", passes:3,
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
     { n:"03", name:"Verlet hair + cloth", status:"pending", passes:0,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
@@ -252,6 +252,77 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 2", kind:"review", pass:3, verdict:"PASS",
+      title:"First PASS of the run \u2014 and a finding that invalidated how I was grading timing",
+      sheet:"out/captures/s2-p3-gesture-60hz/contact-sheet.png",
+      sheetNote:"The same gesture recaptured at a true 60Hz over a 0.38s window, using the " +
+                "harness fix this review forced. The previous capture sampled every 0.327s, " +
+                "which could not resolve the overlapping action the pass was built to produce.",
+      body:[
+        "<b>The verdict on what mattered:</b> <i>\u201cik-gesture is poetic. Not richly, not yet " +
+        "reliably, but genuinely \u2014 and for the right reason, which is that it now contains " +
+        "an idea about a body rather than a proof about a solver.\u201d</i> The idea is legible " +
+        "without instruments: a figure stands with both feet planted, declines to straighten its " +
+        "arm, keeps the upper arm hanging on the torso axis, and lets the blade do the reaching " +
+        "while the weight moves under it. That is a sentence about effort.",
+
+        "<b>And the qualification that becomes the whole debt:</b> <i>\u201cthe poetry is an " +
+        "<b>event</b> rather than a <b>condition</b>.\u201d</i> The hip moves during the gesture " +
+        "and returns \u2014 an 8\u00b0 torso swing that comes back within 0.7\u00b0 of where it " +
+        "started. References 1 and 2 are <i>standing still</i> and are more loaded than any frame " +
+        "here, because their spiral is a permanent structural fact of the pose rather than " +
+        "something that happens. The fix is to author the spiral into the bind pose so the " +
+        "working swing rides on a stance instead of oscillating about a symmetric rest.",
+
+        "<b>The methodological finding is the most useful thing in the review.</b> It could not " +
+        "grade the pass's central claim at all, because <b>the capture cadence was too coarse to " +
+        "resolve the thing the pass was built to do</b>. The gesture shipped 12 frames over 3.6s " +
+        "\u2014 0.327s per sample \u2014 while the motion law specifies overlapping action in the " +
+        "0.067 to 0.133s band. <i>Every</i> lag the system is required to produce is shorter than " +
+        "one delivered sample. Its verdict: <i>\u201cpass 3 currently escapes the " +
+        "everything-peaks-together rule only because the sampling is too coarse to convict it. " +
+        "That is not the same as complying.\u201d</i>"
+      ],
+      notes:[
+        { kind:"fix", label:"Harness fixed immediately \u2014 timing is now gradeable",
+          text:"<code>-Pstart</code> and <code>-Pstep</code> capture a short window at a true " +
+               "frame rate, so 24 frames over 0.38s at 60Hz replaces 12 frames over 3.6s. Contact " +
+               "sheets now label the <i>captured window</i> rather than the scene's full " +
+               "duration, because a sheet with the wrong timebase is worse than one with none. " +
+               "Any future review grading timing must use this, and any claim about lag made from " +
+               "a coarse capture is unfalsifiable." },
+        { kind:"fix", label:"Every claim audited against pixels \u2014 most verified, two not",
+          text:"Hip and head excursion, the elbow opening from 3.9\u00b0 to 45.5\u00b0, the corpus " +
+               "band, and the spline trail surviving a 316 px/frame tip speed were all " +
+               "independently confirmed. <b>Two were not verifiable</b>: the \u201chips lead the " +
+               "hand by 11 frames\u201d claim sits below the sample interval \u2014 direction " +
+               "corroborated, magnitude not \u2014 and the same trace shows pelvis and upper spine " +
+               "peaking on the <i>same</i> step, so hip-before-shoulder is either absent or below " +
+               "the sample rate. Newly verified and worth banking: silhouette hardness does " +
+               "<b>not grow with pose extremity</b> \u2014 maximum reach measures below rest \u2014 " +
+               "so there is no candy-wrap anywhere." },
+        { kind:"crit", label:"IK added one readable part and can subtract one",
+          text:"At matched scale the count is now roughly <b>11 against the reference's 18</b>, " +
+               "up from a third at System 1 pass 5. IK added the <b>elbow</b> \u2014 previously " +
+               "the arm was a single straight bar worth zero readable marks \u2014 and it is the " +
+               "right kind of gain, because it came from the pose rather than from new geometry. " +
+               "But at some poses the solver folds the hand <i>inside</i> the torso outline, and " +
+               "the grip-and-guard cluster is the highest-contrast small mark the figure owns and " +
+               "the only thing telling the eye where body ends and weapon begins. Pose-dependent " +
+               "loss of it is a binding concern, so it is System 2's debt, not System 1's." },
+        { kind:"crit", label:"An exemption granted narrowly, on purpose",
+          text:"The implementer argued the stress scene should stay a test rather than become a " +
+               "picture. The ruling: <b>rejected as framed</b> \u2014 the extremes are where " +
+               "grading happens, not where it is suspended, and <i>\u201can unreferenced stimulus " +
+               "does not license an unreferenced response\u201d</i>, because System 5 will drive " +
+               "these chains with targets moving as fast as a parry. <b>Accepted narrowly</b> " +
+               "\u2014 a stress rig is not obliged to answer the one-sentence test <i>as a " +
+               "composition</i>, since it is not staged or lit to be a picture, but it is obliged " +
+               "never to violate the motion law, and it does not. Recorded in that exact form " +
+               "because the looser version would otherwise be reused as cover." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"Setting", kind:"note",
       title:"The samurai framing is retired — a re-skin, deliberately not a redesign",

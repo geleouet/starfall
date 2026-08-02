@@ -51,4 +51,8 @@ tasks.register('capture', JavaExec) {
     if (project.hasProperty('w')) args += ['--w', project.property('w')]
     if (project.hasProperty('h')) args += ['--h', project.property('h')]
     if (project.hasProperty('label')) args += ['--label', project.property('label')]
+    // -Pstart / -Pstep capture a short window at a true frame rate, which is the only way
+    // to grade overlapping action. See CaptureSpec#step.
+    if (project.hasProperty('start')) args += ['--start', project.property('start')]
+    if (project.hasProperty('step')) args += ['--step', project.property('step')]
 }

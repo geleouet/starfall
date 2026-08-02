@@ -44,7 +44,7 @@ public class CaptureApp extends ApplicationAdapter {
         fbo = new FrameBuffer(Pixmap.Format.RGBA8888, spec.width, spec.height, true);
         scene.create(new SceneContext(spec.width, spec.height, true));
         scene.resize(spec.width, spec.height);
-        simulate(scene.warmup());
+        simulate(scene.warmup() + spec.start);
     }
 
     @Override
@@ -79,7 +79,18 @@ public class CaptureApp extends ApplicationAdapter {
         frameIndex++;
     }
 
+    /**
+     * Seconds between captured frames.
+     *
+     * <p>An explicit {@code --step} wins, and is how motion timing gets graded at all: the
+     * default of spreading frames across the whole scene samples far too coarsely to see
+     * overlapping action, which STYLE.md §7.1 specifies in the 0.067-0.133s band. See
+     * {@link CaptureSpec#step}.
+     */
     private float frameInterval() {
+        if (spec.step > 0f) {
+            return spec.step;
+        }
         return spec.frames <= 1 ? 0f : scene.duration() / (spec.frames - 1);
     }
 
@@ -94,12 +105,16 @@ public class CaptureApp extends ApplicationAdapter {
     private void finish() {
         try {
             File sheet = new File(spec.outDir, "contact-sheet.png");
+            // Report the window actually captured, not the scene's full duration — with an
+            // explicit --step those differ, and a sheet labelled with the wrong timebase is
+            // worse than one with none.
+            float window = frameInterval() * Math.max(0, spec.frames - 1);
             ContactSheet.build(
                     written,
                     sheet,
                     spec.cols,
                     spec.label != null ? spec.label : scene.description(),
-                    scene.duration(),
+                    window,
                     spec.frames);
             System.out.println("CAPTURE_FRAMES=" + written.size());
             System.out.println("CAPTURE_SHEET=" + sheet.getAbsolutePath());
