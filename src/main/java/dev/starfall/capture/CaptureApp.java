@@ -169,7 +169,24 @@ public class CaptureApp extends ApplicationAdapter {
         new FileHandle(new File(spec.outDir, "capture.txt")).writeString(out.toString(), false);
     }
 
+    /**
+     * Flips the readback in place.
+     *
+     * <p>{@code setBlending(None)} is load-bearing and was missing for the entire life of
+     * this project. A Pixmap defaults to {@code SourceOver}, so {@code drawPixel} <em>composites</em>
+     * rather than assigns — and every captured frame therefore carried a faint copy of itself
+     * mirrored about the horizontal centre line, wherever accumulated alpha was below 1.
+     *
+     * <p>It stayed invisible for dozens of reviews because every scene until now centred a
+     * single figure vertically, so the ghost landed on top of the figure it came from. The
+     * first two-figure capture, framed 4:3, put it in the empty sky where it was obvious.
+     * Worth remembering as the shape of the bug that survives a hundred careful measurements:
+     * not one that makes the picture wrong, but one that makes it wrong in the same place the
+     * subject already is.
+     */
     private static void flipVertically(Pixmap pixmap) {
+        Pixmap.Blending previous = pixmap.getBlending();
+        pixmap.setBlending(Pixmap.Blending.None);
         int w = pixmap.getWidth();
         int h = pixmap.getHeight();
         for (int y = 0; y < h / 2; y++) {
@@ -180,6 +197,7 @@ public class CaptureApp extends ApplicationAdapter {
                 pixmap.drawPixel(x, h - 1 - y, top);
             }
         }
+        pixmap.setBlending(previous);
     }
 
     @Override
