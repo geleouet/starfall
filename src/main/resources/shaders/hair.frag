@@ -20,6 +20,21 @@
 //                     fleck threshold along its length, and a root that emerges
 //                     rather than starts.
 //
+// -- the value floor, which is an invariant and not a preference ------------
+//
+// STYLE.md 2.2: "No pure black, no pure white, ever. Darkest is #161A22."
+// Hair is authored *at* that floor -- the mass holds INK_BLACK across its whole
+// first half so the topknot and the plume read as one object at one value -- so
+// every value term in this shader can only ever lighten. There is no headroom
+// underneath. A term written as `0.86 + 0.14 * x`, centred below 1.0, is not a
+// contrast control here; it is a request for a colour the palette does not
+// contain, and it printed 20.9 against a floor of 25.73 for a whole pass.
+//
+// The rule, then: **every multiplier applied to `ink` in this file has a
+// minimum of exactly 1.0.** Pooling, dry brush and grain are all expressed as
+// how far a pixel lifts *off* the floor, never as how far it sinks below it.
+// Coverage is a separate question and `a` is free to do as it likes.
+//
 // -- material-space anchoring (STYLE.md 3.5) --------------------------------
 //
 // The noise argument is (strand seed, arc length along that strand). Both are
@@ -161,7 +176,11 @@ void main() {
         float root = smoothstep(0.0, 0.05, s);
 
         a = v_color.a * v_subpixel * edge * cut * root * (0.78 + 0.28 * n);
-        ink *= 0.88 + 0.20 * n;
+        // Lightening only, for the reason spelled out in the mass branch below.
+        // A hairline leaves its lock at INK_BLACK as well, so the old 0.88x was
+        // the same floor violation, waiting on a hairline opaque enough at its
+        // root to print it. Contrast preserved: 1:1.227 was 0.88:1.08.
+        ink *= 1.0 + 0.227 * n;
     } else {
         // -- the mass -------------------------------------------------------
         float n = 0.62 * vnoise(vec2(seed + acrossW * 33.0, arc * 5.5 + u_time * 0.09))
@@ -198,11 +217,46 @@ void main() {
         float streak = vnoise(vec2(arc * 2.2 + seed, acrossW * 60.0));
 
         // STYLE.md 3.4: value pooling. Ink collects at the trailing edge of a
-        // wash, so the underside rail is darker than the spine.
-        float pool = 0.86 + 0.14 * smoothstep(-0.2, -1.0, v_across);
+        // wash, so the trailing rail is the darkest part of the plume.
+        //
+        // The previous form of this line got that wrong twice, and both errors
+        // were the same error. It read
+        //
+        //     pool = 0.86 + 0.14 * smoothstep(-0.2, -1.0, v_across);
+        //     ink *= pool * (0.92 + 0.14 * streak) * (0.94 + 0.12 * n);
+        //
+        // which puts pool at 1.0 on the v_across = -1 rail and 0.86 on the
+        // spine and the whole far half of the ribbon. So:
+        //
+        //   1. Most of the plume printed at 0.86x INK_BLACK or below -- the
+        //      three factors bottom out at 0.744x together. INK_BLACK *is* the
+        //      floor: STYLE.md 2.2, "no pure black, no pure white, ever.
+        //      Darkest is #161A22". Multiplying it by anything under 1.0 does
+        //      not mean "more ink", because there is no more ink; it means a
+        //      colour the palette does not contain. Measured on s3-p2-reversal,
+        //      19590 pixels over 24 frames below the floor, darkest #12151C at
+        //      luminance 20.87 against the floor's 25.73.
+        //   2. The rail that 3.4 says pools *darkest* was the one part of the
+        //      plume that was not darkened, so the pooling ran backwards: the
+        //      trailing rail was the lightest thing in the mass.
+        //
+        // Both are fixed by the same move. The pooling rail sits *on*
+        // INK_BLACK and everything else lifts off it, which is the only way to
+        // express "ink collects here" when the base value is already the
+        // darkest value there is. Rail-to-spine contrast is 1:1.163, which is
+        // exactly what 0.86:1.00 carried.
+        float pool = 1.0 + 0.163 * smoothstep(-1.0, -0.2, v_across);
+
+        // 3.3's dry brush and the material grain are rebased the same way and
+        // for the same reason: ink skipping and paper tooth both leave *less*
+        // pigment than a full lay-down, so they can only lighten. Contrast is
+        // preserved term for term -- 1:1.152 was 0.92:1.06, 1:1.128 was
+        // 0.94:1.06.
+        float dry = 1.0 + 0.152 * streak;
+        float grain = 1.0 + 0.128 * n;
 
         a = v_color.a * v_subpixel * body * cut * (0.86 + 0.18 * streak);
-        ink *= pool * (0.92 + 0.14 * streak) * (0.94 + 0.12 * n);
+        ink *= pool * dry * grain;
     }
 
     float fog = fogAt(v_world) * u_fogStrength;

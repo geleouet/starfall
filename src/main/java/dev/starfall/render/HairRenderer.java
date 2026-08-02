@@ -74,6 +74,19 @@ import dev.starfall.sim.HairSim;
  *       the mass sits <em>in</em> the paper rather than on it.</li>
  * </ol>
  *
+ * <h2>{@link #rootInk} is the floor, so the fragment stage may only lighten</h2>
+ *
+ * <p>The mass is authored at {@code INK_BLACK} and holds it across its whole
+ * first half, and {@code INK_BLACK} is not merely a dark colour -- STYLE.md 2.2
+ * makes it <em>the darkest value that exists</em>: "no pure black, no pure
+ * white, ever. Darkest is {@code #161A22}." There is therefore no headroom
+ * underneath the colour this class hands to {@code hair.frag}, and every value
+ * term in that shader is written with a minimum of exactly 1.0. Pass 2 shipped
+ * three of them centred below 1.0 -- pooling, dry brush and grain, bottoming out
+ * at 0.744x together -- which printed luminance 20.87 against the floor's 25.73
+ * on 19590 pixels of {@code s3-p2-reversal} alone. Coverage is a separate
+ * question and alpha is free; colour is not.
+ *
  * <h2>What is unchanged from pass 1, because the review verified it</h2>
  *
  * <p>The Catmull-Rom spine (a visible polyline kink is 4's instant fail; clean at

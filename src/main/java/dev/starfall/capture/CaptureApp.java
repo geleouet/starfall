@@ -115,6 +115,7 @@ public class CaptureApp extends ApplicationAdapter {
                     spec.label != null ? spec.label : scene.description(),
                     window,
                     spec.frames);
+            writeManifest(window);
             System.out.println("CAPTURE_FRAMES=" + written.size());
             System.out.println("CAPTURE_SHEET=" + sheet.getAbsolutePath());
         } catch (Exception e) {
@@ -122,6 +123,43 @@ public class CaptureApp extends ApplicationAdapter {
             e.printStackTrace();
         }
         Gdx.app.exit();
+    }
+
+    /**
+     * Writes the exact command that reproduces this capture, next to its frames.
+     *
+     * <p>Added after an agent had to recover eight capture recipes by md5-matching frame 0
+     * against a sweep of start times, because nothing in the repository recorded how any
+     * capture had been made. A capture whose recipe is lost cannot be re-shot after a fix,
+     * so it cannot be used as a before/after — which is most of what captures are for here.
+     * Same principle as STYLE.md §11.3: a measurement you cannot reproduce is an anecdote.
+     */
+    private void writeManifest(float window) {
+        StringBuilder cmd = new StringBuilder("./gw capture");
+        cmd.append(" -Pscene=").append(spec.sceneName);
+        cmd.append(" -Pout=").append(spec.outDir.getPath().replace('\\', '/'));
+        cmd.append(" -Pframes=").append(spec.frames);
+        cmd.append(" -Pcols=").append(spec.cols);
+        if (spec.start > 0f) {
+            cmd.append(" -Pstart=").append(spec.start);
+        }
+        if (spec.step > 0f) {
+            cmd.append(" -Pstep=").append(spec.step);
+        }
+        cmd.append(" -Pw=").append(spec.width).append(" -Ph=").append(spec.height);
+
+        StringBuilder out = new StringBuilder();
+        out.append("# Reproduce this capture:\n").append(cmd).append('\n');
+        out.append("\nscene=").append(spec.sceneName);
+        out.append("\ndescription=").append(scene.description());
+        out.append("\nframes=").append(spec.frames);
+        out.append("\nstart=").append(scene.warmup() + spec.start);
+        out.append("\nstep=").append(frameInterval());
+        out.append("\nwindow=").append(window);
+        out.append("\nsize=").append(spec.width).append('x').append(spec.height);
+        out.append("\nsubstep=").append(SceneClock.SUBSTEP);
+        out.append('\n');
+        new FileHandle(new File(spec.outDir, "capture.txt")).writeString(out.toString(), false);
     }
 
     private static void flipVertically(Pixmap pixmap) {

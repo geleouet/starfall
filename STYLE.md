@@ -141,6 +141,15 @@ Implementation requirements:
    direction, not screen-aligned). Coverage is not uniform — ink skips.
 4. **Value pooling.** Ink is darkest where it collects: at folds, at the trailing edge of a
    wash, at the bottom of a hanging garment. A flat-shaded garment is wrong.
+
+   **When the base colour already sits on the floor, pool by lifting everything else.**
+   §2.2 forbids anything below `#161A22`, so a material authored *at* the floor — the hair
+   mass is — cannot express "ink collects here" by darkening. It has nothing left to darken
+   into. Three modulation terms each centred a little below 1.0 multiplied out to 0.744x
+   and printed `#12151C`, which is how the floor was breached. The rule that replaces it:
+   **every multiplier applied to an ink value has a minimum of exactly 1.0.** The pooling
+   rail sits *on* the floor and everything else lifts off it. Contrast ratios are identical;
+   only the anchor moves.
 5. **The noise field must be anchored to the *material*, not to the screen.** If the noise
    swims across the cloth as the character moves, the whole illusion collapses into
    "shader effect over a moving sprite". Sample noise in a stable material-space UV that
