@@ -620,11 +620,39 @@ merely correct, say what would give it an origin.
   provisional until its null case has been run**, and "by construction" is an assumption, not
   a result — the phrase itself should be read as a warning that nobody has measured it.
 
-  So: quote drape excursion **relative to the rigid control**, never raw, and state both
-  numbers. A gate on the raw value is meaningless. The return gate — a monotone fall to ≤25%
-  of peak, §7.2's one soft return on the relative signal where it is well posed — stands, but
-  its 0.15-0.25 s window is also unvalidated: two live configurations measure 0.137 and
-  0.141 s, i.e. slightly *too fast*, which may mean the window is wrong rather than the cloth.
+  So quote drape excursion **relative to the rigid control**, never raw, and state both
+  numbers. The return gate stands and its 0.15-0.25 s window is **correct** — re-measured on
+  clean captures it reads 0.157 s and 0.158 s, comfortably inside. The earlier "slightly too
+  fast" reading was the harness ghost.
+
+  **But no scalar reduced from a rectangle grades this cloth, and the reason is structural.**
+  Four statistics have now been tested against their null: reversal-time lag, raw drape
+  excursion, control-relative drape excursion, and a non-rigid silhouette-shape residual. The
+  fourth was killed by the reviewer who proposed it, before publishing — it separated 2.80×
+  on one scene and **0.51× on another, with the dead garment scoring higher.**
+
+  The cause is the rig, not the search: **the skirt's readable mass is skinned to the hips
+  and legs**, so clamping the simulation does not produce an absent garment — it produces a
+  *fully animated* one driven by the body. The simulation is a small perturbation on a large
+  skinned motion, and any single number through a box is dominated by the body.
+
+  **So the cloth criterion is a paired capture and a forced choice.** Every graded window is
+  shot twice — live, and clamped rigid, same scene, same start, same step, same harness
+  commit — presented at matched scale without labels. **If the reviewer cannot pick the
+  simulated one, the cloth has failed**, whatever any number says. The gate is binary and
+  falsifiable, and its null case is built into the *procedure* rather than assumed of the
+  statistic. Its own null was run: the live capture was picked immediately on a hard reversal
+  and was indistinguishable on the slow scene.
+
+  Numbers keep their place, demoted: drape excursion is a good **diagnostic**, box-stable to
+  about ±7%, quoted as a **pair, live / control, on both a fast and a slow scene**, never as
+  a threshold on one number. Quoting only the fast scene is scene-picking, and the two scenes
+  disagree by a factor of two.
+
+  **One scalar gate does survive, because its null is structural rather than statistical:**
+  every simulated particle whose swept box falls outside the drawn figure contributes nothing
+  to the picture and **must not be counted as cloth resolution**. It should read zero. It
+  currently reads two of six.
 
 ### 7.2 Extreme cases (this is where the aesthetic dies)
 
@@ -787,6 +815,53 @@ the settle. Contact sheets label the *captured window*, not the scene duration.
 **Any claim about lag or stagger made from a coarse capture is unfalsifiable**, and per
 §7.1 a capture is not sufficient either: timing claims also ship with a headless
 measurement.
+
+### 11.2b The apparatus is upstream of every other rule here
+
+Everything else in §11 governs the **subject**. Nothing governed the **apparatus** — and a
+harness bug corrupted every frame this project captured, through roughly a dozen reviews,
+until a change of framing exposed it. The flip in the capture path composited instead of
+assigning, so each frame carried its own vertical mirror: **76-79% of pixels affected.** It
+survived because every scene until then centred a single figure vertically, so the ghost
+landed on the figure it came from.
+
+**(a) A calibration card, asserted in the test suite.** Render a synthetic frame *through
+the capture path* whose correct measurement is known analytically — a paper field and a
+solid rectangle of known position, size and value, deliberately **asymmetric in every axis
+the pipeline touches**. The flip bug dies to one assertion: *a figure drawn only in the top
+third must leave the bottom two thirds at paper*. The same card catches gamma drift, y-flips,
+paper-level estimation and off-by-one region resolution. It is the cheapest item in this
+document and it would have caught the bug on day one.
+
+**(b) Capture the subject where it cannot hide the artefact — once per system.** Off-centre,
+off-frame, doubled, or absent. **Anything symmetric about an axis of the subject cannot be
+tested on the subject.** One two-figure capture in an unfamiliar aspect ratio found in a
+single frame what a dozen reviews did not.
+
+**(c) Bit-identity across paths that share code proves nothing.** Two capture paths were
+celebrated as bit-identical; they agreed because they shared the buggy function. A
+cross-check must cross an **implementation** boundary, not a call site — against a known
+answer, or an independently written reader.
+
+**(d) Prefer differences to absolutes.** Every claim that survived the re-capture was
+*relative* — registration lag, drape excursion, before/after through matched rectangles.
+Every claim that died was *absolute* — coverage percentages, luminance standard deviations,
+the brightest interior pixel, mark-run counts. **An absolute pixel statistic is valid only
+against the harness that produced it**, so `capture.txt` records `commit=` and `harness=`,
+and any comparison spanning two harness versions is void by default rather than by
+discovery.
+
+**(e) A discipline written into a document but not into the tool that reads it is
+documentation, not a guard.** `track` *refuses* to run without an anchor, and anchors
+stopped being a problem. `drape` writes the control flag into the manifest and never checks
+it — and a reviewer proved in one command that it will call a live capture a rigid control.
+Audit every rule in §7.1 and §11.3 for which of the two it is.
+
+**And generalise the control from the subject to the instrument.** §7.1 learned "run the
+control" about cloth. Stated generally: **before a number is allowed to decide anything,
+someone must say what it would read if the thing being measured were absent — and then
+produce that case.** The phrase *"by construction"* has now destroyed two acceptance
+criteria and one bug diagnosis. Read it, always, as **nobody has measured this**.
 
 ### 11.3 Record the region, or the measurement is unfalsifiable
 

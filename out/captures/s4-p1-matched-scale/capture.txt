@@ -1,0 +1,13 @@
+# STYLE.md 11.0 matched-scale comparison, System 4 pass 1.
+# Reproduce:
+#   ./gw capture -Pscene=duel-parry -Pout=out/captures/s4-p1-parry-contact -Pframes=24 -Pcols=6 -Pstart=1.42 -Pstep=0.0167 -Pw=960 -Ph=720
+#   ./gw analyse -Pargs="figure out/captures/s4-p1-parry-contact/frame_010.png --reference <inspirations image 3>"
+#
+# capture   out/captures/s4-p1-parry-contact/frame_010.png
+#           figure box x175..823 y234..711 (649x478), figure height 478 px, paper 219.0
+# reference inspirations/image - 2026-08-02T101033.164.png
+#           figure box x0..831 y281..1087, figure height 807 px
+# downscale 0.5923 (807 px -> 478 px); reference resampled to 493 x 644 (Lanczos)
+#
+# ref3-matched.png          the reference at matched scale
+# matched-side-by-side.png  reference left, capture right, both at 478 px figure height

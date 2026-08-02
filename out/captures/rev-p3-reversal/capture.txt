@@ -1,0 +1,18 @@
+# Reproduce this capture:
+./gw capture -Pscene=sim-extreme -Pout=out/captures/rev-p3-reversal -Pframes=24 -Pcols=6 -Pstart=0.9 -Pstep=0.0167 -Pw=960 -Ph=540
+
+scene=sim-extreme
+description=Verlet extreme (STYLE.md 7.2): two hard reversals, impact, 0.8s knockback drift, long settle
+frames=24
+start=0.9
+step=0.0167
+window=0.3841
+size=960x540
+substep=0.004166667
+
+# REVIEW NOTE (System 3 pass-4 review):
+# Shot from a detached worktree at commit 4917a46 (System 3 pass 3) with b04dea5
+# (the CaptureApp.flipVertically fix) cherry-picked on top. It is pass 3's build
+# rendered through a clean harness, and exists so that the pass-3 -> pass-4
+# before/after could be re-run on uncomposited pixels. It is NOT reproducible
+# from the recipe above on this branch.
