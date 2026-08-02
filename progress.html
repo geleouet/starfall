@@ -203,8 +203,14 @@ const DATA = {
       w:"Keeps facing/rotation tactics meaningful and shows figures in profile." },
     { k:"Framing",     v:"Wide to plan, push in to strike",
       w:"Tactical readability while planning, reference-image intimacy on execution." },
-    { k:"Combat",      v:"Faithful action-queue",
-      w:"Uninterrupted execution sequences give the animation system multi-beat choreography." },
+    { k:"Combat",      v:"Faithful action-queue, LIFO",
+      w:"Building the queue is writing a choreography backwards; execution is a phrase, not a hit." },
+    { k:"Combat scope", v:"One excellent encounter first",
+      w:"No regions, shops or NG+ yet — they are additive and none is needed to prove the point." },
+    { k:"Heroes",      v:"Two contrasting verbs: push and swap",
+      w:"Opposite demands — collision with recoil vs interpenetration with no impact." },
+    { k:"Content",     v:"Systems borrowed, content original",
+      w:"Mechanics are design ideas worth learning; the named catalogue is another game." },
     { k:"Mobile",      v:"Desktop-first, mobile-safe",
       w:"GLES 3.0 shader limits and mobile bone/particle budgets respected from the start." },
     { k:"Review bar",  v:"Loop until convinced, cap 5",
@@ -244,6 +250,61 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 5", kind:"note",
+      title:"Combat design settled from the retro-spec — with one filter that decides everything",
+      body:[
+        "A 469-line retro-spec of the source game's mechanics arrived. Three things in it " +
+        "corrected or completed what I had.",
+
+        "<b>The queue executes LIFO</b> — last tile added resolves first. I did not have that, " +
+        "and it changes the animation brief: building a queue is <i>writing a choreography " +
+        "backwards</i>, and the last intention becomes the first gesture. An uninterrupted " +
+        "multi-tile execution is a <b>phrase, not a hit</b> — a single strike gives the animation " +
+        "system one impact to make poetic; a three-tile execution gives it a sentence. " +
+        "<b>Cooldown resets whether the blow lands or not</b>, so missing is punished twice, which " +
+        "pushes toward precision rather than spam.",
+
+        "<b>And the best idea in the source is that each hero's identity is a <i>movement " +
+        "verb</i></b> — swap places, push back, pass through, throw backward, rotate front and " +
+        "back. Every one of those is a two-body contact event, which is exactly the raw material " +
+        "this project's whole priority depends on. That gave me the filter the design now runs on: " +
+        "<b>a mechanic earns its place if it produces a beat of choreography.</b> Parry, push, " +
+        "pull, swap, being carried backward by a blow — in. Abstract damage modifiers and ranged " +
+        "chip with no contact — out, however well they work in the source.",
+
+        "Scope is <b>one excellent encounter</b>: the full LIFO queue, cooldowns, intent " +
+        "telegraphs, enemy traits, statuses and combos on the 15-tile lane, with no regions, " +
+        "shops, skills or NG+. Those are additive and none of them is needed to prove the thing " +
+        "this project is actually about."
+      ],
+      notes:[
+        { kind:"fix", label:"Two heroes, chosen to be opposites",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The Ronin pushes</b> " +
+               "— advancing into an occupied tile shoves the occupant back, and with no room " +
+               "behind them both take collision damage. A shoulder-and-hilt check: sustained " +
+               "contact, resistance, recoil. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The Wanderer swaps</b> " +
+               "— advancing into an occupied tile exchanges places. Two figures passing through " +
+               "each other in one beat, sleeves and hair crossing, each trailing into the space " +
+               "the other has left. The two verbs demand opposite things — a collision with " +
+               "recoil versus an interpenetration with no impact at all — so if both read as " +
+               "poetic, the interaction layer is genuinely general rather than fitted to one case." },
+        { kind:"crit", label:"The 15-tile lane does not inherit the source's balance",
+          text:"The retro-spec is tuned for <b>5 to 9</b> tiles. Ours is 15. Ranged attacks and " +
+               "dashes are worth far more on a long lane, melee-only enemies risk spending several " +
+               "turns simply walking, and retreat becomes a real option rather than a wall. So the " +
+               "extra length has to <i>buy</i> something rather than merely be tolerated — and " +
+               "what it buys is <b>the approach</b>, the slow closing of distance that makes first " +
+               "contact land. That is also precisely what the camera plan needs, since it pushes " +
+               "in on execution. Designed for deliberately." },
+        { kind:"crit", label:"One enemy exists purely to refuse the hero",
+          text:"The Bulwark is Unyielding — it cannot be pushed, pulled or turned, which denies " +
+               "both heroes their signature verb outright. It is in the set because a mechanic only " +
+               "becomes interesting once something refuses it. Five enemies total, each defined by " +
+               "how it <i>forces contact</i> rather than by a stat line." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 1", kind:"build",
       title:"Spec errors corrected — matched-scale part count goes from 3 to 13",
