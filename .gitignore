@@ -14,3 +14,6 @@ tools/gradle.zip
 # judged -- and they are 55MB per ~100 frames, which would reach gigabytes
 # over the number of passes this project expects.
 out/**/frame_*.png
+
+# Stray class files from ad-hoc javac runs
+*.class
