@@ -27,21 +27,23 @@ import java.util.Map;
 /**
  * Draws skinned meshes with the ink material -- contract section F.
  *
- * <p>Revision 2 splits the cloth path in two, per docs/system1-shader-fixes.md
- * item 1. Every garment ribbon used to run its own dissolve, its own bleed and
- * its own alpha blend and then composite over its neighbours; N overlapping
- * narrow strips carrying independent dissolves produce a periodic ripple no
- * amount of noise tuning removes, and the review measured exactly that through
- * the chest. So:
+ * <p>The cloth path is in two passes, but revision 3 step 1
+ * (docs/system1-shader-fixes-3.md) moves the line between them:
  *
  * <ol>
- *   <li>all cloth geometry renders into an offscreen buffer carrying
- *       <em>material data</em> -- field, value, stain, weight -- with the weight
- *       channel MAX-blended so overlaps take the densest rather than
- *       accumulating opacity;</li>
- *   <li>two quarter-resolution blurs turn that buffer's coverage into a
- *       distance-to-silhouette field at two radii;</li>
- *   <li>one full-screen resolve applies the whole ink material once and
+ *   <li>all cloth geometry renders into one offscreen buffer. ink_skin.frag
+ *       cuts the fray per-fragment at full resolution in material space and
+ *       writes <em>coverage</em> plus (value, stain, bleed) premultiplied by it.
+ *       Contributions composite with ordinary premultiplied "over", so
+ *       overlapping ribbons average rather than the topmost replacing its
+ *       neighbours -- the rule that printed three axis-aligned bars through
+ *       pass 3's torso;</li>
+ *   <li>two quarter-resolution blurs of that coverage, used <em>only</em> for
+ *       the halo. Revision 2 built a distance-to-silhouette out of them and
+ *       thresholded the fray against it, which is why the outline came out
+ *       shaped like a quarter-resolution gaussian and why a band sized for the
+ *       haori hem deleted the neck, the skull and the sword arm;</li>
+ *   <li>one full-screen resolve turns the merged material into colour and
  *       composites onto the paper.</li>
  * </ol>
  *
@@ -61,14 +63,22 @@ public final class InkSkinnedRenderer {
 
     /** GLES 3.0 blend equations. Not in libGDX's GL20 interface, which predates them. */
     private static final int GL_FUNC_ADD = 0x8006;
-    private static final int GL_MAX = 0x8008;
 
     /** Tap spacing (and sigma) of the two coverage blurs, in quarter-resolution texels. */
     private static final float BLUR_MID = 2.0f;
     private static final float BLUR_FAR = 4.5f;
 
-    /** STYLE.md 5: a swung blade's arc-trail fades over roughly this long. */
-    private static final float TRAIL_SECONDS = 0.40f;
+    /**
+     * STYLE.md 5: a swung blade's arc-trail fades over roughly this long.
+     *
+     * <p>0.48 rather than 0.40 for one reason: the capture step is 0.20 s, so a
+     * 0.40 s life stores two poses and the trail is a single interpolated
+     * segment. Three poses give two segments and the arc the interpolation
+     * already computes actually becomes visible in a still frame
+     * (shader-fixes-3 item 6). The fade is squared, so the extra 0.08 s
+     * contributes almost no opacity.
+     */
+    private static final float TRAIL_SECONDS = 0.48f;
     private static final int TRAIL_SAMPLES = 24;
 
     private static final int FLOATS = SkinnedMesh.FLOATS_PER_VERTEX;
@@ -281,20 +291,34 @@ public final class InkSkinnedRenderer {
     private void bindMaterialTarget(boolean clear) {
         bindTarget(matTarget);
         if (clear) {
-            // Neutral material, not black: RGB blends toward whatever is already
-            // there, so a lone thin strip has to land on "no ink, base value, no
-            // stain" rather than being dragged toward zero.
-            Gdx.gl.glClearColor(0.5f, 0.5f, 0f, 0f);
+            // Zero, because the buffer is premultiplied: "no ink here" is
+            // literally no contribution, and every material channel is
+            // reconstructed downstream by dividing by the coverage that carried
+            // it. Revision 2 cleared to a neutral (0.5, 0.5, 0) because its RGB
+            // was *not* premultiplied and a thin strip had to land on something.
+            Gdx.gl.glClearColor(0f, 0f, 0f, 0f);
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         }
         Gdx.gl.glEnable(GL20.GL_BLEND);
-        // The whole point of the merge. Weight takes the max, so overlapping
-        // ribbons resolve to the densest one and opacity never accumulates;
-        // material parameters blend normally, weighted by each contributor's own
-        // density, so a mostly-dissolved strip tints what is under it instead of
-        // punching its own fray through it.
-        Gdx.gl.glBlendEquationSeparate(GL_FUNC_ADD, GL_MAX);
-        Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_ONE, GL20.GL_ONE);
+        // Premultiplied "over", on every channel including alpha --
+        // docs/system1-shader-fixes-3.md item 2.
+        //
+        // Revision 2 MAX-blended the alpha channel, which carried a
+        // near-constant weight (1 - 0.28*dissolve, so 0.72..1.0 everywhere), and
+        // alpha-blended RGB against it. With a source alpha that high, "blend"
+        // means "replace": the topmost ribbon overwrote its neighbour's value
+        // and stain inside its own quad, and the quad's rail printed as a hard
+        // axis-aligned step. Those are the three bars through pass 3's torso,
+        // and the review's judgement is that they are decisively worse than the
+        // periodic banding they replaced.
+        //
+        // Now ink_skin.frag writes a real coverage alpha -- the fray is already
+        // cut -- and premultiplies the material channels by it, so this is
+        // ordinary alpha compositing: overlapping ribbons *average* in
+        // proportion to how much ink each deposits, exactly as pass 2's
+        // per-ribbon blending did. Nothing max-blends anywhere any more.
+        Gdx.gl.glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+        Gdx.gl.glBlendFunc(GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA);
         Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
         Gdx.gl.glDisable(GL20.GL_CULL_FACE); // the rig authors both windings
         materialBound = true;
@@ -320,7 +344,10 @@ public final class InkSkinnedRenderer {
 
         // Coverage ladder: quarter-res downsample, then two gaussians. blurB ends
         // up holding the narrow field (about 9 px) and blurA the wide one (about
-        // 20 px) -- the first places the fray band, the second *is* the bleed.
+        // 20 px). Since revision 3 step 1 neither shapes the silhouette -- the
+        // narrow one carries the halo, the wide one is read only for a fallback
+        // value outside the coverage. The wide bleed that would use blurA
+        // properly is step 2.
         bindTarget(blurA);
         downShader.bind();
         bindTexture(matTarget, 0);
@@ -477,9 +504,18 @@ public final class InkSkinnedRenderer {
         // over the figure, and reads as a translucent polygon rather than light.
         // Offsets are absolute world units back from the tip, so the ribbon keeps
         // its width instead of scaling with the blade.
-        final float[] rail = {-0.12f, -0.05f, 0f, 0.03f};
-        final float[] railA = {0f, 0.50f, 1f, 0f};
-        final float peak = 0.22f;
+        //
+        // shader-fixes-3 item 6: about twice as wide as revision 2's 0.15 units
+        // (30 px), which was simply too thin to expose the arc the angle
+        // interpolation already computes. Both rails end on zero alpha, so no
+        // straight edge survives -- the inner rail feathers away toward the hilt
+        // over 0.16 units and the outer one dies 0.04 past the tip. It is not
+        // wider than this because the ribbon is screened onto warm paper: a cool
+        // pale wash reads as light over ink but as a grey veil over open ground,
+        // so its area has to stay near the blade's path.
+        final float[] rail = {-0.28f, -0.20f, -0.12f, -0.05f, 0f, 0.04f};
+        final float[] railA = {0f, 0.30f, 0.62f, 0.92f, 1f, 0f};
+        final float peak = 0.24f;
         int rows = 0;
 
         for (int i = 0; i < n - 1; i++) {
@@ -521,7 +557,12 @@ public final class InkSkinnedRenderer {
         // Age fade. Squared-ish so the freshest sliver of the arc carries most of
         // the light and the tail drops away rather than ending on a visible edge.
         float age = MathUtils.clamp((time - t) / TRAIL_SECONDS, 0f, 1f);
-        float fade = (1f - age) * (1f - age) * (1f - 0.35f * age);
+        // Cubed rather than squared. The oldest stored pose sits at about 83% of
+        // the trail's life, and at a squared fade it still carried 2% alpha --
+        // enough, screened over smooth paper, to print the ribbon's own end rail
+        // as a faint straight line well clear of the figure. Cubed it is 0.5%.
+        float f = 1f - age;
+        float fade = f * f * f;
         for (int j = 0; j < rail.length; j++) {
             float d = len + rail[j];
             pushGlowVertex(bx + dx * d, by + dy * d, peak * fade * railA[j]);
@@ -584,8 +625,21 @@ public final class InkSkinnedRenderer {
         glowShader.bind();
         glowShader.setUniformMatrix("u_projTrans", projTrans);
         Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        // Screen, not straight alpha -- shader-fixes-3 item 6.
+        //
+        // dst*(1 - src) + src is exactly the screen operator, and (ONE,
+        // ONE_MINUS_SRC_COLOR) against a premultiplied source is exactly that.
+        // It matters because the trail was being alpha-blended as a cool pale
+        // grey over warm cream paper, and a cool grey at 22% alpha over #EDE4D3
+        // composites *darker and cooler* than the ground: the trail measured as
+        // a dirty smudge rather than as light, which is the opposite of what
+        // STYLE.md 5 asks a luminous arc to do. Screen can only lighten, so the
+        // ribbon reads as light over both the paper and the ink, and it still
+        // cannot reach white the way plain additive would -- the objection
+        // STYLE.md 10 raises against glow-on-everything.
+        Gdx.gl.glBlendFunc(GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_COLOR);
         glowMesh.render(glowShader, GL20.GL_TRIANGLES, 0, glowIndexCount);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
     }
 
     // -- misc ----------------------------------------------------------------
