@@ -441,22 +441,74 @@ Both need a playable fight to settle and neither should be guessed at now.
 | Do status durations stack? | **Refresh.** Stacking makes a status tile scale with queue length, which is arithmetic rather than choreography. |
 | Maximum simultaneous enemies | `max(2, length/2)` — invented, since the design gave only the intent. Keeps density roughly constant across a 5-to-15 lane. |
 
-### 3d.5 What the engine deliberately does not provide
+### 3d.5 What the engine hands the animation layer — delivered, with four corrections
 
-The event stream is **ordinal**: turns and tiles, no world positions and no durations.
-Mapping that to space and time is the animation layer's job and it does not exist yet. Also
-missing, and all of it needed by System 4:
+The event stream is **ordinal**: turns, tiles, proportions and sides. No seconds, no pixels,
+no world coordinates. Mapping that to space and time is the animation layer's job, and the
+moment the engine learns what a second is, the reproducibility the whole review loop depends
+on becomes a rendering concern.
 
-- **Intra-beat phases.** A strike is a single instant; a parry needs a *contact moment* to
-  synchronise two skeletons to, and a wind-up / contact / recovery split to blend IK weight
-  across.
-- **Contact points.** A shove says two bodies met, not whether at shoulder or hilt; a blade
-  meeting gives no crossing point. IK targets need both.
-- **Overlap hints.** Nothing says "beat 3 may begin before beat 2 settles" — which is
-  precisely what makes five beats read as one phrase rather than five.
-- **Death staging.** Death is instantaneous; an ink dissolve wants a duration and a
-  direction.
-- **A camera focus hint.** Which tile is the subject of a beat is derivable but never stated.
+Within that constraint the stream now carries everything §7 needs:
+
+- **Intra-beat phases** — `Phases(windUp, contact, recovery)` in parts of 100, on every beat.
+  `STRIKE` is 40/15/45 verbatim from §7.1 and pinned by a test, because a drift toward
+  fast-windup/long-hang *is* the forbidden fighting-game timing and nothing else would catch
+  it. `GUARD` gives a parry the longest anticipation and the thinnest contact; `WIND_AROUND`
+  gives a turn 65% recovery, so cloth and hair arrive last. A zero phase is forbidden by the
+  constructor, and that positivity is load-bearing — see overlap.
+- **Contact points** — which body, which part, which side, what height, with `Meeting`
+  naming the point on *each* body. Side is relative to each body's **own facing**, because
+  two squared-up bodies face opposite ways and a single world side would be leading for one
+  and trailing for the other. Naming it twice is what lets both skeletons aim their own IK
+  chain.
+- **Overlap hints**, measured in parts of the previous beat's **recovery** — never of the
+  whole beat. This is the design, not a detail: recovery begins after the previous contact
+  ends, and every phase set has a strictly positive wind-up, so **a beat honouring its hint
+  necessarily makes contact after the previous one did**. Contacts stay strictly ordered
+  however the renderer scales the beats. §7.0.3 and §10's fail-on-sight row are discharged
+  *in the rules* rather than left to the renderer's taste, and it is asserted as a theorem.
+  Overlap is forbidden with named reasons — awaiting footing, facing, or a board this beat
+  reads — and nothing is ever 100, because §10 bans simultaneity as such and not merely
+  caused simultaneity.
+- **Death staging**, **camera focus**, and **force** as drive rather than speed — so a shove
+  reads *softer* than a deliberate step, which looks wrong until §7.2 is read: a launch is
+  the failure mode, and a stride has more muscle behind it than being carried does.
+
+#### Four corrections to what this section previously asked for
+
+1. **"Which *tile* is the subject of a beat" is the wrong noun, twice.** The subject is a
+   **body**, and what §9's camera needs is a **span** of tiles — the push-in is required to
+   be small on a short exchange and large on a long approach, and a single tile cannot drive
+   that. A Runner collapsing thirteen tiles and a Wisp stepping one are the same subject and
+   completely different shots.
+
+2. **This section asked for "a duration" one paragraph after declaring the stream has no
+   durations.** Left as written, the first implementer reaches for seconds. Phases are
+   *proportions* of an unnamed beat; a death's length is counted *in beats*. Both are
+   unit-free. "Duration" as previously written was not.
+
+3. **Every gap here was phrased around the hero's stanza, and the enemy phase needed all of
+   them.** That was the largest omission in the section. §7 does not grade enemy motion by a
+   gentler standard, and a lane with three bodies resolving in board order is as much a
+   phrase as a five-tile stanza is. The enemy phase is now a phrase too, and an immobilised
+   body still gets a beat — §1.4's "pigment dries, damping raised hard" is a thing to draw,
+   not an absence of one.
+
+4. **The shoulder-versus-hilt distinction this section asked for is currently unreachable
+   through play, and it depends on §3d.3.** A Charted Shadow re-faces the hero for free every
+   turn, so a body is *always* squared up to whatever shoves it, and the hilt-to-back branch
+   cannot fire from any legal sequence of commands. **The two open items are coupled:**
+   resolving §3d.3's "make an enemy spend its step to turn" — which that section already
+   argues for on flanking grounds — is what makes half of this item real.
+
+#### One ambiguity in STYLE.md §7.1, now resolved
+
+"40% wind-up / 15% travel / 45% follow-through" does not say whether two blades meet at the
+*start* of the middle span or at its *end*. **The answer is the start**, and §7.1 now says
+so: §7.2 requires a parry to be a deflection curve rather than a collision, and a deflection
+takes time. The blades meet at 40, slide and redirect through the span, and part at 55.
+Reading the middle span as travel-toward-a-hit puts the meeting at 55 and collapses the
+deflection to a point, which is the collision the whole document exists to forbid.
 
 ---
 

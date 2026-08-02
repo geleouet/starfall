@@ -62,6 +62,29 @@ public final class CombatEngine {
     /** Set when a hit within the current beat finished a body exactly. Perfect Strike reads it. */
     private boolean beatFinishedExactly;
 
+    // -- staging: the shape of the beat now resolving --------------------------
+    //
+    // All four are transient within one command. They are reset at the top of every
+    // bracket (a phrase, an enemy phase), never read across one, and never copied by
+    // CombatState -- which is what keeps previewExecution() byte-identical to an
+    // apply(): a preview builds a fresh engine over a cloned state, so it starts from
+    // the same blank staging the real run does.
+
+    /** The shape of the beat now resolving. */
+    private Phases beatPhases = Phases.STRIKE;
+
+    /** How many strokes this beat resolves into: two only under Double Strike. */
+    private int strokesInBeat = 1;
+
+    /** Which of those strokes is resolving, so two contacts never land together. */
+    private int strokeIndex;
+
+    /** What the previous beat in this bracket did, for {@link Overlap}. */
+    private BeatMark previousBeat;
+
+    /** Counts beats within the current enemy phase, in board order. */
+    private int enemyBeatIndex;
+
     private CombatEngine(CombatState state, MovementVerb verb) {
         this.state = state;
         this.verb = verb;
@@ -192,6 +215,7 @@ public final class CombatEngine {
         }
         int turn = state.turn();
         current = new ArrayList<>();
+        resetStaging();
         switch (cmd) {
             case Command.Remove r -> {
                 InkStanza.Slot s = state.stanza().remove(r.slot());
@@ -282,10 +306,16 @@ public final class CombatEngine {
         List<InkStanza.Slot> slots = List.copyOf(state.stanza().slots());
         emit(new CombatEvent.PhraseBegan(state.turn(), slots.size()));
         phraseVictims = new ArrayList<>();
+        previousBeat = null;
         int beat = 0;
         for (InkStanza.Slot slot : slots) {
             Combatant hero = state.hero();
-            emit(new CombatEvent.BeatBegan(beat++, slot.tile(), hero.id()));
+            BeatMark mark = BeatMark.of(hero, slot.tile().type(), state.lane());
+            Phases shape = Phases.of(slot.tile().type());
+            emit(new CombatEvent.BeatBegan(beat++, slot.tile(), hero.id(), shape,
+                    overlapAfter(mark), mark.focus()));
+            previousBeat = mark;
+            beatPhases = shape;
             beatFinishedExactly = false;
             if (hero.alive()) {
                 resolveBeat(hero, slot.tile());
@@ -308,7 +338,9 @@ public final class CombatEngine {
 
     private void resolveBeat(Combatant hero, Tile tile) {
         int repeats = tile.has(Enchantment.DOUBLE_STRIKE) && tile.type().strike() ? 2 : 1;
+        strokesInBeat = repeats;
         for (int i = 0; i < repeats && hero.alive() && !state.outcome().over(); i++) {
+            strokeIndex = i;
             resolveTile(hero, tile);
         }
     }
@@ -336,7 +368,7 @@ public final class CombatEngine {
     /** A stroke over a set of tiles that hits <em>every</em> body it crosses. */
     private void strike(Combatant attacker, Tile tile, List<Integer> rawTiles) {
         List<Integer> tiles = onLane(rawTiles);
-        emit(new CombatEvent.Swung(attacker.id(), tiles));
+        emit(new CombatEvent.Swung(attacker.id(), tiles, contactAt()));
         boolean touched = false;
         for (int t : tiles) {
             Combatant target = state.at(t);
@@ -371,7 +403,7 @@ public final class CombatEngine {
                 line.add(t);
             }
         }
-        emit(new CombatEvent.Swung(hero.id(), List.copyOf(line)));
+        emit(new CombatEvent.Swung(hero.id(), List.copyOf(line), contactAt()));
         Combatant target = firstOccupant(line);
         if (target == null) {
             emit(new CombatEvent.Whiffed(hero.id(), List.copyOf(line)));
@@ -391,14 +423,23 @@ public final class CombatEngine {
             return;
         }
         int dest = target.tile() - d;
+        // The line of force: the hero's blade, held out on its leading side, hooked
+        // into the target's body. combat-design.md 2.2 calls the Draw "contact at
+        // distance", which is exactly what an IK chain cannot guess from tile
+        // indices -- the blade is the far end of the reach and the torso is the near
+        // end of the haul.
+        Meeting hook = new Meeting(
+                ContactPoint.leading(hero, ContactPoint.Part.BLADE, ContactPoint.Height.MIDDLE),
+                ContactPoint.on(target, hero, ContactPoint.Part.TORSO, ContactPoint.Height.MIDDLE),
+                contactAt());
         if (!state.lane().contains(dest) || state.occupied(dest)) {
-            emit(new CombatEvent.Drawn(hero.id(), target.id(), target.tile(), target.tile()));
+            emit(new CombatEvent.Drawn(hero.id(), target.id(), target.tile(), target.tile(), hook));
             emit(new CombatEvent.MoveBlocked(target.id(), target.tile(), dest,
                     state.lane().contains(dest) ? CombatEvent.BlockReason.OCCUPIED
                             : CombatEvent.BlockReason.LANE_EDGE));
             return;
         }
-        emit(new CombatEvent.Drawn(hero.id(), target.id(), target.tile(), dest));
+        emit(new CombatEvent.Drawn(hero.id(), target.id(), target.tile(), dest, hook));
         moveTo(target, dest, CombatEvent.MoveReason.DRAWN);
         turnBody(target, Facing.toward(target.tile(), hero.tile()), CombatEvent.TurnReason.HAULED);
     }
@@ -453,10 +494,11 @@ public final class CombatEngine {
         int fromId = from == null ? -1 : from.id();
         if (source.isAttack() && target.statuses().guard()) {
             boolean counter = target.statuses().counterArmed() && from != null && from.alive();
+            Meeting crossing = crossing(target, from);
             if (counter) {
-                emit(new CombatEvent.BladeMet(target.id(), fromId));
+                emit(new CombatEvent.BladeMet(target.id(), fromId, crossing));
             } else {
-                emit(new CombatEvent.GuardHeld(target.id(), fromId));
+                emit(new CombatEvent.GuardHeld(target.id(), fromId, crossing));
             }
             target.statuses().clear(Status.GUARD);
             emit(new CombatEvent.StatusConsumed(target.id(), Status.GUARD));
@@ -478,17 +520,70 @@ public final class CombatEngine {
             beatFinishedExactly = true;
         }
         target.hp(before - amount);
-        emit(new CombatEvent.Hit(fromId, target.id(), amount, Math.max(0, target.hp()), source, doubled));
+        emit(new CombatEvent.Hit(fromId, target.id(), amount, Math.max(0, target.hp()), source, doubled,
+                landing(target, from, source)));
         if (target.hp() <= 0) {
-            kill(target, from);
+            kill(target, from, source);
         }
         return amount;
     }
 
-    private void kill(Combatant target, Combatant from) {
+    /**
+     * Where two blades cross, named once in each body's frame.
+     *
+     * <p>Both points share a height, because they are one physical event; they may
+     * differ in {@link ContactPoint.Side}, because a guard raised by a body facing
+     * the wrong way catches the blade behind it, and that is a different drawing
+     * from a squared-up deflection. The height comes from how far the stroke
+     * travelled: adjacent it comes down, from reach two it comes in flat.
+     */
+    private Meeting crossing(Combatant defender, Combatant attacker) {
+        if (attacker == null) {
+            return new Meeting(
+                    ContactPoint.leading(defender, ContactPoint.Part.BLADE, ContactPoint.Height.HIGH),
+                    ContactPoint.leading(defender, ContactPoint.Part.BLADE, ContactPoint.Height.HIGH),
+                    contactAt());
+        }
+        ContactPoint.Height height =
+                ContactPoint.heightForReach(Math.abs(attacker.tile() - defender.tile()));
+        return new Meeting(
+                ContactPoint.leading(attacker, ContactPoint.Part.BLADE, height),
+                ContactPoint.on(defender, attacker, ContactPoint.Part.BLADE, height),
+                contactAt());
+    }
+
+    /**
+     * Where a blow landed on the body that took it -- STYLE.md 7.3's bloom of ink
+     * needs a place to spread from, and a stain that always blooms from the same
+     * spot is a decal.
+     *
+     * <p>A Seeping tick has no point at all, and the null says so: nothing touched
+     * the body, the wound was already open. That is the same distinction
+     * {@link CombatEvent.HitSource#isAttack()} draws for Guard and Marked, seen
+     * from the animation side.
+     */
+    private static ContactPoint landing(Combatant target, Combatant from, CombatEvent.HitSource source) {
+        if (source == CombatEvent.HitSource.SEEPING || from == null) {
+            return null;
+        }
+        int distance = Math.abs(from.tile() - target.tile());
+        return switch (source) {
+            case BLOOM, SHOCKWAVE ->
+                // Ink thrown across a tile arrives at the hem, not at the chest.
+                    ContactPoint.on(target, from, ContactPoint.Part.TORSO, ContactPoint.Height.LOW);
+            case COLLISION ->
+                    ContactPoint.on(target, from, ContactPoint.Part.TORSO, ContactPoint.Height.MIDDLE);
+            default ->
+                    ContactPoint.on(target, from, ContactPoint.Part.TORSO,
+                            ContactPoint.heightForReach(distance));
+        };
+    }
+
+    private void kill(Combatant target, Combatant from, CombatEvent.HitSource source) {
         int where = target.tile();
+        Dissolve dissolve = Dissolve.of(target, from, source);
         target.kill();
-        emit(new CombatEvent.Died(target.id(), where, from == null ? -1 : from.id()));
+        emit(new CombatEvent.Died(target.id(), where, from == null ? -1 : from.id(), dissolve));
         if (phraseVictims != null && !target.isHero()) {
             phraseVictims.add(target.id());
         }
@@ -538,6 +633,8 @@ public final class CombatEngine {
 
     private void enemyPhase() {
         emit(new CombatEvent.EnemyPhaseBegan(state.turn()));
+        previousBeat = null;
+        enemyBeatIndex = 0;
         for (Combatant e : state.enemies()) {
             if (state.outcome().over()) {
                 break;
@@ -553,6 +650,10 @@ public final class CombatEngine {
             return;
         }
         if (e.statuses().stillness() > 0) {
+            // A body whose pigment has dried still occupies a beat -- 1.4 calls for
+            // motion damping raised hard, which is a thing to draw, not an absence of
+            // one. It gets the shape of a held breath and a focus on itself.
+            beginEnemyBeat(e, Intent.Kind.HOLD, e.tile(), e.tile());
             emit(new CombatEvent.Immobilised(e.id(), e.statuses().stillness()));
             return;
         }
@@ -564,6 +665,7 @@ public final class CombatEngine {
             return;
         }
         e.intent(null);
+        beginEnemyBeat(e, intent.kind(), e.tile(), reachOf(e, intent));
         switch (intent.kind()) {
             case ATTACK -> enemyAttack(e, intent);
             case ADVANCE -> enemyAdvance(e, intent);
@@ -608,7 +710,7 @@ public final class CombatEngine {
         if (!now.equals(declared.threatened())) {
             emit(new CombatEvent.IntentRetargeted(e.id(), declared.threatened(), now));
         }
-        emit(new CombatEvent.Swung(e.id(), now));
+        emit(new CombatEvent.Swung(e.id(), now, contactAt()));
         Combatant victim = firstOccupant(now);
         if (victim == null) {
             emit(new CombatEvent.Whiffed(e.id(), now));
@@ -796,8 +898,168 @@ public final class CombatEngine {
     // -- shared helpers --------------------------------------------------------
 
     private void moveTo(Combatant who, int dest, CombatEvent.MoveReason reason) {
-        emit(new CombatEvent.Moved(who.id(), who.tile(), dest, reason));
+        emit(new CombatEvent.Moved(who.id(), who.tile(), dest, reason, Force.of(reason, dest - who.tile())));
         who.tile(dest);
+    }
+
+    // -- staging ---------------------------------------------------------------
+
+    /**
+     * Blank the staging at the top of every command.
+     *
+     * <p><b>This is a preview-purity rule, not tidiness.</b> {@link #preview}
+     * builds a fresh engine over a cloned board and replays one command on it, so
+     * the ghost starts from blank staging while the live engine would otherwise be
+     * carrying whatever the previous turn left behind. Every field here is set
+     * before it is read on any path currently reachable -- a contact only happens
+     * inside a beat, and every beat opens by setting all of them. But the paths
+     * that come <em>close</em> to breaking that are real and unobvious: a contact
+     * can be emitted during upkeep, outside any beat at all, when an Explosive body
+     * dies of a Seeping tick and throws ink at a hero still holding a guard. One
+     * more rule of that shape and the live engine would read a stale beat while the
+     * ghost read a fresh one, and the two would report different contact instants
+     * for an identical board -- a divergence no board comparison could see.
+     *
+     * <p>So this makes the property <b>structural rather than incidental</b>.
+     * Preview purity is the thing the whole UI leans on, and it should not depend
+     * on nobody ever adding a rule that speaks outside a beat.
+     *
+     * <p>The default is {@link Phases#BREATH} because a contact outside any beat
+     * is exactly that: a body doing nothing that something happened to.
+     */
+    private void resetStaging() {
+        beatPhases = Phases.BREATH;
+        strokesInBeat = 1;
+        strokeIndex = 0;
+        previousBeat = null;
+        enemyBeatIndex = 0;
+    }
+
+    /** The instant, within the beat now resolving, at which this stroke's contact lands. */
+    private int contactAt() {
+        return beatPhases.contactAt(strokeIndex, strokesInBeat);
+    }
+
+    /** Open a beat for a Charted Shadow and stage it exactly as a stanza beat is staged. */
+    private void beginEnemyBeat(Combatant body, Intent.Kind kind, int from, int to) {
+        BeatMark mark = BeatMark.of(body, kind, from, to, state.lane());
+        Phases shape = Phases.of(kind);
+        emit(new CombatEvent.EnemyBeatBegan(enemyBeatIndex++, kind, body.id(), shape,
+                overlapAfter(mark), mark.focus()));
+        previousBeat = mark;
+        beatPhases = shape;
+        strokesInBeat = 1;
+        strokeIndex = 0;
+    }
+
+    /** The far end of what a declared intent is about to do. */
+    private int reachOf(Combatant e, Intent intent) {
+        return switch (intent.kind()) {
+            case ATTACK -> e.tile() + e.reach() * e.facing().step();
+            case ADVANCE -> walkTarget(e);
+            case WITHDRAW, CLOSE_IN -> {
+                Facing toHero = Facing.toward(e.tile(), state.hero().tile());
+                yield e.tile() + (intent.kind() == Intent.Kind.CLOSE_IN ? toHero : toHero.opposite()).step();
+            }
+            case HOLD -> e.tile();
+        };
+    }
+
+    /**
+     * Whether this beat may begin before the last one has settled, and what says so.
+     *
+     * <p><b>The rule, in one line: a beat may lean into the previous beat's
+     * follow-through unless its own geometry is that beat's output.</b> Three ways
+     * that happens, in the order they are checked, because the earlier ones are the
+     * more absolute:
+     *
+     * <ol>
+     *   <li>The previous beat is still deciding where this body <em>stands</em>. A
+     *       Step may be blocked, may shove, may swap; a Charted Shadow's walk may
+     *       be refused. Nothing this body does next has ground to start from.</li>
+     *   <li>The previous beat is still turning it. A stroke begun before the body
+     *       came round is aimed at the old facing.</li>
+     *   <li>The previous beat is still moving a body this one is about to read, and
+     *       their tile spans touch -- a Draw hauling a target into the tile the next
+     *       stroke is written for, or a Charted Shadow walking through the corridor
+     *       the next one wants. This is the one that needs the footprints: two
+     *       bodies at opposite ends of a fifteen-tile lane are not waiting on each
+     *       other and should not be drawn as if they were.</li>
+     * </ol>
+     *
+     * <p>A beat that reads none of that may overlap. The same body continuing gets
+     * less room than two unrelated bodies do, because one body cannot be in two
+     * poses at once and two bodies can -- but neither gets all of it, since
+     * STYLE.md 10 fails a pass on sight of things peaking together whether or not
+     * anything caused it.
+     *
+     * <p>Note what is deliberately <em>not</em> a dependency: a stroke that kills.
+     * Beat three genuinely resolves differently when beat two cleared its target --
+     * that is the whole of {@code PhraseTest} -- but the <em>gesture</em> does not.
+     * The body winds up and cuts from the same place into the same tiles whether
+     * anything is standing there, and combat-design.md's rule that a phrase keeps
+     * resolving through an empty board is what guarantees it. Treating a kill as a
+     * dependency would forbid every overlap in the game and this field would mean
+     * nothing.
+     */
+    private Overlap overlapAfter(BeatMark now) {
+        BeatMark prev = previousBeat;
+        if (prev == null) {
+            return Overlap.firstBeat();
+        }
+        boolean sameBody = prev.actor() == now.actor();
+        if (sameBody && prev.movesActor()) {
+            return Overlap.awaitingFooting();
+        }
+        if (sameBody && prev.turnsActor()) {
+            return Overlap.awaitingFacing();
+        }
+        if (now.readsBoard() && (prev.movesOthers() || prev.movesActor()) && prev.touches(now)) {
+            return Overlap.awaitingBoard();
+        }
+        return sameBody ? Overlap.continues() : Overlap.unrelated();
+    }
+
+    /**
+     * What one beat is about to do, in the only terms {@link Overlap} needs: whose
+     * it is, which tiles it touches, and which of the three dependencies it creates
+     * or reads.
+     */
+    private record BeatMark(int actor, int from, int to, boolean movesActor, boolean turnsActor,
+                            boolean movesOthers, boolean readsBoard, Focus focus) {
+
+        static BeatMark of(Combatant hero, TileType type, Lane lane) {
+            int h = hero.tile();
+            int d = hero.facing().step();
+            int far = switch (type) {
+                case CUT, STEP, FEINT -> h + d;
+                case THRUST -> h + 2 * d;
+                case DRAW -> h + TileType.DRAW_RANGE * d;
+                case BACK_STEP -> h - d;
+                case PARRY, TURN -> h;
+                // The one continuous arc through the tile in front and the tile
+                // behind: the camera has to hold both ends of it.
+                case SWEEP -> h + d;
+            };
+            int near = type == TileType.SWEEP ? h - d : h;
+            boolean moves = type == TileType.STEP || type == TileType.BACK_STEP || type == TileType.FEINT;
+            boolean reads = type == TileType.CUT || type == TileType.THRUST || type == TileType.SWEEP
+                    || type == TileType.DRAW || type == TileType.STEP;
+            return new BeatMark(hero.id(), Math.min(near, far), Math.max(near, far), moves,
+                    type == TileType.TURN, type == TileType.DRAW, reads,
+                    Focus.of(hero, near, far, lane));
+        }
+
+        static BeatMark of(Combatant body, Intent.Kind kind, int from, int to, Lane lane) {
+            boolean moves = kind == Intent.Kind.ADVANCE || kind == Intent.Kind.WITHDRAW
+                    || kind == Intent.Kind.CLOSE_IN;
+            return new BeatMark(body.id(), Math.min(from, to), Math.max(from, to), moves, false, false,
+                    kind != Intent.Kind.HOLD, Focus.of(body, from, to, lane));
+        }
+
+        boolean touches(BeatMark other) {
+            return from <= other.to() && other.from() <= to;
+        }
     }
 
     private void turnBody(Combatant who, Facing to, CombatEvent.TurnReason reason) {
@@ -876,6 +1138,11 @@ public final class CombatEngine {
         @Override
         public void emit(CombatEvent event) {
             CombatEngine.this.emit(event);
+        }
+
+        @Override
+        public int contactAt() {
+            return CombatEngine.this.contactAt();
         }
     }
 }

@@ -58,6 +58,17 @@ public sealed interface MovementVerb {
         void damage(Combatant target, int amount, CombatEvent.HitSource source, Combatant from);
 
         void emit(CombatEvent event);
+
+        /**
+         * The instant, in {@link Phases#WHOLE} parts of the beat now resolving, at
+         * which this contact lands.
+         *
+         * <p>A verb is asked to resolve the contact, so it is the verb that names
+         * where on the two bodies it happens -- and the <em>when</em> has to come
+         * from the beat around it, because a verb fires inside a Step beat whose
+         * shape it does not choose.
+         */
+        int contactAt();
     }
 
     /** The Warden. */
@@ -97,21 +108,45 @@ public sealed interface MovementVerb {
                         CombatEvent.RefusalReason.UNYIELDING));
                 return false;
             }
+            Meeting meeting = check(ctx, mover, occupant, direction);
             int behind = held + direction.step();
             boolean offLane = !ctx.inLane(behind);
             boolean blocked = !offLane && ctx.at(behind) != null;
             if (offLane || blocked) {
-                ctx.emit(new CombatEvent.Shoved(mover.id(), occupant.id(), held, held, false));
+                ctx.emit(new CombatEvent.Shoved(mover.id(), occupant.id(), held, held, false, meeting));
                 ctx.emit(new CombatEvent.Collided(mover.id(), occupant.id(), held, COLLISION_DAMAGE,
                         offLane ? CombatEvent.CollisionCause.LANE_EDGE : CombatEvent.CollisionCause.BODY_BEHIND));
                 ctx.damage(occupant, COLLISION_DAMAGE, CombatEvent.HitSource.COLLISION, mover);
                 ctx.damage(mover, COLLISION_DAMAGE, CombatEvent.HitSource.COLLISION, occupant);
                 return false;
             }
-            ctx.emit(new CombatEvent.Shoved(mover.id(), occupant.id(), held, behind, true));
+            ctx.emit(new CombatEvent.Shoved(mover.id(), occupant.id(), held, behind, true, meeting));
             ctx.move(occupant, behind, CombatEvent.MoveReason.SHOVED);
             ctx.move(mover, held, CombatEvent.MoveReason.STEP);
             return true;
+        }
+
+        /**
+         * Shoulder or hilt, decided by how the occupant is turned.
+         *
+         * <p>combat-design.md 2.1 names the beat "a shoulder-and-hilt check" and
+         * leaves which of the two open. The board answers it: a body squared up at
+         * you is met chest to chest and high, and a body with its back turned is
+         * driven forward with the grip end, lower and heavier. Those are two
+         * different drawings and the engine already knows which one it is, so it
+         * says so rather than letting the animation layer pick one and use it for
+         * both. Contact is <em>sustained</em> either way, per 2.1 -- which is
+         * carried by the Step beat's wide contact span, not by this point.
+         */
+        private static Meeting check(Context ctx, Combatant mover, Combatant occupant, Facing direction) {
+            boolean backTurned = occupant.facing() == direction;
+            ContactPoint onMover = ContactPoint.leading(mover,
+                    backTurned ? ContactPoint.Part.HILT : ContactPoint.Part.SHOULDER,
+                    backTurned ? ContactPoint.Height.MIDDLE : ContactPoint.Height.HIGH);
+            ContactPoint onOccupant = ContactPoint.on(occupant, mover,
+                    backTurned ? ContactPoint.Part.BACK : ContactPoint.Part.TORSO,
+                    backTurned ? ContactPoint.Height.MIDDLE : ContactPoint.Height.HIGH);
+            return new Meeting(onMover, onOccupant, ctx.contactAt());
         }
     }
 
@@ -141,7 +176,16 @@ public sealed interface MovementVerb {
             }
             int here = mover.tile();
             int there = occupant.tile();
-            ctx.emit(new CombatEvent.Swapped(mover.id(), occupant.id(), here, there));
+            // Sleeve on sleeve, mid-height, as the two figures cross. The only
+            // contact in the game the animation layer must draw with no impact at
+            // all -- combat-design.md 2.1 calls it an interpenetration -- so it is
+            // named as a meeting like any other and carries Force.NONE on the Moveds
+            // that follow.
+            Meeting meeting = new Meeting(
+                    ContactPoint.leading(mover, ContactPoint.Part.ARM, ContactPoint.Height.MIDDLE),
+                    ContactPoint.on(occupant, mover, ContactPoint.Part.ARM, ContactPoint.Height.MIDDLE),
+                    ctx.contactAt());
+            ctx.emit(new CombatEvent.Swapped(mover.id(), occupant.id(), here, there, meeting));
             ctx.move(occupant, here, CombatEvent.MoveReason.SWAPPED);
             ctx.move(mover, there, CombatEvent.MoveReason.SWAPPED);
             return true;

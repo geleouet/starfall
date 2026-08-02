@@ -63,6 +63,50 @@ class PreviewTest {
     }
 
     @Test
+    void aPreviewStagesThePhraseExactlyAsTheRealThingWillStageIt() {
+        // The staging fields are the one part of the engine that is carried in
+        // transient state rather than in CombatState -- the shape of the beat now
+        // resolving, and what the beat before it did. So they are the obvious place
+        // for a preview to diverge, either by leaking into the live engine or by
+        // starting from a different blank. Both would be invisible to a board
+        // comparison and fatal to a UI that previews a phrase and then plays a
+        // different one.
+        CombatEngine ghost = loaded();
+        CombatEngine real = loaded();
+
+        List<CombatEvent.BeatBegan> dry = Encounters.only(ghost.previewExecution().events(),
+                CombatEvent.BeatBegan.class);
+        List<CombatEvent.BeatBegan> wet = Encounters.only(real.apply(Command.execute()).events(),
+                CombatEvent.BeatBegan.class);
+
+        assertEquals(wet, dry, "same tiles, same shapes, same seams, same subjects");
+        assertTrue(dry.stream().allMatch(b -> b.phases() != null && b.overlap() != null && b.focus() != null),
+                "and a preview that staged nothing would compare equal to another one that did");
+    }
+
+    @Test
+    void previewingDoesNotLeaveTheLiveEngineHalfwayThroughABeat() {
+        // The seam between beats is computed from what the previous beat did, which
+        // is state that has to be reset at the top of every phrase. If a preview --
+        // or a previous turn -- left it set, the next phrase would open by leaning
+        // into a beat that never happened.
+        CombatEngine e = loaded();
+        e.previewExecution();
+        List<CombatEvent.BeatBegan> after = Encounters.only(e.apply(Command.execute()).events(),
+                CombatEvent.BeatBegan.class);
+        assertEquals(Overlap.Limit.FIRST_BEAT, after.get(0).overlap().limit(),
+                "every phrase opens with nothing behind it");
+
+        while (!e.can(Command.execute())) {
+            e.apply(e.can(Command.add(0)) ? Command.add(0) : Command.hold());
+        }
+        List<CombatEvent.BeatBegan> next = Encounters.only(e.apply(Command.execute()).events(),
+                CombatEvent.BeatBegan.class);
+        assertEquals(Overlap.Limit.FIRST_BEAT, next.get(0).overlap().limit(),
+                "including the one after a phrase that already ran");
+    }
+
+    @Test
     void thePreviewStateIsDetachedSoTheCallerCanPokeAtIt() {
         CombatEngine e = loaded();
         Resolution dry = e.previewExecution();

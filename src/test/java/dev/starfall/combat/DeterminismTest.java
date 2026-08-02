@@ -7,6 +7,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -82,6 +83,56 @@ class DeterminismTest {
             }
             assertTrue(first.size() > 60, hero + ": that script should have produced a real fight");
         }
+    }
+
+    @Test
+    void theStagingIsPartOfWhatMustNotDrift() {
+        // The replay test above compares whole events, so it already covers the
+        // staging fields -- but only if they are actually there. This is the guard
+        // against that comparison going quietly vacuous: it asserts the enriched
+        // stream really carries phases, seams, subjects, contact points, forces and
+        // dissolves, and that every one of them survives a replay.
+        //
+        // Worth pinning separately because the staging is where a clock, a random
+        // jitter or a hash-ordered set would be most tempting to introduce, and any
+        // of the three would break the review loop rather than the rules.
+        List<CombatEvent> first = play(Hero.WARDEN);
+        List<CombatEvent> second = play(Hero.WARDEN);
+
+        int staged = 0;
+        for (int i = 0; i < first.size(); i++) {
+            CombatEvent a = first.get(i);
+            assertEquals(a, second.get(i), "the runs diverge at beat " + i);
+            switch (a) {
+                case CombatEvent.BeatBegan b -> {
+                    assertNotNull(b.phases());
+                    assertNotNull(b.overlap());
+                    assertNotNull(b.focus());
+                    staged++;
+                }
+                case CombatEvent.EnemyBeatBegan b -> {
+                    assertNotNull(b.phases());
+                    assertNotNull(b.overlap());
+                    assertNotNull(b.focus());
+                    staged++;
+                }
+                case CombatEvent.Moved m -> {
+                    assertNotNull(m.force());
+                    staged++;
+                }
+                case CombatEvent.Died d -> {
+                    assertNotNull(d.dissolve());
+                    staged++;
+                }
+                case CombatEvent.Swung s -> {
+                    assertTrue(s.at() > 0 && s.at() < Phases.WHOLE, "a stroke outside its own beat");
+                    staged++;
+                }
+                default -> {
+                }
+            }
+        }
+        assertTrue(staged > 40, "that script should have staged a great deal: " + staged);
     }
 
     @Test

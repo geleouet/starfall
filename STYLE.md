@@ -537,6 +537,14 @@ merely correct, say what would give it an origin.
 - **Anticipation is long, release is smooth, recovery is long.** A strike is roughly
   40% wind-up / 15% travel / 45% follow-through. Fighting-game timing (fast wind-up, hard
   freeze on impact) is the exact opposite and is forbidden.
+
+  **The middle span *is* the contact, and contact is a span rather than an instant.**
+  Asked whether two blades meet at the start of that 15% or at its end, the answer is the
+  start — because §7.2 requires a parry to be *a deflection curve, not a collision*, and a
+  deflection takes time. The blades meet at 40, slide and redirect through the span, and
+  part at 55; the 45% that follows is recovery, not impact. Reading the middle span as
+  travel-toward-a-hit puts the meeting at 55 and collapses the deflection to a point, which
+  is the collision this document exists to forbid.
 - **No impact freeze. No screen shake. No hitstop.** These are the crunchiest tools in the
   game-feel box and every one of them is banned. Impact is expressed by *ink*: a bloom, a
   spray of flecks, a spreading stain, a change in how cloth trails.
