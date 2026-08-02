@@ -54,6 +54,20 @@ public final class SamuraiRig {
         return new SamuraiRig(skeleton, mesh, bladeMesh);
     }
 
+    /**
+     * The bone hierarchy alone, with no GPU meshes -- world transforms already
+     * refreshed onto bind. {@link #build()} needs a live GL context because
+     * {@link SkinnedMesh.Builder} uploads vertex buffers, so anything that only
+     * wants to reason about the skeleton (IK unit tests, tooling) has to be able
+     * to ask for it without one. Purely additive: {@link #build()} still goes
+     * through the same {@code buildSkeleton()}.
+     */
+    public static Skeleton buildSkeletonOnly() {
+        Skeleton skeleton = buildSkeleton();
+        skeleton.updateWorldTransforms();
+        return skeleton;
+    }
+
     public Skeleton skeleton() {
         return skeleton;
     }

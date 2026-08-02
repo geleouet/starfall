@@ -37,10 +37,19 @@ import java.util.List;
  * (so the skeleton is left current for the next chain and for the renderer).
  *
  * <p>{@link #weight(float)} blends the solved rotation against whatever the
- * animation put there, per bone and by shortest arc. System 4 will want this: a
+ * animation put there, per bone, along the arc that is continuous with the
+ * previous frame's (see {@link #writeBack}). System 4 will want this: a
  * parry that fades IK in over the wind-up and out over the recovery is a weight
  * ramp, and blending in local rotation space keeps bone lengths exact throughout,
  * which lerping world positions would not.
+ *
+ * <p>Note on joint limits: {@link IkConstraint} ranges on a {@link Kind#TWO_BONE}
+ * chain are the bone's own {@code rotDeg}, as {@link IkConstraint} says. On a
+ * {@link Kind#FABRIK} chain they are not -- {@link FabrikSolver} applies them to
+ * <em>link</em> directions relative to the previous link, and for a bone whose
+ * axis does not point straight at its child those two differ by a constant (see
+ * {@link #boneWorldDeg}). A trunk chain's limits are therefore authored around
+ * the link angles, not around the numbers sitting in the rig.
  */
 public final class IkChain {
 
@@ -73,6 +82,11 @@ public final class IkChain {
     private final float[] worldDeg;
     private final float[] prevWorldDeg;
     private final float[] preRot;
+    /** Per bone, the angle from the link direction to the bone's own +x axis. See {@link #boneWorldDeg}. */
+    private final float[] linkOffsetDeg;
+    /** Per bone, last frame's animation-to-solved rotation offset. See {@link #writeBack}. */
+    private final float[] blendDeltaDeg;
+    private boolean hasPrevBlend;
     private boolean hasPrevWorld;
     private float maxSlewDegPerSecond = 1200f;
 
@@ -112,6 +126,8 @@ public final class IkChain {
         this.worldDeg = new float[bones.length];
         this.prevWorldDeg = new float[bones.length];
         this.preRot = new float[bones.length];
+        this.linkOffsetDeg = new float[bones.length];
+        this.blendDeltaDeg = new float[bones.length];
         this.fabrik.limits(limits);
     }
 
@@ -293,6 +309,7 @@ public final class IkChain {
 
         slew(dt);
         writeBack(refDeg, mirror);
+        hasPrevBlend = true;
         skeleton.updateWorldTransforms();
         computeEndEffector();
         primed = true;
@@ -342,6 +359,7 @@ public final class IkChain {
         twoBone.reset();
         primed = false;
         hasPrevWorld = false;
+        hasPrevBlend = false;
         update(0f);
     }
 
@@ -363,9 +381,9 @@ public final class IkChain {
     // -- internals ------------------------------------------------------------
 
     /**
-     * Reads joint world positions and link lengths off the live pose. Lengths are
-     * measured every frame rather than cached from bind, so a chain stays correct
-     * if animation ever translates a bone or scales a limb.
+     * Reads joint world positions, link lengths and link offsets off the live
+     * pose. Lengths are measured every frame rather than cached from bind, so a
+     * chain stays correct if animation ever translates a bone or scales a limb.
      */
     private void measure() {
         for (int i = 0; i < bones.length; i++) {
@@ -384,8 +402,56 @@ public final class IkChain {
             joints[2 * n + 1] = joints[2 * n - 1] + tipLength * IkMath.sinDeg(deg);
         }
         for (int i = 0; i < n; i++) {
-            lengths[i] = IkMath.length(joints[2 * i + 2] - joints[2 * i], joints[2 * i + 3] - joints[2 * i + 1]);
+            float dx = joints[2 * i + 2] - joints[2 * i];
+            float dy = joints[2 * i + 3] - joints[2 * i + 1];
+            lengths[i] = IkMath.length(dx, dy);
+            // How far the bone's +x axis is turned away from the line to the next
+            // joint, in this pose (see boneWorldDeg). Zero for a limb,
+            // ninety for a trunk bone that stacks upward. Held from the previous
+            // frame when the link is degenerate, since a zero-length link has no
+            // direction to measure against.
+            if (kind == Kind.FABRIK && lengths[i] > IkMath.EPS) {
+                linkOffsetDeg[i] = IkMath.deltaDeg(IkMath.atan2Deg(dy, dx),
+                        skeleton.worldRotationDeg(bones[i].index));
+            }
         }
+    }
+
+    /**
+     * The bone's own world axis angle implied by the solved link direction.
+     *
+     * <p>Both solvers work purely in <em>link</em> space: they know joint
+     * positions and link lengths, so every angle they return is the direction
+     * from one joint to the next. {@code Bone.rotDeg} is not that. It is the
+     * angle of the bone's local +x axis, and the two coincide only for a bone
+     * whose child sits straight out along that axis -- which is true of every
+     * limb in the rig and false of every trunk bone, because
+     * {@code SamuraiRig}'s hips/spine/chest stack via a +y offset with
+     * {@code rotDeg} near zero. Writing a link direction into {@code rotDeg}
+     * there rotates the bone by the ninety degrees between the two conventions:
+     * a FABRIK chain on {@code hips -> chest} asked to hold its own current pose
+     * used to answer {@code hips.rotDeg = 96.8} and miss the effector by 0.70
+     * world units, i.e. it destroyed the pose on the frame it was switched on.
+     *
+     * <p>{@link #measure} therefore records the per-bone angle between the two,
+     * read off the incoming pose, and the write-back converts through it. The
+     * offset is invariant under the solve because rotating a bone turns its axis
+     * and the direction to its child by the same amount, and it is identically
+     * zero for every limb chain, so this costs nothing and changes nothing where
+     * the two conventions already agreed.
+     *
+     * <p>It is measured for FABRIK chains only, and deliberately. {@link TwoBoneIk}
+     * does not merely report link directions, it <em>reconstructs the effector</em>
+     * from them ({@code root + l1*cos(rootWorld) + l2*cos(jointWorld)}), so a
+     * two-bone chain whose bones are not aligned with their links is wrong inside
+     * the solver and not merely in the write-back -- an offset here could not
+     * rescue it. Measuring one anyway would only inject {@link Skeleton}'s
+     * lookup-table trig noise (~1e-4 degrees) into an otherwise exact analytic
+     * result, which is enough to push a limit-saturated joint a hair outside a
+     * bound that {@link IkConstraint} promises to stay strictly inside.
+     */
+    private float boneWorldDeg(int index) {
+        return kind == Kind.FABRIK ? worldDeg[index] + linkOffsetDeg[index] : worldDeg[index];
     }
 
     private void solveTwoBone(float refDeg, float mirror, float dt) {
@@ -411,9 +477,11 @@ public final class IkChain {
             float dy = joints[2 * i + 3] - joints[2 * i + 1];
             // A zero-length link carries no direction; keep the pose's own so a
             // degenerate bone cannot swing its descendants somewhere arbitrary.
+            // Minus the link offset, because worldDeg is in link space -- see
+            // boneWorldDeg.
             worldDeg[i] = IkMath.length(dx, dy) > IkMath.EPS
                     ? IkMath.atan2Deg(dy, dx)
-                    : skeleton.worldRotationDeg(bones[i].index);
+                    : skeleton.worldRotationDeg(bones[i].index) - linkOffsetDeg[i];
         }
     }
 
@@ -437,14 +505,39 @@ public final class IkChain {
             // Measured against the *solved* parent, not the blended one, so that
             // partial weight is a straight lerp in local rotation space rather
             // than something whose meaning depends on where in the chain a bone
-            // sits.
-            float parentWorld = i == 0 ? refDeg : worldDeg[i - 1];
-            float solvedLocal = sign * IkMath.deltaDeg(parentWorld + flip, worldDeg[i]);
+            // sits. Both sides go through boneWorldDeg: solver output is a link
+            // direction and Bone.rotDeg is an axis angle.
+            float parentWorld = i == 0 ? refDeg : boneWorldDeg(i - 1);
+            float solvedLocal = sign * IkMath.deltaDeg(parentWorld + flip, boneWorldDeg(i));
 
-            // Shortest-arc blend against the animation pose, so a weight ramp
-            // never takes the long way round.
+            // Blend against the animation pose. Shortest arc on the first frame,
+            // and continuous with the previous frame after that -- which is not
+            // the same thing, and the difference is a visible 180-degree pop.
+            //
+            // Shortest arc alone is discontinuous exactly where the animation
+            // pose and the solved pose are antipodal: the offset between them
+            // flips from +180 to -180 across one frame, and at partial weight the
+            // blended bone jumps by 360 * weight. It is not a corner case. It is
+            // guaranteed whenever a parent bone revolves while IK holds a
+            // world-fixed target, which is precisely the parry case this blend
+            // exists to serve -- ik-parry caught upperArmL stepping 136 degrees in
+            // one frame at weight 0.63, with the animation not driving that bone
+            // at all.
+            //
+            // So the offset is unwrapped against last frame's rather than
+            // re-derived from scratch: past the antipode the blend carries on the
+            // way it was already going instead of reversing. Both endpoints are
+            // untouched -- at weight 0 the animation is returned exactly, and at
+            // weight 1 the result differs from the solved angle only by a whole
+            // turn, which is the same pose -- so this changes the path a ramp
+            // takes and never where it arrives.
             float animLocal = preRot[i] = b.rotDeg;
-            b.rotDeg = animLocal + IkMath.deltaDeg(animLocal, solvedLocal) * weight;
+            float delta = IkMath.deltaDeg(animLocal, solvedLocal);
+            if (hasPrevBlend) {
+                delta = blendDeltaDeg[i] + IkMath.deltaDeg(blendDeltaDeg[i], delta);
+            }
+            blendDeltaDeg[i] = delta;
+            b.rotDeg = animLocal + delta * weight;
 
             sign *= b.scaleX * b.scaleY < 0f ? -1f : 1f;
         }

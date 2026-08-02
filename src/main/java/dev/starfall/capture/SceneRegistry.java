@@ -1,5 +1,8 @@
 package dev.starfall.capture;
 
+import dev.starfall.rig.IkDebugScene;
+import dev.starfall.rig.IkScene;
+import dev.starfall.rig.IkTargetScript;
 import dev.starfall.rig.RigBindposeScene;
 import dev.starfall.rig.RigBonesScene;
 import dev.starfall.rig.RigSwingScene;
@@ -24,6 +27,16 @@ public final class SceneRegistry {
         register("rig-bindpose", RigBindposeScene::new);
         register("rig-swing", RigSwingScene::new);
         register("rig-bones", RigBonesScene::new);
+
+        // System 2. Each IK scene has a matching -debug variant: same driver, same
+        // targets, same frames, drawn with ShapeRenderer so the target and the
+        // pole are visible. The graded capture cannot show either of them, and
+        // most of what goes wrong in an IK scene is a question about the target.
+        for (IkTargetScript.Kind kind : IkTargetScript.Kind.values()) {
+            String name = "ik-" + kind.name().toLowerCase();
+            register(name, () -> new IkScene(kind, name));
+            register(name + "-debug", () -> new IkDebugScene(kind, name + "-debug"));
+        }
     }
 
     private SceneRegistry() {
