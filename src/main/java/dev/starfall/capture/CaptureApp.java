@@ -165,6 +165,11 @@ public class CaptureApp extends ApplicationAdapter {
         // from "nobody wrote it down", which is STYLE.md §11.3 one level up from rectangles.
         out.append("\nclamp=").append(spec.clamp.isEmpty() ? "none" : spec.clamp);
         out.append("\nclothRigid=").append(dev.starfall.sim.ClothSim.isClampedRigid());
+        // STYLE.md §11.2b(d). An absolute pixel statistic is valid only against the harness
+        // that produced it, so the harness names itself here and `analyse drape` refuses a
+        // control shot through a different one. See HarnessId for why these are two fields.
+        out.append("\ncommit=").append(HarnessId.commit());
+        out.append("\nharness=").append(HarnessId.harness());
         out.append('\n');
         new FileHandle(new File(spec.outDir, "capture.txt")).writeString(out.toString(), false);
     }

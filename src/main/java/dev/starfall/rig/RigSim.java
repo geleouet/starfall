@@ -136,15 +136,36 @@ public final class RigSim {
         // knee at 16.5 the soft ceiling was engaging on a chain measured at 13-21
         // degrees of deviation, i.e. the limit was shaping the drape rather than
         // catching an accident. At 40 the knee is 22 and it catches accidents.
+        //
+        // Pass 5: bend recovery 0.070 -> 0.058, and the reason is the resampling
+        // rather than a taste. The rail's five joints now spread over 0.652 units
+        // instead of 1.147 (SamuraiRig.Rail), so the chain is stiffer per unit of
+        // length, and the readable row's peak-speed frame moved from 131 to 132 --
+        // onto the head's, which is STYLE.md 10's last row and an assertion in
+        // SimTimingTest. Measured across a sweep (0.046 / 0.050 / 0.054 / 0.058 /
+        // 0.062 / 0.070), 0.058 is the largest value that puts the hem's peak back
+        // on frame 131, one clear of the head, and it holds the onset at 7 frames
+        // behind the hips -- inside 7.1's 4-8 band, one frame off pass 3's 8. That
+        // frame is the price of the reach fix and is recorded rather than hidden.
+        //
+        // The tail length is read from SamuraiRig rather than written down here.
+        // It was 0.286 -- the distance from garment row 8 to row 9 -- which put the rail's
+        // last particle at image y505 against a drawn figure ending at y484, i.e. on clean
+        // paper. STYLE.md 7.1's reach gate counts that particle as no cloth resolution at
+        // all, and it was right to: the rail articulated two bones' worth of chain below
+        // anything the picture draws. See SamuraiRig.Rail.
         cloth.addChain(new String[] {"clothBackA", "clothBackB", "clothBackC", "clothBackD", "clothBackE"},
-                0.286f, BACK_TAU, 0.070f, CLOTH_GRAVITY, BACK_GAIN, 40f);
+                SamuraiRig.backRailTailLength(), BACK_TAU, 0.058f, CLOTH_GRAVITY, BACK_GAIN, 40f);
         // The front hem clears the near leg, so it is limited harder: a front
         // panel free to swing 26 degrees per joint intersects the thigh it is
         // meant to hang in front of.
         cloth.addChain(new String[] {"clothFrontA", "clothFrontB", "clothFrontC"},
                 0.160f, FRONT_TAU, 0.060f, CLOTH_GRAVITY, FRONT_GAIN, 20f);
+        // Same correction as the back rail, found by the same gate. The sleeve tip sat on drape
+        // row 6, authored dissolve 1.00, and painted nothing: STYLE.md 7.1 counts that as no
+        // cloth resolution and it was right to.
         cloth.addChain(new String[] {"sleeveA", "sleeveB"},
-                0.210f, SLEEVE_TAU, 0.060f, 2.2f, SLEEVE_GAIN, 30f);
+                SamuraiRig.sleeveRailTailLength(), SLEEVE_TAU, 0.060f, 2.2f, SLEEVE_GAIN, 30f);
 
         hair.register(solver);
         cloth.register(solver);

@@ -28,7 +28,14 @@ any machine, which is what makes iteration-to-iteration comparison mean anything
 | `-Pframes` `-Pcols` | frame count and contact-sheet columns |
 | `-Pstart` | seconds after the scene's warmup at which frame 0 is taken |
 | `-Pstep` | **seconds between frames — set this** |
+| `-Pclamp=cloth` | weld every cloth chain to bind — the rigid control of §7.1 |
 | `-Pw` `-Ph` `-Plabel` `-Pout` | render size, sheet title, output directory |
+
+Every capture writes a `capture.txt` beside its frames: the command that reproduces it, the
+scene, window and substep, `clamp=`/`clothRigid=`, and — since System 3 pass 5 — `commit=` and
+`harness=`. `harness` is a digest of the *capture path's* compiled bytecode and nothing else, so
+it changes when the apparatus changes and not when a shader or a rig does. STYLE.md §11.2b(d):
+an absolute pixel statistic is valid only against the harness that produced it.
 
 To list the scenes without starting anything, ask for one that does not exist — the registry
 prints the full set in the error:
@@ -177,9 +184,40 @@ this pair to show that the cloth solver's lag had doubled while the delivered pi
 moved, and then to find out why (the graded box was mostly obi, thigh and scabbard).
 
 The complementary control is worth knowing because it is cheap: **capture the same window with
-the thing you are measuring switched off.** Clamping the cloth swing limit to zero gives a
-rigidly-welded garment, and if the "cloth lag" through your box barely changes, your box is not
-measuring cloth. On `skirtHigh` that control reads +0.34 of the +0.87 frames.
+the thing you are measuring switched off.** `-Pclamp=cloth` welds every cloth chain to its bind
+pose, and if the statistic through your box barely changes, your box is not measuring cloth. On
+`skirtHigh` that control reads +0.34 of the +0.87 frames.
+
+```bash
+./gw capture -Pscene=sim-sway -Pout=out/captures/x       -Pframes=90 -Pcols=10 -Pstart=1.0 -Pstep=0.0167
+./gw capture -Pscene=sim-sway -Pout=out/captures/x-rigid -Pframes=90 -Pcols=10 -Pstart=1.0 -Pstep=0.0167 -Pclamp=cloth
+./gw analyse -Pargs="drape out/captures/x --region skirtBack --region hips --anchor hips \
+                     --control out/captures/x-rigid --axis x --fps 60"
+```
+
+**`--control` is checked, not trusted.** It refuses a directory with no `capture.txt`, one whose
+`clamp` is not `cloth`, one whose scene / start / step / frames / size differ from the live
+capture's, and one shot through a different `harness=` — a manifest with no `harness=` line
+counts as its own (older) harness rather than as a wildcard, so a capture from before the
+harness fix cannot be scored against one from after it. `--allow-harness-drift` waives only the
+last, and has to be typed. STYLE.md §11.2b(d) and (e); `ControlGuardTest` asserts all five.
+
+### The reach gate — does this particle paint anything?
+
+`analyse timing` prints STYLE.md §7.1's one surviving scalar gate under the arrival chain, and
+returns non-zero when it fails:
+
+```
+STYLE.md 7.1 reach gate  -- a particle paints when the darkest pixel within its
+  paint radius is <= 122.4, the midpoint between paper 219.0 and the #161A22 ink floor 25.73.
+  back4      x437..446 y448..452 (10x5)  paints on 0.0% of samples, darkest 142.2  <- PAINTS NOTHING
+  2 of 8 simulated cloth particles paint nothing (gate: 0)  -> FAIL
+```
+
+The threshold is the midpoint between paper and the ink floor, not the 0.85×paper ink
+threshold, because a wet halo measures as "ink" at 0.85×paper while reading as empty — and it
+is not the figure's bounding box either, because a particle can sit well inside that rectangle
+while hanging in open paper beside the skirt. Which is what `back4` did for four passes.
 
 ---
 

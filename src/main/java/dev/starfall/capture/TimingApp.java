@@ -55,7 +55,41 @@ public class TimingApp extends ApplicationAdapter {
     private final List<Double> times = new ArrayList<>();
     private final Map<String, List<double[]>> series = new LinkedHashMap<>();
     private final Map<String, List<float[]>> probes = new LinkedHashMap<>();
+    private final Map<String, List<Double>> paint = new LinkedHashMap<>();
     private int sample;
+
+    /**
+     * How far a particle is allowed to be from the ink it claims to be driving, in pixels.
+     *
+     * <p>Four, which is a little under half the width of the back rail's own strip at this
+     * framing. Wide enough that a particle sitting on a frayed passage still finds one of its
+     * flecks; narrow enough that a particle hanging in open paper next to the skirt cannot
+     * borrow the skirt's ink.
+     */
+    public static final int PAINT_RADIUS = 4;
+
+    /**
+     * The darkest luminance within {@link #PAINT_RADIUS} of a projected particle.
+     *
+     * <p>The raw ingredient of STYLE.md §7.1's one surviving scalar gate — <i>"every simulated
+     * particle whose swept box falls outside the drawn figure contributes nothing to the picture
+     * and must not be counted as cloth resolution"</i>. Recorded as a level rather than as a
+     * verdict so the threshold lives in the analysis, where it can be argued with, rather than
+     * in the harness, where it would be baked into the data.
+     */
+    private static double darkestNear(Frame f, float px, float py) {
+        int cx = Math.round(px);
+        int cy = Math.round(py);
+        double best = Double.MAX_VALUE;
+        for (int y = cy - PAINT_RADIUS; y <= cy + PAINT_RADIUS; y++) {
+            for (int x = cx - PAINT_RADIUS; x <= cx + PAINT_RADIUS; x++) {
+                if (f.inside(x, y)) {
+                    best = Math.min(best, f.lum(x, y));
+                }
+            }
+        }
+        return best == Double.MAX_VALUE ? Double.NaN : best;
+    }
 
     public TimingApp(TimingSpec spec) {
         this.spec = spec;
@@ -94,7 +128,10 @@ public class TimingApp extends ApplicationAdapter {
         }
         if (scene instanceof SceneProbe p) {
             for (Map.Entry<String, float[]> e : p.probe().entrySet()) {
-                probes.computeIfAbsent(e.getKey(), k -> new ArrayList<>()).add(e.getValue().clone());
+                float[] xy = e.getValue();
+                probes.computeIfAbsent(e.getKey(), k -> new ArrayList<>()).add(xy.clone());
+                paint.computeIfAbsent(e.getKey(), k -> new ArrayList<>())
+                        .add(darkestNear(frame, xy.length > 0 ? xy[0] : 0, xy.length > 1 ? xy[1] : 0));
             }
         }
         times.add(spec.start + sample * (double) spec.interval());
@@ -144,6 +181,9 @@ public class TimingApp extends ApplicationAdapter {
         Json.Writer w = new Json.Writer().beginObject();
         w.prop("scene", spec.sceneName);
         w.prop("clamp", spec.clamp.isEmpty() ? "none" : spec.clamp);
+        // STYLE.md §11.2b(d): the apparatus names itself beside its own numbers.
+        w.prop("commit", HarnessId.commit());
+        w.prop("harness", HarnessId.harness());
         w.prop("sceneDescription", scene.description());
         w.prop("warmup", scene.warmup());
         w.prop("start", spec.start);
@@ -187,7 +227,13 @@ public class TimingApp extends ApplicationAdapter {
                     xs[i] = e.getValue().get(i)[0];
                     ys[i] = e.getValue().get(i).length > 1 ? e.getValue().get(i)[1] : 0;
                 }
-                w.beginObject().prop("name", e.getKey()).prop("x", xs).prop("y", ys).endObject();
+                List<Double> dk = paint.get(e.getKey());
+                double[] darkest = new double[dk == null ? 0 : dk.size()];
+                for (int i = 0; i < darkest.length; i++) {
+                    darkest[i] = dk.get(i);
+                }
+                w.beginObject().prop("name", e.getKey()).prop("x", xs).prop("y", ys)
+                        .prop("darkest", darkest).prop("paintRadius", PAINT_RADIUS).endObject();
             }
             w.endArray();
         }

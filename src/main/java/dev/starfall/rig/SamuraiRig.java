@@ -205,7 +205,13 @@ public final class SamuraiRig {
         // authored garment already was, so the skinning matrices are identity
         // and switching the simulation off reproduces System 1's figure to the
         // bit.
-        addClothChain(bones, hips, HAORI_BACK_X, HAORI_BACK_Y, HAORI_BACK_ROW0,
+        // The back rail is authored on RESAMPLED nodes, not one bone per garment
+        // row. See backRailNodes(): the rail used to run one bone per row from
+        // row 4 to row 9, and rows 8 and 9 are 58% and 100% dissolved, so two of
+        // its five bones and two of its six particles were articulating ink that
+        // is not drawn.
+        float[][] backNodes = backRail().nodes();
+        addClothChain(bones, hips, backNodes[0], backNodes[1], 0,
                 "clothBackA", "clothBackB", "clothBackC", "clothBackD", "clothBackE");
         addClothChain(bones, hips, HAORI_FRONT_X, HAORI_FRONT_Y, HAORI_FRONT_ROW0,
                 "clothFrontA", "clothFrontB", "clothFrontC");
@@ -265,6 +271,203 @@ public final class SamuraiRig {
     private static final float[] HAORI_BACK_Y = {1.46f, 1.40f, 1.28f, 1.12f, 0.96f, 0.78f, 0.58f, 0.36f, 0.12f, -0.16f};
     private static final float[] HAORI_BACK_X = {-0.08f, -0.34f, -0.32f, -0.25f, -0.20f, -0.26f, -0.32f, -0.33f, -0.30f, -0.24f};
 
+    /**
+     * The back rail's authored edge dissolve, per row. Hoisted to class scope because
+     * {@link Rail} reads it: a cloth chain must stop where the garment stops, and the garment
+     * stops where this array says it does.
+     */
+    private static final float[] HAORI_BACK_DISSOLVE = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.14f, 0.58f, 1.0f};
+
+    /** The near sleeve's drape dissolve, for its three drape rows (ribbon rows 4, 5, 6). */
+    private static final float[] SLEEVE_DRAPE_DISSOLVE = {0.15f, 0.55f, 1.0f};
+
+    /**
+     * How dissolved the garment is allowed to be under the last particle of a cloth chain.
+     *
+     * <h2>Why a chain needs a stopping rule at all -- the pass-4 review's first finding</h2>
+     *
+     * <p>STYLE.md 7.1 carries a standing gate, and it is the only scalar gate that survived
+     * four passes of trying to grade this cloth:
+     *
+     * <blockquote>Every simulated particle whose swept box falls outside the drawn figure
+     * contributes nothing to the picture and <b>must not be counted as cloth resolution. It
+     * should read zero.</b> It currently reads two of six.</blockquote>
+     *
+     * <p>The two were {@code back4} and {@code back5}. Every cloth chain in this file was
+     * authored one bone per garment row, all the way to the last row -- and the last rows of
+     * every rail are authored 0.55 to 1.00 dissolved on purpose, because STYLE.md 3 wants the
+     * bottom of the figure to be ink smoke. So the ends of the chains were articulating rows
+     * that are not drawn. Measured on {@code sim-sway}, the back rail's particles landed at
+     * image y = 285, 321, 360, 403, <b>450, 505</b> against a drawn figure ending at y484 and a
+     * back skirt whose ink stops being darker than a wash at about y440: {@code back5} stood on
+     * clean paper, {@code back4} on the wet halo with its darkest neighbour at luminance 142
+     * against 26-32 for the particles above it.
+     *
+     * <p>The fix is not to draw more down there. It is to stop spending the chain's articulation
+     * below the garment, which is what this constant does: a chain reaches exactly as far as the
+     * point where its own rail's authored dissolve reaches this value, and its bones are spread
+     * at equal arc length over that reach.
+     *
+     * <h2>Why 0.20, measured rather than chosen</h2>
+     *
+     * <p>0.50 was the obvious value -- "more ink than paper" -- and it does not work. At 0.50
+     * the back rail's last particle lands at image y442 and still reads "paints nothing":
+     * darkest neighbour 144 against a gate of 122. The reason is that a rail is the strip's own
+     * <em>boundary</em>, not its middle, so the fray band is eating the ink there from both
+     * sides and a particle standing on the boundary at half dissolve has no mark within reach.
+     * Swept 0.50 / 0.35 / 0.20 / 0.14 on {@code sim-sway}: the gate flips at 0.20, where the
+     * last particle sits at y407..413 with a darkest neighbour of 31.7. 0.14 is too far -- it
+     * falls below the sleeve drape's first authored dissolve (0.15), so that chain finds no
+     * crossing at all and falls back to its full length.
+     *
+     * <p>Under-reaching costs almost nothing, because the rows below the chain's end still ride
+     * the last bone and therefore still swing; over-reaching costs a particle. The asymmetry is
+     * why this number should be set low rather than tuned to the edge.
+     *
+     * <p>Stated as a dissolve rather than as a length so that re-authoring a rail's fray moves
+     * its chain with it, instead of silently stopping matching it. That is the rule the rails
+     * themselves are already held to at the top of this section, applied one level up.
+     */
+    private static final float RAIL_REACH_DISSOLVE = 0.20f;
+
+    /**
+     * A cloth chain's geometry, resampled off an authored garment rail.
+     *
+     * <p>Given a rail polyline, the row the chain takes over, the authored dissolve per row and
+     * a bone count, this produces the three things that must agree with each other and used to
+     * be written down in three places:
+     *
+     * <ul>
+     *   <li>{@link #nodes()} -- where the bones sit, at equal arc length over the reach;</li>
+     *   <li>{@link #tailLength()} -- the last bone's segment, which {@code ClothSim} cannot
+     *       derive because the last bone has no child to measure to;</li>
+     *   <li>{@link #boneFor(int)} -- which bone each garment row is skinned to.</li>
+     * </ul>
+     *
+     * <p>All three come from one arc-length parameterisation, so a chain cannot end up
+     * articulating rows it does not reach or leaving rows it does reach on the body. Before this
+     * existed the back rail's tail length lived in {@code RigSim} and its row-to-bone table
+     * lived in {@code buildHaori}, and both were transcriptions of a layout asserted in a third
+     * place.
+     *
+     * <h2>The side effect, which goes the right way</h2>
+     *
+     * <p>Because the bones now pack into the drawn part of the rail, every readable garment row
+     * hangs one bone further down the chain than it did -- back row 5 off {@code clothBackB}
+     * rather than {@code clothBackA}, row 6 off C, rows 7-9 off E. Rows past the end of the
+     * chain ride the last bone, which is what an extrapolated hem does, and a bone with no
+     * vertex sitting on it is not wasted: bones are hierarchical, so its rotation still reaches
+     * every row below it. For the same per-joint bend the summed lever arm reaching back row 7
+     * rises from 1.268 to 1.790 world units (+41%) and row 8's from 2.236 to 2.999 (+34%). The
+     * rail articulates the drawn cloth a third harder while being 43% shorter, because none of
+     * it is hanging in open paper any more.
+     */
+    private static final class Rail {
+
+        private final float[] railX;
+        private final float[] railY;
+        private final int row0;
+        private final int bones;
+        private final float[] arc;
+        private final float reach;
+
+        Rail(float[] railX, float[] railY, float[] dissolve, int row0, int bones) {
+            this.railX = railX;
+            this.railY = railY;
+            this.row0 = row0;
+            this.bones = bones;
+            int n = railX.length - row0;
+            this.arc = new float[n];
+            for (int i = 1; i < n; i++) {
+                int r = row0 + i;
+                arc[i] = arc[i - 1] + Vector2.len(railX[r] - railX[r - 1], railY[r] - railY[r - 1]);
+            }
+            float found = arc[n - 1];
+            for (int i = 0; i + 1 < n; i++) {
+                float d0 = dissolve[row0 + i];
+                float d1 = dissolve[row0 + i + 1];
+                if (d0 < RAIL_REACH_DISSOLVE && d1 >= RAIL_REACH_DISSOLVE) {
+                    found = arc[i] + (RAIL_REACH_DISSOLVE - d0) / (d1 - d0) * (arc[i + 1] - arc[i]);
+                    break;
+                }
+            }
+            this.reach = found;
+        }
+
+        /** {@code {xs, ys}}, {@code bones + 1} nodes each, in the rail's own coordinates. */
+        float[][] nodes() {
+            float[] xs = new float[bones + 1];
+            float[] ys = new float[bones + 1];
+            for (int i = 0; i <= bones; i++) {
+                float[] p = point(i * tailLength());
+                xs[i] = p[0];
+                ys[i] = p[1];
+            }
+            return new float[][] {xs, ys};
+        }
+
+        /** One segment, which is also the last bone's tail. */
+        float tailLength() {
+            return reach / bones;
+        }
+
+        /**
+         * Which bone drives garment row {@code r}: the segment its arc position falls in.
+         *
+         * <p>Rotating bone {@code i} moves everything past bone {@code i}'s origin, so a vertex
+         * inside segment {@code i} belongs to bone {@code i}. Rows past the end ride the last.
+         */
+        int boneFor(int r) {
+            int i = r - row0;
+            float a = i < arc.length ? arc[i] : arc[arc.length - 1];
+            return Math.max(0, Math.min(bones - 1, (int) (a / tailLength() - 1e-4f)));
+        }
+
+        private float[] point(float s) {
+            for (int i = 0; i + 1 < arc.length; i++) {
+                if (s <= arc[i + 1] + 1e-6f) {
+                    float t = (s - arc[i]) / (arc[i + 1] - arc[i]);
+                    int r = row0 + i;
+                    return new float[] {railX[r] + t * (railX[r + 1] - railX[r]),
+                            railY[r] + t * (railY[r + 1] - railY[r])};
+                }
+            }
+            int last = railX.length - 1;
+            return new float[] {railX[last], railY[last]};
+        }
+    }
+
+    /** The back haori rail's chain: five bones, resampled over the part of the rail that is drawn. */
+    private static Rail backRail() {
+        return new Rail(HAORI_BACK_X, HAORI_BACK_Y, HAORI_BACK_DISSOLVE, HAORI_BACK_ROW0, 5);
+    }
+
+    /**
+     * The near sleeve's drape chain: two bones over the three drape nodes.
+     *
+     * <p>Same defect, found by the same gate as soon as it existed. The sleeve tip sat on drape
+     * row 6, authored dissolve 1.00 -- nothing at all -- and measures "paints nothing" with a
+     * darkest neighbour of 221 against paper 219. It had been passing only because the pass-4
+     * splatter was throwing marks up to a hundred pixels past every silhouette and the sleeve
+     * tip happened to land on one; pulling the splatter back (see {@code ink_skin.frag}) exposed
+     * it in the same run. That is the same class of accident as the pass-4 review's own finding
+     * that stray ink was moving the detected figure box.
+     */
+    private static Rail sleeveRail(float[] nx, float[] ny) {
+        return new Rail(nx, ny, SLEEVE_DRAPE_DISSOLVE, 0, 2);
+    }
+
+    /** The last bone's segment on the back rail. Read by {@link RigSim}; see {@link Rail}. */
+    public static float backRailTailLength() {
+        return backRail().tailLength();
+    }
+
+    /** The last bone's segment on the sleeve drape. Read by {@link RigSim}; see {@link Rail}. */
+    public static float sleeveRailTailLength() {
+        float[][] n = sleeveDrapeNodes();
+        return sleeveRail(n[0], n[1]).tailLength();
+    }
+
     /** Near-sleeve drape nodes: distance along {@code handL} and offset across it, for the last three ribbon rows. */
     private static final float[] SLEEVE_NODE_D = {0.10f, 0.31f, 0.52f};
     private static final float[] SLEEVE_NODE_LATERAL = {-0.115f, -0.200f, -0.290f};
@@ -318,20 +521,43 @@ public final class SamuraiRig {
         }
     }
 
+    /**
+     * The near sleeve's drape nodes in the hand's own frame, as {@code {xs, ys}}.
+     *
+     * <p>The hand frame rather than world space, because {@link Rail} only needs the shape of
+     * the polyline to resample it, and computing it here twice -- once for the bones and once
+     * for the tail length {@code RigSim} reads -- must give the same answer both times.
+     */
+    private static float[][] sleeveDrapeNodes() {
+        int n = SLEEVE_NODE_D.length;
+        float[] nx = new float[n];
+        float[] ny = new float[n];
+        for (int i = 0; i < n; i++) {
+            nx[i] = SLEEVE_NODE_D[i];
+            ny[i] = SLEEVE_NODE_LATERAL[i];
+        }
+        return new float[][] {nx, ny};
+    }
+
     /** The near sleeve's drape, which hangs off the wrist and is the second-largest trailing mass in the figure. */
     private static void addSleeveChain(List<Bone> bones, Bone hand) {
         Vector2 h = bindWorldPos(hand, new Vector2());
         float handRot = bindWorldRotDeg(hand);
         float c = MathUtils.cosDeg(handRot);
         float s = MathUtils.sinDeg(handRot);
-        int n = SLEEVE_NODE_D.length;
+        float[][] local = sleeveDrapeNodes();
+        // Resampled onto the drawn part of the drape -- see Rail. The three authored nodes are
+        // dissolve 0.15, 0.55 and 1.00, so the old layout put sleeveB's tip on a row that is not
+        // drawn at all.
+        float[][] node = sleeveRail(local[0], local[1]).nodes();
+        int n = node[0].length;
         float[] nx = new float[n];
         float[] ny = new float[n];
         for (int i = 0; i < n; i++) {
-            float d = SLEEVE_NODE_D[i];
-            float perp = SLEEVE_NODE_LATERAL[i];
-            nx[i] = h.x + d * c - perp * s;
-            ny[i] = h.y + d * s + perp * c;
+            float d = node[0][i];
+            float across = node[1][i];
+            nx[i] = h.x + d * c - across * s;
+            ny[i] = h.y + d * s + across * c;
         }
         addClothChain(bones, hand, nx, ny, 0, "sleeveA", "sleeveB");
     }
@@ -567,7 +793,7 @@ public final class SamuraiRig {
             // the back at that row and 0.10-0.20 the row below, so the fray was
             // opening exactly where the ink is meant to be densest.
             float[] dissolveF = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.06f, 0.42f, 1.0f};
-            float[] dissolveB = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.14f, 0.58f, 1.0f};
+            float[] dissolveB = HAORI_BACK_DISSOLVE;
             // rig-fixes-3 item 4, the ink gravity. The chest is now the *lightest*
             // part of the wash and the pigment pools to near-black in the row
             // immediately above the fray line -- pass 2 measured luminance 60 at
@@ -661,12 +887,21 @@ public final class SamuraiRig {
             // capture of ik-gesture it moved 76 pixels of a 518,400 px frame by
             // more than four levels. Small, and still a regression in a system
             // this pass does not own.
+            //
+            // Pass 5 resamples the rail (see backRailNodes()) so every one of its six
+            // particles stands on drawn cloth, which is STYLE.md 7.1's standing reach gate.
+            // The rows below therefore no longer map one-to-one onto bones: the mapping is
+            // computed from the rail's own arc so that it cannot drift from where the bones
+            // actually sit. Measured, it comes out one bone lower per row than the table it
+            // replaces -- row 5 on backB rather than backA, and so on down -- which is the
+            // whole gain: each readable row now hangs off one more joint of chain.
+            Bone[] backChain = {backA, backB, backC, backD, backE};
+            Rail rail = backRail();
             clothB[4] = new BoneBlend(spine, 0.417f, backA, 0.583f);
-            clothB[5] = new BoneBlend(backA, 1f, backA, 0f);
-            clothB[6] = new BoneBlend(backB, 1f, backB, 0f);
-            clothB[7] = new BoneBlend(backC, 1f, backC, 0f);
-            clothB[8] = new BoneBlend(backD, 1f, backD, 0f);
-            clothB[9] = new BoneBlend(backE, 1f, backE, 0f);
+            for (int r = HAORI_BACK_ROW0 + 1; r < n; r++) {
+                Bone b = backChain[rail.boneFor(r)];
+                clothB[r] = new BoneBlend(b, 1f, b, 0f);
+            }
             // Pass 3 tried moving the front rail's pivot from row 5 to row 4 and
             // reverted it. Recorded because the reasoning was sound and the
             // measurement refuted it, which is the useful half.
@@ -1033,12 +1268,16 @@ public final class SamuraiRig {
                     RibbonPoint.of(hand, handLen + drape),
             };
             if (clothBones != null) {
-                // Rows 4, 5, 6 are the drape. Row 4 sits on sleeveA's origin, row
-                // 5 on its tip and row 6 on sleeveB's tip, which is the same
-                // tip-of-the-bone weighting the haori hem uses.
-                pts[4] = pts[4].skinnedTo(clothBones[0]);
-                pts[5] = pts[5].skinnedTo(clothBones[0]);
-                pts[6] = pts[6].skinnedTo(clothBones[1]);
+                // Rows 4, 5, 6 are the drape. Which bone each rides is resolved from the
+                // resampled chain rather than written down here -- see Rail. Row 4 is the pivot
+                // and sits on sleeveA's origin, so it is unmoved by sleeveA's own rotation
+                // whatever the table says; rows 5 and 6 are past the chain's end and ride
+                // sleeveB, which gains them a second joint of swing.
+                float[][] local = sleeveDrapeNodes();
+                Rail rail = sleeveRail(local[0], local[1]);
+                pts[4] = pts[4].skinnedTo(clothBones[rail.boneFor(0)]);
+                pts[5] = pts[5].skinnedTo(clothBones[rail.boneFor(1)]);
+                pts[6] = pts[6].skinnedTo(clothBones[rail.boneFor(2)]);
             }
             // Wider at the base than revision 1: a sleeve that starts as a
             // two-pixel sliver at the shoulder has no interior for the shader
@@ -1050,7 +1289,8 @@ public final class SamuraiRig {
             // forward, so these push the sleeve's mass back toward the haori's
             // own trailing cloud, where reference images 1 and 2 keep it.
             float[] lateral = scaled(scale, 0f, 0f, -0.015f, -0.050f, -0.115f, -0.200f, -0.290f);
-            float[] dissolve = {0f, 0f, 0.02f, 0.05f, 0.15f, 0.55f, 1.0f};
+            float[] dissolve = {0f, 0f, 0.02f, 0.05f,
+                    SLEEVE_DRAPE_DISSOLVE[0], SLEEVE_DRAPE_DISSOLVE[1], SLEEVE_DRAPE_DISSOLVE[2]};
             float contrastFloor = scale < 1f ? 0.10f : 0f;
             for (int i = 0; i < dissolve.length; i++) {
                 dissolve[i] = Math.max(dissolve[i], contrastFloor);

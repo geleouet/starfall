@@ -1,0 +1,14 @@
+STYLE.md 7.1 forced-choice pair -- sim-sway, the scene the one-sentence test is answered on.
+
+Both panels are the SAME scene, the SAME start (t=1.0), the SAME step (0.0167 s, 60 Hz) and
+the SAME harness commit. Frames 30, 45, 60, 75, 89 of a 90-frame window, back skirt and hips,
+cropped x395..545 y300..470 and scaled 3x.
+
+Look first, then read the next line.
+
+panel-1.png  = live        (out/captures/s3-p5-sway-long,        clamp=none)
+panel-2.png  = clamped rigid (out/captures/s3-p5-sway-long-rigid, clamp=cloth)
+
+panels-stacked.png is panel 1 above panel 2.
+
+The gate: if a reviewer cannot pick the simulated one, the cloth has failed.

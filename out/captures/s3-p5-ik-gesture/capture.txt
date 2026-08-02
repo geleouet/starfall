@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=ik-gesture -Pout=out/captures/s3-p5-ik-gesture -Pframes=12 -Pcols=6 -Pw=960 -Ph=540
+
+scene=ik-gesture
+description=IK gesture (STYLE.md 7.0): corpus poses -- elbow 90-130, upper arm on the torso axis, hip leads, blade reaches
+frames=12
+start=0.0
+step=0.3272727
+window=3.6
+size=960x540
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=f3a5665-dirty
+harness=f0ad18994eec

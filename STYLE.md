@@ -651,8 +651,23 @@ merely correct, say what would give it an origin.
 
   **One scalar gate does survive, because its null is structural rather than statistical:**
   every simulated particle whose swept box falls outside the drawn figure contributes nothing
-  to the picture and **must not be counted as cloth resolution**. It should read zero. It
-  currently reads two of six.
+  to the picture and **must not be counted as cloth resolution**. It should read zero.
+
+  **And it ships its instrument, which is what the paragraph above demands.** `./gw timing`
+  records, per probe particle per sample, the darkest luminance within 4 px of it, and
+  `analyse timing` calls the particle *painting* when that is at or below the **midpoint
+  between the measured paper and §2.2's ink floor `#161A22`** (luminance 25.73). The midpoint
+  rather than the 0.85×paper ink threshold, and that is the whole instrument: a wet halo
+  measures as "ink" at 0.85×paper while reading as empty, and a frayed hem is sparse but its
+  surviving flecks are *dark*. Half-way to the floor separates a mark from a stain, so the
+  gate rewards fray and rejects halo — which is what §3 wants from a hem anyway. Nor is it the
+  figure's bounding box: that rectangle spans feet, blade and hair, and the two particles this
+  gate was written about were **inside** it, hanging in open paper beside the skirt.
+
+  It read **two of six** on the back rail when it was written, and a third on the sleeve that
+  was hidden by stray splatter. It reads **zero of eight** across all three cloth chains as of
+  System 3 pass 5, on `sim-sway` and on `sim-extreme`. State the scene, because a chain can
+  reach the cloth in one pose and not another.
 
 ### 7.2 Extreme cases (this is where the aesthetic dies)
 
@@ -856,6 +871,13 @@ documentation, not a guard.** `track` *refuses* to run without an anchor, and an
 stopped being a problem. `drape` writes the control flag into the manifest and never checks
 it — and a reviewer proved in one command that it will call a live capture a rigid control.
 Audit every rule in §7.1 and §11.3 for which of the two it is.
+
+**Closed for `drape` in System 3 pass 5, and the shape of the fix is the reusable part.**
+`--control` now *refuses*, four ways: a directory with no `capture.txt`; one whose `clamp` is
+not `cloth`; one whose scene, start, step, frames or size differ from the live capture's; and
+one shot through a different `harness`, where a manifest with no `harness=` line counts as a
+harness version of its own rather than as a wildcard. Each refusal is asserted in a test, not
+described in a comment, because that is the difference this paragraph is about.
 
 **And generalise the control from the subject to the instrument.** §7.1 learned "run the
 control" about cloth. Stated generally: **before a number is allowed to decide anything,

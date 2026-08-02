@@ -112,6 +112,10 @@ public final class AnalysisCli {
                                                         STYLE.md 7.1's cloth criterion: peak |x(cloth) - x(anchor)|
                                                         as a multiple of the anchor's travel, its return, and the
                                                         rigid control. Shoot the control with -Pclamp=cloth.
+                                                        --control is CHECKED: refused unless its capture.txt
+                                                        says clamp=cloth and its scene/start/step/frames/size
+                                                        match the live capture's. --allow-harness-drift waives
+                                                        only the harness check (STYLE.md 11.2b(d)).
                   analyse autocorr <dir|png> --region <spec> [--axis x|y] [--min 4] [--max 200]
                                                         periodic artefact detection on a high-passed band
                   analyse edge     <png> --at x,y --dir right|left|up|down [--len 140]
@@ -515,6 +519,7 @@ public final class AnalysisCli {
         Map<String, Drape> controls = new LinkedHashMap<>();
         if (controlDir != null) {
             CaptureDir cd = CaptureDir.of(new File(controlDir));
+            requireRigidControl(c.capture, cd, a.flag("allow-harness-drift"));
             List<Frame> cf = cd.loadAll();
             Paper cp = Paper.estimate(cf.get(0));
             // Deliberately the SAME rectangles as the live run, not rectangles re-resolved
@@ -559,6 +564,104 @@ public final class AnalysisCli {
         }
         return ok ? 0 : 1;
     }
+    /**
+     * Refuses a {@code --control} directory that is not, in fact, a rigid control of this
+     * capture.
+     *
+     * <p>STYLE.md §11.2b(e), which names this function's absence as its worked example:
+     *
+     * <blockquote>A discipline written into a document but not into the tool that reads it is
+     * documentation, not a guard. {@code track} <i>refuses</i> to run without an anchor, and
+     * anchors stopped being a problem. {@code drape} writes the control flag into the manifest
+     * and never checks it — and a reviewer proved in one command that it will call a live
+     * capture a rigid control.</blockquote>
+     *
+     * <p>Four refusals, and each one is a way the pass-4 control could have been wrong without
+     * anybody noticing:
+     *
+     * <ol>
+     *   <li><b>No {@code capture.txt}.</b> Then nothing about the directory is known and the
+     *       gate-3 line printed under it would be a guess wearing a number.</li>
+     *   <li><b>{@code clamp} is not {@code cloth}.</b> The literal defect reported: a live
+     *       capture handed to {@code --control} produced a rigid-control verdict in silence.</li>
+     *   <li><b>Scene, start, step or frame count differ.</b> A control exists to say what
+     *       <em>this window</em> reads with the simulation dead. A control of some other window
+     *       answers a question nobody asked, and the excursion is a function of the beat.</li>
+     *   <li><b>A different harness.</b> §11.2b(d): a comparison spanning two harness versions
+     *       is void by default rather than by discovery. Overridable with
+     *       {@code --allow-harness-drift}, because the rule is "void by default", not
+     *       "impossible" — but it has to be said out loud on the command line.</li>
+     * </ol>
+     */
+    private static void requireRigidControl(CaptureDir live, CaptureDir control,
+                                            boolean allowHarnessDrift) {
+        Map<String, String> cm = control.manifest();
+        if (cm.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "--control " + control.dir + " has no capture.txt, so there is no evidence it is "
+                    + "a rigid control at all. STYLE.md 11.2b(e): the flag has to be checked, not "
+                    + "merely written. Re-shoot it with `./gw capture -Pscene=... -Pclamp=cloth`.");
+        }
+        String clamp = cm.getOrDefault("clamp", "none");
+        if (!"cloth".equals(clamp)) {
+            throw new IllegalArgumentException(
+                    "--control " + control.dir + " is not a rigid control: its capture.txt says "
+                    + "clamp=" + clamp + " (clothRigid=" + cm.getOrDefault("clothRigid", "?") + "). "
+                    + "Gate 3 asks what this box reads with the cloth welded to the hips; a live "
+                    + "capture answers a different question and scoring it as a control is the "
+                    + "defect STYLE.md 11.2b(e) names. Shoot it with -Pclamp=cloth.");
+        }
+        if (live == null) {
+            return;
+        }
+        Map<String, String> lm = live.manifest();
+        if (lm.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "the live capture " + live.dir + " has no capture.txt, so its scene, start and "
+                    + "step cannot be checked against the control's. A paired measurement whose "
+                    + "pairing is unverifiable is an anecdote (STYLE.md 11.3). Re-shoot it; the "
+                    + "harness writes the manifest.");
+        }
+        for (String key : new String[] {"scene", "start", "step", "frames", "size"}) {
+            String l = lm.get(key);
+            String r = cm.get(key);
+            if (l != null && r != null && !numericallyEqual(l, r)) {
+                throw new IllegalArgumentException(
+                        "--control " + control.dir + " is a control of a different window: "
+                        + key + "=" + r + " against the live capture's " + key + "=" + l + ". "
+                        + "STYLE.md 7.1 requires the pair to be the same scene, the same start, "
+                        + "the same step and the same harness commit.");
+            }
+        }
+        // A missing field is a harness version too -- the oldest one, from before the field
+        // existed -- so it compares unequal to a recorded one and equal to another missing one.
+        // Treating "unrecorded" as "matches anything" would let exactly the comparison this
+        // check exists to stop through: a pass-5 live capture against a pass-4 control.
+        String lh = lm.getOrDefault("harness", "(unrecorded)");
+        String rh = cm.getOrDefault("harness", "(unrecorded)");
+        if (!allowHarnessDrift && !lh.equals(rh)) {
+            throw new IllegalArgumentException(
+                    "--control " + control.dir + " was shot through a different harness ("
+                    + rh + " against " + lh + "; commits " + cm.getOrDefault("commit", "(unrecorded)")
+                    + " and " + lm.getOrDefault("commit", "(unrecorded)")
+                    + "). STYLE.md 11.2b(d) makes a comparison spanning two "
+                    + "harness versions void by default rather than by discovery. Re-shoot the "
+                    + "pair, or pass --allow-harness-drift and say so in the report.");
+        }
+    }
+
+    /** {@code 0.9} and {@code 0.90} are the same start. Falls back to string equality. */
+    private static boolean numericallyEqual(String a, String b) {
+        if (a.equals(b)) {
+            return true;
+        }
+        try {
+            return Math.abs(Double.parseDouble(a) - Double.parseDouble(b)) < 1e-6;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     private static int autocorr(Args a) throws IOException {
         Ctx c = load(a, 0, false);
         Map<String, Rect> regions = resolveRegions(c, a, false);
@@ -779,16 +882,15 @@ public final class AnalysisCli {
         // chain is what makes "the particle moved and the picture did not" a sentence with
         // evidence rather than a suspicion.
         boolean anyProbe = false;
-        if (root.get("probes") instanceof List<?> probeList) {
-            for (Object o : probeList) {
-                Map<String, Object> r = (Map<String, Object>) o;
-                String name = "sim:" + r.get("name");
-                double[] xs = toArray((List<Object>) r.get("x"));
-                double[] ys = toArray((List<Object>) r.get("y"));
-                tracks.put(name, Track.fromPositions(name, pathBounds(xs, ys), xs, ys, axis, gate)
-                        .smoothed(smooth));
-                anyProbe = true;
-            }
+        List<Object> probeRows = root.get("probes") instanceof List<?> pl ? (List<Object>) pl : List.of();
+        for (Object o : probeRows) {
+            Map<String, Object> r = (Map<String, Object>) o;
+            String name = "sim:" + r.get("name");
+            double[] xs = toArray((List<Object>) r.get("x"));
+            double[] ys = toArray((List<Object>) r.get("y"));
+            tracks.put(name, Track.fromPositions(name, pathBounds(xs, ys), xs, ys, axis, gate)
+                    .smoothed(smooth));
+            anyProbe = true;
         }
         if (!tracks.containsKey(anchor)) {
             throw new IllegalArgumentException("--anchor " + anchor + " is not in this series " + tracks.keySet());
@@ -837,8 +939,93 @@ public final class AnalysisCli {
             out().printf("    %-14s %s%n", n,
                     c == null ? "no reversal" : String.format("t = %.4f s", start + c.frame() / rate));
         }
-        return 0;
+        int off = reach(root, probeRows);
+        return off == 0 ? 0 : 1;
     }
+
+    /**
+     * STYLE.md §7.1's one surviving scalar gate, printed and returned.
+     *
+     * <blockquote>One scalar gate does survive, because its null is structural rather than
+     * statistical: <b>every simulated particle whose swept box falls outside the drawn figure
+     * contributes nothing to the picture and must not be counted as cloth resolution. It should
+     * read zero.</b></blockquote>
+     *
+     * <p>"Outside the drawn figure" is measured as ink rather than as a bounding box, and the
+     * distinction is the whole point: the figure's box is a rectangle over feet, blade and hair,
+     * and a particle can sit well inside it while hanging in open paper beside the skirt — which
+     * is what {@code back4} did. So a particle <b>paints</b> at a sample when the darkest pixel
+     * within {@code paintRadius} of it is at or below the midpoint between the paper and
+     * STYLE.md §2.2's ink floor {@code #161A22} (luminance 25.73).
+     *
+     * <p>The midpoint, not the 0.85×paper ink threshold, and that is deliberate. A wet halo
+     * measures as "ink" at 0.85×paper while being a wash the eye reads as empty; a frayed hem is
+     * sparse but its surviving flecks are <em>dark</em>. Half-way to the floor is the line that
+     * separates a mark from a stain, and it therefore rewards fray and rejects halo — which is
+     * the behaviour §3 wants from a hem in the first place.
+     *
+     * @return how many particles paint nothing. The gate is that this is zero.
+     */
+    @SuppressWarnings("unchecked")
+    private static int reach(Map<String, Object> root, List<Object> probeRows) {
+        List<Object> withPaint = new ArrayList<>();
+        for (Object o : probeRows) {
+            if (((Map<String, Object>) o).get("darkest") instanceof List<?> d && !d.isEmpty()) {
+                withPaint.add(o);
+            }
+        }
+        if (withPaint.isEmpty()) {
+            return 0;
+        }
+        double paper = ((Number) root.getOrDefault("paper", Double.NaN)).doubleValue();
+        if (Double.isNaN(paper) || paper <= 0) {
+            return 0;
+        }
+        double midpoint = 0.5 * (paper + INK_FLOOR);
+        out().println();
+        out().printf("STYLE.md 7.1 reach gate  -- a particle paints when the darkest pixel within its%n"
+                + "  paint radius is <= %.1f, the midpoint between paper %.1f and the #161A22 ink%n"
+                + "  floor %.2f. Particles that paint nothing are not cloth resolution.%n",
+                midpoint, paper, INK_FLOOR);
+        int off = 0;
+        int total = 0;
+        for (Object o : withPaint) {
+            Map<String, Object> r = (Map<String, Object>) o;
+            String name = String.valueOf(r.get("name"));
+            double[] xs = toArray((List<Object>) r.get("x"));
+            double[] ys = toArray((List<Object>) r.get("y"));
+            double[] dk = toArray((List<Object>) r.get("darkest"));
+            int paints = 0;
+            double best = Double.MAX_VALUE;
+            for (double v : dk) {
+                if (v <= midpoint) {
+                    paints++;
+                }
+                best = Math.min(best, v);
+            }
+            // Only the simulated chains are graded. `hips` and `head` are bones, not cloth, and
+            // the hair has its own section; the gate is about cloth resolution.
+            boolean graded = name.startsWith("back") || name.startsWith("front") || name.startsWith("sleeve");
+            if (graded) {
+                total++;
+            }
+            double share = dk.length == 0 ? 0 : 100.0 * paints / dk.length;
+            boolean fails = graded && paints == 0;
+            if (fails) {
+                off++;
+            }
+            out().printf("  %-10s %s  paints on %5.1f%% of samples, darkest %5.1f  %s%n",
+                    name, pathBounds(xs, ys).describe(), share, best,
+                    !graded ? "(not cloth)" : fails ? "<- PAINTS NOTHING" : "");
+        }
+        out().printf("  %d of %d simulated cloth particles paint nothing (gate: 0)  -> %s%n",
+                off, total, off == 0 ? "PASS" : "FAIL");
+        return off;
+    }
+
+    /** STYLE.md §2.2's ink floor {@code #161A22}, as Rec. 709 luminance. The value floor every capture holds. */
+    private static final double INK_FLOOR =
+            Frame.WR * 0x16 + Frame.WG * 0x1A + Frame.WB * 0x22;
 
     /**
      * The integer box a probe path swept. A particle has no measurement rectangle -- it is

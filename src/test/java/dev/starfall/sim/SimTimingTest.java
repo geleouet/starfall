@@ -97,10 +97,16 @@ class SimTimingTest {
 
             ClothSim.Chain back = cloth.chain(0);
             clothBack[f] = back.x(back.particleCount() - 1);
-            // Particle 2 is the *readable* row: the back rail's row 6, which a
-            // SceneProbe run puts at image y=360, inside the region STYLE.md
-            // 11.3's upper-skirt box resolves to. The tip is particle 5, which
-            // is 1.15 units of chain below the anchor -- at that lever a bend of
+            // Particle 2 is the *readable* row. Through pass 4 that was the back
+            // rail's garment row 6 at image y=360; pass 5 resamples the rail
+            // (SamuraiRig.backRailNodes) so the particles no longer sit one per
+            // row, and a SceneProbe run now puts particle 2 at image y=346 --
+            // still inside the dark band of the back skirt, which measures
+            // y285..440 on sim-sway. Particle 2 is kept rather than re-chosen:
+            // moving the graded signal to whichever particle made a number
+            // better is the failure this whole document exists to stop.
+            // The tip is particle 5, which
+            // is 0.82 units of chain below the anchor -- at that lever a bend of
             // 2.7 degrees cancels the whole of the hips' travel, so a hem that
             // is trailing *properly* leaves its tip very nearly stationary in
             // world space and the tip's onset frame becomes a reading of noise.
@@ -418,6 +424,12 @@ class SimTimingTest {
                 peakSpeedFrame(live.hip(), 100, 200), peakSpeedFrame(live.clothRead(), 100, 210),
                 peakSpeedFrame(live.head(), 100, 200), peakSpeedFrame(live.hand(), 100, 210),
                 peakSpeedFrame(live.clothSleeve(), 100, 210), peakSpeedFrame(live.hairTip(), 100, 215)};
+        // Printed, not merely asserted: when this assertion fails it fails on a pair, and the
+        // message can only name the frame they collided on. The list is what tells you which
+        // two chains have stopped being separable and by how far the rest are spread.
+        System.out.printf(java.util.Locale.ROOT,
+                "PEAK FRAMES: hips=%d hem-row=%d head=%d wrist=%d sleeve=%d hair=%d%n",
+                peaks[0], peaks[1], peaks[2], peaks[3], peaks[4], peaks[5]);
         for (int i = 0; i < peaks.length; i++) {
             for (int j = i + 1; j < peaks.length; j++) {
                 assertTrue(peaks[i] != peaks[j],

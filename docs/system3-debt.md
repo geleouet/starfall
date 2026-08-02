@@ -695,3 +695,308 @@ silhouette as a datum.
    once.
 4. **`hips` should probably stop being used as a coverage box.** It is a fittings cluster, not
    cloth, and it will read ~100% in any pass.
+
+---
+
+# Pass 5 record — the rail reaches the cloth, and the answer to the question is *no*
+
+**Verdict on the question this pass was set: negative, demonstrated, and the system closes on
+it.** With the back rail reaching the cloth for the first time, the paired captures on
+`sim-sway` are still not separable by eye at viewing scale. The separation is no longer zero —
+the drape excursion's dynamic range on the slow scene goes from **0.39 px to 5.48 px** and the
+live/control ratio from **1.03× to 1.36×** — but 5 px of edge displacement spread over ninety
+frames does not read as cloth moving. It reads as a slightly different authored silhouette.
+
+Every number below carries its rectangle (§11.3) and the harness that produced it (§11.2b(d)).
+Graded windows and their controls are `out/captures/s3-p5-*`; every one carries a `capture.txt`
+and every graded window has a `-debug` sibling, live *and* clamped. Harness `f0ad18994eec`,
+commit `f3a5665`. `./gw test` green, 359 tests.
+
+## 0. The instruments, because three of the four items were instrument work
+
+- **`analyse timing` now computes §7.1's reach gate.** `TimingApp` records, per probe particle
+  per sample, the darkest luminance within 4 px of it; the analysis calls a particle *painting*
+  when that is at or below the midpoint between the measured paper and §2.2's ink floor
+  `#161A22` (luminance 25.73). The midpoint rather than the 0.85×paper ink threshold, and that
+  choice is the whole instrument: a wet halo measures as "ink" at 0.85×paper while reading as
+  empty, and a frayed hem is sparse but its surviving flecks are *dark*. Half-way to the floor
+  separates a mark from a stain, so the gate rewards fray and rejects halo.
+
+  Calibration, which is the reason to trust it: run on the pass-4 build it reports **exactly the
+  two particles the review named**, `back4` and `back5`, and nothing else.
+
+- **`analyse drape --control` refuses.** Four refusals, each asserted in
+  `ControlGuardTest`: no `capture.txt`; `clamp` not `cloth`; scene / start / step / frames / size
+  differing from the live capture's; a different `harness`. The fourth treats a *missing*
+  `harness=` as a harness version of its own — the one from before the field existed — because
+  the comparison it must stop is precisely a pass-5 live capture against a pass-4 control.
+  `--allow-harness-drift` waives only that one, and has to be typed.
+
+- **`capture.txt` records `commit=` and `harness=`** (§11.2b(d)). Two fields, not one, and
+  `HarnessId` says why: `commit` is what a human reads and is too strict to gate on, since two
+  commits usually share an identical capture path. `harness` is a digest of the compiled
+  bytecode of the classes that turn a scene into PNG bytes — `CaptureApp`, `CaptureSpec`,
+  `Framebuffers`, `ContactSheet`, `SceneClock`, `TimingApp` — and nothing else. A shader edit or
+  a rig change leaves it alone, because those are the *subject*; the flip bug that composited
+  instead of assigning would have changed it, because that is the *apparatus*. The timing series
+  carries both fields too.
+
+## 1. The reach gate: two of six, then zero of eight
+
+`./gw timing -Pscene=sim-sway -Pstart=1.66 -Pduration=0.585 -Prate=240`, 141 samples, paper
+219.0, gate 122.4.
+
+| particle | pass 4: swept box, darkest | pass 5: swept box, darkest |
+|---|---|---|
+| `back0` | x447..463 y284..287, 26.5 | x447..463 y284..287, 26.5 |
+| `back1` | x438..450 y319..323, 28.8 | x441..454 y308..312, 43.0 |
+| `back2` | x432..437 y358..363, 28.7 | x438..445 y332..337, 28.7 |
+| `back3` | x434..437 y401..406, 32.4 | x436..439 y357..362, 28.8 |
+| `back4` | x437..446 y448..452, **142.2 — paints nothing** | x435..440 y382..387, 29.8 |
+| `back5` | x444..456 y504..507, **130.6 — paints nothing** | x433..442 y407..413, 31.7 |
+| `frontTip` | x514..516 y422..425, 31.7 | x514..516 y422..425, 34.7 |
+| `sleeveTip` | x651..659 y344..349, 74.9 — **see below** | x584..591 y300..304, 69.7 |
+
+**2 of 8 → 0 of 8.** It also reads 0 of 8 on `sim-extreme` over `-Pstart=0.9 -Pduration=0.384`.
+
+### What the fix is
+
+Every cloth chain in `SamuraiRig` was authored one bone per garment row, to the last row — and
+the last rows of every rail are authored 0.55 to 1.00 dissolved *on purpose*, because §3 wants
+the bottom of the figure to be ink smoke. So the ends of the chains were articulating rows that
+are not drawn. `SamuraiRig.Rail` resamples a chain at equal arc length over the part of its rail
+whose authored dissolve is under **0.20**, and derives all three things that must agree — the
+bone positions, the tail length `ClothSim` cannot infer, and the row-to-bone skinning table —
+from that one parameterisation. They used to live in three files.
+
+The reach constant is stated as a *dissolve*, not a length, so re-authoring a rail's fray moves
+its chain with it. 0.20 rather than 0.5 was measured, not chosen: at 0.5 the back rail's last
+particle lands at image y442 and still reads "paints nothing" (darkest 144), because a rail is
+the strip's own **boundary** and the fray band eats the ink there from both sides. The gate flips
+between y413 and y440.
+
+The side effect goes the right way. The bones pack into the drawn part of the rail, so every
+readable row hangs one bone further down the chain — back row 5 off `clothBackB` instead of
+`clothBackA`, row 6 off C, rows 7-9 off E. For the same per-joint bend the summed lever arm
+reaching row 7 rises from 1.268 to 1.790 world units (+41%) and row 8's from 2.236 to 2.999
+(+34%): the rail articulates the drawn cloth about a third harder while being 43% shorter,
+because none of it hangs in open paper.
+
+**Cost, recorded rather than hidden.** The shorter rail is stiffer per unit length and the
+readable row's peak-speed frame moved from 131 onto the head's 132 — §10's last row. Swept
+0.046 / 0.050 / 0.054 / 0.058 / 0.062 / 0.070 on the back chain's bend recovery: 0.058 is the
+largest value that puts the peak back on 131. It holds the hem's onset at **7 frames** behind the
+hips, inside §7.1's 4-8 band, one frame off pass 3's 8. Arrival order on the shipped scene:
+hips 126, hem 131, head 132, wrist 139, sleeve 145, hair 146.
+
+### The sleeve had the same defect, and the splatter was hiding it
+
+`sleeveTip` sat on drape row 6, authored dissolve **1.00** — nothing at all — and it passed the
+gate on the pass-4 build only because the pass-4 splatter was throwing marks up to about a
+hundred pixels past every silhouette and the tip happened to land on one. Pulling the splatter
+back (§2 below) took its darkest neighbour from 74.9 to **220.6 against paper 219**, i.e. clean
+paper, in the same run. The same `Rail` fixes it: two bones over the drawn part of the drape,
+tip at 69.7. Its onset behind the wrist moves 6 → 7 frames, inside the 3-9 band.
+
+That is the pass-4 review's own finding — *ink thrown beyond the silhouette moves the datum* —
+arriving a second time in a different disguise: it was also propping up a **particle** that had
+no cloth under it.
+
+## 2. The splatter: reach pulled back, and the mark feathered
+
+Verified before touching it, on `rev-sway-live/frame_000.png`: the one genuinely detached
+splatter mark in the frame is a 2 px diagonal streak at **x446..455 y491..501** running
+**204 → 78 with a single intermediate sample**, its surrounding paper untouched at 205-210. A
+hard-edged sprite in flat mid-grey with no halo — §3.1's soft band, §3.2's halo, and two §10
+fail-on-sight rows. It also sits *below the drawn figure*.
+
+Three changes. The outer reach returns to pass 3's `frayPx * 2.6 + 7.0` and the coarse drift gate
+to pass 3's top 20%. The third is new and is the part pass 3 did not have either: **the cut
+becomes a soft-shouldered profile rather than a threshold** — `smoothstep(0.560, 0.960, speckN)`
+cubed, peak 0.80.
+
+That third change carries a real constraint on this framing, worth writing down because it
+bounds what "restore the soft band" can mean here. A speck is 1-2 px, cut from the 40 and 64
+octaves whose period is 3.5 and 2.2 px, so the field crosses **any** threshold in well under a
+pixel and no constant band in field units can feather it: pass 3's band was 0.075, pass 4's
+0.100, and both print the same aliased chip. A `fwidth`-sized band was tried and is worse — the
+field's screen-space gradient is about 0.57 per pixel, so a ±1.5-fwidth band swamps the whole
+threshold and turns the specks into a wash. The only thing that gives a mark two pixels across a
+soft edge is for its coverage to be a smooth function of the field. **A 2 px mark and a 2 px
+feather cannot both exist at this framing**, and a splatter droplet that prints at full ink
+density with a step edge is a decal; the answer is that it arrives dilute.
+
+Measured after: at the same location the frame now goes 201 → 196 → 193 over several pixels.
+And the datum came back:
+
+| | detected figure box, frame 0 | width |
+|---|---|---|
+| `rev-p4-reversal` (`sim-extreme`) | x415..673 y118..483 | **259 px** |
+| `s3-p5-reversal` | x436..631 y118..477 | **196 px** |
+| `rev-sway-long` (`sim-sway`) | x382..641 y118..485 | 260 px |
+| `s3-p5-sway-long` | x400..598 y118..477 | **199 px** |
+
+The review's "197 px, silently destabilised to 259" is closed. Every figure-space region in
+`docs/regions.json` resolves against that box, so this is the single change in this pass with
+project-wide reach.
+
+## 3. Must not regress — re-measured through the frozen absolute rectangles
+
+Frame 0 of `sim-extreme -Pstart=0.9 -Pstep=0.0167 -Pframes=24`, `rev-p4-reversal` against
+`s3-p5-reversal`, identical harness on both sides.
+
+| box | rect | frozen | pass 5 |
+|---|---|---|---|
+| `torso` coverage | x468..601 y197..277 | 97.5% | **93.8%** — see below |
+| `torso` ink luminance mean | same | 87.8 | **87.5** |
+| `torso` autocorrelation | same | 0.076 @ lag 121 (limit 0.25) | **0.083 @ lag 121** |
+| `skirtBack` coverage | x444..498 y356..433 | 86.5% | **87.7%** |
+| `skirtCore` luminance sd | x470..494 y356..415 | 8.15 | **12.70** |
+| `torsoCore` luminance sd | x490..559 y211..265 | 19.19 | **20.13** |
+| `hair` coverage | x425..563 y114..221 | 58.2% | **58.0%** |
+| `hair-mid` bimodality | x439..514 y131..206 | 0.965 | **0.965**, 13 runs |
+| `hair-mid` mid-band 5-16 px | same | 15% | **15.4%** (2 of 13) |
+| value floor | whole frame | 25.73 every frame | **25.73** on all 24, and on all 90 of `s3-p5-sway-long` |
+
+**`torso` coverage moved and I am not going to call that a hold.** It is down 3.7 points, the ink
+luminance through the same box is unchanged (87.8 → 87.5, median 66.6 → 65.7), and the cause is
+the splatter pullback: about 400 px of pale speck inside that rectangle are now paper. Whether
+that is a regression depends on which way §3.3 points, and it points down — pass 4 was briefed to
+get `torso` *into the 80s* and reported it unreachable. Coverage falling while value holds is
+the interior skip the section asks for, arriving as a side effect of removing marks the review
+called fail-on-sight. Both numbers are here; a reviewer can disagree with the reading.
+
+`skirtCore`'s standard deviation rising from 8.15 to 12.70 is the same effect in the other
+direction, and is the one interior number that moved a lot.
+
+### The regression scenes, pass 4 → pass 5, same harness
+
+| scene | pixels differing | mean \|Δ\| | changed region |
+|---|---|---|---|
+| `rig-bindpose` | 28,827 / 518,400 (5.56%) | **0.97 levels** | x327..610 y33..498 |
+| `ik-gesture` frame 0 | 16,722 (3.23%) | **0.39 levels** | x337..572 y160..515 |
+| `rig-swing` frame 0 | 24,688 (4.76%) | **0.78 levels** | x342..597 y72..488 |
+
+All three are shader-only: those scenes construct no `RigSim`, so the cloth bones sit at bind and
+the resampling is an identity there. Mean delta is inside "a level or two" everywhere; peak
+channel deltas are 167-186 because that is what paper-to-ink is at a frayed boundary.
+
+**New bind baseline, so the guard is re-armed rather than removed:**
+
+| capture | md5 of `frame_000.png` |
+|---|---|
+| `s3-p3-bind-regress` (pass 3, pre-harness-fix) | `2340bfc3234e3e1f19f4c17b040120fd` |
+| **`s3-p5-bind-regress`** | **`187b6a65bee301ab2ad6cb1540ac3b38`** |
+
+## 4. The question: the drape excursion, both scenes, live and control
+
+Through `skirtBack` **x444..498 y356..433** against `hips`, `--axis x`, sub-pixel registration.
+Absolute rectangles on both sides, per §5 of the pass-4 record and because the figure box moved.
+
+**`sim-sway`, `-Pstart=1.0 -Pframes=90 -Pstep=0.0167` — the slow scene, anchor `hips` x483..568 y273..308:**
+
+| | live peak \|D\| | control peak \|D\| | live / control | dynamic range | gate 1 (vs anchor travel) |
+|---|---|---|---|---|---|
+| pass 4 (`rev-sway-long` / `-rigid`) | 15.50 px | 15.11 px | **1.03×** | **0.39 px** | 0.65× |
+| **pass 5** (`s3-p5-sway-long` / `-rigid`) | **20.87 px** | 15.40 px | **1.36×** | **5.48 px** | 0.86× |
+
+**`sim-extreme`, `-Pstart=0.9 -Pframes=24 -Pstep=0.0167` — the fast scene, anchor `hips` x482..567 y273..308:**
+
+| | live peak \|D\| | anchor travel | ratio | control | return to 25% |
+|---|---|---|---|---|---|
+| pass 4 (`rev-p4-reversal` / `rev-p4-rigid`) | 26.94 px | 15.60 px | 1.73× | 13.58 px, 0.83× | 0.157 s |
+| **pass 5** (`s3-p5-reversal` / `-rigid`) | **26.51 px** | 15.19 px | **1.75×** | 13.45 px, **0.83×** | **0.174 s** |
+
+The fast scene is held: gate 1 and gate 2 both pass, the return is inside 0.15-0.25 s, and the
+control-subtracted signal is 13.07 px against pass 4's 13.35 px (−2%). The slow scene's
+control-subtracted signal is **14× what it was**.
+
+Gate 3 still fails at 0.83× and 0.66×, for the reason §7.1 already records: a panel welded to
+the hips answers a pelvis rotation with a silhouette translation, and registration prints it.
+That is a §7.1 question, not a cloth question, and it is the same finding pass 4 made.
+
+## 5. The paired captures, and the honest answer
+
+`out/captures/s3-p5-sway-forced-choice/` ships `panel-1.png` (live), `panel-2.png` (clamped
+rigid) and `panels-stacked.png`: frames 30, 45, 60, 75, 89 of the 90-frame `sim-sway` window,
+back skirt and hips cropped x395..545 y300..470 at 3×, same scene, same start, same step, same
+harness commit. `KEY.txt` gives the answer *after* the instruction to look. The full pairs are
+`s3-p5-sway-long` / `s3-p5-sway-long-rigid` (and the 36-frame `s3-p5-sway` / `s3-p5-sway-rigid`),
+each with a `-debug` sibling, live and clamped.
+
+**My reading, and a reviewer must not take it as the verdict, because a reviewer must never
+grade work it produced.** At 4× and side by side the two are separable: the live panel's
+trailing edge sits further out through the second half of the window and its lower lobe is a
+different shape. At 2× — the scale §0's one-sentence test is answered at — I could not pick the
+simulated one, and more importantly *nothing in the live panel says "simulated"*. There is no
+fold, no readable lag, no trailing curve. The difference reads as a slightly different authored
+silhouette, which is exactly what it is: a five-degree change in where the panel hangs.
+
+So: **the answer to the question is no, and the reason is now structural rather than
+mechanical.** The rail reaches the cloth. It articulates the drawn rows a third harder than before.
+It moved the delivered pixels by fourteen times what it moved them by in pass 4. And the picture
+still does not read as cloth, because 5 px of boundary displacement over 1.5 seconds is below
+the threshold at which an ink silhouette says anything.
+
+### What should replace the mechanism
+
+The review's own hypothesis, and four passes of measurement now support it: **a Verlet rail
+hanging off a skinned garment is the wrong mechanism for this picture.** The cause is in the rig
+and was named in §7.1 before this pass started — the skirt's readable mass is skinned to the hips
+and legs, so the simulation is a small perturbation on a large skinned motion, and *any* scalar
+through *any* box is dominated by the body. Making the perturbation bigger is bounded by §7.2:
+a rail free enough to be visible is a flag, and the swing limit that stops it being a flag is
+exactly what stops it being visible.
+
+What the references actually show at the hem is **authored secondary motion on the garment's
+edges** — the trailing panels dissolving into ink smoke, each on its own clock. Pass 3's
+`trailingLeaf` already gestures at it, and it is the one cloth change in three passes a reviewer
+could see at 4×. Concretely, for whoever picks this up:
+
+1. **Keep the leaves; drive them directly.** Give each `trailingLeaf` its own phase, its own
+   delay off the hips' velocity and its own amplitude, authored rather than solved. Three leaves
+   on three clocks *cross each other*, and a crossing is a fold — which is the thing a rail
+   cannot produce, because a rail moves one boundary.
+2. **Put the motion in the dissolve, not only in the geometry.** §3.1's threshold is per-fragment
+   and already time-varying; modulating it along the hem with the body's velocity would make the
+   ink *shed* on a direction change, which is §7.3's vocabulary and costs no bones.
+3. **Keep the Verlet chains for the hair and the sleeve.** The hair is the one thing in this
+   project judged poetic and it is a Verlet system; the sleeve hangs off a wrist that travels
+   130 px and reads. Neither of those is a small perturbation on a large skinned motion. The
+   diagnosis is specific to the skirt.
+4. **Do not spend a sixth pass tuning the rail.** The control has now been run twice, on two
+   scenes, with the rail both mis-reaching and reaching. That is enough.
+
+## 6. Where this brief is wrong, and one thing it got exactly right
+
+- **"Two of six" is right for the back rail and undercounts the defect.** The same fault was on
+  the sleeve chain, and it was invisible because a second defect — the splatter's reach — was
+  papering over it. The gate should be stated over *every* simulated chain, which is what
+  §7.1's own words already say and what the instrument now does.
+- **"Restore the soft band and halo" is not fully achievable and should not have been offered as
+  an alternative of equal weight.** At this framing a 1-2 px mark cannot carry a 2 px feather,
+  and the halo the resolve computes scales with *blurred* coverage, so an isolated speck earns
+  almost none of it by construction. Pulling the reach back was the only one of the two options
+  that was fully available; the softening is real but partial, and is quoted as such.
+- **The frozen `torso` coverage of 97.5% should not have been frozen.** It is an absolute pixel
+  statistic (§11.2b(d) warns about exactly these) and it is a number two consecutive briefs asked
+  to *lower*. Freezing it makes removing a fail-on-sight artefact score as a regression.
+- **What it got right, and it is the whole reason this pass has an answer:** ordering the rail
+  fix *first*, and refusing to accept any statistic before the mechanism could reach the picture.
+  Had the four items been done in any other order, the negative would have been unfalsifiable —
+  "the cloth is invisible" and "two of the six particles are in empty paper" are not the same
+  finding, and only one of them can be acted on.
+
+## 7. Still open, handed on
+
+1. **Gate 3 of the drape excursion is unmeetable on this figure** and remains a §7.1 question.
+   Unchanged from pass 4.
+2. **The reach gate reports the hair tip painting nothing** on both builds (darkest 190 on
+   `sim-sway`, 175 on `sim-extreme`). It is *not* counted — hair is not cloth resolution — and §4
+   asks for tips that taper "to sub-pixel and near-transparent", so this is probably correct
+   behaviour rather than a defect. It is recorded because on the pass-4 build the same probe read
+   21% painting, and the difference was stray splatter, not hair.
+3. **Re-shooting every baseline through clean captures** is still not done and is still not one
+   system's work. The `commit=`/`harness=` fields now make any comparison that spans the boundary
+   refuse rather than mislead, which is the half of it that could be done from here.
+4. **`hips` should stop being used as a coverage box.** Unchanged from pass 4.

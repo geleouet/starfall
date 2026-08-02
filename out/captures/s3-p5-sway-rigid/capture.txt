@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=sim-sway -Pout=out/captures/s3-p5-sway-rigid -Pframes=36 -Pcols=6 -Pstart=1.66 -Pstep=0.0167 -Pclamp=cloth -Pw=960 -Ph=540
+
+scene=sim-sway
+description=Verlet hair + cloth: weight shift with one smooth reversal, steady breeze (STYLE.md 4, 7.0, 7.1)
+frames=36
+start=1.66
+step=0.0167
+window=0.58449996
+size=960x540
+substep=0.004166667
+clamp=cloth
+clothRigid=true
+commit=f3a5665-dirty
+harness=f0ad18994eec

@@ -454,27 +454,61 @@ void main() {
     float speckW = 0.62 * f40 + 0.38 * f64;
     float speckN = (dnoise2(mp * 40.00 + 77.0, dir * 0.30) * 0.62 * f40
                   + dnoise2(mp * 64.00 - 33.0, dir * 0.30) * 0.38 * f64) / max(speckW, 1e-3);
-    // Pass 4, STYLE.md 3.1 and the pass-3 review's ranked-1 item: "let the fleck
-    // octave reach the boundary". Measured on the graded window, a vertical cut
-    // through the back skirt returned three runs and no detached mark at all --
-    // the boundary was one continuous contour at 4x, 6x and 8x. The splatter was
-    // present in the shader and almost never firing on the frayed rows: its drift
-    // gate opened over the top 20% of a coarse field and its own threshold took
-    // the top 8% of another, so the joint rate near a hem was a few percent.
+    // Pass 4 widened this term's two gates and its reach, to answer the pass-3
+    // review's ranked-1 item ("let the fleck octave reach the boundary"). Pass 5
+    // pulls the reach back and feathers what is left, because the pass-4 review
+    // measured what the widening actually printed:
     //
-    // Both gates widen, and BOTH are multiplied by the authored dissolve, so
-    // nothing above the waist can change: every solid row in the figure carries
-    // dissolve 0 and `speckZone` already gates on it. The reach extends too --
-    // 3.1's "breaks into separate brush marks" happens *beyond* the fray band,
-    // not inside it.
-    float speckDrift = smoothstep(0.30, 0.66, vnoise(mp * 2.20 - 91.0) * 0.62
+    //   "At 7x it goes paper to flat mid-grey in ONE pixel, no halo, no interior
+    //    variation, narrow size distribution. That is 3.1's soft-band
+    //    requirement, 3.2's halo, and two 10 fail-on-sight rows -- hard-edged
+    //    sprites and cel-shaded flat fills -- in the one material this pass
+    //    touched."
+    //
+    // Verified before changing anything, on out/captures/rev-sway-live frame 0:
+    // the one genuinely detached splatter mark in the frame is a 2 px diagonal
+    // streak at x446..455 y491..501 running 204 -> 78 with a single intermediate
+    // sample and its surrounding paper untouched at 205-210. It is a hard-edged
+    // sprite, and it sits *below the drawn figure*, which is the second half of
+    // the damage: ink thrown that far past the silhouette widened the detected
+    // figure box and therefore moved every figure-space region in the project.
+    //
+    // Three changes, and the first two are simply pass 3's numbers back:
+    //
+    //   * The outer reach returns to frayPx * 2.6 + 7.0. 3.1's "breaks into
+    //     separate brush marks" happens just beyond the fray band, not sixty
+    //     pixels beyond the hem in open paper.
+    //   * The coarse drift gate returns to the top 20% of its field, so the
+    //     specks arrive in occasional spatters instead of along every frayed
+    //     edge.
+    //   * The cut becomes a soft-shouldered PROFILE instead of a threshold, and
+    //     the reason is worth writing down because it is a real constraint on
+    //     this framing rather than a taste. A speck here is 1-2 px, cut from the
+    //     40 and 64 octaves, whose period is 3.5 and 2.2 px -- so the field
+    //     crosses any threshold in well under a pixel and NO constant band in
+    //     field units can feather it. Pass 3's band was 0.075 and pass 4's 0.100
+    //     and both print the same aliased chip. The only thing that gives a mark
+    //     this small a soft edge is for its coverage to be a smooth function of
+    //     the field: a wide smoothstep, cubed, so the mark has a low toe, a
+    //     gentle shoulder and a peak that only the field's own maxima reach.
+    //     That also answers "no interior variation" and "narrow size
+    //     distribution" in one term, because a marginal peak now lands as a pale
+    //     fleck and a strong one as a dark one, and 3's failure signature is
+    //     "flecks that are all the same size" -- which for a mark two pixels
+    //     across is really a statement about value.
+    //
+    // The peak is 0.80 rather than 0.88 for the same reason: splatter is what
+    // leaves the brush and lands on damp paper, so it arrives dilute. A droplet
+    // that prints at full ink density with a step edge is a decal.
+    float speckDrift = smoothstep(0.50, 0.80, vnoise(mp * 2.20 - 91.0) * 0.62
                                             + vnoise(mp * 5.60 + 13.0) * 0.38);
     float speckZone = smoothstep(0.2, 1.6, edgePx)
-                    * (1.0 - smoothstep(frayPx * 0.5, frayPx * 4.5 + 7.0, edgePx))
+                    * (1.0 - smoothstep(frayPx * 0.5, frayPx * 2.6 + 7.0, edgePx))
                     * smoothstep(0.03, 0.24, dissolve)
                     * speckDrift
                     * step(0.02, speckW);
-    cov = max(cov, smoothstep(0.560, 0.660, speckN) * speckZone * 0.88);
+    float speckCore = smoothstep(0.560, 0.960, speckN);
+    cov = max(cov, speckCore * speckCore * speckCore * speckZone * 0.80);
 
     // The tooth is allowed to open the coverage, not just lift the value:
     // STYLE.md 3.3 asks for paper showing through in streaks, and ink that only
