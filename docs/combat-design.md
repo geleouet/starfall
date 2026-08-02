@@ -41,7 +41,8 @@ These are taken as-is because they are good and they serve the filter.
 
 ### 1.1 The action queue
 
-- Up to **3 tiles** in the queue.
+- Up to **5 tiles** in the queue. The source uses 3; we deliberately go longer, for the
+  reasons in 1.1a below.
 - **Adding a tile costs a turn.** This is the whole tension: every tile you bank is a turn
   you spend exposed to telegraphed attacks.
 - **Reordering and removing are free.** The queue can be debugged in place as the board
@@ -54,7 +55,47 @@ These are taken as-is because they are good and they serve the filter.
 choreography backwards: the last intention becomes the first gesture. And an uninterrupted
 multi-tile sequence is a *phrase*, not a hit — which is exactly the multi-beat material
 STYLE.md §7 needs. A single strike gives the animation system one impact to make poetic; a
-three-tile execution gives it a sentence.
+five-tile execution gives it a sentence with clauses.
+
+### 1.1a Why the queue is 5 rather than 3
+
+**The animation argument.** Queue length *is* phrase length. This project's whole reason to
+exist is procedural interaction choreography, and a longer queue is directly more of it —
+five linked beats resolving without interruption, each one flowing out of the last, is a
+qualitatively different thing to animate than three. It is the cheapest possible way to buy
+the animation system more material.
+
+**It costs nothing in tension, because the price scales with it.** Each tile still costs a
+turn, so a full queue is **five turns of standing exposed** to telegraphed attacks. The
+all-or-nothing rule then bites much harder: a five-tile queue spent on a board that moved
+underneath you is a five-turn loss. That is better drama than a three-turn one, not worse
+balance.
+
+**And it pairs with lane length (1.6), which is the real reason for the number.** Long lanes
+give you an approach — several turns of closing distance where you are not yet in danger.
+That is exactly the window in which a big queue gets banked. So:
+
+| Lane | Queue you can realistically bank | The fight that produces |
+|---|---|---|
+| 5-7 | 1-2 | React, strike, react. No time to compose. |
+| 9-11 | 2-3 | Partial phrases; the source's feel. |
+| 13-15 | 4-5 | Bank the whole phrase during the approach, then spend it in one exchange. |
+
+**Lane length and queue size are the same tension seen from two ends**, which is why raising
+one without the other would have been wrong. On a short lane the five slots are simply
+unreachable, and that is the point — the board tells you how long a sentence you are allowed
+to write.
+
+Two consequences to watch when tuning:
+- **Combo rewards need retuning.** A five-tile execution can clear far more than a
+  three-tile one, so combo-driven economy scales faster than the source's.
+- **The UI has to carry five cartouches with unmistakable LIFO ordering** and no chrome
+  (STYLE.md §8). Three was already the hard part of that problem; five makes reading order
+  the primary UI design constraint rather than a detail.
+
+Per-hero queue size is a natural later dial — a heavier hero with fewer, larger slots
+against a fleeter one with more — but is deliberately not used yet, because the two heroes
+already differ by their movement verb and one variable at a time is enough.
 
 ### 1.2 Cooldowns
 
