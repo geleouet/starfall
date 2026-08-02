@@ -19,6 +19,20 @@ import java.util.Set;
  */
 public enum EnemyArchetype {
 
+    // On Quick, which deliberately has no base archetype here.
+    //
+    // Quick removes the advance telegraph -- its mechanic is the *absence* of a
+    // strikethrough. All five bodies below are the fixtures that demonstrate telegraph
+    // behaviour, so giving Quick to any of them deletes the demonstration: put it on the
+    // Runner and no non-Quick Charger is left to show destination recomputation; put it on
+    // the Reacher and three telegraph tests lose their subject. Both were tried and both
+    // broke the suite.
+    //
+    // It is a *variant* trait, applied on top via a placement override, which is also what
+    // the source material does with it. docs/combat-design.md once claimed the Runner
+    // carried it; that claim was written into the design document and never into the code,
+    // and the code was right.
+
     /** The baseline. Three hit points, one tile of reach, nothing else. */
     WISP("Wisp", 3, 1, 1),
 

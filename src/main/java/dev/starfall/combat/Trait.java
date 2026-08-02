@@ -11,7 +11,14 @@ package dev.starfall.combat;
  * absence of a beat, the shove that moves nothing.
  */
 public enum Trait {
-    /** Closes one tile after attacking. Bodies without it give ground instead. */
+    /**
+     * Closes one tile after attacking; bodies without it give ground instead.
+     * Either way the step is declared and walked on the <em>following</em> turn,
+     * never in the same instant as the blade -- combat-design.md 3d.1. At reach 1
+     * the hero is standing in the tile it would close into, so an Aggressive body
+     * has no step to take and simply strikes again: the pressure archetype keeps
+     * its every-turn cadence.
+     */
     AGGRESSIVE,
     /**
      * Declares and resolves in the same turn, so its Strikethrough never gets a

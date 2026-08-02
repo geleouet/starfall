@@ -34,6 +34,7 @@ public final class Combatant {
     private int hp;
     private boolean alive = true;
     private Intent intent;
+    private boolean owesStep;
 
     private Combatant(int id, String name, Hero hero, EnemyArchetype archetype, int maxHp, int reach, int damage,
                       Set<Trait> traits, int tile, Facing facing) {
@@ -132,6 +133,20 @@ public final class Combatant {
         return intent;
     }
 
+    /**
+     * True between resolving a blade and declaring the footwork that follows it.
+     *
+     * <p>The engine's memory that this body has just struck and has not yet
+     * stepped. It is set as the blade lands and spent by the next declaration,
+     * which turns it into a {@link Intent.Kind#WITHDRAW} or a
+     * {@link Intent.Kind#CLOSE_IN}. Keeping the step out of the strike is what
+     * gives the player a turn to answer the body where it struck from -- see
+     * {@code CombatEngine.enemyAttack} and combat-design.md 3d.1.
+     */
+    public boolean owesStep() {
+        return owesStep;
+    }
+
     void tile(int t) {
         this.tile = t;
     }
@@ -148,10 +163,15 @@ public final class Combatant {
         this.alive = false;
         this.hp = 0;
         this.intent = null;
+        this.owesStep = false;
     }
 
     void intent(Intent i) {
         this.intent = i;
+    }
+
+    void owesStep(boolean v) {
+        this.owesStep = v;
     }
 
     Combatant copy() {
@@ -159,13 +179,14 @@ public final class Combatant {
         c.hp = hp;
         c.alive = alive;
         c.intent = intent;
+        c.owesStep = owesStep;
         c.statuses.copyFrom(statuses);
         return c;
     }
 
     String fingerprint() {
         return id + ":" + name + "@" + tile + facing.step() + " hp=" + hp + (alive ? "" : "!")
-                + " [" + statuses + "] " + intent;
+                + (owesStep ? " owes-step" : "") + " [" + statuses + "] " + intent;
     }
 
     @Override

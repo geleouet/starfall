@@ -128,30 +128,91 @@ class EnemyBehaviourTest {
     }
 
     @Test
-    void anAggressiveBodyClosesAfterStrikingAndAnOrdinaryOneGivesGround() {
-        CombatEngine aggressive = CombatEngine.create(Encounters.duel(7, Hero.WARDEN)
-                .heroAt(0, Facing.RIGHT)
-                .enemy(EnemyArchetype.BULWARK, 2, Facing.LEFT)
-                .loadout(CUT)
-                .build());
-        Combatant bulwark = Encounters.enemy(aggressive, EnemyArchetype.BULWARK);
-        aggressive.apply(Command.hold()); // closes to 1
-        assertEquals(1, bulwark.tile());
-        Resolution struck = aggressive.apply(Command.hold());
-        assertTrue(Encounters.has(struck.events(), CombatEvent.Hit.class));
-        assertEquals(1, bulwark.tile(), "it wanted to close further and the hero was in the way");
-
-        CombatEngine ordinary = CombatEngine.create(Encounters.duel(7, Hero.WARDEN)
+    void anOrdinaryBodyStrikesOnOneTurnAndGivesGroundOnTheNext() {
+        // combat-design.md 3d.1. The retreat is a beat of its own: strike, stand,
+        // withdraw. Gluing it to the blade made the cycle period two and phase-lock
+        // with every even hero cadence, and it also meant a body that told you
+        // where it would strike from was never standing there afterwards.
+        CombatEngine e = CombatEngine.create(Encounters.duel(7, Hero.WARDEN)
                 .heroAt(2, Facing.RIGHT)
                 .enemy(EnemyArchetype.WISP, 3, Facing.LEFT)
                 .loadout(CUT)
                 .build());
-        Combatant wisp = Encounters.enemy(ordinary, EnemyArchetype.WISP);
-        Resolution r = ordinary.apply(Command.hold());
-        assertTrue(Encounters.has(r.events(), CombatEvent.Hit.class));
-        assertEquals(4, wisp.tile(), "everything without Aggressive backs off after it strikes");
+        Combatant wisp = Encounters.enemy(e, EnemyArchetype.WISP);
+
+        Resolution struck = e.apply(Command.hold());
+        assertTrue(Encounters.has(struck.events(), CombatEvent.Hit.class));
+        assertEquals(3, wisp.tile(), "it struck and it stayed");
+        assertTrue(Encounters.only(struck.events(), CombatEvent.Moved.class).isEmpty(),
+                "nothing may move in the same instant as the blade");
+        assertEquals(Intent.Kind.WITHDRAW, wisp.intent().kind(),
+                "and the step away is declared, like everything else");
+        assertEquals(4, wisp.intent().destination());
+
+        Resolution withdrew = e.apply(Command.hold());
+        assertEquals(4, wisp.tile());
         assertEquals(CombatEvent.MoveReason.GAVE_GROUND,
-                Encounters.only(r.events(), CombatEvent.Moved.class).get(0).reason());
+                Encounters.only(withdrew.events(), CombatEvent.Moved.class).get(0).reason());
+        assertEquals(Intent.Kind.ADVANCE, wisp.intent().kind(), "and the three-beat phrase begins again");
+
+        Resolution returned = e.apply(Command.hold());
+        assertEquals(3, wisp.tile());
+        assertEquals(Intent.Kind.ATTACK, wisp.intent().kind());
+        assertFalse(Encounters.has(returned.events(), CombatEvent.Hit.class),
+                "the advance and the blade are two turns, so the cycle is three long");
+    }
+
+    @Test
+    void anAggressiveBodyKeepsItsEveryTurnPressureBecauseTheHeroIsInTheTileItWouldCloseInto() {
+        // The trait is unchanged and so is its cadence. At reach 1 the tile a
+        // Bulwark would walk into is the one the hero is standing in, so there is
+        // no step to declare and it simply squares up and strikes again -- which is
+        // exactly the pressure the archetype exists to apply.
+        CombatEngine e = CombatEngine.create(Encounters.duel(7, Hero.WARDEN)
+                .heroAt(0, Facing.RIGHT)
+                .enemy(EnemyArchetype.BULWARK, 2, Facing.LEFT)
+                .loadout(CUT)
+                .heroHp(40)
+                .build());
+        Combatant bulwark = Encounters.enemy(e, EnemyArchetype.BULWARK);
+        e.apply(Command.hold()); // closes to 1
+        assertEquals(1, bulwark.tile());
+
+        for (int turn = 0; turn < 4; turn++) {
+            Resolution r = e.apply(Command.hold());
+            assertTrue(Encounters.has(r.events(), CombatEvent.Hit.class), "it strikes on turn " + turn);
+            assertEquals(1, bulwark.tile(), "and never leaves the tile it strikes from");
+            assertEquals(Intent.Kind.ATTACK, bulwark.intent().kind());
+        }
+    }
+
+    @Test
+    void anAggressiveBodyWithRoomToCloseDeclaresTheStepInsteadOfTakingItInSecret() {
+        // The other half of the same rule. Give an Aggressive body two tiles of
+        // reach and the close-in becomes a real displacement, so it is published
+        // and walked a turn later like a withdrawal is -- otherwise the body that
+        // announced tile 3 would resolve from tile 3 and be standing on tile 2
+        // before the player could answer it there.
+        CombatEngine e = CombatEngine.create(Encounters.duel(9, Hero.WARDEN)
+                .heroAt(1, Facing.RIGHT)
+                .enemy(EncounterSpec.Placement.of(EnemyArchetype.REACHER, 3, Facing.LEFT)
+                        .with(Trait.AGGRESSIVE))
+                .loadout(CUT)
+                .heroHp(40)
+                .build());
+        Combatant reacher = Encounters.enemy(e, EnemyArchetype.REACHER);
+        assertEquals(Intent.Kind.ATTACK, reacher.intent().kind());
+
+        Resolution struck = e.apply(Command.hold());
+        assertTrue(Encounters.has(struck.events(), CombatEvent.Hit.class));
+        assertEquals(3, reacher.tile(), "it struck from where it said it would, and stayed there");
+        assertEquals(Intent.Kind.CLOSE_IN, reacher.intent().kind());
+        assertEquals(2, reacher.intent().destination());
+
+        Resolution closed = e.apply(Command.hold());
+        assertEquals(2, reacher.tile());
+        assertEquals(CombatEvent.MoveReason.CLOSED_IN,
+                Encounters.only(closed.events(), CombatEvent.Moved.class).get(0).reason());
     }
 
     @Test

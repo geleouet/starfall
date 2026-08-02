@@ -84,8 +84,13 @@ class PhraseTest {
     @Test
     void aPhraseSpentOnABoardThatMovedUnderneathIsAWholeTurnLost() {
         // The five-turn-loss drama of combat-design.md 1.1a, in miniature: the Wisp
-        // gave ground after striking, so the Cut banked while it was adjacent finds
-        // nothing at all and pays anyway.
+        // gave ground, so a stroke written while it was adjacent finds nothing at
+        // all and pays anyway.
+        //
+        // It takes two turns of writing to lose it now rather than one, and that is
+        // the point of 3d.1: the give-ground is a beat behind the blade, so a hero
+        // who writes one tile and spends it still catches the body where it struck.
+        // Over-committing is what costs you, not the rhythm itself.
         CombatEngine e = CombatEngine.create(Encounters.duel(7, Hero.WARDEN)
                 .heroAt(2, Facing.RIGHT)
                 .enemy(EnemyArchetype.WISP, 3, Facing.LEFT)
@@ -93,7 +98,9 @@ class PhraseTest {
                 .build());
         Combatant wisp = Encounters.enemy(e, EnemyArchetype.WISP);
         e.apply(Command.add(0));
-        assertEquals(4, wisp.tile(), "it struck and stepped back out of reach");
+        assertEquals(3, wisp.tile(), "it struck and stayed, still answerable");
+        e.apply(Command.hold());
+        assertEquals(4, wisp.tile(), "and only now steps back out of reach");
 
         List<CombatEvent> phrase = Encounters.phrase(e.apply(Command.execute()));
 

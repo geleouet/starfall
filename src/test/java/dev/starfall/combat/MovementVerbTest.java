@@ -243,7 +243,9 @@ class MovementVerbTest {
                 .build());
         Combatant wisp = Encounters.enemy(e, EnemyArchetype.WISP);
         e.apply(Command.add(0));
-        assertEquals(4, wisp.tile(), "it struck and gave ground, so it is now two tiles out");
+        assertEquals(3, wisp.tile(), "it struck and stood there, which is the whole of 3d.1");
+        e.apply(Command.hold());
+        assertEquals(4, wisp.tile(), "and gave ground on the turn after, so it is now two tiles out");
 
         List<CombatEvent> phrase = Encounters.phrase(e.apply(Command.execute()));
 

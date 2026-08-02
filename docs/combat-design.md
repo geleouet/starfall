@@ -209,7 +209,8 @@ lane whose length varies from 5 to 15, not inherited.
 Taken from the source; they are compact and they generate distinct silhouettes of
 behaviour.
 
-- **Aggressive** — closes after attacking (others give ground).
+- **Aggressive** — closes after attacking (others give ground). Either way the step is
+  declared and walked on the *following* turn, never in the same instant as the blade — §3d.1.
 - **Quick** — attacks as soon as a tile enters its queue, without waiting a turn.
 - **Explosive** — bursts on death, damaging adjacent tiles. In our idiom, a bloom of ink
   thrown across the neighbours.
@@ -225,7 +226,7 @@ Five is enough to make one fight tactical. Each is defined by how it *forces con
 |---|---|---|---|
 | **Wisp** | 3 | — | Nothing. The baseline the others are read against |
 | **Reacher** | 4 | — | Respect 2 tiles of reach, so closing is not free |
-| **Runner** | 4 | Charger, Quick | React to sudden distance collapse, with no telegraph — the extreme-motion test case. See §3d.2 |
+| **Runner** | 4 | Charger | React to sudden distance collapse — the extreme-motion test case. Quick is a variant trait, see §3d.2 |
 | **Warden** | 1 | Explosive | Choose *where* it dies, not just whether |
 | **Bulwark** | 5 | Unyielding, Aggressive | Solve a problem without your movement verb |
 
@@ -317,35 +318,99 @@ the same finding.
 
 ## 3d. Corrections found by building the engine
 
-The rules engine was implemented headless with 90 tests before any UI existed. That
+The rules engine was implemented headless with 96 tests before any UI existed. That
 surfaced things reading the design could not.
 
-### 3d.1 "Others give ground" is broken at reach 1 — FIXED
+### 3d.1 Melee could never land — the retreat was glued to the strike
 
-**The bug, found as a non-terminating test loop.** A non-Aggressive enemy attacks, retreats
-to distance 2, then returns. A hero alternating bank / execute is therefore *never* swinging
-on a turn when the enemy is adjacent — **Cut literally cannot land on a Wisp**. The Bulwark,
-being the only Aggressive archetype, was the only enemy producing stable adjacency, which is
-why it ended up the fixture for every multi-turn test in the suite. One archetype was
-carrying the entire fight's rhythm.
+**The symptom, found as a non-terminating test loop.** A hero alternating bank / execute
+could **never** land a melee hit on a non-Aggressive enemy. Not "often missed" — never
+connected, deterministically, forever. Twenty of forty-five starting configurations were
+infinite.
 
-**Resolution: enemies give ground only when wounded — below half HP — not after every
-attack.**
+**The first diagnosis was wrong, and the first fix was never implemented.** It was recorded
+here as "enemies give ground only when wounded". That resolution was written into this
+document and never into the engine, so the defect stayed live the whole time while the
+document said it was fixed. Two lessons, both now standing rules: **a resolution written
+into a design document is not an implementation**, and a claim in a doc that no test
+enforces will drift from the code silently.
 
-Chosen over the alternatives (retreat every other attack, retreat to reach distance) because
-it is the only one that converts a rhythm bug into a *character beat*. A healthy enemy holds
-its ground and trades; a wounded one starts backing away. That reads instantly, it needs no
-explanation, and per §0's filter it produces choreography — a figure giving ground is a
-two-body relationship, where "retreat on a timer" is bookkeeping.
+**The real cause is a parity lock.** The retreat was executed *in the same step as the
+strike*, which made the enemy's cycle exactly two beats:
 
-### 3d.2 Quick had no home — FIXED
+```
+[advance, declaring ATTACK] → [strike + retreat, declaring ADVANCE] → …
+```
 
-The trait was specified with no enemy carrying it, reachable only via a placement override.
-**The Runner now carries Charger *and* Quick**: it closes the whole distance and strikes
-without telegraph. That is coherent — it is the extreme-motion test case in both the
-combat design and the animation brief — and it gives the trait's mechanic, *the absence of
-a strikethrough*, something to be absent from. Flagged as the most likely thing to need
-toning down once the fight is playable.
+The hero's cadence is also even — banking *n* tiles then executing is period *n+1*, and any
+bank/execute rhythm lands on the same parity. Two cycles of the same parity **phase-lock**.
+No amount of tuning damage or hit points can unstick that; only a change of *period* can.
+
+**The fix: unglue the retreat from the strike.** The body strikes, *stays*, and withdraws on
+the following step, with the withdraw declared like any other intent:
+
+```
+[advance, declaring ATTACK] → [strike, declaring WITHDRAW] → [withdraw, declaring ADVANCE] → …
+```
+
+Measured afterwards: first contact is bounded by **distance + 4** turns, worst case 11, from
+every starting phase. No configuration is ever "never".
+
+**The load-bearing property is the contact window, not the period.** Unglued, the body
+stands in contact across **two consecutive hero turns**. A period-2 cadence cannot miss a
+window of two whatever its phase — that is a guarantee. "Period 3 and period 2 are coprime"
+is a coincidence of this particular pair, and reasoning from it invites a false
+generalisation: a *three*-beat hero cadence (bank, bank, execute) still locks against a
+three-beat enemy on one residue class in three, measured at no contact in 60 turns.
+
+**And that residual lock is correct, because the player chose it.** One `hold` re-phases and
+the same cadence connects on turn 4. `inspiration.md` names tactical patience as a dominant
+strategy; this is what makes it mechanically real. The fix does not abolish phase-locking —
+it moves it from something the rules do to the player into something the player does to
+themselves and can undo.
+
+**The invariant, in the form that actually bites.** The obvious wording — "every threatening
+enemy must spend at least one complete hero turn in the position it threatens from" — was
+*already satisfied by the broken engine*: the body arrived, the hero got a turn with it
+standing there, and only then did it strike and vanish. The version that fails on the old
+code and passes on the new is:
+
+> **A body that resolves a telegraphed attack must still be standing where it struck when
+> the hero's next turn begins.**
+
+A telegraph is a promise that the player can act on the information. If the body leaves the
+position it threatened from within the step in which it resolves, the telegraph announced a
+threat but not a target. This is swept over every archetype, every hero cadence and both
+hands.
+
+**Aggressive bodies keep closing in**, and the close-in became a declared step for the same
+reason — it is the same lie told forward instead of backward. But only where there is a tile
+to close into: at reach 1 that tile is the one the hero occupies, so the Bulwark's cadence
+is unchanged and it still strikes every single turn. The honest cost is that an Aggressive
+body which whiffs against a retreating hero now falls one turn behind instead of keeping
+pace.
+
+### 3d.2 Quick has no base archetype, and that is correct
+
+This section previously claimed the Runner carried Charger **and** Quick. **That claim was
+written here and never into the code** — the same divergence as §3d.1, found the same way.
+
+Trying to make the code match it failed twice, informatively. Quick removes the advance
+telegraph; its mechanic is the *absence* of a strikethrough. All five base bodies are the
+fixtures that **demonstrate** telegraph behaviour, so giving Quick to any of them deletes
+the demonstration: on the Runner, no non-Quick Charger is left to show destination
+recomputation; on the Reacher, three telegraph tests lose their subject. Both were tried and
+both broke the suite.
+
+There is also a design reason to keep it off the Charger specifically: **Quick should hide
+*when*, not *where*.** The Reacher's two threatened tiles are fixed and knowable, so
+withholding only the timing is frightening but fair. A body that crosses the whole lane
+*and* strikes unannounced hides position and timing at once, which defeats the information
+channel the entire tactical design rests on.
+
+**Quick is a variant trait**, applied on top via a placement override, which is what the
+source material does with it. It is swept through the §3d.1 invariant on all five
+archetypes.
 
 ### 3d.3 Open tuning items — recorded, not resolved
 

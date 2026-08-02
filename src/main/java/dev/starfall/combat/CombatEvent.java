@@ -61,9 +61,9 @@ public sealed interface CombatEvent {
         ADVANCE,
         /** A Charger collapsing the whole distance at once. */
         CHARGE,
-        /** A non-Aggressive body giving ground after it struck. */
+        /** A non-Aggressive body giving ground, on the turn after it struck. */
         GAVE_GROUND,
-        /** An Aggressive body walking in after it struck. */
+        /** An Aggressive body walking in, on the turn after it struck. */
         CLOSED_IN
     }
 

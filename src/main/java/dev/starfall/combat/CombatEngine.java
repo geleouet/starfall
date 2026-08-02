@@ -567,6 +567,8 @@ public final class CombatEngine {
         switch (intent.kind()) {
             case ATTACK -> enemyAttack(e, intent);
             case ADVANCE -> enemyAdvance(e, intent);
+            case WITHDRAW -> enemyReposition(e, intent, false);
+            case CLOSE_IN -> enemyReposition(e, intent, true);
             case HOLD -> {
             }
         }
@@ -579,6 +581,27 @@ public final class CombatEngine {
      * belongs to. Standing an ally in front of a Reacher therefore eats the blow,
      * which is a way to kill Charted Shadows without touching them and one of the
      * better things a push or a swap can set up.
+     *
+     * <p><b>The body strikes and stays.</b> The footwork that follows -- giving
+     * ground, or walking in if it is Aggressive -- is not executed here. It is
+     * recorded as a debt ({@link Combatant#owesStep()}), declared at upkeep like
+     * everything else, and walked on the following turn. Two reasons, and the
+     * second is the general one.
+     *
+     * <p>First, gluing the step to the strike made the cycle
+     * <em>advance, strike-and-vanish</em> -- period two, against a hero whose
+     * cadences are also even, and two cycles of the same parity phase-lock rather
+     * than drift. A hero alternating bank and execute could then never land a Cut
+     * on a Wisp: not rarely, never, from half the starting phases. Unglued, the
+     * cycle is three beats and the body stands adjacent for two consecutive hero
+     * turns instead of one, so any cadence of period two has an execution inside
+     * the window whatever its phase. combat-design.md 3d.1 has the full account.
+     *
+     * <p>Second, and this is the invariant the fix encodes: <b>a Strikethrough is
+     * a promise the player can act on.</b> A body that leaves the tile it
+     * threatened from in the same instant it resolves has announced a threat but
+     * never offered a target. Every threatening body owes the player one complete
+     * turn standing where it struck.
      */
     private void enemyAttack(Combatant e, Intent declared) {
         List<Integer> now = threatTiles(e, e.facing(), e.reach());
@@ -595,12 +618,19 @@ public final class CombatEngine {
         if (!e.alive() || state.outcome().over()) {
             return;
         }
+        e.owesStep(true);
+    }
+
+    /** The footwork a body declared after striking, one turn late and on purpose. */
+    private void enemyReposition(Combatant e, Intent declared, boolean closing) {
         Combatant hero = state.hero();
-        if (e.hasTrait(Trait.AGGRESSIVE)) {
-            oneStep(e, Facing.toward(e.tile(), hero.tile()), CombatEvent.MoveReason.CLOSED_IN);
-        } else {
-            oneStep(e, Facing.toward(e.tile(), hero.tile()).opposite(), CombatEvent.MoveReason.GAVE_GROUND);
+        Facing toHero = Facing.toward(e.tile(), hero.tile());
+        Facing walk = closing ? toHero : toHero.opposite();
+        int dest = e.tile() + walk.step();
+        if (dest != declared.destination()) {
+            emit(new CombatEvent.IntentRetargeted(e.id(), declared.threatened(), List.of(dest)));
         }
+        oneStep(e, walk, closing ? CombatEvent.MoveReason.CLOSED_IN : CombatEvent.MoveReason.GAVE_GROUND);
     }
 
     private void enemyAdvance(Combatant e, Intent declared) {
@@ -709,15 +739,47 @@ public final class CombatEngine {
             emit(new CombatEvent.Turned(e.id(), e.facing(), want, CombatEvent.TurnReason.OWN_CHOICE));
             e.facing(want);
         }
-        int distance = Math.abs(hero.tile() - e.tile());
-        Intent intent;
-        if (distance >= 1 && distance <= e.reach()) {
-            intent = Intent.attack(want, threatTiles(e, want, e.reach()), e.damage(), e.tile());
-        } else {
-            intent = Intent.advance(want, walkTarget(e));
+        Intent intent = owedStep(e, want);
+        if (intent == null) {
+            int distance = Math.abs(hero.tile() - e.tile());
+            if (distance >= 1 && distance <= e.reach()) {
+                intent = Intent.attack(want, threatTiles(e, want, e.reach()), e.damage(), e.tile());
+            } else {
+                intent = Intent.advance(want, walkTarget(e));
+            }
         }
         e.intent(intent);
         emit(new CombatEvent.IntentDeclared(e.id(), intent));
+    }
+
+    /**
+     * The step a body owes after a strike, or {@code null} when it owes none.
+     *
+     * <p>Aggressive bodies walk in, everything else gives ground -- the trait is
+     * unchanged, only its timing is. <b>Aggressive keeps its pressure exactly.</b>
+     * A body that has nowhere to put the step -- the lane ran out, or the hero is
+     * standing in the tile, which at reach 1 is every single turn of a Bulwark's
+     * life -- owes nothing, declares nothing, and simply squares up and strikes
+     * again. So the archetype that walks into you still attacks every turn, and
+     * the only case where the close-in becomes a declared beat of its own is the
+     * one where it is a real displacement the player deserves to see coming: a
+     * reach-2 Aggressive body stepping from the far edge of its threat into the
+     * near one.
+     *
+     * <p>The debt is discharged either way. A body that could not step has tried
+     * and failed, which is a turn spent, not a turn owed.
+     */
+    private Intent owedStep(Combatant e, Facing toHero) {
+        if (!e.owesStep()) {
+            return null;
+        }
+        e.owesStep(false);
+        boolean closing = e.hasTrait(Trait.AGGRESSIVE);
+        int dest = e.tile() + (closing ? toHero : toHero.opposite()).step();
+        if (!state.lane().contains(dest) || state.occupied(dest)) {
+            return null;
+        }
+        return closing ? Intent.closeIn(toHero, dest) : Intent.withdraw(toHero, dest);
     }
 
     private List<Integer> threatTiles(Combatant e, Facing facing, int reach) {

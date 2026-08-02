@@ -27,9 +27,13 @@ final class Encounters {
 
     /**
      * Hero at 0, one Bulwark at 1. The most useful fixture in the file: the
-     * Bulwark is Aggressive, so it attacks every single turn instead of the
-     * attack-retreat-return shuffle every other enemy does, which makes it the
-     * only enemy you can write a clean multi-turn assertion against.
+     * Bulwark is Aggressive and stands at reach 1, so the tile it would close into
+     * is the one the hero occupies and it therefore owes no step after striking.
+     * It attacks every single turn, where everything else runs the three-beat
+     * advance / strike / withdraw cycle of combat-design.md 3d.1 -- which makes it
+     * the simplest enemy to write a multi-turn assertion against. It is no longer
+     * the <em>only</em> one: the other cycle is three beats rather than two, so it
+     * no longer phase-locks with the hero's.
      */
     static CombatEngine againstBulwark(Hero hero, Tile... loadout) {
         return CombatEngine.create(duel(5, hero)
