@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Starfall build wrapper.
+#
+# The machine's JAVA_HOME points at JDK 24, which the pinned Gradle cannot run
+# on. This forces Gradle onto the JDK 21 LTS that the project targets anyway,
+# so builds behave identically no matter who invokes them.
+#
+# Usage:  ./gw capture -Pscene=smoke -Pframes=12
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export JAVA_HOME="C:/Program Files/Java/jdk-21.0.10"
+exec "$HERE/tools/gradle-8.10.2/bin/gradle" --project-dir "$HERE" --console=plain "$@"

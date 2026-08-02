@@ -1,0 +1,16 @@
+# Build output
+build/
+.gradle/
+
+# Local Gradle distribution (130MB, re-downloadable via tools/ bootstrap)
+tools/gradle-*/
+tools/gradle.zip
+
+# Capture history: keep the contact sheets, drop the individual frames.
+# Contact sheets are what progress.html embeds and what reviews are argued
+# from, so the iteration-to-iteration comparison the brief asks for is fully
+# preserved. Individual full-res frames are working artefacts for close
+# inspection during a single pass and lose their value once that pass is
+# judged -- and they are 55MB per ~100 frames, which would reach gigabytes
+# over the number of passes this project expects.
+out/**/frame_*.png

@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starfall — Progress</title>
+<style>
+  :root{
+    --ink:#0F1218; --ink2:#161B24; --ink3:#1E2531; --line:#2A3341;
+    --paper:#EDE4D3; --paper-dim:#A9A296; --paper-faint:#6E7684;
+    --indigo:#5B7FB5; --coral:#D9736B; --ochre:#B5793A; --blade:#EAF2F8;
+    --green:#6FA88B; --amber:#D8A86A;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 700px at 75% -8%, #23304A 0%, transparent 62%),
+      radial-gradient(900px 600px at 8% 108%, #3A2530 0%, transparent 58%),
+      var(--ink);
+    color:var(--paper);
+    font:15px/1.65 Georgia,"Iowan Old Style","Times New Roman",serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:56px 28px 120px}
+  a{color:var(--indigo)}
+
+  /* ---- header ---- */
+  header{border-bottom:1px solid var(--line);padding-bottom:28px;margin-bottom:40px}
+  h1{
+    font-size:44px;font-weight:400;letter-spacing:.14em;margin:0 0 6px;
+    text-transform:uppercase;
+  }
+  h1 .dot{color:var(--coral)}
+  .tagline{color:var(--paper-dim);font-style:italic;font-size:16px;margin:0 0 22px}
+  .metaline{
+    display:flex;flex-wrap:wrap;gap:10px 28px;
+    font-family:ui-monospace,Consolas,monospace;font-size:11.5px;
+    letter-spacing:.06em;color:var(--paper-faint);text-transform:uppercase;
+  }
+  .metaline b{color:var(--paper-dim);font-weight:400}
+
+  /* ---- generic section ---- */
+  section{margin:0 0 52px}
+  h2{
+    font-size:12px;font-weight:400;letter-spacing:.24em;text-transform:uppercase;
+    color:var(--paper-faint);margin:0 0 18px;padding-bottom:9px;
+    border-bottom:1px solid var(--line);
+  }
+  h2 .count{color:var(--line);margin-left:8px}
+
+  /* ---- now panel ---- */
+  .now{
+    background:linear-gradient(100deg,var(--ink3),var(--ink2));
+    border:1px solid var(--line);border-left:3px solid var(--coral);
+    border-radius:3px;padding:22px 26px;
+  }
+  .now .k{
+    font-family:ui-monospace,Consolas,monospace;font-size:10.5px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--coral);margin-bottom:8px;
+  }
+  .now .v{font-size:21px;margin-bottom:8px}
+  .now .d{color:var(--paper-dim);font-size:14.5px}
+
+  /* ---- pipeline ---- */
+  .pipe{display:grid;gap:2px}
+  .step{
+    display:grid;grid-template-columns:38px 1fr auto;gap:18px;align-items:start;
+    padding:15px 18px;background:var(--ink2);border:1px solid var(--line);
+    border-radius:3px;
+  }
+  .step.active{background:var(--ink3);border-color:#3C4A5E}
+  .step.done{opacity:.72}
+  .step .n{
+    font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--paper-faint);
+    padding-top:3px;
+  }
+  .step .nm{font-size:16px;margin-bottom:3px}
+  .step .sm{color:var(--paper-dim);font-size:13.5px}
+  .step .sm:empty{display:none}
+
+  .chip{
+    font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;padding:4px 10px;border-radius:2px;white-space:nowrap;
+    border:1px solid currentColor;
+  }
+  .chip.pending{color:var(--paper-faint)}
+  .chip.building{color:var(--amber)}
+  .chip.review{color:var(--indigo)}
+  .chip.passed{color:var(--green)}
+  .chip.failed{color:var(--coral)}
+  .chip.blocked{color:var(--coral)}
+
+  /* ---- decisions ---- */
+  .dec{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:2px}
+  .dec div{
+    background:var(--ink2);border:1px solid var(--line);border-radius:3px;padding:14px 16px;
+  }
+  .dec .k{
+    font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--paper-faint);margin-bottom:6px;
+  }
+  .dec .v{font-size:15px;color:var(--paper)}
+  .dec .w{font-size:13px;color:var(--paper-dim);margin-top:5px;font-style:italic}
+
+  /* ---- refs ---- */
+  .refs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .refs a{display:block;border:1px solid var(--line);border-radius:2px;overflow:hidden;line-height:0}
+  .refs img{width:100%;height:190px;object-fit:cover;display:block;filter:saturate(.95)}
+
+  /* ---- log ---- */
+  .entry{
+    border:1px solid var(--line);border-radius:3px;background:var(--ink2);
+    margin-bottom:14px;overflow:hidden;
+  }
+  .entry > .head{
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;
+    padding:13px 18px;border-bottom:1px solid var(--line);background:var(--ink3);
+  }
+  .entry .ts{
+    font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:var(--paper-faint);
+    letter-spacing:.08em;
+  }
+  .entry .ti{font-size:16px;flex:1;min-width:220px}
+  .entry .body{padding:18px}
+  .entry .body p{margin:0 0 12px}
+  .entry .body p:last-child{margin-bottom:0}
+  .entry img.sheet{
+    width:100%;display:block;border:1px solid var(--line);border-radius:2px;margin:6px 0 16px;
+    background:var(--ink);
+  }
+  .crit{
+    border-left:2px solid var(--coral);padding:2px 0 2px 16px;margin:14px 0;
+    color:var(--paper-dim);
+  }
+  .crit b{color:var(--coral);font-weight:400;font-family:ui-monospace,Consolas,monospace;
+    font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:5px}
+  .fix{border-left-color:var(--green)}
+  .fix b{color:var(--green)}
+  ul{margin:0 0 12px;padding-left:20px}
+  li{margin-bottom:5px}
+  code{
+    font-family:ui-monospace,Consolas,monospace;font-size:12.5px;
+    background:var(--ink);padding:2px 6px;border-radius:2px;color:var(--amber);
+  }
+  .empty{color:var(--paper-faint);font-style:italic}
+  footer{
+    margin-top:70px;padding-top:22px;border-top:1px solid var(--line);
+    color:var(--paper-faint);font-size:12.5px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<!-- ===================================================================
+     ALL STATE LIVES IN THIS ONE OBJECT.
+     Updating progress = editing DATA below. The renderer never changes.
+     =================================================================== -->
+<script>
+const DATA = {
+  updated: "2026-08-02 — system 1 pass 3 regressed the look; keep-or-revert decision with the reviewer, rig revision 3 in flight",
+  tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
+
+  now: {
+    label: "Now building",
+    title: "System 1 — pass 3, giving the figure shoulders and the blade a material",
+    detail: "Two reviews have now failed this system, each with pixel measurements, and both " +
+            "corrected me on something I had diagnosed wrong. The top-ranked fix is the " +
+            "silhouette: shoulders measure 0.3x the hip span where every reference is about " +
+            "1.6x the other way, which is why the figure reads as a cloaked wraith rather than " +
+            "a samurai. The ink material revision is in flight now — merged coverage buffer to " +
+            "kill the torso banding, a real blade glow and swept trail, multi-octave dissolve, " +
+            "and chroma back on the ochre. The rig revision is specced and fires next."
+  },
+
+  systems: [
+    { n:"01", name:"Skeleton + skinning", status:"building", passes:3,
+      summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
+    { n:"02", name:"IK", status:"pending", passes:0,
+      summary:"2-bone analytic solver for limbs, FABRIK for spine and long chains." },
+    { n:"03", name:"Verlet hair + cloth", status:"pending", passes:0,
+      summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
+    { n:"3b", name:"Faces — expression + variety", status:"pending", passes:0,
+      summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
+    { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
+      summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
+    { n:"04", name:"Procedural interaction", status:"pending", passes:0,
+      summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
+    { n:"05", name:"Combat + action queue", status:"pending", passes:0,
+      summary:"15-tile lane, 3-slot queue, intent telegraphs, dynamic camera, chrome-free ink UI." },
+    { n:"06", name:"Capture harness + MCP", status:"partial", passes:0,
+      summary:"Offscreen capture and contact sheets are already live and load-bearing. HTTP debug API and MCP server still to come." }
+  ],
+
+  decisions: [
+    { k:"Engine",      v:"libGDX / Java 21",
+      w:"Direct GLSL, no engine abstraction over the custom rig, trivial offscreen capture." },
+    { k:"Art pipeline", v:"Fully procedural, code-defined",
+      w:"No external art dependency, so the iterate→capture→review loop runs at full speed." },
+    { k:"Visual direction", v:"The 8 reference images",
+      w:"Codified into STYLE.md, which is the grading rubric for every review." },
+    { k:"Board",       v:"Linear 15-tile lane",
+      w:"Keeps facing/rotation tactics meaningful and shows figures in profile." },
+    { k:"Framing",     v:"Wide to plan, push in to strike",
+      w:"Tactical readability while planning, reference-image intimacy on execution." },
+    { k:"Combat",      v:"Faithful action-queue",
+      w:"Uninterrupted execution sequences give the animation system multi-beat choreography." },
+    { k:"Mobile",      v:"Desktop-first, mobile-safe",
+      w:"GLES 3.0 shader limits and mobile bone/particle budgets respected from the start." },
+    { k:"Review bar",  v:"Loop until convinced, cap 5",
+      w:"Unresolved critique gets logged here prominently rather than stalling the run." },
+    { k:"Faces",       v:"In the combat view only",
+      w:"No portrait layer — one unified view, nothing interrupts the action." },
+    { k:"Face behaviour", v:"Reactive expression + variety",
+      w:"Brow, eyelid, jaw and gaze driven by combat state; enemies from a seeded generator." },
+    { k:"Face casting", v:"Hero and bosses authored, mobs generated",
+      w:"Identity where the player looks longest, variety where the volume is." },
+    { k:"Texture scope", v:"Characters, environment and UI",
+      w:"One continuous surface — a textured figure on an untextured ground would break it." },
+    { k:"Texture detail", v:"Resolves on push-in",
+      w:"Octaves fade out before their period reaches the pixel grid. Anti-shimmer, not a tuning knob." }
+  ],
+
+  refs: [
+    "inspirations/image - 2026-08-02T100847.653.png",
+    "inspirations/image - 2026-08-02T100931.584.png",
+    "inspirations/image - 2026-08-02T101033.164.png",
+    "inspirations/image - 2026-08-02T101128.842.png",
+    "inspirations/image - 2026-08-02T101232.595.png",
+    "inspirations/image - 2026-08-02T101437.617.png",
+    "inspirations/image - 2026-08-02T101542.216.png",
+    "inspirations/image - 2026-08-02T101628.626.png",
+    "inspirations/faces/image - 2026-08-02T114533.503.png",
+    "inspirations/faces/image - 2026-08-02T115139.953.png",
+    "inspirations/faces/image - 2026-08-02T115740.960.png",
+    "inspirations/faces/image - 2026-08-02T120225.096.png",
+    "inspirations/faces/image - 2026-08-02T120552.162.png",
+    "inspirations/faces/image - 2026-08-02T121127.865.png",
+    "inspirations/textures/image - 2026-08-02T121300.227.png",
+    "inspirations/textures/image - 2026-08-02T121748.802.png",
+    "inspirations/textures/image - 2026-08-02T121845.555.png"
+  ],
+
+  blocked: [],
+
+  log: [
+    {
+      ts:"2026-08-02", system:"System 1", kind:"build", pass:3,
+      title:"Pass 3 — the metric improved and the image got worse",
+      sheet:"out/captures/s1-p3-swing/contact-sheet.png",
+      sheetNote:"System 1 pass 3, the merged-coverage-buffer rewrite. Compare with the pass 2 " +
+                "sheet below: the banding is gone and so is the figure.",
+      body:[
+        "The architectural change I ordered was implemented in full. The ink fragment shader no " +
+        "longer produces colour — every garment ribbon renders into a merged material buffer and " +
+        "the whole ink material is applied once in a full-screen resolve, with two quarter-res " +
+        "gaussians supplying a real distance-to-silhouette field. That unlocked the two things " +
+        "that were previously impossible: a genuinely two-dimensional dissolve, and a wet bleed " +
+        "reaching about 50 px against a 12-20 px fray, which now shifts greyer and warmer as it " +
+        "spreads rather than being the core tone at lower opacity.",
+
+        "<b>By the numbers it worked.</b> Chest-scanline banding amplitude fell from 20.3 to 3.6. " +
+        "Maximum saturation rose from 0.446 to 0.521. The value floor and ceiling held exactly. " +
+        "The head's uniform radial fringe was traced to a real bug — a rotating stroke frame whose " +
+        "noise argument cycled dozens of times per turn — and fixed properly.",
+
+        "<b>And the image is worse.</b> The figure has become a lumpy blob with no readable " +
+        "anatomy, where pass 2 at least had a shoulder line and an arm. Hard-edged rectangular " +
+        "blocks now sit inside the torso. Pass 2's feathered fleck edges have been replaced by " +
+        "smooth gaussian-derived lobes that read as melted wax rather than brush marks. This is " +
+        "the failure mode where you trust the measurement over the pixels, and I walked straight " +
+        "into it by specifying the fix architecturally instead of asking what the artefact " +
+        "actually was."
+      ],
+      notes:[
+        { kind:"crit", label:"My diagnosis was probably wrong, and the implementer proved it",
+          text:"It measured pass 2's octaves and found the finest fleck octave running at a " +
+               "<b>4.7 px period</b> and the dry-brush streak octave at <b>2.5 px</b>, neither " +
+               "carrying a time term. That is exactly the \"regular 3-5 pixel period, " +
+               "pixel-identical across frames\" the first review measured. In other words the " +
+               "banding was a <b>frequency</b> problem, not the per-ribbon compositing problem I " +
+               "diagnosed — and a frequency change alone would very likely have fixed it without " +
+               "the rewrite that broke the look. It also corrected two other claims in my spec: " +
+               "max-blending belongs on coverage only, not on all four channels, because " +
+               "max-blending the material channels decorrelates them from each other; and the " +
+               "horizontal terracing was neither value quantisation nor depth sorting, but hard " +
+               "smoothstep windows on smooth noise plus per-vertex-row linear interpolation." },
+        { kind:"fix", label:"Recorded in STYLE.md so it is not relearned",
+          text:"§3 now carries the rule explicitly: before concluding that any periodic artefact " +
+               "is structural, measure the world-space period of every octave contributing to it. " +
+               "An octave whose period lands near the pixel grid produces regular ripple no matter " +
+               "how the surfaces are composited. This also independently validates the anti-shimmer " +
+               "octave-fade rule written for the texture layer (§3b.1) hours earlier — the same " +
+               "failure, arrived at from two directions." },
+        { kind:"crit", label:"Decision deliberately not taken alone",
+          text:"Whether to keep the merged-buffer architecture, revert to pass 2's material, or " +
+               "keep the buffer only as a distance-field source while restoring pass 2's edge " +
+               "rendering, is now with an independent reviewer — along with an exhaustive " +
+               "regression list of everything pass 2 did better. Having been corrected three times " +
+               "already, I am not making this call from my own read. The rig revision runs in " +
+               "parallel because it is independent of whichever way that decision goes." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 3c", kind:"note",
+      title:"Textures added as system 3c — and one reference that reframes the existing shader",
+      body:[
+        "Three 4x4 material grids landed in <code>inspirations/textures/</code>: draped indigo " +
+        "with shibori dye blooms, pleated hakama, lacquered lamellar armour with rivet rows and " +
+        "ochre lacing, sashiko-stitched linen, braided cord and frayed knots, weathered wood, " +
+        "stained and cracked paper, patinated brass bosses, a blade close-up showing its hamon, " +
+        "embroidered floral silk, and blue-on-cream botanical print.",
+
+        "<b>The single most useful thing in them is a reinterpretation of what already exists.</b> " +
+        "What the shader currently calls \"ochre stains\" — the element both reviews singled out " +
+        "as the most reference-accurate thing in the build — these grids explain far better as " +
+        "<b>shibori dye blooms</b>. Not grime deposited on cloth, but the internal structure of " +
+        "the cloth itself: irregular dark pools with hard wet boundaries and pale cream reserves, " +
+        "produced by binding and dipping. That is a better model in two ways. It explains why the " +
+        "marks read as belonging to the garment rather than sitting on it, and it is far more " +
+        "natural to generate procedurally — wet fronts meeting and stopping — than arbitrary " +
+        "blotches. The existing system gets reinterpreted this way rather than kept alongside.",
+
+        "<b>The rule that decides whether this works:</b> the figure is about 140 px wide in a " +
+        "960 px capture, so sashiko stitches and embroidery are sub-pixel. Rendering them anyway " +
+        "produces shimmer — and shimmer is the artefact class that has already failed two reviews. " +
+        "So each detail octave declares a world-space period and fades out before that period " +
+        "reaches the pixel grid, computed from the material-space footprint of a pixel. Nothing " +
+        "contributes below about a 2 px period, with no exceptions. That is an anti-shimmer " +
+        "guarantee, not a tuning parameter.",
+
+        "The intended consequence is that <b>the cloth resolves as the camera approaches</b>. At " +
+        "planning framing only the shibori blooms, the pleat lines and broad value variation are " +
+        "visible; as the camera glides in for execution, weave, stitch rows, rivets and lacing " +
+        "emerge. This gives the push-in a second reason to exist beyond the face."
+      ],
+      notes:[
+        { kind:"fix", label:"Codified as STYLE.md §3b",
+          text:"Eight material classes, each a distinct shader path with its own octaves: shibori " +
+               "indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, " +
+               "blade steel with hamon, weathered wood, aged paper, and embroidered silk. Plus " +
+               "nine palette additions and a texture-specific anti-pattern table." },
+        { kind:"crit", label:"Choices I made where the brief left it open",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The hamon stays readable even at wide framing.</b> " +
+               "It is the one high-frequency detail exempt from aggressive fading, because the " +
+               "blade is the object the eye follows through every exchange. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>Embroidered silk is reserved for the hero and bosses.</b> " +
+               "It is high frequency on a small surface, so it only survives on a character the " +
+               "player looks at for a long time; on an ordinary enemy it would be sub-pixel noise. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>Aged paper becomes the UI substrate</b>, " +
+               "so the interface reads as marks on the same sheet the figures are painted on " +
+               "rather than a layer plated on top." },
+        { kind:"crit", label:"Why it is sequenced after faces rather than now",
+          text:"The texture layer is technically part of System 1's ink material, and doing it " +
+               "there would mean one shader refactor instead of two. But System 1 currently has " +
+               "periodic banding across the torso and an inverted silhouette. Adding shibori " +
+               "patterns on top of an image that is already broken would add noise to it and make " +
+               "the reviews unreadable — nobody could tell whether a failure came from the " +
+               "silhouette or the texture. It runs as a dedicated, separately judgeable pass once " +
+               "the base is clean." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 3b", kind:"note",
+      title:"Faces added to the plan — twenty new references, and one conflict to resolve",
+      body:[
+        "Twenty watercolour portraits landed in <code>inspirations/faces/</code>. They share one " +
+        "vocabulary: pale papery skin in cream-ochre with <b>cool grey-violet shadows</b> (never " +
+        "brown), asymmetric wet-edged blush on cheeks and nose and ears, hard watercolour bloom " +
+        "edges at the hairline, ink brow and lash strokes, and the same ochre-rust stains and " +
+        "specks that appear on the garments. The eye is the focal point of every single one, " +
+        "earning it by being the highest-contrast object in the frame. Several faces carry scars. " +
+        "And it is a <i>casting</i>, not a character: young woman, old woman, bearded man, " +
+        "middle-aged man.",
+
+        "<b>The conflict I had to raise before writing any code:</b> those portraits are " +
+        "front-facing close-ups where the head fills a thousand pixels and both eyes are fully " +
+        "resolved. This game is a linear lane viewed from the side, with the figure in profile at " +
+        "about 68% of frame height — which puts the head at 20 to 30 pixels, and loses the eye, " +
+        "which is precisely what those references are built around. The two framings cannot " +
+        "coexist in one view.",
+
+        "Decision taken: <b>faces live in the combat view only</b>, no portrait layer — one " +
+        "unified view with nothing interrupting the action, accepting up front that the result " +
+        "will not look like a family D portrait. What survives the translation to a small profile " +
+        "head is the material, the value structure, the eye treatment and the marks. What does " +
+        "not is frontal symmetry, both eyes, and any detail finer than a few pixels.",
+
+        "This makes the camera push-in load-bearing rather than decorative: it is now the only " +
+        "moment the face is legible at all, so the execution framing has to get genuinely close. " +
+        "Recorded in STYLE.md §9."
+      ],
+      notes:[
+        { kind:"fix", label:"Codified as STYLE.md §4b",
+          text:"A full face section now exists: skin palette (cool grey-violet shadows, sclera " +
+               "never white, lip as the warmest note), profile construction reduced to the five " +
+               "things that actually read at this scale, eye treatment authored so that if only " +
+               "two pixels survive they are dark iris plus specular, the marks vocabulary, the " +
+               "four expression channels, and a face-specific anti-pattern table." },
+        { kind:"crit", label:"The rule that decides whether this works",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The face is exempt from the ink dissolve.</b> " +
+               "The dissolve exists to destroy edges, and the face is the one place in the frame " +
+               "where edges carry meaning — applying it there would eat exactly the detail that " +
+               "makes these references worth having. Dissolve is authored 0 across the whole face " +
+               "and skull with no rim boost. The hairline is where the two treatments meet, and " +
+               "that boundary is a hard wet edge rather than a blend." },
+        { kind:"crit", label:"Where it sits in the order",
+          text:"Inserted as System 3b — after the Verlet system, before the interaction layer. " +
+               "That is the real dependency order: the hair strands from System 3 frame the face " +
+               "in every reference (the wisps crossing the cheek), so building them first avoids " +
+               "reworking the framing; and System 4 is precisely what will drive expression from " +
+               "combat state, so the face must exist immediately before it. Hero and bosses get " +
+               "authored faces; ordinary enemies come from a seeded generator parameterised on " +
+               "age, build, brow weight, jaw shape, hair mass, facial hair and marks. An old face " +
+               "is not a young face with lines — it is a different silhouette." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 1", kind:"review", pass:2, verdict:"FAIL",
+      title:"Independent review of pass 2 — a figure with the wrong silhouette, rather than a blob with no figure",
+      body:[
+        "<b>The one-sentence test, answered:</b> still no — but the reviewer's own framing is " +
+        "that this is now \"a figure with a wrong silhouette rather than a blob with no " +
+        "figure\". Four things would give it away if cropped into reference 1 or 2, in " +
+        "descending order of obviousness: the figure's widest point is its hips and its " +
+        "narrowest is its shoulders; the head, sword arm and blade are three visually detached " +
+        "objects with paper visible between them; the blade is a flat-fill hard-edged white " +
+        "line with zero glow; and the ground is a grey band <i>darker and more neutral</i> than " +
+        "the paper, where every reference's mist is lighter and warmer than the paper.",
+
+        "<b>The silhouette is inverted, and this is the top-ranked fix in the entire system.</b> " +
+        "Measured: the shoulder line is about 55 px wide, the hem about 185 px, widening " +
+        "monotonically all the way down. Shoulder span is roughly <b>0.3x</b> hip span. Every " +
+        "samurai in references 1 through 5 is the exact reverse — sode and haori sleeves make " +
+        "the shoulder the widest horizontal, the obi pinches at the waist, and the hakama " +
+        "flares again below. Reference 2 measures about <b>1.6x</b>. This, not the head, is why " +
+        "the figure reads as a cloaked wraith: a monk's cassock, a Nazgûl and a Dementor are " +
+        "all cone silhouettes. The wraith read cannot be fixed by fixing the head while the " +
+        "shoulder mass is absent.",
+
+        "<b>The blade has literally zero glow.</b> A perpendicular cross-section measured five " +
+        "pixels of flat <code>239,245,245</code>, one transitional pixel on one side and a hard " +
+        "step on the other. No falloff, no halo, no gradient. And frames 005 to 006 traverse " +
+        "about 85° of arc in 0.218s leaving <i>nothing</i> — two discrete poses, no ribbon. The " +
+        "cut strobes where it should smear. Its hue is also warm-neutral rather than the " +
+        "blue-leaning spec, so the frame's one cool accent is not actually cool. I had called " +
+        "the blade the best element in the build; the reviewer's verdict is \"excellent " +
+        "geometry, zero material\" — the taper and curve are the most reference-accurate object " +
+        "in the build, and the material around them is simply absent.",
+
+        "<b>The whole frame is achromatic.</b> Maximum saturation anywhere is <b>0.23</b>. The " +
+        "ochre stain — which the previous review called the most reference-accurate element in " +
+        "the build — now measures at its warmest <code>#544436</code>, a dark mud brown, " +
+        "against a spec of <code>#B5793A</code>. In references 1 and 2 the rust-amber is the " +
+        "second-loudest thing after the blade and is what makes those images read as painting " +
+        "rather than silhouette. The rule is desaturated mid-values with saturation reserved " +
+        "for the extremes; the first half is done, but the result is not muted-with-accents, " +
+        "it is achromatic."
+      ],
+      notes:[
+        { kind:"crit", label:"It corrected me again, twice",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>I said there were no legs. There are.</b> " +
+               "At 4x there is a clear leg column from hip to foot with a knee break and a foot " +
+               "wedge. The fault is that it composites as a pale translucent ghost tube in front " +
+               "of a darker skirt with a bright hard vertical seam down its centre — an " +
+               "alpha-sorting fault, not missing geometry. It costs twice, because the legs " +
+               "don't read as anatomy <i>and</i> the seam reads as a polygon edge. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>And my banding fix may be aimed at half the problem.</b> " +
+               "Layered on top of the vertical combing is a second, distinct artefact: " +
+               "horizontal stair-stepped value terraces contouring the shoulder, which look like " +
+               "value quantisation rather than a coverage-merge fault. If the merged coverage " +
+               "buffer only removes the vertical strips, the terracing will survive it. I have " +
+               "warned the shader agent to check explicitly." },
+        { kind:"crit", label:"Ink gravity is inverted, and so is the mist",
+          text:"Measured down one column, the mid-torso sits at luminance ~60 while the hem " +
+               "fades to ~137-160 before it dies — ink is pooling at the chest and thinning at " +
+               "the floor, the precise reverse of the rule that ink is darkest where it " +
+               "collects. The mist has the same inversion: measured, it gets 55 luminance units " +
+               "darker and loses 60% of its warmth as it descends, where in references 6, 7 and " +
+               "8 the mist is the lightest and warmest region in the frame — an emitter that " +
+               "figures dissolve <i>into</i>, not a subtractive haze. It also fails to occlude " +
+               "anything: there is clean paper between the hem and the haze, where §6 calls fog " +
+               "crossing the lower body non-negotiable." },
+        { kind:"fix", label:"Confirmed good — protected through the next refactor",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The noise field is material-anchored</b> " +
+               "— hem flecks across frames 008-010 are pixel-stable and translate with the body " +
+               "rather than swimming. Called the requirement most builds fail, and it survived a " +
+               "full rig rebuild. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The value floor and ceiling are exact</b> " +
+               "— ink black measures <code>22,26,34</code> against a <code>#161A22</code> spec, " +
+               "paper is warm and never white. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The blade's taper and curve</b> " +
+               "— 6 px to 1 px over 210 px converging to a true point, with a progressive bow. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>And the swing envelope is now a genuine hit</b> " +
+               "at 45/9/45 against a 40/15/45 target, where pass 1 had four pixel-identical dead " +
+               "frames. The faults inside it are shape, not proportion: the anticipation is " +
+               "currently the fastest part of the clip, the apex leaves frame for 18% of the " +
+               "clip, and the follow-through rebounds 100 px instead of settling." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 1", kind:"build", pass:2,
+      title:"Pass 2 — the figure becomes a figure, and the blade becomes the best thing in the build",
+      sheet:"out/captures/s1-p2-swing/contact-sheet.png",
+      sheetNote:"System 1 pass 2. Compare against the pass 1 sheet further down this log — the " +
+                "same animation, the same material, a rebuilt figure underneath it.",
+      body:[
+        "<b>The blade is the headline.</b> Split into its own mesh and drawn with the luminous " +
+        "material that had been implemented but never called, it now reads as a long pale " +
+        "tapered sliver with a real sori curve, continuous through all twelve frames. In pass 1 " +
+        "it was dark ink that looked like a black feather, and it vanished entirely for four of " +
+        "the twelve frames. This single change does more for the frame than everything else in " +
+        "the pass combined.",
+
+        "The figure is now in three-quarter profile facing the enemy, with the far-side limbs " +
+        "attached higher, drawn smaller and given a permanent higher dissolve floor so they " +
+        "recede — and with an explicit draw order (far leg, far arm, trunk, haori, near leg, " +
+        "head, near arm) so the torso genuinely buries the far side. The haori was rewritten as " +
+        "independently authored front and back contours rather than a mirrored shape: widest at " +
+        "the shoulders, pinched at the waist, trailing about 1.35:1 behind, with the front hem " +
+        "rising to clear the leg. An 8° forward lean is baked into the spine so the figure has " +
+        "intent even at rest.",
+
+        "The swing is now a whole-body action. Hips lead and translate, spine and chest drive " +
+        "the cut, the far arm counter-rotates, both legs and feet move (stance widens, rear leg " +
+        "extends, heel lifts), and the head trails everything and peaks latest — each on its own " +
+        "phase-offset keyframe times. The dead air at the start is gone.",
+
+        "Two corrections from the review were applied here rather than in the shader: the " +
+        "per-vertex dissolve is now genuinely zero across the trunk and limb cores (it had been " +
+        "a flat non-zero value everywhere, which is why the figure read as mush with no solid " +
+        "core), and wetness was pushed hard into the hakama and legs, peaking one row above the " +
+        "fray line, so the lower body reads as the darkest mass in the painting as it does in " +
+        "references 1 and 2. The figure is also grounded now — an ink-wash contact pool with a " +
+        "secondary bloom under the feet, grass clumping biased to cluster there, and the " +
+        "background cloud noise stretched horizontally so it drifts as streaks rather than " +
+        "sitting as round blobs."
+      ],
+      notes:[
+        { kind:"crit", label:"My critique of pass 2 — three things still wrong",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The torso banding survives</b>, " +
+               "exactly as expected — it is architectural and was explicitly left to the shader " +
+               "pass. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The head is a black dandelion.</b> " +
+               "A spiky ball on a pale stalk, no jaw, no crown, no topknot mass. The rig agent " +
+               "rebuilt the geometry as a two-ring shape and the uniform radial fringe survived, " +
+               "which points at the shader's strip-end fray applying to any exposed top edge. " +
+               "It is where the eye lands first. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>There are still no legs.</b> " +
+               "The lower body reads as a curtain with a vertical seam rather than a figure in " +
+               "hakama. Combined with the head, my worry is that the silhouette is drifting " +
+               "toward a generic hooded wraith rather than the specific armoured, shoulder-heavy " +
+               "samurai of references 1 and 2. Both questions are with the reviewer." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 1", kind:"review", pass:1, verdict:"FAIL",
+      title:"Independent review of pass 1 — fresh context, no stake in the build",
+      body:[
+        "<b>The one-sentence test, answered:</b> no. The capture is aiming at reference family A " +
+        "(ink figure on warm paper) and <i>gets the pigment of family A while failing its " +
+        "drawing</i>. The reviewer's own summary: a crop of the mid-torso placed next to " +
+        "reference 1 would immediately read as a rendering of a corrugated surface rather than " +
+        "a painted garment. The one crop that would survive the test is the hem.",
+
+        "<b>The dominant defect is vertical strip banding across the torso.</b> A horizontal " +
+        "scanline through the chest oscillates in luminance by 20-40 levels at a regular 3-5 " +
+        "pixel period, reading as a corrugated roof or a fan of hair cards. It is pixel-identical " +
+        "across all twelve swing frames and all six bind frames, so it cannot be brushwork — " +
+        "brushwork would evolve. Cause: every garment ribbon runs its own dissolve, bleed and " +
+        "alpha blend, then composites on top of its neighbours. With N overlapping narrow " +
+        "surfaces each carrying their own dissolve, you get periodic ripple no matter how good " +
+        "the noise is. The fix is architectural — composite all garment coverage into one " +
+        "offscreen buffer, then apply dissolve, dry-brush and bleed <i>once</i> over the merged result.",
+
+        "<b>The second structural defect: the dissolve is one-dimensional.</b> It is a ramp along " +
+        "the ribbon's length, so the hem frays beautifully while the torso's left and right edges " +
+        "cut hard in three to four pixels. That makes the figure a hard-edged sprite with a frayed " +
+        "skirt attached — the exact inverse of the rule that nothing has a hard edge except the " +
+        "blades. Dissolve needs to be driven by distance-to-silhouette in material space so " +
+        "sleeve openings, cuffs, shoulder crests and the trailing haori edge all fray too.",
+
+        "<b>Where the eye lands is the least finished thing in the frame.</b> The head is a black " +
+        "lozenge fringed with radial single-pixel spurs of identical length and thickness — two " +
+        "named failure signatures at once — and it joins the shoulders through a pale stalk that " +
+        "reads as a gap rather than a neck, so it appears to hover. In references 1, 2, 6, 7 and 8 " +
+        "the head is fully resolved (jaw, brow, crown, dark topknot mass) even when the body below " +
+        "has become smoke. This capture inverts that exactly."
+      ],
+      notes:[
+        { kind:"crit", label:"Ranked fixes — by impact on the dreamlike quality",
+          text:"1. Kill the corrugation via a merged coverage buffer. 2. Make dissolve " +
+               "two-dimensional. 3. Move the dark mass down — the hakama and legs should be among " +
+               "the darkest masses in the painting, not a mid-slate mush occupying the lower " +
+               "two-thirds. 4. Ground the figure: a wet ink pool bleeding outward under the hem, " +
+               "grass strokes, and a fog band whose alpha actually crosses the ankles. 5. Fix the " +
+               "motion envelope — measured at roughly 45% dead air / 55% wind-up / <b>0% " +
+               "follow-through</b>, against a required 40/15/45. 6. Cloth lag. 7. Rebuild the " +
+               "head. 8. Widen the wet bleed to 3-5x the dissolve band. 9. De-uniform the flecks. " +
+               "10. Replace the background gaussian smudges with real drifting fog bands." },
+        { kind:"crit", label:"The reviewer corrected me, with evidence",
+          text:"I had listed 'the camera is too wide' as a known issue and instructed the rig " +
+               "agent to zoom in. That was wrong. The figure already spans 68% of frame height, " +
+               "comparable to reference 1 — vertical framing is fine. The figure is narrow, but so " +
+               "is the figure in the references; what fills those frames is the ink smoke exploding " +
+               "off it, the wash pooling under it and the stains bleeding around it. Zooming in " +
+               "would have magnified the corrugation and the head spurs without touching the " +
+               "emptiness. I retracted the instruction while the agent was still running. My " +
+               "'the dissolve is too aggressive' hypothesis was also wrong: measured, 26% of the " +
+               "figure sits below luminance 77 — the core is there, it is just misplaced. The " +
+               "correct action is to redistribute the dissolve, not reduce it." },
+        { kind:"fix", label:"Confirmed working — must not regress through the rebuild",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>Palette and value discipline is essentially perfect.</b> " +
+               "Darkest pixel measured <code>#151922</code> against a spec of <code>#161A22</code> — " +
+               "an exact hit. Brightest is warm paper, never white. Fog samples warm-neutral. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The ochre stain bleed is the most reference-accurate element in the capture</b> " +
+               "— irregular, warm, blooming up through the indigo with soft boundaries, exactly " +
+               "like the rust stains in references 1 and 2. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The dissolve's edge quality and temporal evolution are both correct</b> " +
+               "— genuinely feathered soft-band edges, and a pattern that turns over slowly " +
+               "without swimming, verified by measuring that the hem evolves monotonically while " +
+               "the background drifts independently." },
+        { kind:"crit", label:"Scoping call I made — cloth lag is deferred",
+          text:"The review is right that the garment does not react to the swing at all, and ranks " +
+               "it sixth. But garment lag is Verlet cloth simulation, which is System 3. Holding " +
+               "System 1 open until cloth dynamics exist would deadlock the order you set, and " +
+               "faking it now would be thrown away. System 1's review scope is therefore skeleton, " +
+               "skinning and the ink material; cloth and hair dynamics are graded in System 3." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 1", kind:"build", pass:1,
+      title:"Ink material lands and works. The figure under it does not.",
+      sheet:"out/captures/s1-sideB-swing/contact-sheet.png",
+      sheetNote:"System 1 pass 1 — the 2.4s overhead swing, rendered through the linear blend " +
+                "skinning and ink-dissolve material. First frame of the project that is trying " +
+                "to be the real thing.",
+      body:[
+        "The linear blend skinning shader, the ink material, the paper ground and the fog are " +
+        "in. Judged against the references, <b>the material is genuinely working</b>: ink is " +
+        "blue-black rather than black, the paper is warm, the garment hem frays into feathered " +
+        "brush flecks instead of ending at a polygon edge, ochre stains bleed through the cloth, " +
+        "fog bands cross the frame, and small jewel-coloured motes drift in the background. " +
+        "Measured across the frame, the darkest pixel is 22 and the brightest 241 — no pure " +
+        "black, no pure white, as STYLE.md §2.2 demands.",
+
+        "The hardest single requirement — that the noise stays welded to the cloth instead of " +
+        "swimming over it as the figure deforms — holds. It was verified by comparing identical " +
+        "poses at different times: the ochre bloom stays on the same patch of cloth through the " +
+        "whole swing. That property is what separates an ink material from a shader effect " +
+        "smeared over a moving sprite, and it is the thing pass 2 must not regress.",
+
+        "Reaching it took four separate fixes for straight polygon edges, each found by looking " +
+        "at pixels rather than by reasoning about the code: the bleed halo was painting whole " +
+        "dissolved quads as grey trapezoids; an additive boundary wobble was pushing ink past " +
+        "the mesh rail where geometry clipped it into a line; a <code>min()</code> edge metric " +
+        "was drawing the head as a literal black rectangle, because Chebyshev iso-contours are " +
+        "rectangles and the head is a disc; and hem rows were being deleted outright rather " +
+        "than flecked."
+      ],
+      notes:[
+        { kind:"fix", label:"Protect these in pass 2",
+          text:"Material-space noise anchoring (no swimming under deformation), the blue-black " +
+               "ink and warm paper relationship, the feathered fleck band at the hem, and the " +
+               "value range that avoids pure black and pure white." },
+        { kind:"crit", label:"My critique — the figure is the problem, not the material",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>It floats.</b> " +
+               "There is no ground contact, no wash pooling under the feet, no fog crossing the " +
+               "legs — the figure hovers in blank paper. Every reference image anchors the figure " +
+               "in wash and mist. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The blade reads as a black feather.</b> " +
+               "It is being drawn with the cloth material instead of the luminous near-white one, " +
+               "so the element the eye is supposed to follow through the whole swing looks like a " +
+               "wing. The shader supports this fully; nothing was calling it. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The anatomy is mush.</b> " +
+               "No readable shoulder line, arm, legs or head profile — just a vertical blob with a " +
+               "spiky scribble on top. The references keep anatomy legible even while the cloth " +
+               "dissolves. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The dissolve has no solid core.</b> " +
+               "The figure dissolves everywhere rather than keeping a dense dark mass with " +
+               "dissolving edges. This is authored in the mesh, not the shader — the per-vertex " +
+               "dissolve channel is likely non-zero across the body interior. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>Around 70% of the frame is empty paper.</b> " +
+               "The camera is roughly 4.3 world units wide for a 2-unit figure; the references are " +
+               "tight crops where the figure dominates." },
+        { kind:"crit", label:"Two contract deviations, both argued and both accepted",
+          text:"The contract required noise sampled in <code>a_texCoord0</code>. That attribute is " +
+               "authored per-region 0..1, so its metric scale differs about 30x between the haori " +
+               "hem and a wrist sliver — sampling noise there would make fleck size vary by that " +
+               "factor and stretch every mark. Bind-space position is used instead: equally " +
+               "material-space, equally stable under deformation, but metric. Separately, fog " +
+               "cannot occlude the figure from a background pass drawn before it, so the bands are " +
+               "also evaluated inside the ink fragment shader from world position. Both were " +
+               "reported rather than done silently, and the contract has been amended to match." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 1", kind:"build", pass:1,
+      title:"Rig, skinning core and swing animation landed — with structural problems",
+      sheet:"out/captures/s1-sideA-bones/contact-sheet.png",
+      sheetNote:"Debug overlay: bone segments and joints over a ghosted mesh. Technical " +
+                "verification only — this is not the ink render and is not the aesthetic review.",
+      body:[
+        "Bone hierarchy, local→global transforms, inverse-bind computation and the 17-float " +
+        "skinned vertex layout are in, along with a procedural samurai mesh (haori, sleeves, " +
+        "hakama, torso, head, blade) and a 2.4s overhead swing. 21 bones used of a 24 budget, " +
+        "with indices reserved for the cloth bones System 3 will add inside the 32-bone " +
+        "mobile-safe cap.",
+
+        "The ink shader that actually makes this look like anything is being built in parallel " +
+        "against a written interface contract (<code>docs/system1-contract.md</code>), so the " +
+        "two halves cannot drift apart. Until it lands, the rig can only be judged as geometry."
+      ],
+      notes:[
+        { kind:"crit", label:"My own technical critique — four real misses",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>1. The figure is front-on, not in profile.</b> " +
+               "Both arms and both legs read symmetrically and the head is a frontal oval. Every " +
+               "reference image is profile or three-quarter, and a linear-lane game seen from the " +
+               "side structurally requires a figure that faces left or right. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>2. The silhouette is a symmetric cone</b> " +
+               "rather than a samurai — the references flare at the shoulders with an asymmetric " +
+               "mass, a forward lean and a trailing edge behind. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>3. The blade barely reads</b> " +
+               "— it is a dot rather than a long sword, and it is the one element the eye should " +
+               "follow. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>4. Only the arm moves.</b> " +
+               "Hips, spine, head and both legs are static across all twelve frames. A real " +
+               "overhead cut is a whole-body action, and with nothing else moving there is no " +
+               "overlapping action at all — which STYLE.md §7.1 makes mandatory and lists as an " +
+               "anti-pattern when absent." },
+        { kind:"crit", label:"Why this is being fixed in one combined pass, not now",
+          text:"The shader agent is mid-iteration against these exact meshes. Rewriting the rig " +
+               "underneath it would corrupt its build loop for no benefit, since the ink material " +
+               "is driven by per-vertex channels and is largely silhouette-agnostic. The profile " +
+               "rebuild, the blade split and the whole-body swing land together once the shader is in." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"Foundation", kind:"build",
+      title:"Toolchain, capture harness and contact sheets working end to end",
+      sheet:"out/captures/000-smoke/contact-sheet.png",
+      sheetNote:"Pipeline smoke test only — this is deliberately not the target look. " +
+                "It exists to prove context creation, offscreen FBO rendering, framebuffer " +
+                "readback, PNG writeout and contact-sheet assembly all work.",
+      body:[
+        "libGDX 1.13.1 on Java 21, built with a pinned Gradle 8.10.2 under <code>./gw</code>. " +
+        "The machine's JAVA_HOME points at JDK 24, which that Gradle cannot run on, so the " +
+        "wrapper forces the JDK 21 the project targets anyway — builds now behave " +
+        "identically no matter who invokes them.",
+
+        "Capture runs offscreen in a hidden window on a real GL context. libGDX's truly " +
+        "headless backend has no GL at all, which would defeat the point of capturing shader " +
+        "output. Simulation is fully decoupled from host frame rate: every capture advances " +
+        "the scene in fixed 1/240s substeps, so captures are reproducible and " +
+        "iteration-to-iteration comparison is meaningful.",
+
+        "Contact sheets are assembled in Java via <code>java.desktop</code>, so the feedback " +
+        "loop has no Python or ImageMagick dependency. Every cell is numbered and timestamped, " +
+        "because the failure modes STYLE.md cares about — snapping, mechanical overshoot, " +
+        "everything peaking on the same frame — are only visible across consecutive frames."
+      ],
+      notes:[
+        { kind:"fix", label:"Passed",
+          text:"Palette renders correctly (dusk zenith→violet→coral), blade glow " +
+               "composites, 8 frames captured over 2.2s, sheet assembled with timestamps." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"Foundation", kind:"note",
+      title:"STYLE.md written — the grading rubric",
+      body:[
+        "Before any rendering code, the eight reference images were read and codified into " +
+        "<code>STYLE.md</code>: a full palette with hex anchors, the ink-material rules, hair " +
+        "and blade treatment, atmosphere, the motion law, UI constraints, camera behaviour, " +
+        "and an explicit anti-pattern table.",
+
+        "Two rules in it do the most work. First, the <b>one-sentence test</b>: could this " +
+        "frame be cropped out of one of the reference images and not look out of place? A pass " +
+        "that cannot be answered yes fails. Second, <b>nothing has a hard edge except the " +
+        "blades</b> — in the references, garment hems do not end, they fray into brush " +
+        "marks and bleed into the paper. That single property is most of why the images read " +
+        "as dreams, and it dictates how the skinned mesh must be shaded."
+      ],
+      notes:[
+        { kind:"crit", label:"Standing rule",
+          text:"Where STYLE.md and the reference images disagree, the images win and STYLE.md " +
+               "gets corrected. Where STYLE.md and a reviewer's taste disagree, STYLE.md wins." }
+      ]
+    }
+  ]
+};
+
+/* ------------------------------------------------------------------ */
+const esc = s => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+const h = (t,c,i) => `<${t}${c?` class="${c}"`:''}>${i??''}</${t}>`;
+
+function render(){
+  const d = DATA;
+  const done = d.systems.filter(s=>s.status==='passed').length;
+
+  const head = `
+  <header>
+    <h1>Starfall<span class="dot">.</span></h1>
+    <p class="tagline">${esc(d.tagline)}</p>
+    <div class="metaline">
+      <span><b>Updated</b> ${esc(d.updated)}</span>
+      <span><b>Systems</b> ${done} / ${d.systems.length} passed</span>
+      <span><b>Rubric</b> STYLE.md + 8 reference images</span>
+      <span><b>Blocked</b> ${d.blocked.length ? d.blocked.length + ' item(s)' : 'nothing'}</span>
+    </div>
+  </header>`;
+
+  const now = `
+  <section>
+    <div class="now">
+      <div class="k">${esc(d.now.label)}</div>
+      <div class="v">${esc(d.now.title)}</div>
+      <div class="d">${d.now.detail}</div>
+    </div>
+  </section>`;
+
+  const blocked = d.blocked.length ? `
+  <section>
+    <h2>Needs your input</h2>
+    ${d.blocked.map(b=>`<div class="entry"><div class="head">
+        <span class="chip blocked">blocked</span><span class="ti">${esc(b.title)}</span></div>
+        <div class="body">${b.body}</div></div>`).join('')}
+  </section>` : '';
+
+  const pipe = `
+  <section>
+    <h2>Pipeline<span class="count">— built in order, each gated on review</span></h2>
+    <div class="pipe">
+      ${d.systems.map(s=>`
+        <div class="step ${s.status==='building'?'active':''} ${s.status==='passed'?'done':''}">
+          <div class="n">${esc(s.n)}</div>
+          <div>
+            <div class="nm">${esc(s.name)}</div>
+            <div class="sm">${esc(s.summary||'')}</div>
+          </div>
+          <div>
+            <span class="chip ${s.status}">${esc(s.status)}${s.passes?` · ${s.passes} pass${s.passes>1?'es':''}`:''}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+  </section>`;
+
+  const dec = `
+  <section>
+    <h2>Locked decisions</h2>
+    <div class="dec">
+      ${d.decisions.map(x=>`<div>
+        <div class="k">${esc(x.k)}</div>
+        <div class="v">${esc(x.v)}</div>
+        <div class="w">${esc(x.w)}</div></div>`).join('')}
+    </div>
+  </section>`;
+
+  const refs = `
+  <section>
+    <h2>Reference corpus<span class="count">— ground truth, beats STYLE.md on disagreement</span></h2>
+    <div class="refs">
+      ${d.refs.map(r=>`<a href="${encodeURI(r)}" target="_blank"><img src="${encodeURI(r)}" alt="reference" loading="lazy"></a>`).join('')}
+    </div>
+  </section>`;
+
+  const log = `
+  <section>
+    <h2>Log<span class="count">— newest first</span></h2>
+    ${d.log.map(e=>`
+      <div class="entry">
+        <div class="head">
+          <span class="ts">${esc(e.ts)}</span>
+          <span class="chip ${e.kind==='review'?(e.verdict==='PASS'?'passed':'failed'):'review'}">${esc(e.system)}${e.pass?` · pass ${e.pass}`:''}</span>
+          <span class="ti">${esc(e.title)}</span>
+          ${e.verdict?`<span class="chip ${e.verdict==='PASS'?'passed':'failed'}">${esc(e.verdict)}</span>`:''}
+        </div>
+        <div class="body">
+          ${e.sheet?`<a href="${encodeURI(e.sheet)}" target="_blank"><img class="sheet" src="${encodeURI(e.sheet)}" alt="contact sheet" loading="lazy"></a>`:''}
+          ${e.sheetNote?`<p class="empty">${e.sheetNote}</p>`:''}
+          ${(e.body||[]).map(p=>`<p>${p}</p>`).join('')}
+          ${(e.notes||[]).map(n=>`<div class="crit ${n.kind==='fix'?'fix':''}"><b>${esc(n.label)}</b>${n.text}</div>`).join('')}
+        </div>
+      </div>`).join('')}
+  </section>`;
+
+  document.getElementById('app').innerHTML = head + now + blocked + pipe + dec + refs + log + `
+  <footer>
+    Images are referenced by relative path, so keep this file at the project root.
+    Run a capture with <code>./gw capture -Pscene=&lt;name&gt; -Pout=out/captures/&lt;dir&gt;</code>.
+  </footer>`;
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'dev.starfall'
+version = '0.1.0'
+
+ext {
+    gdxVersion = '1.13.1'
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://oss.sonatype.org/content/repositories/releases/' }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+    runtimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+application {
+    mainClass = 'dev.starfall.desktop.DesktopLauncher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Headless-ish capture harness: runs a scripted scene, writes PNGs + contact sheet.
+tasks.register('capture', JavaExec) {
+    group = 'starfall'
+    description = 'Run the offscreen capture harness. -Pscene=<name> -Pout=<dir>'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.starfall.capture.CaptureLauncher'
+    if (project.hasProperty('scene')) args += ['--scene', project.property('scene')]
+    if (project.hasProperty('out')) args += ['--out', project.property('out')]
+    if (project.hasProperty('frames')) args += ['--frames', project.property('frames')]
+    if (project.hasProperty('cols')) args += ['--cols', project.property('cols')]
+    if (project.hasProperty('w')) args += ['--w', project.property('w')]
+    if (project.hasProperty('h')) args += ['--h', project.property('h')]
+    if (project.hasProperty('label')) args += ['--label', project.property('label')]
+}
