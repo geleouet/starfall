@@ -159,7 +159,7 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — system 1 closed at the cap with logged debt; correcting my two spec errors, system 2 building",
+  updated: "2026-08-02 — system 1 closed with logged debt; IK solvers landed; correcting my two spec errors",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
@@ -177,8 +177,8 @@ const DATA = {
   systems: [
     { n:"01", name:"Skeleton + skinning", status:"failed", passes:5,
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
-    { n:"02", name:"IK", status:"pending", passes:0,
-      summary:"2-bone analytic solver for limbs, FABRIK for spine and long chains." },
+    { n:"02", name:"IK", status:"building", passes:1,
+      summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
     { n:"03", name:"Verlet hair + cloth", status:"pending", passes:0,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
     { n:"3b", name:"Faces — expression + variety", status:"pending", passes:0,
@@ -245,6 +245,59 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 2", kind:"build", pass:1,
+      title:"IK solvers land — continuity treated as a hard, testable requirement",
+      body:[
+        "Two-bone analytic solver, FABRIK, per-joint constraints and the chain object that binds " +
+        "them to the skeleton. Purely additive package, 83 tests, no existing file touched — which " +
+        "is what let it be built alongside the System 1 work rather than after it.",
+
+        "<b>A textbook IK solver is exactly wrong for this project</b>, and that shaped the whole " +
+        "design. A standard solver snaps at the reach boundary, flips the elbow through a " +
+        "singularity, and converges with visible mechanical overshoot — all three are banned by " +
+        "name in the motion law. So every hard clamp here is a monotone soft ceiling instead " +
+        "(reach, fold, joint limits, slew cap); the bend side is a continuous state driven by a " +
+        "critically damped filter with a hysteresis deadband; the flip interpolates in <i>angle</i> " +
+        "space so bone lengths stay exact throughout; and FABRIK has no out-of-reach branch at all, " +
+        "because the target is soft-capped inside reach before iterating.",
+
+        "<b>Continuity is proved by sweep tests rather than asserted.</b> Peak per-frame joint " +
+        "change measured at 0.91° across the reach boundary, 0.50° across the chain axis, 1.66° on " +
+        "out-of-reach circles, 0.80° with limits engaging mid-sweep. The subtle part: two " +
+        "<i>refinement</i> tests re-run each path at four times the sampling density and assert " +
+        "that the largest step shrinks. That is the only assertion that distinguishes \"steep\" " +
+        "from \"actually discontinuous\", and it is what makes the singular cases defensible " +
+        "rather than merely unsampled."
+      ],
+      notes:[
+        { kind:"fix", label:"A latent bug found that would have hurt System 3 too",
+          text:"<code>MathUtils.cosDeg</code> is a 14-bit lookup table with about 4e-4 of error. " +
+               "That is invisible inside a skinning matrix and <b>fatal inside an iterative " +
+               "solver</b>: it stalls FABRIK above its own convergence tolerance, so a chain that " +
+               "has finished moving re-runs its iterations every frame — per-frame jitter on a " +
+               "limb that should be still. The IK package uses <code>Math.cos</code> and " +
+               "<code>Math.sin</code> instead. Recorded because System 3's Verlet solver is also " +
+               "iterative and would have inherited exactly the same defect." },
+        { kind:"fix", label:"Two solver bugs the tests caught before any pixels existed",
+          text:"FABRIK is <i>fully degenerate</i> on a collinear chain aimed at a collinear target " +
+               "it must shorten for — both passes become identities, so it stays straight with a " +
+               "large residual and defers the entire reconfiguration to the first frame the target " +
+               "leaves the axis. Fixed with a deterministic mirror-aware nudge applied only in that " +
+               "case. Separately, flipping the bend of a <i>folded</i> limb is the most expensive " +
+               "flip possible; deferring that decision until the limb opens cut the worst " +
+               "through-shoulder case from 30° to 12° per frame." },
+        { kind:"crit", label:"Honest about what is not continuous",
+          text:"A limit-saturated FABRIK chain reaching far outside its workspace is genuinely " +
+               "<b>bistable</b> — the unconstrained backward pass can throw it between two pinned " +
+               "configurations, and no choice of limits fixes that. It is bounded by the chain's " +
+               "per-step correction cap, which is the motion law's own prescription, and pinned by " +
+               "a test that states the limitation rather than hiding it. Also still owed: the " +
+               "solvers are not yet wired to the actual rig, because that needs a GL context and " +
+               "belongs in the scene layer. <b>System 2 has had no visual review yet</b> — this " +
+               "entry covers the mathematics only." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 1", kind:"review", pass:5, verdict:"FAIL",
       title:"Final review — and the finding that five passes had been refining the wrong thing",
