@@ -24,9 +24,6 @@ import java.util.List;
  */
 public class CaptureApp extends ApplicationAdapter {
 
-    /** Fixed physics substep. Small enough to keep Verlet constraints stable. */
-    private static final float SUBSTEP = 1f / 240f;
-
     private final CaptureSpec spec;
     private final Scene scene;
 
@@ -94,12 +91,14 @@ public class CaptureApp extends ApplicationAdapter {
         return spec.frames <= 1 ? 0f : scene.duration() / (spec.frames - 1);
     }
 
-    /** Advances the scene by {@code seconds} using fixed substeps. */
+    /**
+     * Advances the scene by {@code seconds} using fixed substeps.
+     *
+     * <p>Delegates to {@link SceneClock} so the headless timing measurement and the debug API
+     * integrate this scene identically — the guarantee STYLE.md §7.1 asks for.
+     */
     private void simulate(float seconds) {
-        int steps = Math.round(seconds / SUBSTEP);
-        for (int i = 0; i < steps; i++) {
-            scene.update(SUBSTEP);
-        }
+        SceneClock.advance(scene, seconds);
     }
 
     private void finish() {

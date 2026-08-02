@@ -56,3 +56,54 @@ tasks.register('capture', JavaExec) {
     if (project.hasProperty('start')) args += ['--start', project.property('start')]
     if (project.hasProperty('step')) args += ['--step', project.property('step')]
 }
+
+// ---------------------------------------------------------------------------
+// System 6: the feedback harness. See docs/feedback-loop.md.
+// ---------------------------------------------------------------------------
+
+// Image analysis. Everything after -Pargs is passed straight through, so this is the
+// scriptable half of the loop and works with no server and no MCP:
+//   ./gw analyse -Pargs="report out/captures/s3-p1-reversal"
+//   ./gw analyse -Pargs="track out/captures/s3-p1-reversal --anchor hips --fps 60"
+tasks.register('analyse', JavaExec) {
+    group = 'starfall'
+    description = 'Measure captured pixels. -Pargs="<command> <args...>"; run with no args for usage.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.starfall.analysis.AnalysisCli'
+    if (project.hasProperty('args')) args += project.property('args').toString().split(' +') as List
+    // A non-zero exit is a measurement result, not a build failure.
+    ignoreExitValue = true
+}
+
+// Headless timing: drives the SAME scene the capture runs, at a finer sample rate than the
+// capture, and writes a per-sample region series. STYLE.md 7.1 requires any timing claim to
+// ship with a measurement that drives the scene rather than re-enacting it.
+tasks.register('timing', JavaExec) {
+    group = 'starfall'
+    description = 'Headless timing measurement of a scene. -Pscene=<name> -Pout=<file.json>'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.starfall.capture.TimingLauncher'
+    if (project.hasProperty('scene')) args += ['--scene', project.property('scene')]
+    if (project.hasProperty('out')) args += ['--out', project.property('out')]
+    if (project.hasProperty('start')) args += ['--start', project.property('start')]
+    if (project.hasProperty('duration')) args += ['--duration', project.property('duration')]
+    if (project.hasProperty('rate')) args += ['--rate', project.property('rate')]
+    if (project.hasProperty('w')) args += ['--w', project.property('w')]
+    if (project.hasProperty('h')) args += ['--h', project.property('h')]
+    if (project.hasProperty('regions')) args += ['--regions', project.property('regions')]
+}
+
+// The in-game debug API. Off unless this task (or --debug-server) is used, so it never
+// runs in a normal build.
+tasks.register('debugServer', JavaExec) {
+    group = 'starfall'
+    description = 'Run the debug HTTP API. -Pport=7671 -Pscene=<name> -Pvisible'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.starfall.debug.DebugLauncher'
+    args += ['--debug-server']
+    if (project.hasProperty('port')) args += ['--port', project.property('port')]
+    if (project.hasProperty('scene')) args += ['--scene', project.property('scene')]
+    if (project.hasProperty('w')) args += ['--w', project.property('w')]
+    if (project.hasProperty('h')) args += ['--h', project.property('h')]
+    if (project.hasProperty('visible')) args += ['--visible']
+}

@@ -695,6 +695,35 @@ the settle. Contact sheets label the *captured window*, not the scene duration.
 §7.1 a capture is not sufficient either: timing claims also ship with a headless
 measurement.
 
+### 11.3 Record the region, or the measurement is unfalsifiable
+
+**Every number must be printed beside the rectangle it was taken through.**
+
+This was learned by building the analysis tooling and pointing it at the project's own
+records. Two findings that had decided real work turned out not to hold:
+
+- "Hair-region coverage 23%, hair as 6.0% of the figure's ink" — the region box was never
+  written down, and defensible "hair region" boxes on that very frame give coverage from
+  **3.6% to 59.3%** and share from **1.0% to 24.2%**. The recorded pair is reachable; so is
+  almost anything else. The band-luminance profile that proved the ink gravity was inverted
+  has the same problem: the *shape* reproduces strongly, but the five quoted numbers were
+  taken through an unrecorded column.
+- "A tight hem-tip box registers 0.00 px across all 23 inter-frame steps" is a
+  **quantisation artefact**. With sub-pixel registration that box moves 0.04-0.44 px per
+  step and accumulates 5.52 px of path. Every step being under half a pixel, integer-only
+  registration *necessarily* reports exactly 0.00 at every step — the figure measures the
+  ruler, not the cloth.
+
+This is the same failure §7.1 already named for lag anchors, one level down. So:
+
+- Region sets are **checked in** (`docs/regions.json`), not improvised per review.
+- The measuring tool prints the rectangle with the number, and refuses to track without an
+  explicit anchor.
+- Sub-pixel registration, because integer registration silently manufactures zeros.
+
+**A measurement whose region is not recorded is an anecdote.** It may still be true. It
+cannot be checked, and it must not be used to fail a pass.
+
 ---
 
 Each review pass must produce, in this order:

@@ -1,0 +1,13 @@
+{
+  "name": "starfall-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server exposing the Starfall debug API. No dependencies by design: the whole feedback loop must be runnable with no network fetch.",
+  "bin": {
+    "starfall-mcp": "./starfall-mcp.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

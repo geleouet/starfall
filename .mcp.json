@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "starfall": {
+      "command": "node",
+      "args": ["mcp/starfall-mcp.mjs"],
+      "env": {
+        "STARFALL_DEBUG_PORT": "7671",
+        "STARFALL_SCENE": "smoke",
+        "STARFALL_AUTOSTART": "1"
+      }
+    }
+  }
+}
