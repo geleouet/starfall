@@ -131,8 +131,26 @@ public final class SamuraiHair {
         // rides its own bone because the chest counter-rotates against the head
         // under every scene in the corpus: a torso circle carried by the skull
         // would swing away from the torso exactly when the figure turns.
-        hair.collider("chest", 0.010f, 1.335f, 0.125f);
-        hair.collider("spine", 0.000f, 1.140f, 0.130f);
+        //
+        // Pass 3 widens them and adds a third at the obi. Pass 2's pair were
+        // 0.125 and 0.130 units of radius against a garment that measures 0.58
+        // units across at the ribs and 0.47 at the hip -- less than half the
+        // width of the body they stand for -- so a tip could clear every
+        // collider and still be drawn deep inside the figure. Measured on paired
+        // captures, 36% of tips sat inside the drawn torso at rest and 64% at
+        // the knockback peak. A collider that helps less under an impulse than
+        // at rest is a collider that is not where the body is.
+        //
+        // The radii below are read off the haori rails rather than chosen: the
+        // rails give a half-width of 0.29 at the ribs, 0.26 at the waist and
+        // 0.24 at the hip. They are set a little inside those, because the outer
+        // tenth of the garment is dissolve and wet bleed rather than cloth, and
+        // because a strand grazing the silhouette is the reference's own drawing
+        // -- what must not happen is a strand vanishing into the solid core.
+        hair.collider("chest", -0.015f, 1.335f, 0.240f);
+        hair.collider("spine", -0.020f, 1.140f, 0.222f);
+        hair.collider("hips", -0.030f, 0.960f, 0.200f);
+        
 
         // -- group 1: the mass ---------------------------------------------
         //

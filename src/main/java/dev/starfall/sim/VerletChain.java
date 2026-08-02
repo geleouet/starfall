@@ -94,12 +94,23 @@ public final class VerletChain implements VerletSolver.Stepped {
     private int iterations = 8;
 
     /**
-     * How many bodies a chain can be pushed out of. Four, because the figure has
-     * two: the skull and the torso. The torso is not a sphere, so it is spent as
-     * two circles stacked up the spine, and the spare pair is the room a shield
-     * arm or a second fighter's guard will need in System 4.
+     * How many bodies a chain can be pushed out of. Six, because the figure has
+     * two and one of them is not a sphere: the skull, plus the torso spent as
+     * three circles stacked from the obi to the collar, and two spare for the
+     * shield arm or a second fighter's guard System 4 will need.
+     *
+     * <p>Four was not enough, and the reason is measured rather than structural.
+     * Pass 2 modelled the torso as two circles of radius 0.125 and 0.130 world
+     * units. The garment it is standing in for is 0.58 units across at the
+     * ribs -- so those circles are under half the width of the thing they
+     * represent, and a tip can sit comfortably outside every collider and still
+     * be drawn well inside the figure. Paired captures put 36% of strand tips
+     * inside the drawn torso at rest and <b>64% at the knockback peak</b>, which
+     * is the opposite of what a collider is supposed to buy: it got worse under
+     * the impulse, because the impulse is what throws the bundle across the
+     * body.
      */
-    public static final int MAX_COLLIDERS = 4;
+    public static final int MAX_COLLIDERS = 6;
 
     private int colliderCount;
     private final float[] colliderX = new float[MAX_COLLIDERS];

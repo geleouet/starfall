@@ -3,6 +3,7 @@ package dev.starfall.rig;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import dev.starfall.capture.Scene;
 import dev.starfall.capture.SceneContext;
+import dev.starfall.capture.SceneProbe;
 import dev.starfall.render.HairRenderer;
 import dev.starfall.render.InkMaterial;
 import dev.starfall.render.InkSkinnedRenderer;
@@ -19,8 +20,15 @@ import dev.starfall.render.PaperBackground;
  * references the wisps cross the shoulder and the collar and carry on into open
  * air, and hair tucked behind the figure would lose the half of its length that
  * does the work.
+ *
+ * <p>It also implements {@link SceneProbe}, which is not decoration. Two passes were
+ * graded on cloth lag figures read off {@code back.x(back.particleCount()-1)} -- the
+ * particle -- while the pass-1 finding under review was that <i>the picture does not
+ * show what the particle does</i>. With the probe in place a headless run records both
+ * through the same clock and the same camera, so the two can be told apart. See
+ * {@link SimProbe}.
  */
-public class SimScene implements Scene {
+public class SimScene implements Scene, SceneProbe {
 
     private final SimScript.Kind kind;
     private final String name;
@@ -33,6 +41,7 @@ public class SimScene implements Scene {
     private InkMaterial bladeMaterial;
     private OrthographicCamera camera;
     private int width = 960;
+    private int height = 540;
 
     public SimScene(SimScript.Kind kind, String name) {
         this.kind = kind;
@@ -66,6 +75,7 @@ public class SimScene implements Scene {
     @Override
     public void resize(int width, int height) {
         this.width = width;
+        this.height = height;
         float aspect = width / (float) height;
         // 1.38 puts the figure at about 330 px of a 540 px frame, which is the
         // height STYLE.md 11.0's matched-scale comparison has been run at since
@@ -99,6 +109,11 @@ public class SimScene implements Scene {
         hair.draw(driver.sim().hair());
         hair.end();
         paper.renderOverlay(camera.combined, t);
+    }
+
+    @Override
+    public java.util.Map<String, float[]> probe() {
+        return SimProbe.probe(driver, camera, width, height);
     }
 
     @Override

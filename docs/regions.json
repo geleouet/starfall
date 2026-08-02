@@ -74,6 +74,15 @@
         0.0990
       ]
     },
+    "skirtHigh": {
+      "space": "figure",
+      "rect": [
+        0.1500,
+        0.5500,
+        0.7000,
+        0.1300
+      ]
+    },
     "sleeve": {
       "space": "figure",
       "rect": [

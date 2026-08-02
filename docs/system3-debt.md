@@ -258,3 +258,236 @@ arrival chain headless (hips to head +0.067 s to hair-root +0.100 s at 240 Hz ov
 channels, with `sim-impulse` kept breezeless; knockback at 90% by 0.75 s and 99% by 0.94 s;
 the value floor at 25.73 on every frame, with impact blooms lifting and never multiplying;
 smoothed paths, per-strand variation and the escapees; no periodic artefact above 0.25.
+
+---
+
+# Pass 3 record — what was built, what was measured, and where the brief is wrong
+
+**Every number below is printed beside the rectangle it was taken through (§11.3), and every
+capture in `out/captures/s3-p3-*` carries a `capture.txt` with the command that reproduces
+it.** The graded reversal window is `sim-extreme -Pstart=0.9 -Pstep=0.0167 -Pframes=24`,
+recovered by md5 search and **bit-identical to `s3-p2-fix-reversal`** — so the before/after
+below is the same scene, the same beat and the same pixels.
+
+## 0. The new bind baseline — the guard is re-armed
+
+The ruling authorised breaking `s1-p7-bind`'s bit-identity for the trailing edges. It is
+broken, deliberately, and replaced:
+
+| capture | md5 of `frame_000.png` |
+|---|---|
+| `s1-p7-bind` / `s3-p2-fix-bind-regress` (retired) | `ce533e77b1a1addefb4eda803bd11d5c` |
+| **`s3-p3-bind-regress` (current baseline)** | **`2340bfc3234e3e1f19f4c17b040120fd`** |
+
+Old to new: 23,211 of 518,400 pixels differ (4.48%), **mean absolute delta 1.22 levels**,
+changed region x343..592 y95..452. The change is the skirt's trailing edge; head, face,
+blade and torso are untouched.
+
+Regression scenes, same measure: `ik-gesture` 15,057 px per frame (2.90%), **mean 0.72
+levels**; `s1-p7-swing` about 21,000 px per frame (4.0-4.5%). Mean delta is inside "a level
+or two" everywhere. Peak delta at the new frayed boundary is about 200 levels, because that
+is what paper-to-ink is; a mesh change cannot be authorised and then be required to move no
+pixel by more than two levels, so both numbers are recorded rather than one.
+
+## 1. `SceneProbe` — implemented, and it is what settled the question
+
+`dev.starfall.rig.SimProbe` plus `SimScene implements SceneProbe`, and `analyse timing` now
+folds the probe series into the same arrival chain as the pixel regions, tagged `sim:`.
+`docs/feedback-loop.md`'s "nothing implements it yet" is no longer true.
+
+It answers the pass-1 question — *whatever the particle does, does the picture show it?* —
+directly, because both are recorded through the same clock and the same camera:
+
+    ./gw timing -Pscene=sim-extreme -Pstart=0.90 -Pduration=0.384 -Prate=240 \
+                -Pregions=docs/regions.json -Pout=out/timing/x.json
+    ./gw analyse -Pargs="timing out/timing/x.json --anchor hips --smooth 4 --axis x"
+
+Probe points are the whole back rail (`back0`..`back5`), not just the tip, because *where
+down the panel the motion starts* is the entire question. `back0` is pinned to the hips and
+can only ever arrive with them; the tip is 1.15 units of chain below it.
+
+Resolved through `docs/regions.json` on the graded window, `skirtHigh` is
+**x466..602 y308..353**, and the probe puts `back1` (row 5) at **y=321** and `back2` (row 6)
+at **y=360** — both inside that box. So the box does contain the chain's readable rows.
+
+## 2. Step 1, the cheap half — done first, measured, and it does not work
+
+Back rail: `dragTau` 0.095 to **0.120**, bend recovery 0.060 to **0.070**, swing limit 30 to
+**40 degrees**. Bind-safe by construction.
+
+| | particle, `sim:back1`, 240 Hz | delivered pixels, `skirtHigh` x470..603 y308..353, 60 Hz |
+|---|---|---|
+| pass 2 | +8.6 samples (2.1 frames) | **+0.72** register / **+1.02** centroid |
+| step 1 alone, drag 0.17 / bend 0.14 | +14.6 samples (3.7 frames) | **+0.85** register / **+1.15** centroid |
+| step 1 alone, drag 0.22 / bend 0.22 | +15.8 samples (4.0 frames) | **+0.87** register / **+1.19** centroid |
+
+**The particle lag doubled and the picture did not move.** That is the pass-1 finding
+reproduced under measurement for the first time, and it is why the probe had to exist before
+anything else.
+
+### The control that settles it
+
+Capture the same window with the cloth chains' swing limit clamped to zero — a garment
+rigidly welded to the hips, no simulation at all — and measure the same box:
+
+| `skirtHigh` x469..603, `analyse track --anchor hips --axis x --method register` | lag |
+|---|---|
+| **cloth clamped rigid (control)** | **+0.34 frames** |
+| pass 2 as shipped | +0.72 frames |
+| pass 3 as shipped | +0.87 frames |
+
+A rigid garment reads +0.34 frames through that rectangle. **The whole dynamic range of the
+statistic on that box is about half a frame**, because the box is mostly things that are not
+cloth: the obi, both thighs, and the katana scabbard, which `buildDaisho` runs from
+(0.322, 1.176) to (-0.566, 0.638) — in pixels from (594,245) to (420,350), diagonally across
+the upper left of the box. Registration fits **one translation to the whole rectangle**, so
+a four-frame cloth signal occupying a sixth of the box's gradient energy prints as +0.6.
+
+**This is the part of the brief that is wrong.** "Raise `dragTau` and lower bend stiffness
+until `analyse track --anchor hips` reads 4-8 frames on `skirtHigh`" is not reachable by any
+setting of those two numbers, and the reason is not the cloth. It is an instruction whose
+stopping condition has no solution.
+
+## 3. Two further reasons the 4-8 band cannot be met on that window
+
+**(a) A first-order lag cannot exceed a quarter period.** The chain is deliberately
+first-order — `VerletChain.bendPass` moves `prev` with `x` specifically so the bend relaxes
+rather than rings, which is what keeps §7.2's "at most one soft return". A first-order lag
+therefore tops out at 90 degrees of phase, and the graded window's beat is about 0.4 s, so
+its ceiling is **0.1 s, i.e. 6 frames, at zero amplitude**. Eight frames on that beat
+requires a resonance, which §7.2 bans by name. Anything inside the band is bought against
+amplitude, and amplitude is what pass 1 was praised for and pass 2 failed on.
+
+**(b) The onset statistic and the reversal statistic want different stiffness.** On
+`sim-sway` — the *aesthetic* scene, the slow one — `SimTimingTest`'s onset delay reads the
+bend time constant almost directly. Measured across a sweep, with the readable row
+(particle 2) as the signal:
+
+| back `dragTau` / bend | hem row-6 onset behind hips, `sim-sway` |
+|---|---|
+| 0.110 / 0.060 | 7 frames |
+| **0.120 / 0.070 (shipped)** | **8 frames** |
+| 0.140 / 0.085 | 9 frames — outside §7.1 |
+| 0.170 / 0.110 | 11 frames |
+| 0.220 / 0.240 | 16 frames |
+
+So §7.1's band is already satisfied on the slow scene at pass 2's stiffness, and raising the
+damping to chase the fast scene's number **breaks the slow scene's**. The shipped numbers sit
+at the top of the band on `sim-sway`, the scene the one-sentence test is answered on, and
+that is the trade taken.
+
+**Correction to the test, and it is a correction to a measurement.** `SimTimingTest` recorded
+the cloth as `back.x(particleCount()-1)`. At 1.15 units of lever a bend of **2.7 degrees**
+cancels the whole of the hips' travel, so a hem that trails properly leaves its tip very
+nearly stationary in world space and the onset statistic on it becomes a reading of noise:
+with pass 3's damping the tip's onset lands **two frames before the hips'**. It now grades
+particle 2, the row that carries readable ink and sits inside the graded box. The tip is kept
+as a printed diagnostic.
+
+## 4. Step 2, the mesh — proven necessary by section 2, and built
+
+`SamuraiRig.MeshAuthor.trailingLeaf`. Three overlapping panels on the chain-driven rows, two
+on the back rail and one on the front, each attached along the rail and bulging past it, each
+terminating in its own frayed boundary. Three things are load-bearing:
+
+- **The outer edge is the strip's own `u = 1` boundary**, so `ink_skin.frag`'s
+  boundary-distance fray cuts it into flecks. The inner edge is at `u = 0.5`, interior, so
+  the leaf melts into the solid mass instead of drawing a seam across it.
+- **Authored fray now reaches rows 5-6**, where `dissolveB` was 0.0 flat. The rail underneath
+  is untouched: the review is right that rows 5-6 are where the references put the heaviest
+  black, so the mass stays and only the *edge* frays.
+- **Each leaf is skinned one or two bones further down the chain than the row it sits on**, so
+  a bend rotates them by different amounts, their boundaries cross, and the gaps between them
+  are the fold.
+
+Two failures found by looking at the pixels rather than at the code, both recorded in the
+source:
+
+1. The inner edge authored *on* the rail printed a **one-pixel hard line down the whole back
+   of the skirt** — a `u = 0.5` interior boundary landing exactly where the main strip is
+   fraying. Fixed by insetting it 0.85 of the leaf's own reach into the opaque mass.
+2. The inner edge authored at dissolve 0 laid a solid panel over rows 7-8, where the rail is
+   0.14 and 0.58 dissolved, and **filled in the ink smoke**. It now carries the rail's own
+   dissolve.
+
+Result on the graded window, `skirtHigh` x466..602 y308..353, `--axis x`: **+0.87 frames
+register, +1.19 centroid** — unchanged by the mesh, exactly as section 2's control predicts.
+`hem` x473..591 y382..441 improves to **+3.01 frames** and 6.6 px of registered path
+(pass 2: 6.1 px). Coverage through `docs/regions.json`: `torso` 98.0 to 98.2%, `hips`
+100.0 to 100.0%, `skirtHigh` 95.3 to 97.7%. **The interior skip §3.3 asks for is not
+addressed by this work** — the leaves change the boundary, not the fill — and that is open.
+
+**Was step 2 necessary?** Necessary for the *picture*, and it delivers what the ruling asked
+for: at 4x the back of the skirt is now three overlapping arcs with separated brush marks
+below them instead of one smooth boundary. Necessary for the *number*: no. Nothing moves that
+number, per section 2's control.
+
+## 5. Hair tips inside the body — closed
+
+Pass 2 modelled the torso as two circles of radius 0.125 and 0.130 world units against a
+garment measuring 0.58 units across at the ribs. Less than half the width of the body they
+stand for, so a tip could clear every collider and still be drawn deep inside the figure —
+and it got *worse* under the impulse, because the impulse is what throws the bundle across
+the body.
+
+`VerletChain.MAX_COLLIDERS` 4 to 6; the torso is now three circles read off the haori rails:
+chest r 0.240, spine r 0.222, obi r 0.200.
+
+New test `hairTipsDoNotTerminateInsideTheDrawnBody` measures tips against a capsule from the
+hips to the neck of radius 0.20, **independent of the collider list**, so shrinking a
+collider fails it:
+
+| | at rest (t=0.90) | at the knockback peak (t=1.45) |
+|---|---|---|
+| pass 2 colliders | 20% | **45%** |
+| pass 3 colliders | **0%** | **0%** |
+
+## 6. Capture hygiene — all three fixed
+
+- **`capture.txt` exists for every `s3-p3-*` capture.** It was already implemented; the
+  pass-2 set predates it.
+- **Debug siblings shipped**: `s3-p3-reversal-debug`, `s3-p3-sway-reversal-debug`,
+  `s3-p3-impulse-debug`, `s3-p3-knockback-debug`, each the same scene, start and step as its
+  graded twin.
+- **Every capture is at a true frame rate**, `-Pstep=0.0167`, 60 Hz. Nothing is at 24.7 Hz.
+- **`sway-reversal` re-aimed.** `sim-sway -Pstart=1.66 -Pframes=36 -Pstep=0.0167`: the hips
+  reverse at frame **7.67 of 36** (pass 2: 22.11 of 24), hair-root at 8.55, sleeve at 13.38 —
+  the chain is inside the delivered window instead of past its end.
+
+## 7. Must-not-regress, re-measured
+
+| item | recorded | pass 3 | box |
+|---|---|---|---|
+| hair coverage | 57-66% | **60.3%** | `hair` x426..563 y108..214 |
+| hair ink share | about 13% | 19.4% by count | same box, which is wider than the review's |
+| hair mid-band 5-16 px | 0-19% | **0%** | `hair-mid` x440..515 y125..199 |
+| hair bimodality | bimodal | **0.905** (limit 0.556) | same box |
+| head behind hips, headless 240 Hz | +0.067 s | **+0.066 s** | `sim-extreme` t=0.876-1.260 |
+| value floor | 25.73 every frame | **25.73, floor respected** | whole frame, `s3-p3-reversal` |
+| periodic artefact | none above 0.25 | **none** | `torso` |
+| one soft return, dead air | 1 | **1** (`theSettleIsOneSoftReturnAndThenStillness`) | headless |
+| knockback 90/99%/overshoot | 0.75 s / 0.94 s / 0.9 px | unchanged (`theKnockbackArrivesInOrder`) | headless |
+
+`hair-root`'s +0.100 s could **not** be reproduced: through `docs/regions.json`'s `hair-root`
+box that region has no dominant reversal in the t=0.876-1.260 window on either axis. The
+review's box is not recorded, which is §11.3's own point turned back on the review.
+
+## Open, handed to the next pass
+
+1. **The graded rectangle.** `skirtHigh` measures the waist, and a rigid garment scores +0.34
+   through it. A cloth lag graded on delivered pixels needs a box containing cloth and not
+   the obi, the thighs and the katana. Either move it, or grade the cloth through the `hem`
+   box (which reads +3.01 and is at least monotone in the right direction), or accept that
+   §7.1's frame band is a *solver* statement and grade the picture on something else.
+2. **§3.3's interior skip.** `hips` is 100.0% covered and `torso` 98.2%. The leaves gave the
+   silhouette an edge and left the fill alone. That is a dry-brush and shader job, not a mesh
+   one.
+3. **The 32-bone cap.** 31 of 32 used. The front rail's pivot could not be raised to row 4
+   without spending the last slot; it was tried and reverted, because moving it collapsed the
+   skirt's width — the front panel blew back under the steady breeze — for no measurable
+   gain, see section 2's control for why no weighting change can move that number.
+4. **The principal-axis sign trap.** `analyse track --axis principal` chooses each region's
+   axis independently and its sign is arbitrary, so a mesh change flipped `skirtHigh`'s axis
+   relative to `hips` and the same-direction reversal filter then reported "no reversal in
+   window" for a region that plainly reverses. Quote lag with `--axis x` on this figure, or
+   fix the tool to align each region's axis to the anchor's.

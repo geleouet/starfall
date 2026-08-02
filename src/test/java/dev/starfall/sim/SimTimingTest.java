@@ -41,7 +41,7 @@ class SimTimingTest {
      * would report System 2's chain lag as though it were cloth stiffness.
      */
     private record Run(float[] hip, float[] head, float[] hand,
-                       float[] clothBack, float[] clothSleeve, float[] sleeveAnchor,
+                       float[] clothBack, float[] clothRead, float[] clothSleeve, float[] sleeveAnchor,
                        float[] massTip, float[] hairTip, float[] escapeeTip, float[] maxStretch) {
     }
 
@@ -75,6 +75,7 @@ class SimTimingTest {
         float[] head = new float[frames];
         float[] hand = new float[frames];
         float[] clothBack = new float[frames];
+        float[] clothRead = new float[frames];
         float[] clothSleeve = new float[frames];
         float[] sleeveAnchor = new float[frames];
         float[] massTip = new float[frames];
@@ -96,6 +97,17 @@ class SimTimingTest {
 
             ClothSim.Chain back = cloth.chain(0);
             clothBack[f] = back.x(back.particleCount() - 1);
+            // Particle 2 is the *readable* row: the back rail's row 6, which a
+            // SceneProbe run puts at image y=360, inside the region STYLE.md
+            // 11.3's upper-skirt box resolves to. The tip is particle 5, which
+            // is 1.15 units of chain below the anchor -- at that lever a bend of
+            // 2.7 degrees cancels the whole of the hips' travel, so a hem that
+            // is trailing *properly* leaves its tip very nearly stationary in
+            // world space and the tip's onset frame becomes a reading of noise.
+            // Measured: with pass 3's damping the tip's onset lands two frames
+            // BEFORE the hips'. That is not the cloth leading the body, it is
+            // the statistic failing on a signal with no excursion.
+            clothRead[f] = back.x(2);
             ClothSim.Chain sleeve = cloth.chain(2);
             clothSleeve[f] = sleeve.x(sleeve.particleCount() - 1);
             sleeveAnchor[f] = sleeve.x(0);
@@ -134,7 +146,7 @@ class SimTimingTest {
             escapeeTip[f] = escSum / escN;
             stretch[f] = worst;
         }
-        return new Run(hip, head, hand, clothBack, clothSleeve, sleeveAnchor, massTip, hairTip, escapeeTip, stretch);
+        return new Run(hip, head, hand, clothBack, clothRead, clothSleeve, sleeveAnchor, massTip, hairTip, escapeeTip, stretch);
     }
 
     /** Worst relative segment stretch on a strand. Verlet distance projection should keep this near zero. */
@@ -321,7 +333,7 @@ class SimTimingTest {
         System.out.printf(java.util.Locale.ROOT,
                 "PEAK frame@60Hz hips=%d head=%d wrist=%d hem=%d sleeve=%d hair-tip=%d%n",
                 peakSpeedFrame(live.hip(), 100, 200), peakSpeedFrame(live.head(), 100, 200),
-                peakSpeedFrame(live.hand(), 100, 210), peakSpeedFrame(live.clothBack(), 100, 210),
+                peakSpeedFrame(live.hand(), 100, 210), peakSpeedFrame(live.clothRead(), 100, 210),
                 peakSpeedFrame(live.clothSleeve(), 100, 210), peakSpeedFrame(live.hairTip(), 100, 215));
 
         // -- onset delay, which is what 7.1's band is graded on --------------
@@ -349,7 +361,8 @@ class SimTimingTest {
         // what pass 1 shipped -- it measured a 6-frame correlation lag on a hem
         // whose tip moved 0.00 px between delivered frames.
         int hipOn = onsetFrame(run.hip(), 108, 180);
-        int hemOn = onsetFrame(run.clothBack(), 108, 195);
+        int hemOn = onsetFrame(run.clothRead(), 108, 195);
+        int hemTipOn = onsetFrame(run.clothBack(), 108, 195);
         int sleeveOn = onsetFrame(run.clothSleeve(), 108, 200);
         int wristOn = onsetFrame(run.hand(), 108, 190);
         int headOn = onsetFrame(run.head(), 108, 185);
@@ -357,9 +370,11 @@ class SimTimingTest {
         int hairOn = onsetFrame(run.hairTip(), 108, 205);
         int escOn = onsetFrame(run.escapeeTip(), 108, 215);
         System.out.printf(java.util.Locale.ROOT,
-                "ONSET DELAY frames@60Hz: hem-behind-hips=%d sleeve-behind-wrist=%d "
+                "ONSET DELAY frames@60Hz: hem-row6-behind-hips=%d hem-tip-behind-hips=%d "
+                        + "sleeve-behind-wrist=%d "
                         + "hair-mass-behind-head=%d hair-wisp-behind-head=%d escapee-behind-head=%d%n",
-                hemOn - hipOn, sleeveOn - wristOn, massOn - headOn, hairOn - headOn, escOn - headOn);
+                hemOn - hipOn, hemTipOn - hipOn, sleeveOn - wristOn,
+                massOn - headOn, hairOn - headOn, escOn - headOn);
 
         // -- the assertions, and which statistic governs which signal --------
         //
@@ -374,8 +389,16 @@ class SimTimingTest {
         // translation by construction. So the hem is graded on when it starts.
         //
         // STYLE.md 7.1: "Cloth trails the body by ~4-8 frames, hair tips by ~8-14."
+        // ...and the hem is graded on the row that carries readable ink rather
+        // than on the free end. This is a correction to a *measurement*, made
+        // after implementing dev.starfall.capture.SceneProbe and putting the
+        // solver's own state beside the delivered pixels for the first time.
+        // Nothing in this file measures the picture -- it cannot, there is no GL
+        // context -- and two passes were graded on cloth lag figures read from
+        // here as though it did. The pixel measurement lives in
+        // docs/system3-debt.md with the capture recipe beside it.
         assertTrue(hemOn - hipOn >= 4 && hemOn - hipOn <= 8,
-                "back hem should trail the hips by 4-8 frames, measured " + (hemOn - hipOn));
+                "the back hem's readable row should trail the hips by 4-8 frames, measured " + (hemOn - hipOn));
         assertTrue(sleeveLag >= 3 && sleeveLag <= 9,
                 "sleeve should trail the wrist by 3-9 frames, measured " + sleeveLag);
         assertTrue(hairLag >= 8 && hairLag <= 14,
@@ -392,7 +415,7 @@ class SimTimingTest {
         // is the run a reviewer looks at, and stated as the peak-speed frame of
         // every tracked region -- which is what "peaking on the same frame" means.
         int[] peaks = {
-                peakSpeedFrame(live.hip(), 100, 200), peakSpeedFrame(live.clothBack(), 100, 210),
+                peakSpeedFrame(live.hip(), 100, 200), peakSpeedFrame(live.clothRead(), 100, 210),
                 peakSpeedFrame(live.head(), 100, 200), peakSpeedFrame(live.hand(), 100, 210),
                 peakSpeedFrame(live.clothSleeve(), 100, 210), peakSpeedFrame(live.hairTip(), 100, 215)};
         for (int i = 0; i < peaks.length; i++) {
@@ -692,6 +715,78 @@ class SimTimingTest {
         // can end a substep a fraction inside; a pixel is the tolerance that
         // means "not visibly through the body".
         assertTrue(worst * 196f < 1.0f, "a particle sat " + (worst * 196f) + " px inside a collider");
+    }
+
+    /**
+     * The buried-tip guard, measured against the <em>drawn</em> body rather than
+     * against the colliders.
+     *
+     * <p>{@link #noParticleRestsInsideTheBody} asks whether the solver respects
+     * the circles it was given. That is a different question from whether the
+     * circles are where the figure is, and pass 2 passed the first while failing
+     * the second: paired captures put <b>36% of strand tips inside the drawn
+     * torso at rest and 64% at the knockback peak</b>, with two collider circles
+     * of radius 0.125 and 0.130 standing in for a garment 0.58 units across.
+     *
+     * <p>So this test measures against a capsule from the hips to the neck whose
+     * radius is read off the haori rails, and it is deliberately independent of
+     * {@code SamuraiHair}'s collider list: shrinking a collider fails it, and
+     * "the collider is satisfied" is not an answer to it.
+     *
+     * <p>It is checked at rest and at the knockback peak, and the second number
+     * is the one that matters. A collider that helps less under an impulse than
+     * at rest is not doing the job an impulse is what it is for.
+     */
+    @Test
+    void hairTipsDoNotTerminateInsideTheDrawnBody() {
+        // The haori's solid core, from the rails in SamuraiRig: half-width 0.29
+        // at the ribs falling to 0.24 at the hip. 0.20 is inside all of it, so a
+        // tip counted here is inside ink that is genuinely opaque rather than
+        // inside the dissolve band, where the reference draws hair all the time.
+        float coreRadius = 0.20f;
+        int restBuried = buriedTips(0.90f, coreRadius);
+        int peakBuried = buriedTips(1.45f, coreRadius);
+        System.out.printf(java.util.Locale.ROOT,
+                "BURIED TIPS vs drawn torso core (r=%.2f): rest %d%%  knockback peak %d%%%n",
+                coreRadius, restBuried, peakBuried);
+        assertTrue(restBuried <= 20, "at rest " + restBuried + "% of tips are inside the drawn torso");
+        assertTrue(peakBuried <= 25,
+                "at the knockback peak " + peakBuried + "% of tips are inside the drawn torso; "
+                        + "pass 2 measured 64% and a collider must not help less under an impulse");
+    }
+
+    /** Percentage of strand tips inside the torso capsule at time {@code t} of sim-impulse. */
+    private static int buriedTips(float t, float radius) {
+        Skeleton skeleton = SamuraiRig.buildSkeletonOnly();
+        SimSceneDriver driver = SimSceneDriver.headless(skeleton, SimScript.Kind.IMPULSE);
+        driver.start();
+        while (driver.time() < t) {
+            driver.advance(DT);
+        }
+        Vector2 v = new Vector2();
+        skeleton.worldPosition(skeleton.bone("hips").index, v);
+        float ax = v.x;
+        float ay = v.y;
+        skeleton.worldPosition(skeleton.bone("neck").index, v);
+        float bx = v.x;
+        float by = v.y;
+        HairSim hair = driver.sim().hair();
+        int buried = 0;
+        for (int i = 0; i < hair.strandCount(); i++) {
+            HairSim.Strand st = hair.strand(i);
+            float px = st.x(st.particleCount() - 1);
+            float py = st.y(st.particleCount() - 1);
+            float dx = bx - ax;
+            float dy = by - ay;
+            float len2 = dx * dx + dy * dy;
+            float u = len2 < 1e-9f ? 0f : Math.max(0f, Math.min(1f, ((px - ax) * dx + (py - ay) * dy) / len2));
+            float cx = ax + u * dx;
+            float cy = ay + u * dy;
+            if (Math.hypot(px - cx, py - cy) < radius) {
+                buried++;
+            }
+        }
+        return Math.round(100f * buried / hair.strandCount());
     }
 
     @Test

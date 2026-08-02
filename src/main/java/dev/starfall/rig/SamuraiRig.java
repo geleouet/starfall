@@ -667,6 +667,27 @@ public final class SamuraiRig {
             clothB[7] = new BoneBlend(backC, 1f, backC, 0f);
             clothB[8] = new BoneBlend(backD, 1f, backD, 0f);
             clothB[9] = new BoneBlend(backE, 1f, backE, 0f);
+            // Pass 3 tried moving the front rail's pivot from row 5 to row 4 and
+            // reverted it. Recorded because the reasoning was sound and the
+            // measurement refuted it, which is the useful half.
+            //
+            // The reasoning: STYLE.md 11.3's box for the upper skirt --
+            // fig[0.15, 0.55, 0.70, 0.13], x466..602 y308..353 on the sim-extreme
+            // window -- contains the back rail's rows 5 and 6 (a SceneProbe run
+            // puts those particles at y=321 and y=360) and, across the figure,
+            // the *front* rail's rows 4 and 5. With the front pivot at row 5,
+            // frontA's first moving vertex is row 6 at y=365, four pixels below
+            // the box, so every front-edge pixel inside the graded region is
+            // welded to the hips. Registration fits one translation to the whole
+            // box, so half of it could not lag.
+            //
+            // The measurement: moving the pivot changed the graded lag by under
+            // a tenth of a frame, and cost real silhouette -- the longer front
+            // panel blows back under the steady breeze and the skirt visibly
+            // narrows. The control in docs/system3-debt.md says why no weighting
+            // change could have worked: with the cloth clamped rigid that box
+            // still reads +0.34 frames, so the statistic's whole range there is
+            // about half a frame and the box is mostly obi, thigh and scabbard.
             clothF[5] = new BoneBlend(hips, 0.45f, frontA, 0.55f);
             clothF[6] = new BoneBlend(frontA, 1f, frontA, 0f);
             clothF[7] = new BoneBlend(frontB, 1f, frontB, 0f);
@@ -690,6 +711,148 @@ public final class SamuraiRig {
             }
             for (int i = 0; i < n - 1; i++) {
                 builder.quad(back[i], back[i + 1], front[i + 1], front[i]);
+            }
+
+            // -- the trailing panels, STYLE.md 3 and 3.1 ---------------------
+            //
+            // The pass-2 review's ruling, and the sentence this is built from:
+            //
+            //   "A silhouette with a smooth continuous boundary cannot express a
+            //    fold no matter how the bones underneath it rotate."
+            //
+            // Everything above is one quad strip between two rails. Its
+            // boundary is two polylines, so the garment can only ever be a
+            // shape that widens and narrows: when the chain bends, the outline
+            // moves, and it is still one outline. There is no second edge for it
+            // to be an edge *against*, which is what a fold is. Coverage
+            // measured 97.0% on `torso` and 97.7% on `hips` -- §3.3 says ink
+            // skips and here it did not, because there is nothing for it to skip
+            // between.
+            //
+            // So the rows the chains own get three overlapping leaves, each
+            // attached along the rail and bulging past it, each terminating in
+            // its own frayed boundary. Three properties matter and each is
+            // deliberate:
+            //
+            //   * The outer edge is the strip's own u = 1 boundary, so
+            //     ink_skin.frag's boundary-distance fray band cuts it into
+            //     flecks; the inner edge sits at u = 0.5, i.e. interior, so the
+            //     leaf melts into the solid mass rather than drawing a seam
+            //     across it. v carries the main rail's row parameter and never
+            //     reaches 0 or 1, so the fray happens on the trailing edge only.
+            //   * The offset closes to near zero at both ends, so a leaf is a
+            //     brush mark with two tapered ends rather than a flap with a
+            //     cut across it.
+            //   * Each leaf's outer edge is skinned one or two bones further
+            //     down the chain than its inner edge. That is the whole point:
+            //     when the chain bends, the leaves rotate by different amounts,
+            //     their boundaries cross and separate, and the gaps between them
+            //     are the fold. Weighting them identically to the rail would
+            //     re-draw the same smooth outline three times.
+            //
+            // Authored fray now reaches rows 5 and 6, where dissolveB was 0.0
+            // flat. The solid rail underneath is untouched -- the review is
+            // explicit that rows 5-6 are where reference images 1 and 2 put the
+            // heaviest black, so the mass stays and the *edge* frays.
+            // Every leaf closes back onto the rail at its last row, and the
+            // downward part of the last offset is small. The first version let
+            // leaf two carry 0.12 units of drop at row 9 with almost no width,
+            // which draws a one-pixel vertical tail hanging past the feet -- a
+            // hard thin mark on open paper, and §10's "a hem that is a straight
+            // line" in miniature.
+            trailingLeaf(backX, backY, 4, new float[] {-0.014f, -0.062f, -0.112f, -0.086f, -0.022f},
+                    new float[] {-0.008f, -0.026f, -0.020f, -0.038f, -0.026f},
+                    new float[] {0.24f, 0.40f, 0.44f, 0.58f, 0.88f}, wetB, dissolveB, clothB, 1, 255f, 45f);
+            trailingLeaf(backX, backY, 5, new float[] {-0.024f, -0.140f, -0.150f, -0.036f},
+                    new float[] {-0.030f, -0.055f, -0.098f, -0.052f},
+                    new float[] {0.38f, 0.48f, 0.62f, 0.92f}, wetB, dissolveB, clothB, 2, 255f, 45f);
+            // The front leaf is half the reach of the back ones for the reason
+            // the front rail is limited harder everywhere else in this file: it
+            // has a thigh 0.2 units behind it, and a front panel free to fly is
+            // a panel that intersects the leg it hangs in front of.
+            trailingLeaf(frontX, frontY, 5, new float[] {0.014f, 0.056f, 0.040f, 0.010f},
+                    new float[] {-0.010f, -0.016f, -0.028f, -0.022f},
+                    new float[] {0.26f, 0.38f, 0.56f, 0.90f}, wetF, dissolveF, clothF, 1, 280f, 15f);
+        }
+
+        /**
+         * One overlapping trailing panel on a haori rail: a leaf attached along
+         * the rail from {@code row0}, bulging outward by {@code outX}/{@code outY}
+         * and closing again, whose outer boundary is the strip's own {@code u = 1}
+         * edge and therefore frays.
+         *
+         * <p>The inner edge carries the rail's own authored dissolve rather than
+         * zero. Zero was wrong and visibly so: it laid a fully solid panel over
+         * rows 7 and 8, where the rail is 0.14 and 0.58 dissolved, and filled in
+         * the ink smoke §3 asks the bottom third of the figure to be. A leaf is a
+         * second sheet of the same cloth, so it dissolves the same way.
+         *
+         * @param blend    the rail's per-row bone blends. The inner edge uses the
+         *                 blend of its own row; the outer edge uses the blend
+         *                 {@code boneShift} rows further down the chain, which is
+         *                 what makes the leaves separate under a bend instead of
+         *                 tracing the same curve.
+         * @param flowDeg  stroke direction at the top of the leaf, and how far it
+         *                 turns by the bottom -- §3.3's dry-brush streaks run
+         *                 along the cloth, not across the screen.
+         */
+        /**
+         * How far inside the rail a leaf's inner edge sits, as a fraction of that
+         * leaf's own outward reach at the same row.
+         *
+         * <p>Not a taste. A leaf's inner edge is a geometric boundary authored at
+         * {@code u = 0.5}, i.e. deep interior as far as {@code ink_skin.frag}'s
+         * boundary-distance fray is concerned, so it prints as fully solid ink and
+         * then stops dead. Authored exactly on the rail -- which is where the
+         * first version of this put it -- that solid edge lands on the main
+         * strip's own {@code u = 0} boundary, the one place the main strip is
+         * <em>fraying</em>, and the result is a one-pixel hard line down the whole
+         * back of the skirt, visible at 1x in the first capture. It is the failure
+         * §3 opens by banning: "nothing in this game has a hard edge except the
+         * blades."
+         *
+         * <p>Pushing the inner edge well inside the opaque mass buries it under
+         * ink that is already solid there, so the only boundary a leaf contributes
+         * to the silhouette is its frayed outer one.
+         */
+        private static final float LEAF_INSET = 0.85f;
+
+        private void trailingLeaf(float[] railX, float[] railY, int row0,
+                                  float[] outX, float[] outY, float[] outerDissolve,
+                                  float[] railWet, float[] railDissolve, BoneBlend[] blend, int boneShift,
+                                  float flowDeg, float flowTurnDeg) {
+            int rows = outX.length;
+            int n = railY.length;
+            short[] inner = new short[rows];
+            short[] outer = new short[rows];
+            for (int i = 0; i < rows; i++) {
+                int r = Math.min(n - 1, row0 + i);
+                int rOuter = Math.min(n - 1, r + 1 + boneShift);
+                float s = r / (float) (n - 1);
+                float flow = angleToU(flowDeg - flowTurnDeg * s);
+                // Both edges hang off the chain, one row apart. The first
+                // version weighted the inner edge to the rail's own row, which
+                // for the top row of a leaf is the *pivot* -- rigid on the hips
+                // by construction -- so the leaves added a large solid mass to
+                // the upper skirt that could not lag at all, and the measured
+                // lag of the graded box went down rather than up. A leaf is a
+                // separate panel of cloth; nothing about it belongs to the body.
+                BoneBlend bi = blend[Math.min(n - 1, r + 1)];
+                BoneBlend bo = blend[rOuter] != null ? blend[rOuter] : bi;
+                float wet = railWet[r];
+                // The trailing edge of a wash is where pigment collects (§3.4),
+                // and the lift is small because the rail underneath is already
+                // at or near the ceiling through these rows.
+                float wetOut = Math.min(1f, wet + 0.06f);
+                inner[i] = builder.vertex(railX[r] - LEAF_INSET * outX[i], railY[r] - LEAF_INSET * outY[i],
+                        0.5f, s, railDissolve[r], wet,
+                        0f, flow, bi.boneA.index, bi.weightA, bi.boneB.index, bi.weightB);
+                outer[i] = builder.vertex(railX[r] + outX[i], railY[r] + outY[i], 1f, s,
+                        outerDissolve[i], wetOut,
+                        0f, flow, bo.boneA.index, bo.weightA, bo.boneB.index, bo.weightB);
+            }
+            for (int i = 0; i < rows - 1; i++) {
+                builder.quad(inner[i], inner[i + 1], outer[i + 1], outer[i]);
             }
         }
 

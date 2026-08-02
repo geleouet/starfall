@@ -1,0 +1,11 @@
+# Reproduce this capture:
+./gw capture -Pscene=rig-swing -Pout=out/captures/s3-p3-swing-regress -Pframes=12 -Pcols=6 -Pw=960 -Ph=540
+
+scene=rig-swing
+description=2.4s overhead sword swing: anticipation / release / follow-through
+frames=12
+start=0.0
+step=0.21818183
+window=2.4
+size=960x540
+substep=0.004166667

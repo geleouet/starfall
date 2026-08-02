@@ -1,0 +1,11 @@
+# Reproduce this capture:
+./gw capture -Pscene=ik-extreme -Pout=out/captures/s3-p3-ik-extreme -Pframes=12 -Pcols=6 -Pw=960 -Ph=540
+
+scene=ik-extreme
+description=IK extreme (STYLE.md 7.2): direction reversals, two teleports, driven far out of reach, snapped back
+frames=12
+start=0.0
+step=0.36363637
+window=4.0
+size=960x540
+substep=0.004166667

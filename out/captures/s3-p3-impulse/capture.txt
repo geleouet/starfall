@@ -1,0 +1,11 @@
+# Reproduce this capture:
+./gw capture -Pscene=sim-impulse -Pout=out/captures/s3-p3-impulse -Pframes=24 -Pcols=6 -Pstart=0.98 -Pstep=0.0167 -Pw=960 -Ph=540
+
+scene=sim-impulse
+description=STYLE.md 7.2 overshoot test: dead air, one impulse at t=1.0, 3s of settle. No breeze, no gusts, no per-strand turbulence
+frames=24
+start=0.98
+step=0.0167
+window=0.3841
+size=960x540
+substep=0.004166667

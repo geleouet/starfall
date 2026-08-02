@@ -48,7 +48,7 @@ public final class RigSim {
      * slowest because it hangs off a wrist, which is the fastest-moving anchor
      * in the figure and therefore the one whose lag reads loudest.
      */
-    private static final float BACK_TAU = 0.095f;
+    private static final float BACK_TAU = 0.120f;
     private static final float FRONT_TAU = 0.095f;
     private static final float SLEEVE_TAU = 0.125f;
 
@@ -93,8 +93,32 @@ public final class RigSim {
         //     the band allows. Measured per bone over the delivered extreme
         //     window, the chain now deviates 13-21 degrees from bind where four
         //     particles could only ever hold one angle.
+        //
+        // Pass 3: drag 0.095 -> 0.120, bend 0.060 -> 0.070, swing 30 -> 40 deg.
+        // A small move, and the size of it is the finding.
+        //
+        // The brief asked for drag raised and stiffness lowered "until the graded
+        // box reads 4-8 frames in delivered pixels". Two measurements say that is
+        // the wrong knob, and both are in docs/system3-debt.md with their boxes:
+        //
+        //   * Doubling the lag here doubled the *particle* lag (8.6 -> 15.8
+        //     samples at 240 Hz on the row-5 particle) and moved the *picture* by
+        //     0.15 of a frame. With the chains clamped rigid the same box still
+        //     reads +0.34 frames, so its whole dynamic range is about half a
+        //     frame -- it is measuring the obi, the thighs and a sword scabbard.
+        //   * 7.1's band is a statement about onset, and on sim-sway -- the slow
+        //     scene, the one the one-sentence test is answered on -- onset reads
+        //     this bend constant almost directly. 0.070 puts the readable row 8
+        //     frames behind the hips, at the top of the band. 0.085 puts it at 9,
+        //     outside. There is no headroom above these numbers on that scene,
+        //     whatever the fast one reads.
+        //
+        // The swing limit is the one that could move freely: at 30 degrees with a
+        // knee at 16.5 the soft ceiling was engaging on a chain measured at 13-21
+        // degrees of deviation, i.e. the limit was shaping the drape rather than
+        // catching an accident. At 40 the knee is 22 and it catches accidents.
         cloth.addChain(new String[] {"clothBackA", "clothBackB", "clothBackC", "clothBackD", "clothBackE"},
-                0.286f, BACK_TAU, 0.060f, CLOTH_GRAVITY, 0.95f, 30f);
+                0.286f, BACK_TAU, 0.070f, CLOTH_GRAVITY, 0.95f, 40f);
         // The front hem clears the near leg, so it is limited harder: a front
         // panel free to swing 26 degrees per joint intersects the thigh it is
         // meant to hang in front of.

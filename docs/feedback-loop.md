@@ -158,7 +158,28 @@ outside its own window. Region rectangles are resolved once and written into the
 A scene may also implement `dev.starfall.capture.SceneProbe` to report its own simulation state;
 when it does, `timing` records that alongside the pixel measurement. That is how you tell "the
 particle moved but the picture did not" from "nothing moved" — a distinction `system3-debt.md`
-turns on. Nothing implements it yet.
+turns on.
+
+**`SimScene` implements it** (`dev.starfall.rig.SimProbe`), so `sim-sway`, `sim-extreme` and
+`sim-impulse` all report the hips and head bones, every particle of the back cloth rail, the
+front and sleeve tips, and the longest wisp's tip — in the image pixels the capture writes,
+through the scene's own camera. `analyse timing` folds them into the same arrival chain as the
+pixel regions, **tagged `sim:`**, and prints the box each particle swept beside it:
+
+```
+  skirtHigh      trails hips       by   +0.87 frames      <- the picture
+  sim:back1      trails hips       by   +3.95 frames      <- the particle inside that box
+```
+
+Those two lines are the whole reason the interface exists. A `sim:` row is *not* a pixel
+measurement and must never be quoted as one — STYLE.md grades the picture. Pass 3 used exactly
+this pair to show that the cloth solver's lag had doubled while the delivered pixels had not
+moved, and then to find out why (the graded box was mostly obi, thigh and scabbard).
+
+The complementary control is worth knowing because it is cheap: **capture the same window with
+the thing you are measuring switched off.** Clamping the cloth swing limit to zero gives a
+rigidly-welded garment, and if the "cloth lag" through your box barely changes, your box is not
+measuring cloth. On `skirtHigh` that control reads +0.34 of the +0.87 frames.
 
 ---
 

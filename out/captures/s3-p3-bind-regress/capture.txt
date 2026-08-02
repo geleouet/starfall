@@ -1,0 +1,11 @@
+# Reproduce this capture:
+./gw capture -Pscene=rig-bindpose -Pout=out/captures/s3-p3-bind-regress -Pframes=1 -Pcols=1 -Pw=960 -Ph=540
+
+scene=rig-bindpose
+description=Samurai in bind pose, full figure, paper background
+frames=1
+start=0.0
+step=0.0
+window=0.0
+size=960x540
+substep=0.004166667

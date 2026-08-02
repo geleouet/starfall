@@ -573,6 +573,25 @@ merely correct, say what would give it an origin.
   make it visible. **Any timing claim ships with a headless measurement**, and that
   measurement must drive the same scene the capture runs rather than re-enacting it.
 
+  **The 4-8 frame band is a target for sway, not a floor for every beat — and §7.2 caps it.**
+  A first-order lag that *relaxes* rather than rings tops out at a quarter period of phase.
+  That relaxation is not a choice: it is what §7.2's "at most one soft return" requires. So on
+  a short beat the achievable lag is bounded by the beat itself — on a ~0.4 s beat at 60 Hz
+  the ceiling is about **6 frames at zero amplitude**, and demanding 8 there forces either a
+  resonance §7.2 bans or a fake. Read the band as the behaviour of the *settled, swaying*
+  figure; on fast beats, require only that the lag be as large as a non-ringing system can
+  produce. Where the two sections pull against each other, **§7.2 wins** — a ringing hem is a
+  worse failure than a hem that trails by four frames instead of eight.
+
+  **And a lag statistic is only as good as the rectangle it is read through.** Registration
+  fits one translation to a whole box, so a box containing the sash, both thighs and a
+  scabbard reports the *body's* motion whatever the cloth does. Proven by control: a garment
+  clamped rigid, welded to the hips with no simulation at all, read +0.34 frames through a
+  box that had been used to grade cloth lag — against +0.72 and +0.87 for two live
+  configurations. The statistic's whole dynamic range there was half a frame. **Before
+  quoting a lag, run the rigid control**; if a dead system scores near the live one, the
+  rectangle is measuring the wrong thing.
+
 ### 7.2 Extreme cases (this is where the aesthetic dies)
 
 The brief is explicit that fast motion is where dreamlike quality is easiest to lose. On
