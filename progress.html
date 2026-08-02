@@ -159,7 +159,7 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — system 1 spec errors corrected (part count 3 → 13); wiring IK to the rig next",
+  updated: "2026-08-02 — IK wired to the rig and captured; independent review in flight",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
@@ -176,7 +176,7 @@ const DATA = {
   systems: [
     { n:"01", name:"Skeleton + skinning", status:"failed", passes:5,
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
-    { n:"02", name:"IK", status:"building", passes:1,
+    { n:"02", name:"IK", status:"review", passes:2,
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
     { n:"03", name:"Verlet hair + cloth", status:"pending", passes:0,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
@@ -250,6 +250,69 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 2", kind:"build", pass:2,
+      title:"IK wired to the rig — and the tests were measuring the wrong layer",
+      sheet:"out/captures/s2-check-extreme24/contact-sheet.png",
+      sheetNote:"24 frames over 4s: direction reversals, two teleports, the target driven far out " +
+                "of reach and snapped back. The dense continuity read, and the scene that matters " +
+                "most — the brief is explicit that fast motion is where the dreamlike quality is " +
+                "easiest to lose.",
+      body:[
+        "Four chains now hang off the rig — sword arm and both legs as two-bone, spine as FABRIK — " +
+        "all built at <b>weight zero</b>, so they are present, primed and updating but writing " +
+        "nothing until the interaction layer opts in per frame. Update order is root-outward " +
+        "(spine, then re-plant the leg poles, then arm, then legs) because the trunk carries both " +
+        "the shoulder and the hip sockets.",
+
+        "<b>Two genuine bugs surfaced that 83 passing solver tests could not catch, and the reason " +
+        "why is the valuable part.</b> Every synthetic rig in the solver tests lays its bones along " +
+        "+x and blends poses that are close together. So the tests were measuring the <i>solvers</i>, " +
+        "and nothing was measuring the <b>binding</b>. That is the same shape of failure as System " +
+        "1's — refining one layer thoroughly while the layer beside it went unexamined.",
+
+        "<b>First: the FABRIK write-back was unusable on this rig.</b> Both solvers work in " +
+        "<i>link</i> space (joint to joint) while the bone's rotation is an <i>axis</i> angle. " +
+        "Those coincide for every limb and differ by 90° for every trunk bone, because the rig " +
+        "stacks hips, spine and chest via +y offsets at near-zero rotation. Measured: a spine chain " +
+        "asked to hold <i>its own current pose</i> answered <code>hips.rotDeg = 96.8</code> and put " +
+        "the neck 0.70 world units away. It destroyed the pose on the very frame it was switched on.",
+
+        "<b>Second: the weight blend was discontinuous at the antipode.</b> Shortest-arc blending " +
+        "flips branch when the animation and solved poses pass 180° apart, jumping the bone by 360° " +
+        "times the weight. That is not a corner case — it is <i>guaranteed</i> whenever a parent " +
+        "revolves while IK holds a world-fixed target, which is precisely what a parry is. The " +
+        "parry scene caught the shoulder stepping <b>136° in a single frame</b> at weight 0.63, on " +
+        "a bone the animation does not drive at all."
+      ],
+      notes:[
+        { kind:"fix", label:"Measured against the motion law at 60 Hz, every frame",
+          text:"Worst one-frame bone step: <b>7.4°</b> on reach, nowhere near the slew ceiling. " +
+               "<b>20.02°</b> on extreme — the ceiling to two decimal places, saturated by the " +
+               "teleports, which is the ceiling doing its job rather than failing. And <b>26.08°</b> " +
+               "on parry, which the implementer reports is <i>identical with the chains inert</i> — " +
+               "so the parry's worst motion is the swing's own cut and not something IK introduced. " +
+               "That last claim is the one I have asked the reviewer to check independently rather " +
+               "than take on trust." },
+        { kind:"fix", label:"Two problems the pictures found and the tests did not",
+          text:"The extreme scene's snap-back originally rotated the aim 105°, which committed a " +
+               "<b>bend flip</b>: the hand reached within 0.06 of the target, left again by 0.32, " +
+               "and came back — burying the terminal settle that the whole phase exists to show. " +
+               "And the parry originally held its guard through the swing's full −375° shoulder " +
+               "revolution, so the blend accumulated <b>437°</b> and the recovery came back as a " +
+               "windmill. Both were invisible to every metric and obvious in a contact sheet." },
+        { kind:"crit", label:"Six API traps recorded for the interaction layer",
+          text:"The link-space versus axis-space confusion is the dangerous one: it is silent and it " +
+               "only bites on trunk-like chains. Constraints also mean different things per chain " +
+               "kind. A one-sided anatomical elbow stop is a trap, because with a pose-derived pole " +
+               "<i>which</i> side the elbow commits to is chosen by the pose — two scenes commit " +
+               "opposite ways, so the limit must be symmetric and is only an anti-fold guard. " +
+               "Constraint softness is a fraction of the <i>range</i>, so a wide range starts easing " +
+               "absurdly early. And a three-link FABRIK chain is redundant — pinning the effector " +
+               "does not pin the pose, so tight limits plus partial weight are mandatory or the " +
+               "solver finds an equally valid answer that folds the figure." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 5", kind:"note",
       title:"Combat design settled from the retro-spec — with one filter that decides everything",
