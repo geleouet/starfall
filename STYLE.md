@@ -568,6 +568,29 @@ A reviewer should fail a pass on sight of any of these:
 
 ## 11. Review protocol
 
+### 11.0 The matched-scale comparison — do this first, before anything else
+
+**Downscale a reference image so its figure is the same height in pixels as the figure in
+the capture, and put them side by side.** Then count what each one gives you.
+
+This takes two minutes and it must be the first act of every review, before any shader
+analysis, any zoom, any measurement.
+
+It was introduced after five System 1 passes had been spent refining how ink behaves at
+the edge of a shape, while nobody had asked whether there were **enough shapes**. The
+matched-scale test answered that instantly: at a 330 px figure height, reference image 1
+still resolves a head with a face, a shoulder, a sword arm, a hand, a tsuka, a tsuba, a
+second sheathed sword across the back, an obi, a hip, two legs, two feet and a loud ochre
+bloom over the thigh. The capture at identical scale resolved a torso, a topknot and a
+hairline white scratch — roughly a third of the readable parts.
+
+Four passes of material analysis never surfaced that. One matched-scale comparison did.
+
+**Corollary:** a material can only ever be as good as the subject it is painting. If the
+count is short, fixing the material is refinement of the wrong thing.
+
+---
+
 Each review pass must produce, in this order:
 
 1. **Verdict:** PASS or FAIL.

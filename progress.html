@@ -159,7 +159,7 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — system 1 pass 4: silhouette fixed, material fix (pass 5, the cap) in flight",
+  updated: "2026-08-02 — system 1 closed at the cap with logged debt; correcting my two spec errors, system 2 building",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
@@ -175,7 +175,7 @@ const DATA = {
   },
 
   systems: [
-    { n:"01", name:"Skeleton + skinning", status:"building", passes:4,
+    { n:"01", name:"Skeleton + skinning", status:"failed", passes:5,
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
     { n:"02", name:"IK", status:"pending", passes:0,
       summary:"2-bone analytic solver for limbs, FABRIK for spine and long chains." },
@@ -245,6 +245,140 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 1", kind:"review", pass:5, verdict:"FAIL",
+      title:"Final review — and the finding that five passes had been refining the wrong thing",
+      body:[
+        "<b>The meta-finding matters more than any individual defect:</b>",
+
+        "<i>\"Five passes have been spent on how ink behaves at the edge of a shape, and zero on " +
+        "whether there are enough shapes.\"</i>",
+
+        "The reviewer found this with an operation that took two minutes. It downscaled reference " +
+        "image 1 until its figure was the same pixel height as ours, and put them side by side. At " +
+        "that matched scale the reference still resolves <b>a head with a face, a shoulder, a " +
+        "sword arm, a hand, a tsuka, a tsuba, a second sheathed sword across the back, an obi, a " +
+        "hip, two legs, two feet, and a loud ochre bloom over the thigh</b>. Our capture at " +
+        "identical scale resolves a torso, a topknot, and a hairline white scratch — roughly a " +
+        "third of the readable parts. Cropped into image 1 it would not read as a passage of that " +
+        "painting; it would read as the underpainting someone abandoned before drawing the figure.",
+
+        "Four passes of shader analysis never surfaced that. One matched-scale comparison did. It " +
+        "is now STYLE.md §11.0 — <b>the first act of every review from System 2 onward</b>, before " +
+        "any zoom, any measurement, any shader read.",
+
+        "<b>And two of the defects are my specification errors, not the implementers'.</b> There " +
+        "is no hand, grip, guard, obi, scabbard or second sword because <i>I never put them on any " +
+        "work order</i> — the contract listed haori, sleeves, hakama, torso, head and blade, and " +
+        "stopped. And the blade measures about 90% of body height where a katana is nearer 40%, " +
+        "because I wrote \"roughly 0.75 of the figure's total height\" into the spec. It was built " +
+        "to my number and my number was wrong."
+      ],
+      notes:[
+        { kind:"crit", label:"The standing debt — full detail in docs/system1-debt.md",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D1</b> no hand, grip, guard, obi, scabbard or second sword — highest impact, pure mesh authoring, no later system supplies it. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D2</b> blade 2.2x too long, constant 2 px, never terminates in a tip inside frame, no glow, no hamon. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D3</b> the upper silhouette is a hard three-pixel polygon cut with the wet bleed absent above the waist entirely — the hem does it correctly, so the instruction is simply <i>make the shoulder look like the hem</i>. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D4</b> all break-up sits at 8-65 px against a 2 px floor, so there is an octave and a half of unused headroom exactly where ink fleck lives — an over-correction from the earlier shimmer failures, and a number rather than a design. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D5</b> the lower third is bleached where the references put their heaviest black; the figure ends in erasure rather than ink smoke. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D6</b> garments are two-rail strips, so all cross-cloth variation is a linear interpolation between two vertices (mostly System 3c's to fix). " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D7</b> the head has no skull, neck or jaw contour. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D9</b> the blade trail lifts the paper by four luminance levels and is effectively invisible — screen-blending has no headroom over a 217/255 ground." },
+        { kind:"fix", label:"A correction I would have got wrong: the frame is not too dark, it is too empty",
+          text:"The frame reads washed out next to pass 2 and the intuitive fix — darken the ink — " +
+               "is wrong and would push against the no-pure-black rule. Measured, p5's darkest 0.5% " +
+               "is (28,34,44) against p2's (22,26,34), a six-level difference that is invisible, " +
+               "and peak figure-versus-paper contrast is 188 against 192, identical within noise. " +
+               "What actually changed is <b>coverage</b>: p2 covers 51-69% of every band from chest " +
+               "to hem, p5 covers 30-53% and collapses to 22% near the bottom. <b>The fix is " +
+               "coverage and mass, not value.</b>" },
+        { kind:"fix", label:"Confirmed right, and load-bearing for every later system",
+          text:"Material-space anchoring holds — internal patches and the ochre stain keep the same " +
+               "body-relative position through pose changes, and two earlier passes broke this. Any " +
+               "later refactor that reintroduces a screen-space measurement of the edge will " +
+               "resurrect the pass-3 failure wholesale. No periodic artefact remains at any lag " +
+               "from 4 to 200 px. Value floor and ceiling exact. Fog and motes correct — and the " +
+               "reviewer explicitly confirms my §6-over-§2.2 ruling was the right call. The swing " +
+               "envelope is a genuine 40/15/45 with nothing snapping or oscillating, hard-won " +
+               "across three passes. And the hem passage is called the best square inch in the " +
+               "capture — the target the rest of the figure should be brought up to." },
+        { kind:"crit", label:"Trajectory: converging on the wrong axis",
+          text:"The reviewer's blunt summary: not thrashing, but not working either. Pass 1→2 a " +
+               "real gain; 2→3 a large regression; 3→4 a recovery back to roughly where pass 2 " +
+               "already stood; 4→5 a modest gain at a modest cost. <b>Two of the five passes were " +
+               "spent returning to where pass 2 already was.</b> Its judgement is that the code is " +
+               "measurably better engineered each time and that the lesson added to STYLE.md after " +
+               "the pass-3 regression is the right one drawn from the right evidence — but that the " +
+               "process was failing one level up. My wrong diagnoses cost a pass and a half; the " +
+               "<i>missing</i> diagnosis cost the other three and a half, because every one of them " +
+               "refined a material that was already better than the subject it was painting." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 1", kind:"build", pass:5,
+      title:"Pass 5 — the best the figure has looked, and a bug that reframes pass 3",
+      sheet:"out/captures/s1-p5-swing/contact-sheet.png",
+      sheetNote:"System 1 pass 5, the cap. Scroll down for passes 1 through 4 — the same " +
+                "animation throughout, so the trajectory is directly comparable.",
+      body:[
+        "The silhouette cut moved back into the material-space shader, per-fragment at full " +
+        "resolution. Edge distance is taken from the linear UV interpolant over its own " +
+        "derivative, never from the folded min/abs — which would have spiked down every strip's " +
+        "centreline. The merge became a genuine coverage-weighted average, premultiplied and " +
+        "additive with no max-blending anywhere, so the ribbon rails that printed as hard bars in " +
+        "pass 3 are gone. The wander term, fray threshold and speck logic in the screen-space " +
+        "resolve were deleted rather than attenuated.",
+
+        "<b>And a real bug surfaced that explains much of pass 3 independently of its " +
+        "architecture.</b> The directional-smear function averages two taps at ±d, so its " +
+        "frequency response is <code>cos(2πd/λ)</code> — and value noise's own wavelength is about " +
+        "two cells. That means <b>d ≈ 0.5 annihilates the very octave it is smearing</b>. Pass 3 " +
+        "ran its offsets at 0.44, 0.54 and 0.99: two of the four mark octaves were retained at 19% " +
+        "and <i>−12%</i> amplitude — phase-inverted — and the entire dry-brush term was cancelled " +
+        "outright. So pass 3's smooth blobby edges and flat interior were substantially caused by " +
+        "two thirds of its mark-making simply not being in the image. Those offsets also already " +
+        "violated the anisotropy cap the spec sets. All are now 0.30.",
+
+        "Measured: the chest scanline's high-frequency residual has a standard deviation of 2.04 " +
+        "<b>with no autocorrelation peaks at any lag</b> — against 15.96 in pass 2. The banding is " +
+        "gone as structure, not merely smoothed away, and pass 3's one real gain was held rather " +
+        "than traded back. Darkest pixel 25.7 and brightest 243.9, so the floor and ceiling still " +
+        "hold. Ink gravity is now correct in the upper body — chest 43 against waist 36 — having " +
+        "been inverted in every previous pass."
+      ],
+      notes:[
+        { kind:"fix", label:"What visibly changed",
+          text:"The silhouette is torn and irregular with no straight lines anywhere inside it. " +
+               "The head reads as a head with a topknot, and there is paper on both sides of the " +
+               "neck. The hand and guard survive the material for the first time. The ochre reads " +
+               "as a bloom in the cloth rather than as bars. The blade trail composites as screen " +
+               "with both rails tapering to zero alpha, so the faint straight line that used to " +
+               "print clear of the figure is gone." },
+        { kind:"crit", label:"The spec was wrong in three places, and the agent said so",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>My item 5 was aimed at the wrong layer.</b> " +
+               "I asked for dissolve to be authored near zero on neck, skull and arm. The rig " +
+               "already did exactly that — head 0/0.02, trunk 0, hand 0. The defect was entirely " +
+               "shader-side: the dissolve was being read from a 9-pixel <i>blur</i> of the authored " +
+               "value, and the fray band had a floor of 4-16 px regardless. The fix was to size the " +
+               "fray band by each strip's own thickness, so the haori gets 15 px and the neck 5. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>My item 7 was too.</b> " +
+               "The remaining ink-gravity inversion below the waist is not shader-side either — it " +
+               "is the mist drawn over the figure's lower body, which is rig-side and was off " +
+               "limits this pass. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>And my item 1 was too absolute.</b> " +
+               "I said the outline must come from the full-resolution field alone. Removing the " +
+               "boundary wander entirely produced a dead-straight 54 px rail down the hakama front, " +
+               "because a thin fray band on a wide strip is just the polygon offset inward. A " +
+               "material-space wander was kept, correctly." },
+        { kind:"crit", label:"Known remaining, going into the final review",
+          text:"The sword arm is findable but merges into the torso mass at several poses. Detached " +
+               "flecks are angular and clustered rather than round, but the anisotropy cap means " +
+               "they cannot be very elongated, so \"shards with direction\" is only partly " +
+               "achieved. And the frame reads lower in contrast than pass 2 — a consequence of the " +
+               "mist now being deliberately lighter than the paper. Whether that trade was worth " +
+               "it is one of the questions put to the reviewer." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 1", kind:"build", pass:4,
       title:"Pass 4 — the figure finally has shoulders, and the cone's real cause was the ankles",
