@@ -159,18 +159,17 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — system 2 PASSED, the first of the run; paying down system 1 debt",
+  updated: "2026-08-02 — system 1 debt paid (part count 17/18); system 3 Verlet building",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "Paying down System 1 debt \u2014 the head, and the darkness below the hip",
-    detail: "System 2 <b>passed</b>, the first pass of the run, with its gesture scene judged " +
-            "genuinely poetic. Both reviewers now agree the ceiling on everything else is " +
-            "System 1's recorded debt: at matched scale the reference resolves a face, a jaw, " +
-            "a neck join, two legs and two feet, while the capture resolves a topknot floating " +
-            "over a shoulder mass. The single highest-value investment across the whole project " +
-            "is two silhouette curves \u2014 the brow-nose-chin contour and the jaw-neck wedge."
+    title: "System 3 \u2014 Verlet hair and cloth",
+    detail: "System 2 passed and System 1's debt is largely paid \u2014 the figure now resolves " +
+            "17 of the reference's 18 readable parts, against three a few passes ago. Hair and " +
+            "cloth are also the natural cure for the one rule the whole figure still trips: " +
+            "everything in a chain still arrives on the same frame, and body-then-cloth-then-" +
+            "hair-tips is what fixes it."
   },
 
   systems: [
@@ -178,7 +177,7 @@ const DATA = {
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
     { n:"02", name:"IK", status:"passed", passes:3,
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
-    { n:"03", name:"Verlet hair + cloth", status:"pending", passes:0,
+    { n:"03", name:"Verlet hair + cloth", status:"building", passes:0,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
     { n:"3b", name:"Faces — expression + variety", status:"pending", passes:0,
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
@@ -252,6 +251,57 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 1", kind:"build",
+      title:"Debt paid \u2014 the figure resolves 17 of 18 readable parts, and the ink finally falls",
+      sheet:"out/captures/s1-p7-bind/frame_000.png",
+      sheetNote:"The bind pose, which is the honest test for what parts resolve. Compare against " +
+                "the same frame further down this log, where the count was three.",
+      body:[
+        "Both reviewers had converged on the same thing: the ceiling on everything else was no " +
+        "longer the material or the motion but the <i>subject</i>. The matched-scale count is now " +
+        "<b>17 against the reference's 18</b>. New in this pass: a face contour with brow, nose " +
+        "and chin steps, a jaw-neck wedge, both legs, both feet, and a neck that reads as a neck " +
+        "rather than as a gap.",
+
+        "<b>The ink gravity is no longer inverted.</b> Band means from chest to hem ran " +
+        "65/60/62/65/78/91/125/139 and now run 63/61/61/53/59/69/93/108, with the swing " +
+        "bottoming at <b>46.7 at the knee</b>. The darkest passage in the figure is now exactly " +
+        "where references 1 and 2 put theirs. The figure ends in ink smoke rather than in " +
+        "erasure.",
+
+        "<b>And the largest cause was not in the debt document at all.</b> The <i>grass " +
+        "overlay</i> was drawing luminance-163 strokes at up to 0.88 alpha <b>over</b> the " +
+        "figure, reaching above the knee. The debt had named the mist and the mesh and missed " +
+        "the thing actually doing the bleaching. Now 112 at 0.62 alpha, reaching only to the " +
+        "shin."
+      ],
+      notes:[
+        { kind:"fix", label:"A plain bug found on the way",
+          text:"The lower garment was hard-coded with the <i>near</i> leg's bone lengths for " +
+               "both legs. The far leg's bones are shorter, so it was rendering a 40 px spike " +
+               "straight through its own foot into the ground. Re-parameterised by fractions of " +
+               "real bone lengths." },
+        { kind:"crit", label:"Three corrections to my debt document, all measured",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D3's \u201cthree-pixel polygon cut\u201d was already fixed</b> " +
+               "two passes earlier \u2014 swept over eighteen scanlines the transition is 1 to 76 px " +
+               "with a 10 to 131 px halo ahead of it. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>D3's \u201cmake the interior look like the hem\u201d is a measurement artefact</b> " +
+               "\u2014 on strictly interior windows the hem is <i>flatter</i> than the mantle, so " +
+               "what made that square inch good was its frayed boundary and fleck field, not its " +
+               "interior. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>And D4's octave floor is not the binding constraint</b> " +
+               "\u2014 the anti-shimmer fade already puts a 2.8 px octave at 11% amplitude, so " +
+               "adding octaves below 3.5 px buys nothing at this framing. It added none, which is " +
+               "the right response to a warning that says <i>this is a number, not a design</i>." },
+        { kind:"fix", label:"An honest correction I would rather have than agreement",
+          text:"My brief quoted 99 tests. The agent found 96, said so, and noted it had touched no " +
+               "test file. I verified independently: 96 is correct, git shows no test deletions, " +
+               "and the 99 was simply a miscount carried forward from an earlier report. Reporting " +
+               "the discrepancy rather than quietly matching my number is exactly the behaviour " +
+               "that has caught every real problem in this project." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 2", kind:"review", pass:3, verdict:"PASS",
       title:"First PASS of the run \u2014 and a finding that invalidated how I was grading timing",
