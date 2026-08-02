@@ -534,6 +534,17 @@ merely correct, say what would give it an origin.
 - **Overlapping action.** Body, cloth, and hair must never peak on the same frame. Cloth
   trails the body by ~4–8 frames, hair tips by ~8–14.
 
+  **Name the anchor, or the number means nothing.** A hem trails the *hips*; a sleeve trails
+  the *wrist*, which is itself already far behind the hips because it hangs off an IK chain
+  carrying its own settle. Both readings are defensible and they differ by a factor of
+  three, so a lag figure quoted without its anchor is unfalsifiable. State it every time.
+
+  **And a lag must be measured, not eyeballed.** Every lag this section specifies is a beat
+  you *feel*; none of them is a thing you can point at in a contact sheet, at any capture
+  cadence. Fixing the capture rate (§11.2) made lag gradeable by a *reviewer*; it did not
+  make it visible. **Any timing claim ships with a headless measurement**, and that
+  measurement must drive the same scene the capture runs rather than re-enacting it.
+
 ### 7.2 Extreme cases (this is where the aesthetic dies)
 
 The brief is explicit that fast motion is where dreamlike quality is easiest to lose. On
@@ -543,11 +554,24 @@ direction snaps, impacts, parries and knockback, verify:
   enough relaxation iterations and cap per-step correction.
 - **No mechanical overshoot-and-return.** A spring that visibly oscillates twice and stops
   reads as a machine. Damping should be high enough that there is at most one soft return.
+
+  **Measured against a disturbance, never against ambient motion.** Under a continuous
+  driver — a breeze, per-strand turbulence — "one soft return" is not a well-posed question,
+  and the naive test is actively misleading: strands appeared to ring two or three times,
+  and *damping them harder made it worse*, which is the unmistakable signature of measuring
+  the driver rather than a resonance. Kill the ambient input, apply one impulse, and count
+  the returns.
 - **No stretching artefacts.** Skinning must not candy-wrap at the elbow/shoulder on extreme
   angles.
 - **Knockback is a drift, not a launch.** A struck figure should be *carried* backward like
   a sheet of silk caught in wind, arriving over ~0.8 s, cloth and hair streaming ahead of
   the body's arrival.
+
+  **"Streaming ahead" is a displacement, not an arrival time.** Read as an arrival-time
+  claim it is both false and unbuildable — a chain hanging off a body cannot beat that body
+  to a destination, and a test asserting it will fail correctly. What the references show is
+  hair and cloth *thrown out in front* along the direction of travel: measure the growing
+  tip-to-root offset during the strike, not who gets there first.
 - **Parry is a deflection curve, not a collision.** The blades should slide and redirect
   along a smooth arc; the defender's arm gives ground on an IK curve rather than stopping dead.
 - **Fast motion should smear, not strobe.** A blade crossing the frame in 3 frames must leave
@@ -649,6 +673,27 @@ Four passes of material analysis never surfaced that. One matched-scale comparis
 
 **Corollary:** a material can only ever be as good as the subject it is painting. If the
 count is short, fixing the material is refinement of the wrong thing.
+
+### 11.2 Capture cadence — anything about timing must be captured at a true frame rate
+
+A review once could not grade a pass's central claim at all, because the capture sampled
+every 0.327 s while §7.1 specifies overlapping action in the 0.067-0.133 s band. **Every
+lag the motion systems are required to produce was shorter than one delivered sample.** The
+verdict at the time: *"it escapes the everything-peaks-together rule only because the
+sampling is too coarse to convict it. That is not the same as complying."*
+
+Use `-Pstart` and `-Pstep` to capture a short window at a true frame rate:
+
+```
+./gw capture -Pscene=<name> -Pframes=24 -Pcols=6 -Pstart=1.95 -Pstep=0.0167
+```
+
+24 frames over 0.38 s at 60 Hz, aimed at the beat that matters — the reversal, the impact,
+the settle. Contact sheets label the *captured window*, not the scene duration.
+
+**Any claim about lag or stagger made from a coarse capture is unfalsifiable**, and per
+§7.1 a capture is not sufficient either: timing claims also ship with a headless
+measurement.
 
 ---
 

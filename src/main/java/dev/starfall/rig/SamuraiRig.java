@@ -121,8 +121,8 @@ public final class SamuraiRig {
 
     /**
      * Parent-first hierarchy per contract section E. Names are load-bearing --
-     * side B addresses bones by name. 21 bones, well under the 24 budget the
-     * contract reserves for System 3's cloth bones (32 hard cap).
+     * side B addresses bones by name. 21 body bones plus System 3's seven cloth
+     * bones is 28, inside the 32 hard cap of contract section B with four spare.
      *
      * <p>Trunk bones (hips..head) stack via Y offset. {@code spine} carries an
      * 8-12 degree forward lean (rig-fixes section 2) as its own bindRotDeg, so
@@ -188,7 +188,28 @@ public final class SamuraiRig {
         Bone shinR = add(bones, new Bone("shinR", 19, thighR).bindLocal(0.40f, 0f, 0f));
         add(bones, new Bone("footR", 20, shinR).bindLocal(0.36f, 0f, 95f));
 
-        // Indices 21-23 intentionally unused: reserved for System 3 cloth bones.
+        // -- System 3 cloth bones ------------------------------------------
+        //
+        // Contract section E reserved indices past 20 for these and section B
+        // caps the skeleton at 32 (32 mat4 = 128 vec4, inside the GLES 3.0
+        // guaranteed minimum of 256 vertex uniform vectors). Seven bones takes
+        // the rig to 28 and leaves four spare, which is deliberate: the far
+        // sleeve and the far hakama are the obvious next candidates and there
+        // has to be room for them without another audit.
+        //
+        // Each chain is authored by naming the *garment rows* it drives, in
+        // world-bind space, so the bone chain and the mesh rows it is skinned to
+        // cannot drift apart -- the arrays below are the same numbers buildHaori
+        // and buildSleeve use, and are named as constants for exactly that
+        // reason. At bind every one of these bones sits exactly where the
+        // authored garment already was, so the skinning matrices are identity
+        // and switching the simulation off reproduces System 1's figure to the
+        // bit.
+        addClothChain(bones, hips, HAORI_BACK_X, HAORI_BACK_Y, HAORI_CLOTH_ROW0,
+                "clothBackA", "clothBackB", "clothBackC");
+        addClothChain(bones, hips, HAORI_FRONT_X, HAORI_FRONT_Y, HAORI_CLOTH_ROW0,
+                "clothFrontA", "clothFrontB");
+        addSleeveChain(bones, handL);
 
         return new Skeleton(bones);
     }
@@ -196,6 +217,119 @@ public final class SamuraiRig {
     private static Bone add(List<Bone> bones, Bone b) {
         bones.add(b);
         return b;
+    }
+
+    // -- cloth bone authoring -------------------------------------------------
+
+    /** First haori row the cloth chains take over. Rows above it stay on hips/spine/chest. */
+    private static final int HAORI_CLOTH_ROW0 = 6;
+
+    // The haori's two rails, hoisted to class scope because System 3's cloth
+    // bones are authored onto the same rows the mesh is. Two copies of these
+    // numbers would be a bone chain that silently stopped matching the garment
+    // it drives, and nothing would fail loudly.
+    //
+    // Collar sits below the throat (head's lowest point is ~1.55) so the neck --
+    // not the garment -- is what connects to the head.
+    private static final float[] HAORI_FRONT_Y = {1.46f, 1.36f, 1.22f, 1.06f, 0.92f, 0.74f, 0.56f, 0.40f, 0.26f, 0.14f};
+    private static final float[] HAORI_FRONT_X = {0.10f, 0.30f, 0.26f, 0.21f, 0.17f, 0.21f, 0.25f, 0.22f, 0.14f, 0.05f};
+    private static final float[] HAORI_BACK_Y = {1.46f, 1.40f, 1.28f, 1.12f, 0.96f, 0.78f, 0.58f, 0.36f, 0.12f, -0.16f};
+    private static final float[] HAORI_BACK_X = {-0.08f, -0.34f, -0.32f, -0.25f, -0.20f, -0.26f, -0.32f, -0.33f, -0.30f, -0.24f};
+
+    /** Near-sleeve drape nodes: distance along {@code handL} and offset across it, for the last three ribbon rows. */
+    private static final float[] SLEEVE_NODE_D = {0.10f, 0.31f, 0.52f};
+    private static final float[] SLEEVE_NODE_LATERAL = {-0.115f, -0.200f, -0.290f};
+
+    // Skull geometry, public because System 3's hair has to root itself on the
+    // same skull this mesh draws. Offsets are from the head bone's own origin,
+    // in the head's frame; the skull is very nearly a circle of SKULL_RADIUS
+    // about that point, and the topknot is a second lobe hung off it.
+    public static final float HEAD_LOBE_DX = 0.012f;
+    public static final float HEAD_LOBE_DY = 0.048f;
+    public static final float SKULL_RADIUS = 0.150f;
+    public static final float TOPKNOT_ANGLE_DEG = 140f;
+    public static final float TOPKNOT_DIST = 0.146f;
+    public static final float TOPKNOT_RADIUS = 0.072f;
+
+    /**
+     * Builds a run of cloth bones along the garment rows {@code row0..} of an
+     * authored rail, so that at bind each bone's origin sits on a row and its +x
+     * axis points at the next one. That last property is what lets
+     * {@link dev.starfall.sim.ClothSim} treat a bone's {@code bindRotDeg} as the
+     * rest bend at its joint and a segment direction as the bone's own world
+     * axis, with no link-offset conversion of the kind {@code IkChain} needs for
+     * the trunk.
+     */
+    private static void addClothChain(List<Bone> bones, Bone parent,
+                                       float[] railX, float[] railY, int row0, String... names) {
+        Vector2 p = bindWorldPos(parent, new Vector2());
+        float parentRot = bindWorldRotDeg(parent);
+        float prevDeg = parentRot;
+        Bone attach = parent;
+        for (int i = 0; i < names.length; i++) {
+            int r = row0 + i;
+            float dx = railX[r + 1] - railX[r];
+            float dy = railY[r + 1] - railY[r];
+            float dirDeg = MathUtils.atan2(dy, dx) * MathUtils.radiansToDegrees;
+            float lx;
+            float ly;
+            if (i == 0) {
+                float ox = railX[r] - p.x;
+                float oy = railY[r] - p.y;
+                float c = MathUtils.cosDeg(-parentRot);
+                float s = MathUtils.sinDeg(-parentRot);
+                lx = ox * c - oy * s;
+                ly = ox * s + oy * c;
+            } else {
+                lx = Vector2.len(railX[r] - railX[r - 1], railY[r] - railY[r - 1]);
+                ly = 0f;
+            }
+            attach = add(bones, new Bone(names[i], bones.size(), attach).bindLocal(lx, ly, dirDeg - prevDeg));
+            prevDeg = dirDeg;
+        }
+    }
+
+    /** The near sleeve's drape, which hangs off the wrist and is the second-largest trailing mass in the figure. */
+    private static void addSleeveChain(List<Bone> bones, Bone hand) {
+        Vector2 h = bindWorldPos(hand, new Vector2());
+        float handRot = bindWorldRotDeg(hand);
+        float c = MathUtils.cosDeg(handRot);
+        float s = MathUtils.sinDeg(handRot);
+        int n = SLEEVE_NODE_D.length;
+        float[] nx = new float[n];
+        float[] ny = new float[n];
+        for (int i = 0; i < n; i++) {
+            float d = SLEEVE_NODE_D[i];
+            float perp = SLEEVE_NODE_LATERAL[i];
+            nx[i] = h.x + d * c - perp * s;
+            ny[i] = h.y + d * s + perp * c;
+        }
+        addClothChain(bones, hand, nx, ny, 0, "sleeveA", "sleeveB");
+    }
+
+    /** Bind-pose world rotation of a bone, summed up its parent chain. Every bind scale in this rig is 1. */
+    private static float bindWorldRotDeg(Bone b) {
+        float r = 0f;
+        for (Bone c = b; c != null; c = c.parent) {
+            r += c.bindRotDeg;
+        }
+        return r;
+    }
+
+    /**
+     * Bind-pose world position of a bone, without a {@link Skeleton}. The cloth
+     * bones have to be authored inside {@code buildSkeleton()}, before the
+     * Skeleton (and therefore its inverse-bind matrices) exists.
+     */
+    private static Vector2 bindWorldPos(Bone b, Vector2 out) {
+        if (b.parent == null) {
+            return out.set(b.bindX, b.bindY);
+        }
+        bindWorldPos(b.parent, out);
+        float pr = bindWorldRotDeg(b.parent);
+        float c = MathUtils.cosDeg(pr);
+        float s = MathUtils.sinDeg(pr);
+        return out.set(out.x + b.bindX * c - b.bindY * s, out.y + b.bindX * s + b.bindY * c);
     }
 
     // -- Mesh -----------------------------------------------------------------
@@ -240,7 +374,7 @@ public final class SamuraiRig {
             buildFoot(skeleton.bone("footR"), 0.86f);
             buildLimbSliver(chainPoints("upperArmR", "forearmR", "handR", 0.19f, 0.14f, 0.09f), 0.028f, 0.18f, 0.06f, 0.14f);
             buildSleeve(skeleton.bone("upperArmR"), skeleton.bone("forearmR"), skeleton.bone("handR"),
-                    0.19f, 0.14f, 0.09f, 0.22f, 0.78f);
+                    0.19f, 0.14f, 0.09f, 0.22f, 0.78f, null);
 
             buildTrunk(hips, spine, chest, skeleton.bone("neck"), skeleton.bone("head"));
             buildHaori(hips, spine, chest);
@@ -271,7 +405,8 @@ public final class SamuraiRig {
 
             buildLimbSliver(chainPoints("upperArmL", "forearmL", "handL", 0.30f, 0.26f, 0.10f), 0.045f, 1f, 0.10f, 0.25f);
             buildSleeve(skeleton.bone("upperArmL"), skeleton.bone("forearmL"), skeleton.bone("handL"),
-                    0.30f, 0.26f, 0.10f, 0.42f, 1f);
+                    0.30f, 0.26f, 0.10f, 0.42f, 1f,
+                    new Bone[] {skeleton.bone("sleeveA"), skeleton.bone("sleeveB")});
             // Last, and in this order, because this is the one cluster the
             // references spend their whole interior budget on and nothing may
             // composite over it. See buildGrip.
@@ -362,9 +497,7 @@ public final class SamuraiRig {
          * of authored dissolve) still leaves real pixels of interior untouched.
          */
         private void buildHaori(Bone hips, Bone spine, Bone chest) {
-            // Collar sits below the throat (head's lowest point is ~1.55) so the
-            // neck -- not the garment -- is what connects to the head.
-            float[] frontY = {1.46f, 1.36f, 1.22f, 1.06f, 0.92f, 0.74f, 0.56f, 0.40f, 0.26f, 0.14f};
+            float[] frontY = HAORI_FRONT_Y;
             // Debt D5, the mass half of it. Measured across the p6 bind capture
             // the garment ran 144 px wide at the chest, pinched to 79 at the
             // waist and only recovered to 90 at the knee -- so the lower third
@@ -385,9 +518,9 @@ public final class SamuraiRig {
             // The back rows widen more than the front, which is the 1.35:1
             // trailing asymmetry rig-fixes section 2 asks for and is where
             // reference 1 throws its cloud.
-            float[] frontX = {0.10f, 0.30f, 0.26f, 0.21f, 0.17f, 0.21f, 0.25f, 0.22f, 0.14f, 0.05f};
-            float[] backY = {1.46f, 1.40f, 1.28f, 1.12f, 0.96f, 0.78f, 0.58f, 0.36f, 0.12f, -0.16f};
-            float[] backX = {-0.08f, -0.34f, -0.32f, -0.25f, -0.20f, -0.26f, -0.32f, -0.33f, -0.30f, -0.24f};
+            float[] frontX = HAORI_FRONT_X;
+            float[] backY = HAORI_BACK_Y;
+            float[] backX = HAORI_BACK_X;
             // Genuinely 0 through the shoulder-to-waist run (rows 0-3): the
             // dense core. Climbs only once the flare starts (row 4+).
             // The fray starts lower than revision 2 had it and then goes off a
@@ -465,10 +598,37 @@ public final class SamuraiRig {
             int n = frontY.length;
             short[] front = new short[n];
             short[] back = new short[n];
+            // The rows the cloth chains take over, per rail. Row 6 is the pivot
+            // and stays mostly on the hips -- a vertex sitting exactly on a
+            // bone's origin is unmoved by that bone's rotation, so this blend is
+            // about how the weights *interpolate* across the quads above it, not
+            // about row 6 itself. Below that each row hangs off the bone whose
+            // tip it is, which is the standard chain weighting: rotating bone A
+            // moves everything from its tip outward and nothing above it.
+            Bone backA = skeleton.bone("clothBackA");
+            Bone backB = skeleton.bone("clothBackB");
+            Bone backC = skeleton.bone("clothBackC");
+            Bone frontA = skeleton.bone("clothFrontA");
+            Bone frontB = skeleton.bone("clothFrontB");
+            BoneBlend[] clothF = new BoneBlend[n];
+            BoneBlend[] clothB = new BoneBlend[n];
+            clothB[6] = new BoneBlend(hips, 0.45f, backA, 0.55f);
+            clothB[7] = new BoneBlend(backA, 1f, backA, 0f);
+            clothB[8] = new BoneBlend(backB, 1f, backB, 0f);
+            clothB[9] = new BoneBlend(backC, 1f, backC, 0f);
+            clothF[6] = new BoneBlend(hips, 0.45f, frontA, 0.55f);
+            clothF[7] = new BoneBlend(frontA, 1f, frontA, 0f);
+            // The front chain is two bones rather than three: the front hem rises
+            // to clear the leg and its last two rows are 0.16 units of frayed
+            // smoke, so a third bone would buy a swing nobody can see against the
+            // one spare the 32-bone cap has left after the sleeve.
+            clothF[8] = new BoneBlend(frontB, 1f, frontB, 0f);
+            clothF[9] = new BoneBlend(frontB, 1f, frontB, 0f);
+
             for (int i = 0; i < n; i++) {
                 float s = i / (float) (n - 1);
-                BoneBlend bbF = trunkBlend(s, hips, spine, chest);
-                BoneBlend bbB = trunkBlend(Math.min(1f, s * 1.05f), hips, spine, chest);
+                BoneBlend bbF = clothF[i] != null ? clothF[i] : trunkBlend(s, hips, spine, chest);
+                BoneBlend bbB = clothB[i] != null ? clothB[i] : trunkBlend(Math.min(1f, s * 1.05f), hips, spine, chest);
                 float flowF = angleToU(280f - 15f * s);
                 float flowB = angleToU(255f - 45f * s);
                 front[i] = builder.vertex(frontX[i], frontY[i], 1f, s, dissolveF[i], wetF[i],
@@ -484,7 +644,7 @@ public final class SamuraiRig {
         private record BoneBlend(Bone boneA, float weightA, Bone boneB, float weightB) {
         }
 
-        /** s=0 at the collar, s=1 at the hem: chest -> spine -> hips, since System 1 has no dedicated cloth bones yet. */
+        /** s=0 at the collar, s=1 at the hem: chest -> spine -> hips. Rows at or below {@link #HAORI_CLOTH_ROW0} use the cloth chains instead. */
         private static BoneBlend trunkBlend(float s, Bone hips, Bone spine, Bone chest) {
             if (s < 0.15f) {
                 return new BoneBlend(chest, 1f, chest, 0f);
@@ -632,8 +792,18 @@ public final class SamuraiRig {
 
         // -- sleeves: wide, hanging, heavy dissolve at the opening ------------
 
+        /**
+         * @param clothBones the near sleeve's two drape bones, or null for the far
+         *                   arm. Only the <em>weights</em> of the last three rows
+         *                   change: their geometry stays authored off {@code hand}
+         *                   exactly as before, because those rows' rails are
+         *                   perpendicular to the wrist and re-deriving them from
+         *                   the cloth bones' own axes would silently re-cut the
+         *                   sleeve's silhouette.
+         */
         private void buildSleeve(Bone upperArm, Bone forearm, Bone hand,
-                                  float upperArmLen, float forearmLen, float handLen, float drape, float scale) {
+                                  float upperArmLen, float forearmLen, float handLen, float drape, float scale,
+                                  Bone[] clothBones) {
             RibbonPoint[] pts = {
                     // Starts right at the shoulder joint, not partway down the
                     // upper arm: a gap here was reading as a hairline bridging
@@ -647,6 +817,14 @@ public final class SamuraiRig {
                     RibbonPoint.of(hand, handLen + drape * 0.5f),
                     RibbonPoint.of(hand, handLen + drape),
             };
+            if (clothBones != null) {
+                // Rows 4, 5, 6 are the drape. Row 4 sits on sleeveA's origin, row
+                // 5 on its tip and row 6 on sleeveB's tip, which is the same
+                // tip-of-the-bone weighting the haori hem uses.
+                pts[4] = pts[4].skinnedTo(clothBones[0]);
+                pts[5] = pts[5].skinnedTo(clothBones[0]);
+                pts[6] = pts[6].skinnedTo(clothBones[1]);
+            }
             // Wider at the base than revision 1: a sleeve that starts as a
             // two-pixel sliver at the shoulder has no interior for the shader
             // to keep solid, regardless of authored dissolve.
@@ -1068,8 +1246,8 @@ public final class SamuraiRig {
          */
         private void buildHead(Bone head) {
             Vector2 c = skeleton.worldPosition(head.index, new Vector2());
-            float cx = c.x + 0.012f;
-            float cy = c.y + 0.048f;
+            float cx = c.x + HEAD_LOBE_DX;
+            float cy = c.y + HEAD_LOBE_DY;
             // rig-fixes-3 item 7 gave this a *directional* mass rather than a
             // radially uniform blob, at 25-30 degree angular resolution. Debt
             // D7 is that that is not enough: at 25 degrees the front quadrant
@@ -1125,8 +1303,8 @@ public final class SamuraiRig {
             // outline and reads as its own lobe, but overlapping enough that it
             // is welded rather than floating. Slightly frayed at its own rim --
             // it is hair, and full strand simulation is System 3's problem.
-            float lx = cx + MathUtils.cosDeg(140f) * 0.146f;
-            float ly = cy + MathUtils.sinDeg(140f) * 0.146f;
+            float lx = cx + MathUtils.cosDeg(TOPKNOT_ANGLE_DEG) * TOPKNOT_DIST;
+            float ly = cy + MathUtils.sinDeg(TOPKNOT_ANGLE_DEG) * TOPKNOT_DIST;
             float[] knotAngle = {0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f};
             float[] knotRadius = {0.070f, 0.078f, 0.076f, 0.082f, 0.074f, 0.064f, 0.062f, 0.066f};
             headLobe(head, lx, ly, knotAngle, knotRadius, 0.50f, 0f, 0.05f, 0.88f);
@@ -1267,14 +1445,28 @@ public final class SamuraiRig {
 
         // -- shared ribbon builder for anything that follows a bone chain -----
 
-        /** A row sample: {@code d} along {@code bone}'s bind direction, optionally blended toward a neighbouring bone at a joint. */
-        private record RibbonPoint(Bone bone, float d, Bone blendBone, float blendWeight) {
+        /**
+         * A row sample: {@code d} along {@code bone}'s bind direction, optionally
+         * blended toward a neighbouring bone at a joint.
+         *
+         * <p>{@code skinOverride} separates <em>where the row is</em> from
+         * <em>what carries it</em>. System 3 re-weights the sleeve's drape rows
+         * onto cloth bones without moving them by a micron: re-deriving their
+         * geometry from the cloth bones' own axes would rotate each row's rails
+         * to a new perpendicular and quietly re-cut a silhouette three passes
+         * were spent tuning.
+         */
+        private record RibbonPoint(Bone bone, float d, Bone blendBone, float blendWeight, Bone skinOverride) {
             static RibbonPoint of(Bone bone, float d) {
-                return new RibbonPoint(bone, d, bone, 0f);
+                return new RibbonPoint(bone, d, bone, 0f, null);
             }
 
             static RibbonPoint blended(Bone bone, float d, Bone blendBone, float blendWeight) {
-                return new RibbonPoint(bone, d, blendBone, blendWeight);
+                return new RibbonPoint(bone, d, blendBone, blendWeight, null);
+            }
+
+            RibbonPoint skinnedTo(Bone skin) {
+                return new RibbonPoint(bone, d, blendBone, blendWeight, skin);
             }
         }
 
@@ -1317,10 +1509,14 @@ public final class SamuraiRig {
                 Vector2 pl = alongBone(p.bone, p.d, lateral[i] + halfWidth[i]);
                 Vector2 pr = alongBone(p.bone, p.d, lateral[i] - halfWidth[i]);
                 float t = n <= 1 ? 0f : i / (float) (n - 1);
+                int skinA = p.skinOverride != null ? p.skinOverride.index : p.bone.index;
+                int skinB = p.skinOverride != null ? p.skinOverride.index : p.blendBone.index;
+                float wA = p.skinOverride != null ? 1f : 1f - p.blendWeight;
+                float wB = p.skinOverride != null ? 0f : p.blendWeight;
                 left[i] = builder.vertex(pl.x, pl.y, 0f, t, dissolve[i], wetness[i], stainAt(stainBase[i]), flow,
-                        p.bone.index, 1f - p.blendWeight, p.blendBone.index, p.blendWeight);
+                        skinA, wA, skinB, wB);
                 right[i] = builder.vertex(pr.x, pr.y, 1f, t, dissolve[i], wetness[i], stainAt(stainBase[i]), flow,
-                        p.bone.index, 1f - p.blendWeight, p.blendBone.index, p.blendWeight);
+                        skinA, wA, skinB, wB);
             }
             for (int i = 0; i < n - 1; i++) {
                 builder.quad(left[i], left[i + 1], right[i + 1], right[i]);

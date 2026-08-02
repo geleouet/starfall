@@ -6,6 +6,9 @@ import dev.starfall.rig.IkTargetScript;
 import dev.starfall.rig.RigBindposeScene;
 import dev.starfall.rig.RigBonesScene;
 import dev.starfall.rig.RigSwingScene;
+import dev.starfall.rig.SimDebugScene;
+import dev.starfall.rig.SimScene;
+import dev.starfall.rig.SimScript;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,6 +39,16 @@ public final class SceneRegistry {
             String name = "ik-" + kind.name().toLowerCase();
             register(name, () -> new IkScene(kind, name));
             register(name + "-debug", () -> new IkDebugScene(kind, name + "-debug"));
+        }
+
+        // System 3. Same arrangement, same reason: sim-*-debug draws the
+        // particles and constraints the graded capture deliberately hides. Both
+        // the easy scene and the hard one get the instrumentation from the first
+        // pass, which is System 2's debt item E5 paid up front.
+        for (SimScript.Kind kind : SimScript.Kind.values()) {
+            String name = "sim-" + kind.name().toLowerCase();
+            register(name, () -> new SimScene(kind, name));
+            register(name + "-debug", () -> new SimDebugScene(kind, name + "-debug"));
         }
     }
 

@@ -28,6 +28,13 @@ public final class Palette {
     public static final Color INK_SLATE = rgb(0x4A5A6B);
     public static final Color CLOTH_PALE = rgb(0xB9BEC0);
 
+    // STYLE.md 3b.2. The saturated pool of a shibori bloom and the body of dyed
+    // cloth; also the two values System 3's hair ramps between, because hair has
+    // to sit a full ramp *below* the garment it crosses and a long way above
+    // nothing at all where it trails into open paper.
+    public static final Color INDIGO_DEEP = rgb(0x1F2A3D);
+    public static final Color INDIGO_MID = rgb(0x3E5470);
+
     // -- Accents ----------------------------------------------------------
     public static final Color OCHRE = rgb(0xB5793A);
     public static final Color OCHRE_PALE = rgb(0xD8A86A);
