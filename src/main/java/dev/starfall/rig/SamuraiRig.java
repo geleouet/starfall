@@ -133,32 +133,44 @@ public final class SamuraiRig {
         Bone spine = add(bones, new Bone("spine", 2, hips).bindLocal(0f, 0.16f, -10f));
         Bone chest = add(bones, new Bone("chest", 3, spine).bindLocal(0f, 0.20f, 0f));
         Bone neck = add(bones, new Bone("neck", 4, chest).bindLocal(0f, 0.14f, 0f));
-        add(bones, new Bone("head", 5, neck).bindLocal(0f, 0.10f, 0f));
+        // 0.14 rather than 0.10: with the shoulder row dropped to 1.43 this is
+        // what buys a visible neck column between the mantle and the jaw.
+        add(bones, new Bone("head", 5, neck).bindLocal(0f, 0.14f, 0f));
 
-        // Sword arm (near/front side). Absolute (world) bind angle is roughly
-        // -65 at the shoulder, -75 through the elbow, so bindRotDeg here backs
-        // out chest's inherited -10 lean to hit that target.
-        Bone shoulderL = add(bones, new Bone("shoulderL", 6, chest).bindLocal(0.11f, 0.18f, -55f));
+        // Sword arm (near/front side). Revision 3: the shoulder sits 0.07 lower
+        // on the chest than revision 2 had it. It used to land at y=1.495, above
+        // the neck bone and level with the skull's chin, which left the figure
+        // with no neck at all -- the head simply rested on the shoulder line,
+        // which is the gap the pass-2 review measured at the throat.
+        Bone shoulderL = add(bones, new Bone("shoulderL", 6, chest).bindLocal(0.10f, 0.11f, -55f));
         Bone upperArmL = add(bones, new Bone("upperArmL", 7, shoulderL).bindLocal(0.04f, 0f, 0f));
         Bone forearmL = add(bones, new Bone("forearmL", 8, upperArmL).bindLocal(0.30f, 0f, -10f));
         Bone handL = add(bones, new Bone("handL", 9, forearmL).bindLocal(0.26f, 0f, 0f));
-        // Blade bind angle ~-45 absolute: a long forward-reaching diagonal, tip
-        // just grazing the ground, per rig-fixes section 3.
-        add(bones, new Bone("blade", 10, handL).bindLocal(0.10f, 0f, 30f));
+        // Blade bind angle -30 absolute: a long forward-reaching diagonal whose
+        // tip lands *on* the ground line rather than buried a fifth of a body
+        // below it, which is where revision 2's -45 put it. The extra 15 degrees
+        // live here rather than in the shoulder because the arm has to stay
+        // tucked against the ribs -- swing it forward to raise the tip and a
+        // 50 px pocket of bare paper opens between the haori front and the
+        // sleeve, which is a worse fault than the one it fixes.
+        add(bones, new Bone("blade", 10, handL).bindLocal(0.10f, 0f, 45f));
 
         // Off arm (far/back side): shorter, tucked, attached higher on the chest.
-        Bone shoulderR = add(bones, new Bone("shoulderR", 11, chest).bindLocal(-0.09f, 0.24f, -85f));
+        Bone shoulderR = add(bones, new Bone("shoulderR", 11, chest).bindLocal(-0.09f, 0.14f, -85f));
         Bone upperArmR = add(bones, new Bone("upperArmR", 12, shoulderR).bindLocal(0.02f, 0f, 0f));
         Bone forearmR = add(bones, new Bone("forearmR", 13, upperArmR).bindLocal(0.19f, 0f, -30f));
         add(bones, new Bone("handR", 14, forearmR).bindLocal(0.14f, 0f, 0f));
 
-        // Near/front leg, planted slightly forward.
-        Bone thighL = add(bones, new Bone("thighL", 15, hips).bindLocal(0.13f, -0.01f, -85f));
+        // Near/front leg, planted slightly forward. Revision 3 narrows the
+        // stance from +-0.13 to +-0.09: the two legs plus the hakama around them
+        // were the widest horizontal in the figure, which is half of why the
+        // silhouette measured as a cone.
+        Bone thighL = add(bones, new Bone("thighL", 15, hips).bindLocal(0.075f, -0.01f, -85f));
         Bone shinL = add(bones, new Bone("shinL", 16, thighL).bindLocal(0.44f, 0f, 0f));
         add(bones, new Bone("footL", 17, shinL).bindLocal(0.40f, 0f, 85f));
 
         // Far/back leg, trailing, smaller.
-        Bone thighR = add(bones, new Bone("thighR", 18, hips).bindLocal(-0.13f, -0.01f, -97f));
+        Bone thighR = add(bones, new Bone("thighR", 18, hips).bindLocal(-0.075f, -0.01f, -97f));
         Bone shinR = add(bones, new Bone("shinR", 19, thighR).bindLocal(0.40f, 0f, 0f));
         add(bones, new Bone("footR", 20, shinR).bindLocal(0.36f, 0f, 95f));
 
@@ -205,23 +217,33 @@ public final class SamuraiRig {
             Bone spine = skeleton.bone("spine");
             Bone hips = skeleton.bone("hips");
 
-            buildLimbSliver(chainPoints("thighR", "shinR", "footR", 0.44f, 0.40f, 0.14f), 0.040f, 0.16f, 0.20f, 0.42f);
-            buildHakama(skeleton.bone("thighR"), skeleton.bone("shinR"), skeleton.bone("footR"), 0.82f);
-            buildLimbSliver(chainPoints("upperArmR", "forearmR", "handR", 0.19f, 0.14f, 0.09f), 0.028f, 0.18f, 0.08f, 0.18f);
+            buildLimbSliver(chainPoints("thighR", "shinR", "footR", 0.44f, 0.40f, 0.14f), 0.040f, 0.16f, 0.42f, 0.88f);
+            buildHakama(skeleton.bone("thighR"), skeleton.bone("shinR"), skeleton.bone("footR"), 0.84f);
+            buildLimbSliver(chainPoints("upperArmR", "forearmR", "handR", 0.19f, 0.14f, 0.09f), 0.028f, 0.18f, 0.06f, 0.14f);
             buildSleeve(skeleton.bone("upperArmR"), skeleton.bone("forearmR"), skeleton.bone("handR"),
                     0.19f, 0.14f, 0.09f, 0.22f, 0.78f);
 
             buildTrunk(hips, spine, chest, skeleton.bone("neck"), skeleton.bone("head"));
             buildHaori(hips, spine, chest);
 
+            // Near leg *under* its own hakama, not over it (rig-fixes-3 item 3):
+            // a solid sliver composited on top of the skirt is what read as a
+            // translucent tube with a bright centre seam.
+            buildLimbSliver(chainPoints("thighL", "shinL", "footL", 0.44f, 0.40f, 0.14f), 0.055f, 1f, 0.45f, 0.95f);
             buildHakama(skeleton.bone("thighL"), skeleton.bone("shinL"), skeleton.bone("footL"), 1f);
-            buildLimbSliver(chainPoints("thighL", "shinL", "footL", 0.44f, 0.40f, 0.14f), 0.052f, 1f, 0.25f, 0.55f);
+
+            // The shoulder mass, drawn over everything on the trunk. This is the
+            // widest horizontal in the figure by construction (rig-fixes-3 item 1).
+            buildShoulderMantle(spine, chest);
 
             buildHead(skeleton.bone("head"));
 
             buildLimbSliver(chainPoints("upperArmL", "forearmL", "handL", 0.30f, 0.26f, 0.10f), 0.045f, 1f, 0.10f, 0.25f);
             buildSleeve(skeleton.bone("upperArmL"), skeleton.bone("forearmL"), skeleton.bone("handL"),
                     0.30f, 0.26f, 0.10f, 0.42f, 1f);
+            // Last: the join the references spend their whole interior budget on.
+            buildHand(skeleton.bone("handL"));
+            buildHilt(skeleton.bone("blade"));
 
             return builder.build();
         }
@@ -283,22 +305,39 @@ public final class SamuraiRig {
         private void buildHaori(Bone hips, Bone spine, Bone chest) {
             // Collar sits below the throat (head's lowest point is ~1.55) so the
             // neck -- not the garment -- is what connects to the head.
-            float[] frontY = {1.44f, 1.34f, 1.20f, 1.02f, 0.84f, 0.62f, 0.38f, 0.20f, 0.08f, 0.02f};
-            float[] frontX = {0.07f, 0.42f, 0.30f, 0.20f, 0.27f, 0.36f, 0.30f, 0.19f, 0.09f, 0.01f};
-            float[] backY = {1.44f, 1.38f, 1.28f, 1.12f, 0.95f, 0.76f, 0.50f, 0.20f, -0.12f, -0.50f};
-            float[] backX = {-0.06f, -0.40f, -0.40f, -0.42f, -0.55f, -0.73f, -0.90f, -1.00f, -1.04f, -1.00f};
+            float[] frontY = {1.46f, 1.36f, 1.22f, 1.06f, 0.92f, 0.74f, 0.56f, 0.40f, 0.26f, 0.14f};
+            float[] frontX = {0.10f, 0.30f, 0.26f, 0.21f, 0.16f, 0.16f, 0.18f, 0.16f, 0.11f, 0.04f};
+            float[] backY = {1.46f, 1.40f, 1.28f, 1.12f, 0.96f, 0.78f, 0.58f, 0.36f, 0.12f, -0.16f};
+            float[] backX = {-0.08f, -0.34f, -0.32f, -0.25f, -0.19f, -0.20f, -0.22f, -0.24f, -0.26f, -0.23f};
             // Genuinely 0 through the shoulder-to-waist run (rows 0-3): the
             // dense core. Climbs only once the flare starts (row 4+).
-            float[] dissolveF = {0f, 0f, 0f, 0f, 0f, 0.06f, 0.30f, 0.65f, 0.95f, 1.0f};
-            float[] dissolveB = {0f, 0f, 0f, 0f, 0.04f, 0.15f, 0.35f, 0.60f, 0.85f, 1.0f};
-            // Wetness peaks one row *before* full dissolve, not alongside it --
-            // pigment pools at the trailing edge of the wash just above where it
-            // frays, then the frayed flecks themselves carry less (rig-fixes
-            // review, finding E). Legs/hakama below share the same shape.
-            float[] wetF = {0.05f, 0.08f, 0.14f, 0.20f, 0.30f, 0.45f, 0.62f, 0.80f, 0.70f, 0.55f};
-            float[] wetB = {0.05f, 0.10f, 0.18f, 0.28f, 0.42f, 0.58f, 0.75f, 0.88f, 0.78f, 0.60f};
-            float[] stainF = {0f, 0f, 0.04f, 0.12f, 0.20f, 0.16f, 0.08f, 0.03f, 0f, 0f};
-            float[] stainB = {0f, 0f, 0.06f, 0.16f, 0.22f, 0.19f, 0.13f, 0.06f, 0.02f, 0f};
+            // The fray starts lower than revision 2 had it and then goes off a
+            // cliff. Pass 2 measured luminance 60 at the mid-torso against
+            // 137-160 at the hem, and the cause is coverage rather than value:
+            // a row that is a third dissolved is a third transparent, so paper
+            // shows through it and it measures pale no matter how wet it is
+            // authored. Keeping the skirt genuinely opaque down to the last two
+            // rows is what lets the pigment pooling below actually print.
+            float[] dissolveF = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.10f, 0.55f, 1.0f};
+            float[] dissolveB = {0f, 0f, 0f, 0f, 0f, 0f, 0.05f, 0.20f, 0.70f, 1.0f};
+            // rig-fixes-3 item 4, the ink gravity. The chest is now the *lightest*
+            // part of the wash and the pigment pools to near-black in the row
+            // immediately above the fray line -- pass 2 measured luminance 60 at
+            // the mid-torso against 137-160 at the hem, i.e. exactly backwards.
+            float[] wetF = {0.03f, 0.06f, 0.12f, 0.22f, 0.36f, 0.55f, 0.74f, 0.92f, 1.0f, 0.85f};
+            float[] wetB = {0.04f, 0.08f, 0.16f, 0.28f, 0.44f, 0.63f, 0.82f, 0.96f, 1.0f, 0.82f};
+            // Ochre lives in the chest and ribs, not the skirt: down at the
+            // thigh it printed as a bright warm blob right where item 4 wants
+            // the darkest ink in the figure.
+            // Ochre lives in the chest and ribs, not the skirt. It is also the
+            // one channel with real authority over value here: the resolve lets
+            // the stain *displace* the ink rather than tint it, so a stained
+            // chest is genuinely lighter and warmer than an unstained skirt.
+            // That is both what references 1 and 2 do -- rust bleeding through
+            // the breastplate over a near-black hakama -- and the only mesh-side
+            // lever that moves the ink gravity of item 4 the right way.
+            float[] stainF = {0f, 0.07f, 0.15f, 0.17f, 0.09f, 0.02f, 0f, 0f, 0f, 0f};
+            float[] stainB = {0f, 0.08f, 0.16f, 0.18f, 0.10f, 0.02f, 0f, 0f, 0f, 0f};
 
             int n = frontY.length;
             short[] front = new short[n];
@@ -341,28 +380,39 @@ public final class SamuraiRig {
         // -- hakama: wide-legged trousers, dissolve at the ankles -------------
 
         private void buildHakama(Bone thigh, Bone shin, Bone foot, float scale) {
+            // Revision 3: every row now hangs off the thigh or the shin, never
+            // off the foot. footL/footR bind to world rotation 0 (they point
+            // +X), so a half-width on a foot row offsets *vertically* -- the two
+            // trailing rows of revision 2 were therefore a pair of 0.66-tall
+            // vertical smears thrown forward from each ankle, and between them
+            // they were the widest thing in the figure by a wide margin.
             RibbonPoint[] pts = {
-                    RibbonPoint.of(thigh, 0.05f),
+                    RibbonPoint.of(thigh, 0.02f),
+                    RibbonPoint.of(thigh, 0.24f),
                     RibbonPoint.blended(thigh, 0.44f, shin, 0.4f),
-                    RibbonPoint.of(shin, 0.26f),
-                    RibbonPoint.blended(shin, 0.40f, foot, 0.4f),
-                    RibbonPoint.of(foot, 0.14f),
-                    RibbonPoint.of(foot, 0.34f), // trailing hem past the ankle, into ink
+                    RibbonPoint.of(shin, 0.20f),
+                    RibbonPoint.of(shin, 0.38f),
+                    RibbonPoint.blended(shin, 0.54f, foot, 0.25f), // gathered past the ankle, into ink
             };
-            float[] halfWidth = scaled(scale, 0.16f, 0.22f, 0.32f, 0.44f, 0.56f, 0.66f);
-            float[] dissolve = {0f, 0f, 0.05f, 0.25f, 0.60f, 1.0f};
+            // Wide-legged at the thigh, gathered at the ankle -- which is what a
+            // hakama actually does, and is the shape in references 1 and 2 where
+            // the leg below the knee is a narrow dark tube.
+            float[] halfWidth = scaled(scale, 0.088f, 0.112f, 0.104f, 0.080f, 0.063f, 0.054f);
+            float[] dissolve = {0f, 0f, 0f, 0f, 0.30f, 1.0f};
             // Far leg gets a higher dissolve floor throughout -- it never reads
             // as fully solid, which is what "lower contrast / recedes behind
             // the body" means when both legs share one InkMaterial draw call.
-            float contrastFloor = scale < 1f ? 0.16f : 0f;
+            float contrastFloor = scale < 1f ? 0.10f : 0f;
             for (int i = 0; i < dissolve.length; i++) {
                 dissolve[i] = Math.max(dissolve[i], contrastFloor);
             }
-            // Hakama and legs are meant to be among the darkest masses in the
-            // figure (rig-fixes review, finding E), not a mid-slate mush zone --
-            // wetness climbs hard and peaks at the ankle, just above the fray.
-            float[] wetness = {0.15f, 0.30f, 0.50f, 0.75f, 0.90f, 0.55f};
-            float[] stainBase = {0f, 0.05f, 0.10f, 0.05f, 0f, 0f};
+            // Hakama and legs are the darkest masses in the figure (rig-fixes-3
+            // item 4): wetness climbs hard and peaks just above the fray. Stain
+            // is now zero throughout -- the ochre in the lower body printed as a
+            // pair of bright vertical bars down the legs, which is exactly the
+            // "bright vertical seam" item 3 fails on.
+            float[] wetness = {0.42f, 0.62f, 0.80f, 0.94f, 1.0f, 0.78f};
+            float[] stainBase = {0f, 0f, 0f, 0f, 0f, 0f};
             ribbon(pts, halfWidth, dissolve, wetness, stainBase);
         }
 
@@ -386,14 +436,20 @@ public final class SamuraiRig {
             // Wider at the base than revision 1: a sleeve that starts as a
             // two-pixel sliver at the shoulder has no interior for the shader
             // to keep solid, regardless of authored dissolve.
-            float[] halfWidth = scaled(scale, 0.10f, 0.11f, 0.13f, 0.16f, 0.19f, 0.24f, 0.30f);
+            float[] halfWidth = scaled(scale, 0.135f, 0.140f, 0.145f, 0.165f, 0.190f, 0.235f, 0.290f);
             float[] dissolve = {0f, 0f, 0.02f, 0.05f, 0.15f, 0.55f, 1.0f};
-            float contrastFloor = scale < 1f ? 0.14f : 0f;
+            float contrastFloor = scale < 1f ? 0.10f : 0f;
             for (int i = 0; i < dissolve.length; i++) {
                 dissolve[i] = Math.max(dissolve[i], contrastFloor);
             }
-            float[] wetness = {0.05f, 0.08f, 0.12f, 0.18f, 0.25f, 0.40f, 0.55f};
-            float[] stainBase = {0f, 0f, 0f, 0.05f, 0.10f, 0.15f, 0.10f};
+            // Sleeves are hanging garments too: pigment pools toward the
+            // opening (item 4), and the ramp is kept close to the haori's own so
+            // the boundary between the two stops printing as a straight band.
+            float[] wetness = {0.06f, 0.12f, 0.22f, 0.36f, 0.52f, 0.70f, 0.85f};
+            // The ochre used to sit at the sleeve opening, i.e. right on the
+            // hand, and printed as a bright warm blob over the one join the
+            // references spend their whole interior budget resolving.
+            float[] stainBase = {0f, 0.04f, 0.06f, 0.04f, 0f, 0f, 0f};
             ribbon(pts, halfWidth, dissolve, wetness, stainBase);
         }
 
@@ -414,7 +470,7 @@ public final class SamuraiRig {
             float[] dissolve = new float[n];
             float[] wetness = new float[n];
             float[] stainBase = new float[n];
-            float contrastFloor = scale < 1f ? 0.12f : 0f;
+            float contrastFloor = scale < 1f ? 0.08f : 0f;
             for (int i = 0; i < n; i++) {
                 float t = n <= 1 ? 0f : i / (float) (n - 1);
                 hw[i] = halfWidth * scale;
@@ -433,7 +489,10 @@ public final class SamuraiRig {
             // between shoulders and skull instead of a pale narrow stalk
             // (rig-fixes review, finding C).
             Bone[] chain = {hips, spine, chest, neck, head};
-            float[] hw = {0.095f, 0.100f, 0.115f, 0.105f, 0.085f};
+            float[] hw = {0.105f, 0.110f, 0.120f, 0.080f, 0.074f};
+            // Ink gravity again: the trunk is the lightest thing in the figure
+            // at the top and pools toward the hips, matching the haori over it.
+            float[] wet = {0.55f, 0.30f, 0.10f, 0.06f, 0.06f};
             int n = chain.length;
             short[] left = new short[n];
             short[] right = new short[n];
@@ -441,14 +500,114 @@ public final class SamuraiRig {
                 Vector2 o = skeleton.worldPosition(chain[i].index, new Vector2());
                 float t = i / (float) (n - 1);
                 float flow = angleToU(90f);
-                left[i] = builder.vertex(o.x - hw[i], o.y, 0f, t, 0f, 0.10f, 0f, flow,
+                left[i] = builder.vertex(o.x - hw[i], o.y, 0f, t, 0f, wet[i], 0f, flow,
                         chain[i].index, 1f, chain[i].index, 0f);
-                right[i] = builder.vertex(o.x + hw[i], o.y, 1f, t, 0f, 0.10f, 0f, flow,
+                right[i] = builder.vertex(o.x + hw[i], o.y, 1f, t, 0f, wet[i], 0f, flow,
                         chain[i].index, 1f, chain[i].index, 0f);
             }
             for (int i = 0; i < n - 1; i++) {
                 builder.quad(left[i], left[i + 1], right[i + 1], right[i]);
             }
+        }
+
+        // -- the shoulder mass: rig-fixes-3 item 1 ---------------------------
+
+        /**
+         * Sode and haori shoulder line as one wide horizontal strip arching over
+         * both shoulders -- the single highest-impact fix in System 1.
+         *
+         * <p>Pass 2 measured the silhouette as a cone: shoulder line ~55 px,
+         * hem ~185 px, widening monotonically, so shoulder span was about 0.3x
+         * hip span where every samurai reference is about 1.6x the other way.
+         * That is the wraith read, and no amount of work on the head fixes it
+         * while the shoulder mass is absent.
+         *
+         * <p>Authored as a top rail and a bottom rail in world-bind-space rather
+         * than as a bone ribbon, because this mass is *body*-mounted armour: it
+         * must not spin with the sword arm through the swing's full shoulder
+         * revolution. Weights are therefore chest (top) blending to spine
+         * (bottom), never shoulderL/R.
+         *
+         * <p>The top edge is the hard-ish one -- fabric stretched over the
+         * shoulder, dissolve near 0 right out to the tips -- against a frayed
+         * lower edge, which is the contrast rig-fixes section 2 asked for and
+         * is what keeps the widest row from being eaten by the fray band.
+         */
+        private void buildShoulderMantle(Bone spine, Bone chest) {
+            // The end columns are deliberately short: a mantle that stops on a
+            // full-height vertical rail prints that rail as a straight polygon
+            // edge (STYLE.md 10 fails on sight), so each end tapers to a near
+            // point over two columns instead.
+            float[] x =    {-0.53f, -0.47f, -0.38f, -0.24f, -0.06f,  0.09f,  0.25f,  0.38f,  0.46f,  0.51f};
+            float[] top =  { 1.286f, 1.352f, 1.428f, 1.482f, 1.508f, 1.500f, 1.470f, 1.416f, 1.362f, 1.300f};
+            float[] bot =  { 1.230f, 1.140f, 1.062f, 1.055f, 1.096f, 1.116f, 1.110f, 1.140f, 1.196f, 1.262f};
+            float[] disT = { 0.30f,  0.12f,  0.03f,  0f,     0f,     0f,     0f,     0.03f,  0.12f,  0.30f};
+            float[] disB = { 0.42f,  0.30f,  0.20f,  0.10f,  0.06f,  0.06f,  0.10f,  0.20f,  0.30f,  0.42f};
+            // Kept close to the haori and sleeve values underneath it. The merge
+            // keeps the topmost strip's material outright, so an authored wetness
+            // step across a region boundary prints as a straight pale band.
+            float[] wetT = { 0.10f,  0.08f,  0.05f,  0.03f,  0.03f,  0.03f,  0.03f,  0.05f,  0.08f,  0.10f};
+            float[] wetB = { 0.20f,  0.18f,  0.16f,  0.14f,  0.13f,  0.13f,  0.14f,  0.16f,  0.18f,  0.20f};
+            float[] stn =  { 0.05f,  0.08f,  0.14f,  0.19f,  0.12f,  0.07f,  0.12f,  0.16f,  0.10f,  0.05f};
+
+            int n = x.length;
+            short[] hi = new short[n];
+            short[] lo = new short[n];
+            for (int i = 0; i < n; i++) {
+                float s = i / (float) (n - 1);
+                // Streaks run across the shoulder, following the drape.
+                float flow = angleToU(200f - 40f * s);
+                hi[i] = builder.vertex(x[i], top[i], s, 0f, disT[i], wetT[i], stainAt(stn[i] * 0.5f), flow,
+                        chest.index, 1f, chest.index, 0f);
+                lo[i] = builder.vertex(x[i], bot[i], s, 1f, disB[i], wetB[i], stainAt(stn[i]), flow,
+                        chest.index, 0.7f, spine.index, 0.3f);
+            }
+            for (int i = 0; i < n - 1; i++) {
+                builder.quad(hi[i], hi[i + 1], lo[i + 1], lo[i]);
+            }
+        }
+
+        // -- the hand / tsuba join: rig-fixes-3 item 2 ------------------------
+
+        /**
+         * A solid dark lozenge at the fist. References 3, 4 and 5 are near-black
+         * silhouettes and they still resolve the hand, because that join is what
+         * tells you a person is holding the sword; pass 2 had the blade starting
+         * in open paper about 8 px clear of the sleeve end.
+         */
+        private void buildHand(Bone hand) {
+            RibbonPoint[] pts = {
+                    RibbonPoint.of(hand, -0.03f),
+                    RibbonPoint.of(hand, 0.02f),
+                    RibbonPoint.of(hand, 0.08f),
+                    RibbonPoint.of(hand, 0.13f),
+            };
+            ribbon(pts,
+                    new float[] {0.044f, 0.062f, 0.058f, 0.040f},
+                    new float[] {0f, 0f, 0f, 0.05f},
+                    new float[] {0.50f, 0.60f, 0.58f, 0.50f},
+                    new float[] {0f, 0f, 0f, 0f});
+        }
+
+        /**
+         * Tsuka and tsuba, on the blade bone so they stay rigid with the steel.
+         * A solid dark lozenge with a flared guard is what the references draw
+         * and is all that is needed at this scale; the grip runs back far enough
+         * along the blade axis to bury itself in the hand mass above.
+         */
+        private void buildHilt(Bone blade) {
+            RibbonPoint[] pts = {
+                    RibbonPoint.of(blade, -0.26f),
+                    RibbonPoint.of(blade, -0.19f),
+                    RibbonPoint.of(blade, -0.09f),
+                    RibbonPoint.of(blade, -0.02f),
+                    RibbonPoint.of(blade, 0.02f),
+            };
+            ribbon(pts,
+                    new float[] {0.030f, 0.036f, 0.038f, 0.088f, 0.052f},
+                    new float[] {0.10f, 0f, 0f, 0f, 0f},
+                    new float[] {0.55f, 0.62f, 0.66f, 0.72f, 0.66f},
+                    new float[] {0f, 0f, 0f, 0f, 0f});
         }
 
         // -- head: profile silhouette, face detail out of scope for System 1 --
@@ -471,15 +630,44 @@ public final class SamuraiRig {
          */
         private void buildHead(Bone head) {
             Vector2 c = skeleton.worldPosition(head.index, new Vector2());
-            float cx = c.x + 0.02f;
-            float cy = c.y + 0.06f;
-            float[] angle = {0f, 25f, 55f, 90f, 120f, 150f, 180f, 210f, 240f, 270f, 300f, 330f};
-            float[] radius = {0.135f, 0.118f, 0.110f, 0.122f, 0.148f, 0.178f, 0.150f, 0.118f, 0.088f, 0.082f, 0.092f, 0.110f};
-            int n = angle.length;
-            float innerScale = 0.52f;
-            float flowUp = angleToU(90f);
+            float cx = c.x + 0.012f;
+            float cy = c.y + 0.048f;
+            // rig-fixes-3 item 7: a *directional* mass, not a radially uniform
+            // blob. Angle 0 is +X, the way the figure faces. Three things carry
+            // the read at 45 px: a solid opaque crown that bulges up and back
+            // (the hair mass), a clean interruption on the jaw side at 225-300
+            // where the profile cuts in and the neck takes over, and the topknot
+            // as a separate lobe below.
+            float[] angle =  {0f, 25f, 50f, 75f, 100f, 125f, 150f, 175f, 200f, 225f, 250f, 275f, 300f, 330f};
+            float[] radius = {0.128f, 0.132f, 0.142f, 0.152f, 0.162f, 0.170f, 0.167f, 0.150f,
+                              0.127f, 0.104f, 0.094f, 0.114f, 0.112f, 0.122f};
+            headLobe(head, cx, cy, angle, radius, 0.55f, 0f, 0.02f, 0.62f);
 
-            short center = builder.vertex(cx, cy, 0.5f, 0.5f, 0f, 0.10f, 0f, flowUp, head.index, 1f, head.index, 0f);
+            // Topknot: offset up and back far enough that it clears the skull
+            // outline and reads as its own lobe, but overlapping enough that it
+            // is welded rather than floating. Slightly frayed at its own rim --
+            // it is hair, and full strand simulation is System 3's problem.
+            float lx = cx + MathUtils.cosDeg(140f) * 0.146f;
+            float ly = cy + MathUtils.sinDeg(140f) * 0.146f;
+            float[] knotAngle = {0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f};
+            float[] knotRadius = {0.070f, 0.078f, 0.076f, 0.082f, 0.074f, 0.064f, 0.062f, 0.066f};
+            headLobe(head, lx, ly, knotAngle, knotRadius, 0.50f, 0f, 0.05f, 0.70f);
+        }
+
+        /**
+         * A centre-to-inner solid fan plus an inner-to-outer ring strip. A plain
+         * fan straight from the centre is all thin wedges meeting at a point, and
+         * the shader's boundary-distance dissolve eats each wedge back to a
+         * spike, printing a fringe of uniform radial spurs instead of a resolved
+         * mass (rig-fixes review, finding C). The ring gives the outer edge real
+         * width to fray into.
+         */
+        private void headLobe(Bone head, float cx, float cy, float[] angle, float[] radius,
+                               float innerScale, float dissolveIn, float dissolveOut, float wet) {
+            int n = angle.length;
+            float flowUp = angleToU(90f);
+            short center = builder.vertex(cx, cy, 0.5f, 0.5f, dissolveIn, wet, 0f, flowUp,
+                    head.index, 1f, head.index, 0f);
             short[] inner = new short[n];
             short[] outer = new short[n];
             for (int k = 0; k < n; k++) {
@@ -490,10 +678,10 @@ public final class SamuraiRig {
                 float flow = angleToU(angle[k]);
                 inner[k] = builder.vertex(cx + rIn * ca, cy + rIn * sa,
                         0.5f + 0.5f * innerScale * ca, 0.5f + 0.5f * innerScale * sa,
-                        0f, 0.10f, 0f, flow, head.index, 1f, head.index, 0f);
+                        dissolveIn, wet, 0f, flow, head.index, 1f, head.index, 0f);
                 outer[k] = builder.vertex(cx + rOut * ca, cy + rOut * sa,
                         0.5f + 0.5f * ca, 0.5f + 0.5f * sa,
-                        0.05f, 0.08f, 0f, flow, head.index, 1f, head.index, 0f);
+                        dissolveOut, wet * 0.92f, 0f, flow, head.index, 1f, head.index, 0f);
             }
             for (int k = 0; k < n; k++) {
                 int k2 = (k + 1) % n;

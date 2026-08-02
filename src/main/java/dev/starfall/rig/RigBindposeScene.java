@@ -73,6 +73,12 @@ public class RigBindposeScene implements Scene {
         renderer.draw(rig.mesh(), rig.skeleton(), clothMaterial);
         renderer.draw(rig.bladeMesh(), rig.skeleton(), bladeMaterial);
         renderer.end();
+        // Grass strokes over the hem (rig-fixes-3 item 5). Reference 2 draws
+        // grass across the figure's legs, and that single trick does more for
+        // grounding than any amount of haze -- but only if it is drawn after
+        // the figure. Fog occlusion is not done here; it stays inside the ink
+        // shader, per contract section F.
+        paper.renderOverlay(camera.combined, t);
     }
 
     @Override

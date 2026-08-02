@@ -56,9 +56,13 @@ public class RigSwingScene implements Scene {
         this.width = width;
         this.height = height;
         float aspect = width / (float) height;
-        float halfH = 1.3f; // a touch wider than bindpose: the raised/extended blade sweeps outside the resting silhouette
+        // A touch wider than bindpose: the raised/extended blade sweeps outside
+        // the resting silhouette. Revision 3 lifts the frame slightly so the
+        // apex of the backswing stays inside the top edge (rig-fixes-3 item 6);
+        // three of twelve frames had no visible weapon at all before.
+        float halfH = 1.35f;
         camera.setToOrtho(false, halfH * aspect * 2f, halfH * 2f);
-        camera.position.set(0f, 0.9f, 0f);
+        camera.position.set(0f, 0.95f, 0f);
         camera.update();
     }
 
@@ -76,6 +80,12 @@ public class RigSwingScene implements Scene {
         renderer.draw(rig.mesh(), rig.skeleton(), clothMaterial);
         renderer.draw(rig.bladeMesh(), rig.skeleton(), bladeMaterial);
         renderer.end();
+        // Grass strokes over the hem (rig-fixes-3 item 5). Reference 2 draws
+        // grass across the figure's legs, and that single trick does more for
+        // grounding than any amount of haze -- but only if it is drawn after
+        // the figure. Fog occlusion is not done here; it stays inside the ink
+        // shader, per contract section F.
+        paper.renderOverlay(camera.combined, t);
     }
 
     @Override

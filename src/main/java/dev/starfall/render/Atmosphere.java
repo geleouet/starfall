@@ -21,15 +21,26 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 final class Atmosphere {
 
     /**
-     * Three bands of (centre world y, half height, strength). Kept narrow on
-     * purpose: a band tall enough to cover the whole lower frame stops reading as
-     * a band and turns into a flat veil over the picture, which is how the first
-     * pass of this lost all of its warmth.
+     * Three bands of (centre world y, half height, strength).
+     *
+     * <p>Revision 3 (rig-fixes-3 item 5). The figure runs from feet at y=0.13 to
+     * the top of the topknot near y=1.83, so its lower third ends at y=0.70. The
+     * pass-2 measurement found the lowest figure ink well above the haze with
+     * clean paper between the two, which is the one thing STYLE.md 6 calls
+     * non-negotiable. The bands are therefore both raised and widened until they
+     * overlap: band 0 buries the hem and the feet, band 1 crosses the hakama, and
+     * band 2 -- the topmost -- straddles y=0.70 and so cuts across the figure's
+     * lower third rather than sitting under it.
+     *
+     * <p>They are still bands and not a veil: the falloff reaches zero at one
+     * half-height, the drift rates differ per band, and the mist pass in
+     * {@link PaperBackground} breaks each one into drifting lobes on top of this.
+     * Nothing here reaches the chest.
      */
     private static final float[] BANDS = {
-            0.02f, 0.34f, 0.55f,
-            0.52f, 0.16f, 0.30f,
-            1.02f, 0.10f, 0.16f,
+           -0.14f, 0.56f, 0.90f,
+            0.30f, 0.26f, 0.62f,
+            0.72f, 0.20f, 0.30f,
     };
 
     private Atmosphere() {

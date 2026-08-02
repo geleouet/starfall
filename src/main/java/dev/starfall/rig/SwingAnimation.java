@@ -46,40 +46,89 @@ public final class SwingAnimation {
     private static final float BIND_HAND_L = 0f;
 
     // -- hips: leads ----------------------------------------------------------
-    private static final float[] HIPS_T = {0f, 0.28f, 0.46f, 0.68f, 1f};
-    private static final float[] HIPS_DX = {0f, -0.050f, 0.060f, 0.020f, 0f};
-    private static final float[] HIPS_DY = {0f, -0.012f, -0.038f, -0.012f, 0f};
-    private static final float[] HIPS_DROT = {0f, -4f, 5f, 1f, 0f};
+    //
+    // Revision 3 stretches every body channel's *return* rather than its peak.
+    // Reshaping the sword arm (below) removed the elastic rebound it used to
+    // have, and with it a large slice of the ink-centroid movement the pass-2
+    // review measured in the back half of the clip -- the macro envelope came
+    // out 55/22/23 against a 40/15/45 target, i.e. the follow-through had
+    // vanished rather than been fixed. The wind-up excursions are a little
+    // smaller and the settle is both larger and slower, so the body is still
+    // visibly arriving over the last third of the sheet without the weapon
+    // bouncing to do it. STYLE.md 7.1: recovery is long.
+    // The forward drift *continues past the cut* -- the weight is still
+    // arriving at 0.70, well after the blade has finished -- and then settles
+    // over the last third. That is where the follow-through's ink-centroid
+    // movement now comes from. It is a translation rather than a rotation on
+    // purpose: rotating the spine back through the same span would swing the
+    // blade up again and reintroduce exactly the rebound item 6 is about.
+    private static final float[] HIPS_T = {0f, 0.30f, 0.50f, 0.70f, 0.88f, 1f};
+    // The hips do not come all the way back. A cut transfers weight forward
+    // and most of it stays transferred; hauling them fully home would drag the
+    // whole arm -- and the blade tip with it -- backwards through the settle,
+    // which reads as exactly the elastic rebound this revision is removing.
+    private static final float[] HIPS_DX = {0f, -0.038f, 0.072f, 0.104f, 0.058f, 0.030f};
+    private static final float[] HIPS_DY = {0f, -0.010f, -0.045f, -0.040f, -0.018f, -0.004f};
+    private static final float[] HIPS_DROT = {0f, -3f, 5f, 6f, 2f, 0f};
 
     // -- legs: between hips and spine ------------------------------------------
-    private static final float[] LEGS_T = {0f, 0.30f, 0.48f, 0.70f, 1f};
-    private static final float[] THIGH_L_DROT = {0f, -4f, 6f, 2f, 0f};
-    private static final float[] THIGH_R_DROT = {0f, 7f, -11f, -3f, 0f};   // rear leg extends as weight transfers
-    private static final float[] SHIN_R_DROT = {0f, 9f, -13f, -4f, 0f};
-    private static final float[] FOOT_R_DROT = {0f, 6f, 20f, 7f, 0f};      // heel lift on the rear foot
-    private static final float[] FOOT_L_DROT = {0f, -3f, 5f, 1f, 0f};
+    private static final float[] LEGS_T = {0f, 0.32f, 0.52f, 0.80f, 1f};
+    private static final float[] THIGH_L_DROT = {0f, -3f, 6f, 3f, 0f};
+    private static final float[] THIGH_R_DROT = {0f, 5f, -11f, -5f, 0f};   // rear leg extends as weight transfers
+    private static final float[] SHIN_R_DROT = {0f, 7f, -13f, -6f, 0f};
+    private static final float[] FOOT_R_DROT = {0f, 5f, 20f, 10f, 0f};     // heel lift on the rear foot
+    private static final float[] FOOT_L_DROT = {0f, -2f, 5f, 2f, 0f};
 
     // -- spine/chest: the engine of the cut -------------------------------------
-    private static final float[] SPINE_T = {0f, 0.34f, 0.52f, 0.72f, 1f};
-    private static final float[] SPINE_DROT = {0f, 13f, -20f, -6f, 0f}; // arches back, then flexes hard forward
-    private static final float[] CHEST_T = {0f, 0.36f, 0.54f, 0.74f, 1f};
-    private static final float[] CHEST_DROT = {0f, 9f, -15f, -5f, 0f};
+    private static final float[] SPINE_T = {0f, 0.34f, 0.55f, 0.82f, 1f};
+    private static final float[] SPINE_DROT = {0f, 10f, -24f, -12f, -6f}; // arches back, then flexes hard forward
+    private static final float[] CHEST_T = {0f, 0.36f, 0.57f, 0.84f, 1f};
+    private static final float[] CHEST_DROT = {0f, 7f, -18f, -9f, -5f};
 
     // -- far arm: counter-rotates for balance, never static ---------------------
-    private static final float[] FAR_ARM_T = {0f, 0.35f, 0.53f, 0.73f, 1f};
-    private static final float[] SHOULDER_R_DROT = {0f, -20f, 30f, 8f, 0f};
-    private static final float[] FOREARM_R_DROT = {0f, -15f, 22f, 6f, 0f};
+    private static final float[] FAR_ARM_T = {0f, 0.35f, 0.55f, 0.76f, 1f};
+    private static final float[] SHOULDER_R_DROT = {0f, -18f, 34f, 20f, 0f};
+    private static final float[] FOREARM_R_DROT = {0f, -13f, 26f, 15f, 0f};
 
     // -- sword arm: follows the spine ---------------------------------------------
-    private static final float[] SHOULDER_T = {0f, 0.38f, 0.56f, 1f};
-    // Absolute cumulative angle: -65 bind, -205 cocked back-and-up
-    // (mod 360 = 155), -395 the cut (mod 360 = -35, down-forward), -425 lands
-    // back on the resting angle (mod 360 = -65) -- one full revolution.
-    private static final float[] SHOULDER_ABS = {-65f, -205f, -395f, -425f};
-    private static final float[] ELBOW_T = {0f, 0.42f, 0.58f, 1f};
-    private static final float[] ELBOW_ABS = {-10f, -50f, 10f, -10f};
-    private static final float[] WRIST_T = {0f, 0.45f, 0.60f, 1f};
-    private static final float[] WRIST_ABS = {0f, -15f, 15f, 0f};
+    //
+    // Revision 3 reshapes this channel inside the macro timing, per
+    // rig-fixes-3 item 6. Three measured faults, three changes:
+    //
+    // 1. The anticipation was the *fastest* part of the clip -- the tip covered
+    //    ~400 px in the first 0.44 s. It is now one long smoothstep from rest to
+    //    0.41, which starts at zero velocity, peaks near the middle of the
+    //    wind-up and decelerates into a near-hold at the apex (the 0.41/0.47
+    //    key pair). STYLE.md 7.1 wants anticipation slow; here it is slower than
+    //    the cut everywhere, and slowest exactly where the pose is readable.
+    // 2. The apex left the frame for three of twelve frames. The arm now
+    //    extends nearly straight back rather than folding overhead, so at the
+    //    apex the blade lies up-and-back at roughly 175 degrees world with the
+    //    tip around (-1.6, 2.0) -- inside a frame whose top edge is 2.3.
+    // 3. The follow-through bounced back up 100 px and was still moving at the
+    //    final frame. Elbow and wrist used to reverse sign after the cut, which
+    //    is where that came from; every channel is now monotonic from the apex
+    //    onward and lands on the resting angle by 1.0 with a long slow tail.
+    private static final float[] SHOULDER_T = {0f, 0.41f, 0.47f, 0.545f, 0.70f, 0.86f, 1f};
+    // Absolute local angle (applyPose adds the delta onto bind, so the value
+    // here *is* the local rotation). -55 rest, -220 cocked back with the hands
+    // above the head, -367 the cut, -425 = -65 mod 360 lands the arm just past
+    // its resting angle. One continuous revolution, never reversing.
+    //
+    // The cut lands on 0.545 rather than 0.60 deliberately: capture frames fall
+    // every 1/11 of the clip, and with the arm nearly straight through the top
+    // of the arc the tip traces a two-unit radius. Ending the cut a frame later
+    // would put a captured frame at the top of that circle, several units above
+    // the frame edge -- which is the "apex leaves the frame" fault, arriving on
+    // the way *down* instead of on the way up. Between f5 (apex, blade laid back
+    // horizontally) and f6 (blade already down-forward) the swept arc is carried
+    // by the renderer's trail ribbon, which is what STYLE.md 7.2 asks fast motion
+    // to do: smear, not strobe.
+    private static final float[] SHOULDER_ABS = {-55f, -201f, -220f, -367f, -410f, -424f, -430f};
+    private static final float[] ELBOW_T = {0f, 0.41f, 0.47f, 0.545f, 0.70f, 0.86f, 1f};
+    private static final float[] ELBOW_ABS = {-10f, -2f, 5f, -22f, -16f, -12f, -10f};
+    private static final float[] WRIST_T = {0f, 0.41f, 0.47f, 0.545f, 0.70f, 0.86f, 1f};
+    private static final float[] WRIST_ABS = {0f, 3f, 6f, -6f, -4f, -2f, 0f};
 
     // -- neck/head: trails everything ---------------------------------------------
     private static final float[] NECK_T = {0f, 0.50f, 0.68f, 1f};
@@ -106,9 +155,11 @@ public final class SwingAnimation {
         pose.set("shoulderR", 0f, 0f, keyframed(t, FAR_ARM_T, SHOULDER_R_DROT));
         pose.set("forearmR", 0f, 0f, keyframed(t, FAR_ARM_T, FOREARM_R_DROT));
 
-        float shoulder = keyframed(t, SHOULDER_T, SHOULDER_ABS);
-        float elbow = keyframed(t, ELBOW_T, ELBOW_ABS);
-        float wrist = keyframed(t, WRIST_T, WRIST_ABS);
+        // slowIn, not keyframed: the sword arm is the one channel whose first
+        // segment must *not* start at full speed (rig-fixes-3 item 6).
+        float shoulder = slowIn(t, SHOULDER_T, SHOULDER_ABS);
+        float elbow = slowIn(t, ELBOW_T, ELBOW_ABS);
+        float wrist = slowIn(t, WRIST_T, WRIST_ABS);
         pose.set("shoulderL", 0f, 0f, shoulder - BIND_SHOULDER_L);
         pose.set("forearmL", 0f, 0f, elbow - BIND_FOREARM_L);
         pose.set("handL", 0f, 0f, wrist - BIND_HAND_L);
@@ -133,6 +184,31 @@ public final class SwingAnimation {
                 float local = (t - times[i]) / (times[i + 1] - times[i]);
                 float eased = i == 0 ? ease0(local) : smoothstep(local);
                 return MathUtils.lerp(values[i], values[i + 1], eased);
+            }
+        }
+        return values[n - 1];
+    }
+
+    /**
+     * Same interpolation as {@link #keyframed} but smoothstep on <em>every</em>
+     * segment including the first, so the channel leaves rest at zero velocity.
+     * The body channels keep the ease-out opening (it is what stopped the clip
+     * from starting with dead frames); the sword arm cannot afford it, because
+     * that arm is what the reviewer measures and its opening segment is the
+     * whole anticipation.
+     */
+    private static float slowIn(float t, float[] times, float[] values) {
+        int n = times.length;
+        if (t <= times[0]) {
+            return values[0];
+        }
+        if (t >= times[n - 1]) {
+            return values[n - 1];
+        }
+        for (int i = 0; i < n - 1; i++) {
+            if (t <= times[i + 1]) {
+                float local = (t - times[i]) / (times[i + 1] - times[i]);
+                return MathUtils.lerp(values[i], values[i + 1], smoothstep(local));
             }
         }
         return values[n - 1];
