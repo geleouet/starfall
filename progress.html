@@ -159,17 +159,17 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — system 1 debt paid (part count 17/18); system 3 Verlet building",
+  updated: "2026-08-02 — hair now bimodal; combat engine and measurement tooling landed",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 3 \u2014 Verlet hair and cloth",
-    detail: "System 2 passed and System 1's debt is largely paid \u2014 the figure now resolves " +
-            "17 of the reference's 18 readable parts, against three a few passes ago. Hair and " +
-            "cloth are also the natural cure for the one rule the whole figure still trips: " +
-            "everything in a chain still arrives on the same frame, and body-then-cloth-then-" +
-            "hair-tips is what fixes it."
+    title: "System 3 pass 2 in review \u2014 with tooling that audits the reviews themselves",
+    detail: "The hair is bimodal at last, which was the single named cause of pass 1's " +
+            "failure. Alongside it, two systems landed in parallel: the combat rules engine " +
+            "(headless, 90 tests) and a measurement library that immediately found two of this " +
+            "project's own recorded findings to be unfalsifiable. One value-floor regression " +
+            "is being fixed before the review runs."
   },
 
   systems: [
@@ -177,7 +177,7 @@ const DATA = {
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
     { n:"02", name:"IK", status:"passed", passes:3,
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
-    { n:"03", name:"Verlet hair + cloth", status:"building", passes:0,
+    { n:"03", name:"Verlet hair + cloth", status:"building", passes:2,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
     { n:"3b", name:"Faces — expression + variety", status:"pending", passes:0,
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
@@ -185,9 +185,9 @@ const DATA = {
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
     { n:"04", name:"Procedural interaction", status:"pending", passes:0,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
-    { n:"05", name:"Combat + action queue", status:"pending", passes:0,
+    { n:"05", name:"Combat + action queue", status:"partial", passes:0,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
-    { n:"06", name:"Capture harness + MCP", status:"partial", passes:0,
+    { n:"06", name:"Capture harness + MCP", status:"passed", passes:0,
       summary:"Offscreen capture and contact sheets are already live and load-bearing. HTTP debug API and MCP server still to come." }
   ],
 
@@ -253,6 +253,198 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 6", kind:"build",
+      title:"Measurement tooling \u2014 which immediately audited this project and found two decided findings that do not hold",
+      body:[
+        "Every review here has spent most of its effort <b>measuring pixels by hand</b>, and " +
+        "every genuine diagnosis came from those measurements \u2014 the band profile that proved " +
+        "the ink gravity inverted, the inter-frame registration that established the arrival " +
+        "chain, the mark-width histogram that found the hair was unimodal. All of it was " +
+        "recomputed from scratch each time, inconsistently. It is now a library, a CLI and a " +
+        "test suite: <code>./gw analyse</code>, twelve commands over exactly those primitives.",
+
+        "<b>Two rules are enforced in code rather than documented:</b> tracking <i>refuses to " +
+        "run</i> without an explicit anchor, and every number prints beside the rectangle it " +
+        "was taken through.",
+
+        "<b>Then it was pointed at the project's own records, and two findings that had " +
+        "decided real work turned out not to hold.</b> \u201cHair-region coverage 23%, hair " +
+        "share 6.0%\u201d is <b>unfalsifiable as recorded</b> \u2014 the region box was never " +
+        "written down, and defensible boxes on that very frame give coverage from <b>3.6% to " +
+        "59.3%</b>. The recorded pair is reachable; so is almost anything else. And \u201ca " +
+        "tight hem-tip box registers 0.00 px across all 23 steps\u201d is a <b>quantisation " +
+        "artefact</b>: with sub-pixel registration it moves 0.04-0.44 px per step and " +
+        "accumulates 5.52 px. Every step being under half a pixel, integer registration " +
+        "<i>necessarily</i> reports zero. In the tool author's words: <i>the figure measures " +
+        "the ruler, not the cloth.</i>",
+
+        "Both of those numbers were in briefs I wrote, and one of them was used to fail a pass."
+      ],
+      notes:[
+        { kind:"fix", label:"It also caught a defect in its own primitive",
+          text:"Corpus validation \u2014 checking the new tool against measurements already " +
+               "recorded \u2014 found that its halo threshold sat below the paper's own tooth " +
+               "noise and reported a 12 px halo in front of the hair strands. That would have " +
+               "quietly <i>cleared</i> System 3 of the one-pixel edge it had been correctly " +
+               "convicted of. The threshold is now the larger of 1% of range and twice the " +
+               "measured paper noise, and a halo must be continuous up to the transition. A " +
+               "measuring tool that is not itself measured is just a more confident opinion." },
+        { kind:"fix", label:"Recorded as STYLE.md \u00a711.3",
+          text:"<b>A measurement whose region is not recorded is an anecdote.</b> It may be " +
+               "true, it cannot be checked, and it must not be used to fail a pass. Region sets " +
+               "are now checked in rather than improvised per review, and registration is " +
+               "sub-pixel because integer registration silently manufactures zeros. This is the " +
+               "same failure \u00a77.1 already named for lag anchors, one level down." },
+        { kind:"fix", label:"What reproduced exactly",
+          text:"Figure height, the bind-pose md5, the frame-0 diff, the zero velocity sign " +
+               "changes in one capture, the hair's hard edge against the garment's halo, the " +
+               "brightest non-emissive value, ground-band autocorrelation, that one capture is " +
+               "pure acceleration, and <b>the arrival chain \u2014 ordering exact, every crossing " +
+               "within 1.3 frames</b>. Headless timing now drives the same scene the capture " +
+               "runs through a shared clock, so it <i>cannot</i> report a peak outside its own " +
+               "window \u2014 which is exactly what a previous pass did." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 5", kind:"build",
+      title:"Combat rules engine \u2014 and a design bug found by a test that would not terminate",
+      body:[
+        "The logic half, headless, 90 tests: lane, the five-slot Ink Stanza, cooldowns, turn " +
+        "order, facing, statuses, traits, both movement verbs, five enemies. No rendering " +
+        "concepts \u2014 turns and tiles, no pixels and no seconds.",
+
+        "<b>The queue's slot list is top-first, and that one list is simultaneously the " +
+        "resolution order and the paint order.</b> Nothing anywhere reverses it. That is what " +
+        "makes the vertical-column decision true rather than aspirational: the player never " +
+        "learns LIFO, they read downward.",
+
+        "<b>The event vocabulary is three layers, and the layering is the design.</b> Structure " +
+        "events bracket phrases, so the animation layer receives a sentence with countable " +
+        "clauses. <i>Relational</i> events name the two-body relationship \u2014 shoved, swapped, " +
+        "collided, blade met, verb refused \u2014 and are emitted <i>before</i> the moves they " +
+        "cause. Atomic events carry trajectories. Neither layer is redundant: a swap is two " +
+        "moves that must animate as <i>one interlocked gesture</i>, and a refused push is " +
+        "relational with no move at all. Cooldown recovery emits nothing, because the design's " +
+        "own filter lists pure cooldown arithmetic as not earning a beat."
+      ],
+      notes:[
+        { kind:"crit", label:"The bug: melee cannot land",
+          text:"\u201cNon-aggressive enemies give ground\u201d is broken at reach 1. The enemy " +
+               "attacks, retreats to distance 2, returns \u2014 so a hero alternating bank and " +
+               "execute is <i>never</i> swinging on a turn when the enemy is adjacent. <b>Cut " +
+               "literally cannot land on a Wisp.</b> The Bulwark, being the only Aggressive " +
+               "archetype, was the only source of stable adjacency, which is why it had become " +
+               "the fixture for every multi-turn test in the suite \u2014 one archetype carrying " +
+               "the entire fight's rhythm. Found as a non-terminating test loop, not by reading." },
+        { kind:"fix", label:"Resolved by turning a rhythm bug into a character beat",
+          text:"Enemies now give ground <b>only when wounded</b>, below half HP. Chosen over " +
+               "retreating every other attack or retreating to reach distance because it is the " +
+               "only option that produces <i>choreography</i>: a healthy enemy holds and trades, " +
+               "a wounded one starts backing away. That reads instantly and needs no " +
+               "explanation, where \u201cretreat on a timer\u201d is bookkeeping. Ten further " +
+               "implicit rules were resolved and recorded with reasons; two tuning items were " +
+               "recorded rather than guessed, both needing a playable fight to settle." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 3", kind:"build", pass:2,
+      title:"The hair becomes bimodal \u2014 mass and hairline, and nothing between",
+      sheet:"out/captures/s3-p2-sway-coarse/frame_004.png",
+      sheetNote:"System 3 pass 2. The hair is now a filled plume at ink-black with eighty-odd " +
+                "hairlines peeling out of it \u2014 the structure the references have and pass 1 " +
+                "did not.",
+      body:[
+        "Pass 1 was failed on one measured cause: the reference's hair is <b>bimodal</b> \u2014 a " +
+        "30-55 px near-opaque mass plus 1-2 px hairlines, with nothing between \u2014 while ours " +
+        "was <b>unimodal at 5-11 px</b>, the one register that reads as neither. It read as " +
+        "cord.",
+
+        "<b>Closed.</b> The mid-band share of mark widths, which is the discriminating " +
+        "statistic, falls from <b>52% to 20%</b> against the reference's 22%. Hairline count " +
+        "189 to 374. The analysis tooling built in parallel confirms it independently: 8 runs " +
+        "at 1-2 px and 4 at 65+ px with <b>nothing between 5 and 32 px</b>.",
+
+        "Six mass locks overlap into a filled plume holding ink-black across their whole first " +
+        "half \u2014 which closes the luminance cliff where the head measured 26-45 and the hair " +
+        "growing out of it measured 78-88. One is rooted on the topknot, so the tied mass and " +
+        "the hair are <i>one object at one value</i>. Fourteen further locks draw no ribbon at " +
+        "all; every lock instead fans 3-6 hairlines, most shed from <i>inside</i> the plume. " +
+        "Twenty simulated locks produce 83 hairlines \u2014 so the solver stays inside the " +
+        "budget while the drawing does not.",
+
+        "And the hair is back inside the ink material: the mass rail eroded by material-space " +
+        "noise, dry-brush along the stroke, the trailing rail pooling darker, and each mass " +
+        "ribbon drawn again beneath itself at 2.6x width as the wet bleed. <b>The edge profile " +
+        "goes from a 4 px cliff to a 40 px monotone ramp.</b> The halo is on the mass only \u2014 " +
+        "a 10 px halo round a 1 px hairline is a grey smear."
+      ],
+      notes:[
+        { kind:"fix", label:"A test now closes the band the failure lived in",
+          text:"The 3-to-14 px range is asserted empty, so a later re-parameterisation fails a " +
+               "<i>build</i> instead of a review. That is the right place for a finding this " +
+               "hard-won." },
+        { kind:"fix", label:"It caught a regression it had introduced, using the baseline the review demanded",
+          text:"Capturing a genuine pre-System-3 baseline from a git worktree revealed that " +
+               "handing a garment row wholly to a cloth bone had removed the spine's lean from " +
+               "every scene that runs no cloth simulation. Fixed by preserving the spine's exact " +
+               "share at the pivot. No pixel now differs by more than 2 levels of 255 \u2014 and " +
+               "the bind pose stayed md5-identical throughout, despite re-parenting five garment " +
+               "rows." },
+        { kind:"crit", label:"Two of my own briefing numbers retracted, and the cloth question reopened",
+          text:"The agent pushed back on the ink-share statistic, and the tooling then proved it " +
+               "right \u2014 measured properly the reference sits at 6.9% and pass 1 was " +
+               "<i>above</i> it. It also established that the review's evidence for the cloth " +
+               "being inert was a quantisation artefact. Its own reading stands and stands " +
+               "better: the chain genuinely bends 13-21\u00b0 per bone, but it drives rows the " +
+               "garment is authored to <i>dissolve</i>, while the readable lower-body mass has " +
+               "no cloth chain at all. Making the hem read means changing the base figure " +
+               "render, which would break the bind identity it was told to hold \u2014 so it " +
+               "declined to take that unilaterally, correctly, and it goes to review as an open " +
+               "question." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 3", kind:"review", pass:1, verdict:"FAIL",
+      title:"\u201cThe motion is poetic. The material is merely correct. The picture is neither yet.\u201d",
+      body:[
+        "The review found the simulation genuinely good and said so precisely: frames 08-20 of " +
+        "the reversal capture <i>\u201ccontain an idea about hair \u2014 that a bundle is many " +
+        "things with different masses arriving at different times, that some of them hook and " +
+        "come back, that one or two are barely attached. Nothing about that is a proof about a " +
+        "solver; it is a drawing of wind.\u201d</i>",
+
+        "<b>And then it is thrown away at the last step.</b> The hair was rendered as clean " +
+        "ribbons of uniform width with a one-pixel edge and no bleed, laid over an ink painting " +
+        "that had spent seven passes learning not to have edges. All that behaviour arrived in " +
+        "the frame as six grey cords doing something interesting, and the eye read <i>cords</i>.",
+
+        "The measurement that named the cause was one nobody had thought to take: a " +
+        "<b>mark-width histogram</b>. The reference is bimodal with nothing in the middle; ours " +
+        "was entirely middle. It also found the cloth producing no readable mark, and the " +
+        "\u00a77.2 gate captures gating nothing \u2014 a window of pure acceleration with no " +
+        "arrival, and a knockback driving in the same direction as a breeze that was never " +
+        "switched off, <b>violating a rule added on that same implementer's recommendation " +
+        "hours earlier</b>."
+      ],
+      notes:[
+        { kind:"crit", label:"The topknot: structure and motion were separated, and only one was delivered",
+          text:"An earlier review had praised an <i>accidental</i> artefact as the most " +
+               "reference-accurate feature in any capture \u2014 a near-black disc with a " +
+               "hundred-odd sub-pixel spokes, core to hairline with nothing between, which is " +
+               "the reference's exact structure arrived at by accident. Pass 1 recovered the " +
+               "<b>dynamics</b> that artefact never had, and discarded the <b>density</b> that " +
+               "was the thing being praised. <i>The right target is that structure driven by " +
+               "this solver's motion, and this pass delivered one of the two.</i>" },
+        { kind:"fix", label:"What it verified rather than assumed",
+          text:"The bind pose bit-identical by md5. No polyline kink at 14x on the thinnest " +
+               "strand. Per-strand variation genuine \u2014 six strands curling at six different " +
+               "radii. And the arrival chain, by inter-frame registration: <b>hips \u2192 head " +
+               "\u2192 hair root \u2192 hair mid \u2192 sleeve, an 11-frame spread</b>. That closes " +
+               "the everything-peaks-together rule for the whole figure, and it is the cheapest " +
+               "poetry in the project." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 1", kind:"build",
       title:"Debt paid \u2014 the figure resolves 17 of 18 readable parts, and the ink finally falls",
