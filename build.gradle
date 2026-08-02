@@ -55,6 +55,9 @@ tasks.register('capture', JavaExec) {
     // to grade overlapping action. See CaptureSpec#step.
     if (project.hasProperty('start')) args += ['--start', project.property('start')]
     if (project.hasProperty('step')) args += ['--step', project.property('step')]
+    // -Pclamp=cloth welds every cloth chain to bind: the rigid control STYLE.md 7.1 requires
+    // before any cloth lag is quoted, and gate 3 of its drape-excursion criterion.
+    if (project.hasProperty('clamp')) args += ['--clamp', project.property('clamp')]
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +94,7 @@ tasks.register('timing', JavaExec) {
     if (project.hasProperty('w')) args += ['--w', project.property('w')]
     if (project.hasProperty('h')) args += ['--h', project.property('h')]
     if (project.hasProperty('regions')) args += ['--regions', project.property('regions')]
+    if (project.hasProperty('clamp')) args += ['--clamp', project.property('clamp')]
 }
 
 // The in-game debug API. Off unless this task (or --debug-server) is used, so it never

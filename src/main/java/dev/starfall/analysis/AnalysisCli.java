@@ -72,6 +72,7 @@ public final class AnalysisCli {
             case "coverage" -> coverage(a);
             case "bands" -> bands(a);
             case "track" -> track(a);
+            case "drape" -> drape(a);
             case "autocorr" -> autocorr(a);
             case "edge" -> edge(a);
             case "marks" -> marks(a);
@@ -107,6 +108,10 @@ public final class AnalysisCli {
                   analyse track    <dir> --region <spec>... --anchor <name> [--fps 60]
                                                         centroid / registration tracking, velocity,
                                                         reversals, and lag AGAINST THE NAMED ANCHOR
+                  analyse drape    <dir> --region <cloth> --anchor <name> [--control <dir>]
+                                                        STYLE.md 7.1's cloth criterion: peak |x(cloth) - x(anchor)|
+                                                        as a multiple of the anchor's travel, its return, and the
+                                                        rigid control. Shoot the control with -Pclamp=cloth.
                   analyse autocorr <dir|png> --region <spec> [--axis x|y] [--min 4] [--max 200]
                                                         periodic artefact detection on a high-passed band
                   analyse edge     <png> --at x,y --dir right|left|up|down [--len 140]
@@ -373,11 +378,20 @@ public final class AnalysisCli {
         int smooth = a.getInt("smooth", 0);
         List<Frame> frames = c.capture.loadAll();
 
+        // The anchor is measured first and every other region's principal axis is signed
+        // against it. An eigenvector has no natural sign, and taking it from each region's
+        // own net travel made "did these two reverse in the same direction?" a question
+        // about the flag rather than about the figure -- see Track#principalAxis.
         Map<String, Track> tracks = new LinkedHashMap<>();
+        Track anchorTrack = Track.of(anchor, regions.get(anchor), frames, c.paper, c.factor,
+                method, axis, gate, radius).smoothed(smooth);
+        double[] reference = {anchorTrack.axisX, anchorTrack.axisY};
         for (Map.Entry<String, Rect> e : regions.entrySet()) {
-            tracks.put(e.getKey(), Track.of(e.getKey(), e.getValue(), frames, c.paper, c.factor,
-                    method, axis, gate, radius).smoothed(smooth));
+            tracks.put(e.getKey(), e.getKey().equals(anchor) ? anchorTrack
+                    : Track.of(e.getKey(), e.getValue(), frames, c.paper, c.factor,
+                            method, axis, gate, radius, reference).smoothed(smooth));
         }
+
         String rev = a.get("reversal", "dominant").trim().toLowerCase();
         Arrivals.Selector selector;
         int ordinal = 0;
@@ -451,6 +465,100 @@ public final class AnalysisCli {
         return 0;
     }
 
+    /**
+     * STYLE.md §7.1's drape excursion, with its three gates.
+     *
+     * <p>The section was amended to require this statistic and, like the rigid control it
+     * depends on, nothing in the repository could compute it — so the criterion that decides
+     * whether cloth ships was being quoted from hand arithmetic. See {@link Drape} for why
+     * displacement replaced phase.
+     */
+    private static int drape(Args a) throws IOException {
+        Ctx c = load(a, 0, true);
+        String anchor = a.get("anchor", null);
+        if (anchor == null) {
+            throw new IllegalArgumentException("--anchor is required: a drape excursion is a "
+                    + "displacement *against* something, and STYLE.md 7.1 will not accept one "
+                    + "without the anchor named. Try --anchor hips");
+        }
+        Map<String, Rect> regions = resolveRegions(c, a, false);
+        if (regions.isEmpty()) {
+            throw new IllegalArgumentException("--region <cloth box> is required");
+        }
+        Rect anchorRect = regions.get(anchor);
+        if (anchorRect == null) {
+            RegionSet.Def def = c.regionSet.def(anchor);
+            if (def == null) {
+                throw new IllegalArgumentException("--anchor " + anchor + " is not in the region set "
+                        + c.regionSet.names());
+            }
+            anchorRect = def.resolve(c.frame, c.figure);
+        }
+        // Registration by default, and the default is not a taste: STYLE.md 11.3 records that
+        // integer registration on a box moving under half a pixel per step manufactures exact
+        // zeros, and 7.1 asks for this statistic sub-pixel by name.
+        Track.Method method = Track.Method.valueOf(a.get("method", "register").toUpperCase());
+        Track.Axis axis = Track.Axis.valueOf(a.get("axis", "x").toUpperCase());
+        double gate = a.getDouble("gate", Track.DEFAULT_GATE);
+        int radius = a.getInt("radius", Registration.RADIUS);
+        double fps = a.getDouble("fps", 60);
+        int smooth = a.getInt("smooth", 0);
+
+        header(c);
+        out().println();
+        List<Frame> frames = c.capture.loadAll();
+        Track anchorTrack = Track.of(anchor, anchorRect, frames, c.paper, c.factor,
+                method, axis, gate, radius).smoothed(smooth);
+        double[] reference = {anchorTrack.axisX, anchorTrack.axisY};
+
+        String controlDir = a.get("control", null);
+        Map<String, Drape> controls = new LinkedHashMap<>();
+        if (controlDir != null) {
+            CaptureDir cd = CaptureDir.of(new File(controlDir));
+            List<Frame> cf = cd.loadAll();
+            Paper cp = Paper.estimate(cf.get(0));
+            // Deliberately the SAME rectangles as the live run, not rectangles re-resolved
+            // against the control's own figure box. A control exists to show what a box
+            // reads with the simulation dead; re-deriving the box from the dead figure would
+            // measure a different box and prove nothing about this one.
+            Track ca = Track.of(anchor, anchorRect, cf, cp, c.factor, method, axis, gate, radius)
+                    .smoothed(smooth);
+            double[] cref = {ca.axisX, ca.axisY};
+            for (Map.Entry<String, Rect> e : regions.entrySet()) {
+                Track ct = Track.of(e.getKey(), e.getValue(), cf, cp, c.factor, method, axis, gate,
+                        radius, cref).smoothed(smooth);
+                controls.put(e.getKey(), Drape.measure(ct, ca, fps));
+            }
+            out().printf("rigid control  %s  (%d frames)%n", cd.dir, cf.size());
+            out().println();
+        }
+
+        boolean ok = true;
+        for (Map.Entry<String, Rect> e : regions.entrySet()) {
+            if (e.getKey().equals(anchor)) {
+                continue;
+            }
+            Track cloth = Track.of(e.getKey(), e.getValue(), frames, c.paper, c.factor,
+                    method, axis, gate, radius, reference).smoothed(smooth);
+            Drape d = Drape.measure(cloth, anchorTrack, fps);
+            out().print(d.describe());
+            Drape ctrl = controls.get(e.getKey());
+            if (ctrl != null) {
+                out().print(Drape.describeControl(d, ctrl));
+                ok &= ctrl.ratio() <= Drape.CONTROL_GATE;
+            } else {
+                out().printf("  GATE 3 rigid control  not run. Shoot one with"
+                        + " `./gw capture -Pscene=... -Pclamp=cloth` and pass --control <dir>.%n");
+                ok = false;
+            }
+            if (!cloth.clipped.isEmpty() || !anchorTrack.clipped.isEmpty()) {
+                out().println("  WARNING registration hit its search window; widen --radius");
+            }
+            ok &= d.gate1() && d.gate2();
+            out().println();
+        }
+        return ok ? 0 : 1;
+    }
     private static int autocorr(Args a) throws IOException {
         Ctx c = load(a, 0, false);
         Map<String, Rect> regions = resolveRegions(c, a, false);
@@ -643,16 +751,44 @@ public final class AnalysisCli {
         Track.Axis axis = Track.Axis.valueOf(a.get("axis", "principal").toUpperCase());
         int smooth = a.getInt("smooth", 0);
 
+        // Two passes: the anchor's principal axis is resolved first and every other region's
+        // is signed against it. See Track#principalAxis and the note in track() above.
         Map<String, Track> tracks = new LinkedHashMap<>();
-        for (Object o : (List<Object>) root.get("regions")) {
+        List<Object> regionRows = (List<Object>) root.get("regions");
+        double[] reference = null;
+        for (Object o : regionRows) {
+            Map<String, Object> r = (Map<String, Object>) o;
+            if (anchor.equals(String.valueOf(r.get("name")))) {
+                Track t = Track.fromPositions(anchor, rectOf(r), toArray((List<Object>) r.get("x")),
+                        toArray((List<Object>) r.get("y")), axis, gate).smoothed(smooth);
+                reference = new double[] {t.axisX, t.axisY};
+            }
+        }
+        for (Object o : regionRows) {
             Map<String, Object> r = (Map<String, Object>) o;
             String name = String.valueOf(r.get("name"));
-            List<Object> rectNums = (List<Object>) r.get("rect");
-            Rect rect = new Rect(((Number) rectNums.get(0)).intValue(), ((Number) rectNums.get(1)).intValue(),
-                    ((Number) rectNums.get(2)).intValue(), ((Number) rectNums.get(3)).intValue());
             double[] xs = toArray((List<Object>) r.get("x"));
             double[] ys = toArray((List<Object>) r.get("y"));
-            tracks.put(name, Track.fromPositions(name, rect, xs, ys, axis, gate).smoothed(smooth));
+            tracks.put(name, Track.fromPositions(name, rectOf(r), xs, ys, axis, gate, reference).smoothed(smooth));
+        }
+
+        // Scene probes, if the scene implements dev.starfall.capture.SceneProbe. Tagged
+        // "sim:" and never merged into the pixel rows, because the whole reason the probe
+        // exists is that the two have been confused: a cloth lag read off a particle is a
+        // statement about the solver, and STYLE.md grades the picture. Printing them in one
+        // chain is what makes "the particle moved and the picture did not" a sentence with
+        // evidence rather than a suspicion.
+        boolean anyProbe = false;
+        if (root.get("probes") instanceof List<?> probeList) {
+            for (Object o : probeList) {
+                Map<String, Object> r = (Map<String, Object>) o;
+                String name = "sim:" + r.get("name");
+                double[] xs = toArray((List<Object>) r.get("x"));
+                double[] ys = toArray((List<Object>) r.get("y"));
+                tracks.put(name, Track.fromPositions(name, pathBounds(xs, ys), xs, ys, axis, gate)
+                        .smoothed(smooth));
+                anyProbe = true;
+            }
         }
         if (!tracks.containsKey(anchor)) {
             throw new IllegalArgumentException("--anchor " + anchor + " is not in this series " + tracks.keySet());
@@ -685,6 +821,10 @@ public final class AnalysisCli {
         out().printf("timing series %s%n  scene '%s', %.1f samples/s from t=%.4f s, figure %s%n",
                 file, root.get("scene"), rate, start, root.get("figure"));
         out().println("  measured from the same offscreen render the capture writes, driving the same scene");
+        if (anyProbe) {
+            out().println("  rows tagged 'sim:' are SceneProbe particle positions, not pixels. Their");
+            out().println("  rectangle is the box the particle swept, not a box anything was measured in.");
+        }
         out().println();
         for (Track t : tracks.values()) {
             out().print(t.describe());
@@ -698,6 +838,37 @@ public final class AnalysisCli {
                     c == null ? "no reversal" : String.format("t = %.4f s", start + c.frame() / rate));
         }
         return 0;
+    }
+
+    /**
+     * The integer box a probe path swept. A particle has no measurement rectangle -- it is
+     * a point -- and STYLE.md §11.3 requires every printed number to carry one, so this
+     * prints the honest thing: where the point went, labelled as such.
+     */
+    private static Rect pathBounds(double[] xs, double[] ys) {
+        double x0 = Double.MAX_VALUE;
+        double y0 = Double.MAX_VALUE;
+        double x1 = -Double.MAX_VALUE;
+        double y1 = -Double.MAX_VALUE;
+        for (int i = 0; i < xs.length; i++) {
+            x0 = Math.min(x0, xs[i]);
+            x1 = Math.max(x1, xs[i]);
+            y0 = Math.min(y0, ys[i]);
+            y1 = Math.max(y1, ys[i]);
+        }
+        if (xs.length == 0) {
+            return new Rect(0, 0, 0, 0);
+        }
+        int ix = (int) Math.floor(x0);
+        int iy = (int) Math.floor(y0);
+        return new Rect(ix, iy, Math.max(1, (int) Math.ceil(x1) - ix), Math.max(1, (int) Math.ceil(y1) - iy));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Rect rectOf(Map<String, Object> row) {
+        List<Object> n = (List<Object>) row.get("rect");
+        return new Rect(((Number) n.get(0)).intValue(), ((Number) n.get(1)).intValue(),
+                ((Number) n.get(2)).intValue(), ((Number) n.get(3)).intValue());
     }
 
     private static double[] toArray(List<Object> list) {

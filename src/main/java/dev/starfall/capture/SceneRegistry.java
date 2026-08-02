@@ -1,5 +1,8 @@
 package dev.starfall.capture;
 
+import dev.starfall.direct.Duel;
+import dev.starfall.direct.DuelDebugScene;
+import dev.starfall.direct.DuelScene;
 import dev.starfall.rig.IkDebugScene;
 import dev.starfall.rig.IkScene;
 import dev.starfall.rig.IkTargetScript;
@@ -49,6 +52,18 @@ public final class SceneRegistry {
             String name = "sim-" + kind.name().toLowerCase();
             register(name, () -> new SimScene(kind, name));
             register(name + "-debug", () -> new SimDebugScene(kind, name + "-debug"));
+        }
+
+        // System 4. Two figures, a real CombatEngine and a real Schedule -- the
+        // first scenes in the project in which any of the layers below run
+        // together. Same arrangement again, and the -debug siblings ship with the
+        // graded ones rather than after them: system3-debt.md records "no -debug
+        // siblings for any graded window, so the reviewer shot its own in order to
+        // say anything about the chain at all" as a capture-hygiene defect.
+        for (Duel.Kind kind : Duel.Kind.values()) {
+            String name = kind.sceneName();
+            register(name, () -> new DuelScene(kind, name));
+            register(name + "-debug", () -> new DuelDebugScene(kind, name + "-debug"));
         }
     }
 

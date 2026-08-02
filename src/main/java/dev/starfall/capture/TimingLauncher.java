@@ -22,6 +22,8 @@ public final class TimingLauncher {
     public static void main(String[] args) throws Exception {
         Locale.setDefault(Locale.ROOT);
         TimingApp.TimingSpec spec = TimingApp.TimingSpec.parse(args);
+        // Before the scene exists: see CaptureLauncher.
+        dev.starfall.sim.ClothSim.clampRigid("cloth".equals(spec.clamp));
 
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("starfall-timing");

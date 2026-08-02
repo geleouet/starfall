@@ -491,3 +491,207 @@ review's box is not recorded, which is §11.3's own point turned back on the rev
    relative to `hips` and the same-direction reversal filter then reported "no reversal in
    window" for a region that plainly reverses. Quote lag with `--axis x` on this figure, or
    fix the tool to align each region's axis to the anchor's.
+
+---
+
+# Pass 4 record — what moved, what is blocked, and three numbers that do not hold
+
+Every number below carries its rectangle (§11.3). The graded window is
+`sim-extreme -Pstart=0.9 -Pstep=0.0167 -Pframes=24`, and the before/after captures are
+`out/captures/s3-p3-reversal` and `out/captures/s3-p4-reversal` — the same scene, the same
+beat, the same clock. `out/captures/s3-p4-rigid-control` is the first checked-in rigid control
+in the project's history.
+
+## 0. Three instruments STYLE.md required and nothing implemented
+
+- **`-Pclamp=cloth`** on `capture` and `timing`. `ClothSim.clampRigid` holds every cloth bone
+  at `bindRotDeg` on every frame, so the garment is exactly the one `SamuraiRig` authored,
+  welded to the hips, while the solver still runs and stays readable through `SceneProbe`. It
+  is written into `capture.txt` as `clamp=` and `clothRigid=`, so a control capture cannot
+  later be mistaken for a live one. §7.1 has demanded this control since System 1; the pass-3
+  control that produced the +0.34 figure was a hand edit nobody could re-run.
+- **`analyse drape`.** §7.1's drape excursion with all three gates. The section was amended to
+  make this the criterion that decides whether cloth ships, and the criterion was being
+  computed by hand.
+- **`--axis principal` sign alignment.** `Track.principalAxis` now takes the anchor's axis as a
+  reference and signs every other region against it; `track` and `timing` resolve the anchor
+  first and pass it down. An eigenvector has no natural sign, and taking it from each region's
+  own net travel made "did these two reverse the same way?" a question about the flag.
+
+## 1. The drape excursion, with its control — and gate 3 fails by a factor of six
+
+Through `skirtBack` = fig[0.0408, 0.6611, 0.2806, 0.2157], resolved on `s3-p3-reversal` to
+**x445..499 y348..424**, anchored on `hips` **x483..568 y266..300**, `--axis x`, register:
+
+| | peak \|D\| | anchor travel | ratio |
+|---|---|---|---|
+| pass 3 as shipped | 28.61 px | 15.66 px | **1.83x** |
+| **pass 3, cloth clamped rigid** | **14.65 px** | 16.38 px | **0.89x** |
+| pass 4 | 26.90 px | 15.72 px | 1.71x |
+| **pass 4, cloth clamped rigid** | **14.24 px** | | **0.87x** |
+
+**STYLE.md §7.1's claim that "a welded garment scores 0 by construction" is false, and this is
+the first measurement that could show it.** A panel welded to the hips answers a *rotation* of
+the pelvis with a translation of its own silhouette, and registration prints that translation.
+So the statistic carries a pedestal of about 14 px on this box, gate 3's 0.15x limit is missed
+six-fold, and roughly half of pass 3's 1.83x is not cloth. The dynamic range — live minus
+control — is 13.96 px in pass 3 and 12.66 px in pass 4.
+
+This is the *same* error pass 3 caught in the reversal-time lag, one level up: a statistic
+adopted without its control, on an argument from construction rather than a measurement, and
+the argument is wrong for the same reason the old one was.
+
+**Gate 2 does not pass either, in either pass**, contrary to the brief. |D| falls to 25% of
+peak 0.141 s after the hips reverse in pass 3 and 0.137 s in pass 4, against a 0.15-0.25 s
+window: the return is slightly *too fast*, not too slow. Everything else in gate 2 is clean —
+monotone out, one sign change, overshoot 15% and 11% of peak against a 20% limit.
+
+## 2. Why `torso` and `hips` cannot reach the 80s, measured three ways
+
+The interior skip was taken to its ceiling before anything was tuned:
+
+| experiment | `torso` | `hips` |
+|---|---|---|
+| pass 3 as shipped | 98.2% | 100.0% |
+| old `skip` term at 1.00 authority (3.3x) with its blotch gate opened wide | 97.8% | 100.0% |
+| the material's bleed channel driven to **zero** over every dry interior fragment | 94.7% | 100.0% |
+| **coverage multiplied by 0.04 over the entire dry interior** — the strongest form there is | **91.1%** | **100.0%** |
+
+Boxes: `torso` x468..600 y191..270, `hips` x483..568 y266..300, ink < 0.85 x paper (185).
+
+Two causes, both now named.
+
+**(a) A halo floor in `ink_resolve.frag`, which was a latent bug.** That file's own comment
+claims the coverage blurs "are read strictly *outside* [the silhouette], where coverage is
+zero". They were not: `alpha = max(cov, haloA)` applies the halo everywhere, and its two
+additive constants — 0.09 tight and 0.05 wide — do not answer the material's bleed channel at
+all. Every fragment inside any silhouette therefore carried a floor of about **0.136 alpha**
+whatever `ink_skin.frag` wrote, which is luminance ~150-187 against an ink threshold of 185.
+Measured: the brightest pixel anywhere inside `torso`, `hips` or the back skirt on
+`s3-p3-reversal` is **149.7**. §3.3's "coverage is not uniform — ink skips" was unreachable
+from the material shader *by construction*, and three passes of trying to make the ink skip
+were failing against this line rather than against anything in the ink. Fixed here with one
+term, `wick`, sized so that anything wicking normally is unchanged.
+
+**(b) The `hips` box is not cloth.** 86 x 35 px over the obi, the sageo, the scabbard and both
+haori rails: a cluster of *narrow* strips where the fray band already spans the whole width
+and the silhouette guard forbids an interior term from touching them at all. A dry-brush skip
+that took that box into the 80s would be eating the fittings. It did not move by a single
+pixel under any experiment above, including total extinction.
+
+**So the brief's "get `torso`/`hips` down into the 80s" is not reachable and should not be
+carried forward as written.** What *is* reachable, and is delivered, is interior structure:
+
+| box | luminance sd, pass 3 | pass 4 | mean, pass 3 -> pass 4 |
+|---|---|---|---|
+| `skirtCore` x470..494 y350..409 | **3.26** | **10.54** | 32.6 -> 39.4 |
+| `torsoCore` x490..559 y205..259 | 10.23 | **21.50** | 49.8 -> 55.5 |
+| `hipsCore` x495..554 y272..295 | 26.62 | 26.26 | 49.5 -> 55.5 |
+
+A standard deviation of 3.3 on a mean of 32.6 is a flat fill in the arithmetic sense, and its
+cause was found: `dark = 0.14 + wetness * (0.85 + 0.16 * poolNoise) + blot * 0.16 + ...`
+**saturates at 1.0 for every wetness above about 0.85**, and the haori's lower rows are
+authored 0.84-1.00, so poolNoise, blot and hang were all being clipped away. The fix is not to
+lower the wet gain — measured, that moves the standard deviation by 0.01, because blot and
+hang re-saturate it — but to give *coverage* its own, milder wet gate, which is what
+`openness` is. Value untouched, sheet opened.
+
+## 3. The fray
+
+`analyse marks --region skirtBack`, 3 vertical cuts, ink < 0.85 x paper:
+
+| frame | pass 3 runs | pass 4 runs |
+|---|---|---|
+| 0 | 5 `[9, 48, 2, 74, 77]` — 1 under 4 px | 2 `[66, 77]` — 0 under 4 px |
+| 8 | 3 `[5, 39, 78]` — 0 | 2 `[68, 78]` — 0 |
+| 12 | 3 `[3, 1, 74]` — 2 | 2 `[55, 79]` — 0 |
+| 16 | 5 `[2, 18, 1, 15, 71]` — 2 | **8 `[2, 1, 1, 3, 7, 1, 13, 79]` — 5 under 4 px** |
+| 23 | 3 `[60, 73, 77]` — 0 | 4 `[1, 33, 56, 79]` — 1 |
+
+**The acceptance criterion is met through the knockback and not at rest, and the reason is
+structural rather than a tuning failure.** Two of the three cuts through `skirtBack` at rest
+fall in the deep interior of the skirt — 73 and 77 px of unbroken cloth from the top of the
+box to the bottom — so for those two columns "≥6 runs with ≥3 under 4 px" is an *interior
+skip* requirement, and section 2 is what the interior skip's ceiling is. The criterion is a
+fray test only once the figure has moved far enough for the box to straddle the boundary,
+which is what frames 16 and 23 are.
+
+What did move is the complaint the verdict actually raised: the edge is no longer a cliff.
+Scanline at (480, 410) heading left, 26 samples:
+
+    pass 3   37 38 38 33 33 35 37 35 31 31 33 32 33 32 33 34 34 34 35 45 69 102 139 168 181 190
+    pass 4   63 63 62 37 36 51 62 61 35 35 34 35 37 44 54 62 70 80 91 106 120 139 153 169 179 185
+
+Same column: the interior now varies over 35-63 rather than sitting on 31-38, and the ramp out
+is nine samples rather than five. At 5x the boundary is a torn wet cloud with detached shards
+above it instead of a scalloped decal.
+
+The three shader changes that produced it, all gated on the authored dissolve or on wetness so
+that every solid row above the waist is untouched: a wider coverage smoothstep on frayed rows
+(`band = 0.09 + 0.34 * dissolve`, was 0.13); the splatter octave's drift and threshold gates
+widened and its reach extended, which is the review's "let the fleck octave reach the
+boundary"; and `openness`, the dry brush opening the sheet rather than lifting the value.
+No new frequency enters the image — every octave touched is one this shader already ran, and
+`torso` autocorrelation stays at 0.095 against a 0.25 limit.
+
+## 4. Must-not-regress, re-measured
+
+| item | recorded | pass 4 | box |
+|---|---|---|---|
+| drape excursion | >= 1.83x | **1.71x** — see section 1 | `skirtBack` x445..499 y348..424 vs `hips` x483..568 y266..300 |
+| hair coverage | 60.3% (band 57-66%) | 58.6% | `hair` x426..563 y108..214 |
+| hair mid-band 5-16 px | 0% | **0%**, histogram identical | `hair-mid` x440..515 y125..199 |
+| hair bimodality | 0.905 | **0.905** | same |
+| value floor | 25.73 every frame | **25.73, floor respected** | whole frame |
+| `torso` autocorrelation | 0.069, limit 0.25 | **0.095** at lag 121 px | `torso` x468..600 y191..270 |
+| arrival chain spread | 10.68 frames | **11.79 before, 11.75 after** | `docs/regions.json`, `--axis x --anchor hips` |
+| `./gw test` | green | **green** | |
+
+Three of those need saying plainly:
+
+- **The drape excursion is down 6.5%** through identical pixel boxes, and the cloth signal over
+  the rigid pedestal is down from 13.96 px to 12.66 px. Softening a boundary changes what
+  registration locks onto. It still clears §7.1's own gate of 1.5x with margin, and it is now
+  quoted beside the control that says half of it was never cloth.
+- **The recorded 10.68-frame arrival spread does not reproduce.** This build measures 11.79
+  frames on a capture that is bit-identical to `s3-p3-reversal` — verified 24 of 24 frames,
+  md5 by md5 — so the recorded figure was taken through some other setting. That is the fourth
+  entry on that list.
+- **"Knockback streaming 1.74x through `hem` against `hips`, centroid, `--axis x`" could not be
+  reproduced either.** Through `hem` x473..591 y382..441 on the graded window that reads 0.23x
+  as a drape excursion and 1.09x as a travel ratio. The recorded number is presumably from the
+  knockback capture rather than this window; without the window written down it is not
+  checkable, which is §11.3's point again.
+
+## 5. Region set
+
+`skirtHigh` is renamed **`waist`** — it sits on the obi, and a rigid garment reads +0.34 frames
+through it — and the reviewer's **`skirtBack`** is added. Both changes carry their reason in
+`docs/regions.json`.
+
+One hazard the new box exposes, and it applies to the whole figure-space region system:
+**ink thrown beyond the silhouette moves the detected figure box, and therefore moves every
+region resolved against it.** The splatter added in this pass widened the figure from
+x437..632 to x415..672, which takes `hips` from 86 px wide to 113 and `skirtBack` from 55 to
+72. Every number in section 1 is therefore quoted through explicit *pixel* rectangles rather
+than through the figure-space definitions, so that before and after are the same box. §3
+requires ink outside the silhouette; the measurement system has to stop treating the
+silhouette as a datum.
+
+## 6. Still open
+
+1. **Gate 3 of §7.1's drape excursion is unmet at 0.87x, and no rectangle on this figure is
+   likely to meet it**, because a pelvis rotation moves a welded panel. Either the gate is
+   stated against the *control-subtracted* excursion (12.66 px of signal here), or the
+   registration has to fit a rotation as well as a translation. That is a §7.1 question rather
+   than a cloth question and should be settled before System 4 grades anything on it.
+2. **`back4`/`back5` still render nothing.** Two of the six particles on the main rail sit at
+   or below the bottom of the drawn figure. Not addressed: the rail's reach is set in
+   `RigSim.addChain` and the rows it drives in `SamuraiRig`, both under System 4's hand this
+   pass.
+3. **The must-not-regress list has not been re-recorded and frozen.** Two more of its entries
+   are shown above not to reproduce. Doing it properly means re-shooting every baseline through
+   `docs/regions.json` in one commit, on a tree that is not being edited by two systems at
+   once.
+4. **`hips` should probably stop being used as a coverage box.** It is a fittings cluster, not
+   cloth, and it will read ~100% in any pass.

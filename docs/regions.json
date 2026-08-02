@@ -1,6 +1,7 @@
 {
   "space": "figure",
   "note": "Fractions of the figure bounding box (origin top-left, +y down). Values outside 0..1 are legal: hair and blades leave the body box.",
+  "note2": "'skirtHigh' was renamed 'waist' in System 3 pass 4: the box sits on the obi, not on cloth, and a garment clamped rigid reads +0.34 frames through it (docs/system3-debt.md, pass 3 section 2). Do not grade cloth through it. 'skirtBack' is the cloth box: it straddles the back silhouette below the scabbard tip, excludes obi, thighs and front panel, and contains the back rail's two readable rows.",
   "regions": {
     "figure": {
       "space": "figure",
@@ -74,13 +75,22 @@
         0.0990
       ]
     },
-    "skirtHigh": {
+    "waist": {
       "space": "figure",
       "rect": [
         0.1500,
         0.5500,
         0.7000,
         0.1300
+      ]
+    },
+    "skirtBack": {
+      "space": "figure",
+      "rect": [
+        0.0408,
+        0.6611,
+        0.2806,
+        0.2157
       ]
     },
     "sleeve": {

@@ -37,6 +37,26 @@ public final class InkMaterial {
     /** True for blades: hard-edged, near-white, no dissolve. The one exception in STYLE.md 3. */
     public boolean emissive = false;
 
+    /**
+     * Offset added to the material-space sampling point of the ink noise, so two
+     * figures cut from the same rig are not painted with bit-identical ink.
+     *
+     * <p>System 4 puts a second figure on screen for the first time. Every noise
+     * field in {@code ink_skin.frag} is sampled at the vertex's <em>bind-space</em>
+     * position, deliberately, because that is what stops the pattern swimming
+     * (STYLE.md 3.5) -- and it also means the duellist and its opponent get the
+     * same torn hem, the same dry-brush streaks and the same flecks in the same
+     * places. A constant offset in that same space breaks the repeat without
+     * introducing a single screen-space term, which STYLE.md 10 fails on sight.
+     *
+     * <p>Zero for a lone figure, so every capture shot before System 4 is
+     * bit-identical.
+     */
+    public float seedX = 0f;
+
+    /** @see #seedX */
+    public float seedY = 0f;
+
     /** Configures this material as the blade material of STYLE.md 5. */
     public InkMaterial asBlade() {
         base = Palette.BLADE;

@@ -92,21 +92,24 @@ public final class Track {
      */
     public static Track fromPositions(String name, Rect rect, double[] x, double[] y,
                                       Axis axis, double gate) {
-        double ax = 1, ay = 0;
-        switch (axis) {
-            case X -> { ax = 1; ay = 0; }
-            case Y -> { ax = 0; ay = 1; }
-            case PRINCIPAL -> {
-                double[] pa = principalAxis(x, y);
-                ax = pa[0];
-                ay = pa[1];
-            }
-        }
-        return new Track(name, rect, Method.CENTROID, axis, x.clone(), y.clone(), ax, ay, gate, List.of());
+        return fromPositions(name, rect, x, y, axis, gate, null);
+    }
+
+    /** @param reference the anchor's axis, to sign every other region's against. See {@link #principalAxis}. */
+    public static Track fromPositions(String name, Rect rect, double[] x, double[] y,
+                                      Axis axis, double gate, double[] reference) {
+        double[] pa = axisFor(axis, x, y, reference);
+        return new Track(name, rect, Method.CENTROID, axis, x.clone(), y.clone(), pa[0], pa[1], gate, List.of());
     }
 
     public static Track of(String name, Rect rect, List<Frame> frames, Paper paper, double factor,
                            Method method, Axis axis, double gate, int radius) {
+        return of(name, rect, frames, paper, factor, method, axis, gate, radius, null);
+    }
+
+    /** @param reference the anchor's axis, to sign every other region's against. See {@link #principalAxis}. */
+    public static Track of(String name, Rect rect, List<Frame> frames, Paper paper, double factor,
+                           Method method, Axis axis, double gate, int radius, double[] reference) {
         int n = frames.size();
         double[] px = new double[n];
         double[] py = new double[n];
@@ -129,24 +132,44 @@ public final class Track {
                 py[i] = py[i - 1] + s.dy();
             }
         }
-        double ax = 1, ay = 0;
-        switch (axis) {
-            case X -> { ax = 1; ay = 0; }
-            case Y -> { ax = 0; ay = 1; }
-            case PRINCIPAL -> {
-                double[] pa = principalAxis(px, py);
-                ax = pa[0];
-                ay = pa[1];
-            }
-        }
-        return new Track(name, rect, method, axis, px, py, ax, ay, gate, clipped);
+        double[] pa = axisFor(axis, px, py, reference);
+        return new Track(name, rect, method, axis, px, py, pa[0], pa[1], gate, clipped);
+    }
+
+    private static double[] axisFor(Axis axis, double[] px, double[] py, double[] reference) {
+        return switch (axis) {
+            case X -> new double[] {1, 0};
+            case Y -> new double[] {0, 1};
+            case PRINCIPAL -> principalAxis(px, py, reference);
+        };
+    }
+
+    static double[] principalAxis(double[] px, double[] py) {
+        return principalAxis(px, py, null);
     }
 
     /**
-     * First principal direction of the per-step displacements, sign-fixed so the axis points
-     * along the net travel. Two-by-two eigenproblem, solved closed-form.
+     * First principal direction of the per-step displacements. Two-by-two eigenproblem,
+     * solved closed-form.
+     *
+     * <p><b>The sign is the whole subtlety, and it was a real bug.</b> An eigenvector is
+     * defined up to sign, so something has to choose one. Choosing it from each region's own
+     * net travel — which is what this did — makes the sign a property of the region rather
+     * than of the comparison, and a lag is a comparison: two regions that happen to net out
+     * in opposite directions get opposite axes, their velocities then disagree in sign for
+     * the same physical motion, and {@code Arrivals}' same-direction reversal filter throws
+     * away a reversal that is plainly there. Measured, {@code head} moved from +1.92 to
+     * +6.83 frames against {@code hips} on nothing but {@code --axis principal}, and a mesh
+     * change once flipped a garment's axis and printed "no reversal in window" for a region
+     * that visibly reverses.
+     *
+     * <p>So when a {@code reference} axis is supplied — in practice the anchor's, resolved
+     * first — the sign is taken from it instead: every region is projected onto a direction
+     * that agrees with the anchor's, and the signs of the whole chain become comparable.
+     * With no reference the old behaviour stands, which is correct for a single region
+     * measured on its own.
      */
-    static double[] principalAxis(double[] px, double[] py) {
+    static double[] principalAxis(double[] px, double[] py, double[] reference) {
         double sxx = 0, sxy = 0, syy = 0;
         double nx = 0, ny = 0;
         for (int i = 1; i < px.length; i++) {
@@ -181,7 +204,10 @@ public final class Track {
         }
         vx /= len;
         vy /= len;
-        if (vx * nx + vy * ny < 0) {
+        boolean flip = reference != null && reference.length == 2
+                ? vx * reference[0] + vy * reference[1] < 0
+                : vx * nx + vy * ny < 0;
+        if (flip) {
             vx = -vx;
             vy = -vy;
         }

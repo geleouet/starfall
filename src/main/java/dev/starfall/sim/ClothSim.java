@@ -93,6 +93,52 @@ public final class ClothSim {
         }
     }
 
+    /**
+     * System property, and {@code --clamp cloth} on the capture and timing harnesses, that
+     * welds every cloth chain to its bind pose.
+     *
+     * @see #clampRigid(boolean)
+     */
+    public static final String CLAMP_PROPERTY = "starfall.clamp.cloth";
+
+    private static volatile boolean rigidClamp = Boolean.getBoolean(CLAMP_PROPERTY);
+
+    /**
+     * The rigid control STYLE.md §7.1 requires and nothing in this repository could run.
+     *
+     * <p>§7.1 says, twice and in its own words: <i>"Before quoting a lag, run the rigid
+     * control; if a dead system scores near the live one, the rectangle is measuring the
+     * wrong thing"</i>, and then <i>"a rule that needs an instrument must ship the
+     * instrument"</i>. The instrument was still missing three passes later — the pass-3
+     * control that produced the +0.34 frame figure was a hand-edited swing limit that was
+     * never committed, so the one number that invalidated the graded rectangle could not be
+     * re-run by anybody. §7.1's new drape-excursion gate 3 (<i>rigid control ≤ 0.15×</i>)
+     * is unmeasurable without it.
+     *
+     * <p>Clamping happens in {@link #writeBack()} rather than by zeroing a swing limit,
+     * because it has to be <em>exact</em>: a limit of zero still passes the deviation
+     * through {@link SimMath#softCeil}, which is zero only in the limit, and a control that
+     * leaks a tenth of a degree is a control that cannot prove a statistic has no dynamic
+     * range. With this on, every cloth bone holds {@code bindRotDeg} on every frame, so the
+     * garment is exactly the garment {@code SamuraiRig} authored, welded to the hips. The
+     * solver still runs — the chains are still stepped and are still readable through
+     * {@code SceneProbe} — so a probe series taken under the clamp shows the particles
+     * moving while the picture does not, which is the distinction the control exists to
+     * draw.
+     *
+     * <p>Global rather than per-instance on purpose. It is a measurement switch thrown once
+     * at process start by {@code --clamp cloth}, and every {@code RigSim} in the scene must
+     * be under it or the control is only half a control.
+     */
+    public static void clampRigid(boolean on) {
+        rigidClamp = on;
+    }
+
+    /** True when {@link #clampRigid} is engaged. Written into {@code capture.txt}. */
+    public static boolean isClampedRigid() {
+        return rigidClamp;
+    }
+
     private final Skeleton skeleton;
     private final List<Chain> chains = new ArrayList<>();
     private final Vector2 scratch = new Vector2();
@@ -201,6 +247,15 @@ public final class ClothSim {
             float sign = mirrorSignAbove(c.bones[0]);
             for (int i = 0; i < c.bones.length; i++) {
                 Bone b = c.bones[i];
+                if (rigidClamp) {
+                    // The control: bind exactly, every frame. Nothing the solver did reaches
+                    // the skeleton, so the garment is welded to whatever bone the chain
+                    // hangs off and the picture contains no cloth motion at all.
+                    b.rotDeg = c.bindRotDeg[i];
+                    parentWorld = parentWorld + sign * b.rotDeg;
+                    sign *= b.scaleX * b.scaleY < 0f ? -1f : 1f;
+                    continue;
+                }
                 float solvedWorld = c.chain.segmentDeg(i);
                 float local = sign * SimMath.deltaDeg(parentWorld, solvedWorld);
                 // Soft ceiling on the deviation from bind, both ways.

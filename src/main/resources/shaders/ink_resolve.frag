@@ -156,8 +156,37 @@ void main() {
     // coverage is zero, and can no more move the outline than a shadow can move
     // the object.
     float bleedFar = far.b / max(cF, 0.02);
-    float haloTight = smoothstep(0.015, 0.30, cM) * (0.09 + 0.26 * bleedAvg);
-    float haloWide = smoothstep(0.006, 0.20, cF) * (0.05 + 0.14 * bleedFar);
+
+    // System 3 pass 4. `wick` is the one change, and it enforces the invariant the
+    // paragraph above already claims: "these blurs are read strictly *outside* it,
+    // where coverage is zero". They were not. `alpha = max(cov, haloA)` applies
+    // haloA everywhere, including under solid cloth, and the two additive
+    // constants -- 0.09 and 0.05 -- do not answer the material's bleed channel at
+    // all. So every fragment inside any silhouette carried a floor of
+    //
+    //     (0.09 + 0.05 * 0.91) * u_bleedRadius = 0.136 alpha
+    //
+    // whatever ink_skin.frag wrote. That is invisible while coverage is 1 (the
+    // max() takes cov) and decisive the moment the material shader tries to open
+    // the sheet: measured on the pass-3 graded window, the brightest pixel
+    // anywhere inside `torso`, `hips` or the back skirt is luminance 150 against
+    // an ink threshold of 0.85 x paper = 185, and with the material's bleed
+    // channel driven to zero over every dry passage `torso` coverage still only
+    // reached 94.7% and `hips` did not move off 100.0% at all. STYLE.md 3.3's
+    // "coverage is not uniform -- ink skips" was unreachable from the material
+    // shader by construction, and three passes of trying to make the ink skip
+    // failed against this line rather than against anything in the ink.
+    //
+    // A halo is pigment wicking *from* ink *into* paper, so where the material
+    // reports that this passage barely wicks, the halo must go with it -- floors
+    // included. Sized against the 0.52 floor `bleed` carries for ordinary solid
+    // cloth, so anything wicking normally is bit-identical and only a passage the
+    // material has explicitly opened thins. The exterior halo of STYLE.md 3.2 is
+    // untouched for the same reason: it is fed by the coverage-weighted average
+    // of the *edge* fragments, and ink_skin.frag leaves those at full bleed.
+    float wick = smoothstep(0.02, 0.34, max(bleedAvg, bleedFar));
+    float haloTight = smoothstep(0.015, 0.30, cM) * (0.09 + 0.26 * bleedAvg) * wick;
+    float haloWide = smoothstep(0.006, 0.20, cF) * (0.05 + 0.14 * bleedFar) * wick;
     float haloA = (haloTight + haloWide * (1.0 - haloTight)) * u_bleedRadius;
 
     float alpha = max(cov, haloA);

@@ -33,6 +33,19 @@ public final class CaptureSpec {
      */
     public float step = 0f;
 
+    /**
+     * Simulation clamp for control captures. {@code "cloth"} welds every cloth chain to its
+     * bind pose; empty runs the scene normally.
+     *
+     * <p>STYLE.md §7.1 requires a rigid control before any cloth lag is quoted, and §7.1's
+     * drape-excursion gate 3 states one as a pass condition ({@code rigid control ≤ 0.15×}).
+     * Until this flag existed the repository could not run one, which is the failure §11.3
+     * exists to prevent committed by the section that warns about it. It is recorded in
+     * {@code capture.txt} like every other parameter, so a control capture cannot be mistaken
+     * for a live one later.
+     */
+    public String clamp = "";
+
     public static CaptureSpec parse(String[] args) {
         CaptureSpec spec = new CaptureSpec();
         for (int i = 0; i < args.length - 1; i++) {
@@ -48,6 +61,7 @@ public final class CaptureSpec {
                 case "--label" -> { spec.label = value; i++; }
                 case "--start" -> { spec.start = Float.parseFloat(value); i++; }
                 case "--step" -> { spec.step = Float.parseFloat(value); i++; }
+                case "--clamp" -> { spec.clamp = value; i++; }
                 default -> { }
             }
         }

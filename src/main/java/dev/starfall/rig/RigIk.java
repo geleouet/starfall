@@ -271,12 +271,47 @@ public final class RigIk {
      * every frame of an animation that was not trying to bend it at all.
      */
     public Vector2 fromHips(float localX, float localY, Vector2 out) {
-        skeleton.worldPosition(hips.index, out);
-        float rot = skeleton.worldRotationDeg(hips.index);
+        return fromBone(hips, localX, localY, out);
+    }
+
+    /**
+     * Maps a bone-local point into world space, honouring a mirrored ancestor.
+     *
+     * <p><b>The mirror term is the part that is easy to get wrong and it only
+     * shows up with two figures on screen.</b> {@link Skeleton#worldRotationDeg}
+     * returns {@code atan2} of the bone's world +x axis, which under a mirrored
+     * root is {@code 180 - theta} rather than {@code theta}. Rotating a local
+     * offset by that angle reflects the offset's <em>x</em>, which is what is
+     * wanted, and leaves its <em>y</em> alone, which is not: a knee pole authored
+     * below and in front of the pelvis comes out below and <em>behind</em> it on a
+     * left-facing figure, and the knee flips. Negating the local y before the
+     * rotation is exactly the missing reflection --
+     * {@code mirror_x(R(theta) v) = R(180 - theta) (v.x, -v.y)}.
+     *
+     * <p>The same correction {@code IkChain.writeBack} and {@code ClothSim.writeBack}
+     * already carry, for the same reason and in the same words: "a fighter facing
+     * left is {@code root.scaleX = -1}". It is a no-op for an unmirrored figure, so
+     * every capture shot before System 4 is unaffected.
+     */
+    public Vector2 fromBone(Bone bone, float localX, float localY, Vector2 out) {
+        skeleton.worldPosition(bone.index, out);
+        float rot = skeleton.worldRotationDeg(bone.index);
         float cos = (float) Math.cos(Math.toRadians(rot));
         float sin = (float) Math.sin(Math.toRadians(rot));
-        return out.set(out.x + localX * cos - localY * sin,
-                out.y + localX * sin + localY * cos);
+        float ly = localY * mirrorSign(bone);
+        return out.set(out.x + localX * cos - ly * sin,
+                out.y + localX * sin + ly * cos);
+    }
+
+    /** -1 when this bone's world transform is mirrored, +1 otherwise. */
+    private static float mirrorSign(Bone bone) {
+        float sign = 1f;
+        for (Bone b = bone; b != null; b = b.parent) {
+            if (b.scaleX * b.scaleY < 0f) {
+                sign = -sign;
+            }
+        }
+        return sign;
     }
 
     /**
@@ -344,12 +379,8 @@ public final class RigIk {
         if (!armPoleSet) {
             return;
         }
-        skeleton.worldPosition(chest.index, scratch);
-        float rot = skeleton.worldRotationDeg(chest.index);
-        float cos = (float) Math.cos(Math.toRadians(rot));
-        float sin = (float) Math.sin(Math.toRadians(rot));
-        swordArm.pole(scratch.x + armPoleLocalX * cos - armPoleLocalY * sin,
-                scratch.y + armPoleLocalX * sin + armPoleLocalY * cos);
+        fromBone(chest, armPoleLocalX, armPoleLocalY, scratch);
+        swordArm.pole(scratch.x, scratch.y);
     }
 
     /**
@@ -384,19 +415,15 @@ public final class RigIk {
      * side of the leg as soon as the figure leaned, and the knee would flip.
      */
     private void refreshLegPoles() {
-        skeleton.worldPosition(hips.index, scratch);
-        float ox = scratch.x;
-        float oy = scratch.y;
-        float rot = skeleton.worldRotationDeg(hips.index);
-        // Math, not MathUtils: the lookup-table trig carries ~4e-4 of error, and
-        // a pole is an input to the bend-side filter, which is the one place in
-        // this system where noise turns into a visible flip.
-        float cos = (float) Math.cos(Math.toRadians(rot));
-        float sin = (float) Math.sin(Math.toRadians(rot));
-        poleLX = ox + POLE_L_X * cos - POLE_L_Y * sin;
-        poleLY = oy + POLE_L_X * sin + POLE_L_Y * cos;
-        poleRX = ox + POLE_R_X * cos - POLE_R_Y * sin;
-        poleRY = oy + POLE_R_X * sin + POLE_R_Y * cos;
+        // Math, not MathUtils, inside fromBone: the lookup-table trig carries
+        // ~4e-4 of error, and a pole is an input to the bend-side filter, which
+        // is the one place in this system where noise turns into a visible flip.
+        fromBone(hips, POLE_L_X, POLE_L_Y, scratch);
+        poleLX = scratch.x;
+        poleLY = scratch.y;
+        fromBone(hips, POLE_R_X, POLE_R_Y, scratch);
+        poleRX = scratch.x;
+        poleRY = scratch.y;
         legL.pole(poleLX, poleLY);
         legR.pole(poleRX, poleRY);
     }

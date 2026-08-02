@@ -605,14 +605,26 @@ merely correct, say what would give it an origin.
   simulation anywhere in the scene.
 
   **Grade cloth by displacement, not by phase.** The working statistic is **drape excursion**
-  — D(t) = x(cloth box) − x(anchor), sub-pixel registration, with three gates: peak |D| at
-  least 1.5× the anchor's own travel in the window; a monotone return to ≤25% of peak within
-  0.15-0.25 s of the anchor reversing, with at most one small sign change (§7.2's one soft
-  return, on the relative signal where it is well posed); and a rigid control scoring ≤0.15×.
-  This is the same move §7.2 already made for "streaming ahead is a displacement, not an
-  arrival time", for the same reason. It has real dynamic range (a welded garment scores 0 by
-  construction), and it is box-invariant — moving the rectangle 6 px changed it by 0.01 px,
-  where the phase statistic moved by whole frames.
+  — D(t) = x(cloth box) − x(anchor), sub-pixel registration. It is box-invariant, where the
+  phase statistic moved by whole frames: shifting the rectangle 6 px changed it by 0.01 px.
+
+  **But its absolute value is not a cloth measurement, because it has a large rigid
+  pedestal — and this was written down before anyone could run the control that proves it.**
+  The claim above once read "a welded garment scores 0 by construction". It scores **0.87×**.
+  A panel welded to the hips answers a pelvis *rotation* with a silhouette *translation*, and
+  registration prints exactly that: **14.65 px of pedestal on a 28.61 px excursion — roughly
+  half of it is not cloth.**
+
+  That is the same failure as the reversal-time lag it replaced, one level up: **a statistic
+  adopted without its control.** The lesson is not about cloth. **Any new measurement is
+  provisional until its null case has been run**, and "by construction" is an assumption, not
+  a result — the phrase itself should be read as a warning that nobody has measured it.
+
+  So: quote drape excursion **relative to the rigid control**, never raw, and state both
+  numbers. A gate on the raw value is meaningless. The return gate — a monotone fall to ≤25%
+  of peak, §7.2's one soft return on the relative signal where it is well posed — stands, but
+  its 0.15-0.25 s window is also unvalidated: two live configurations measure 0.137 and
+  0.141 s, i.e. slightly *too fast*, which may mean the window is wrong rather than the cloth.
 
 ### 7.2 Extreme cases (this is where the aesthetic dies)
 

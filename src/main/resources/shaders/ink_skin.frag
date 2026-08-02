@@ -58,6 +58,21 @@ uniform float u_time;
 uniform float u_dissolveBias;
 uniform float u_paperGrain;
 
+// A constant offset added to the material-space sampling point, per figure.
+//
+// Everything below is sampled at v_matPos so the pattern stays nailed to the
+// cloth (STYLE.md 3.5) -- which is right, and which means two figures built
+// from the same rig are painted with bit-identical ink. That is invisible with
+// one figure on screen and is the loudest possible tell with two: the same
+// torn hem, the same dry-brush streaks, the same flecks, mirrored. Offsetting
+// the sample point is the smallest change that fixes it, because a constant
+// offset moves every octave together and is differentiated away by every
+// fwidth() below, so the fray band, the octave fades and the strip metric are
+// all bit-identical to what they were. It is emphatically not a screen-space
+// term: it lives in material space with the noise it shifts, so nothing swims
+// (STYLE.md 10's "screen-space noise that swims over moving surfaces").
+uniform vec2 u_inkSeed;
+
 // -- noise ------------------------------------------------------------------
 // Value noise, not gradient noise: value noise has broad flat plateaus separated
 // by fast transitions, which is much closer to how a wash breaks up than
@@ -149,7 +164,7 @@ float vnoise3(vec3 p) {
 }
 
 void main() {
-    vec2 mp = v_matPos;
+    vec2 mp = v_matPos + u_inkSeed;
 
     float dissolve = clamp(v_ink.x + u_dissolveBias, 0.0, 1.0);
     float wetness = v_ink.y;
@@ -274,6 +289,41 @@ void main() {
     float tooth = smoothstep(0.47, 0.72, streak);   // centred on the measured mean, 0.574
     float skip = dryness * (1.0 - tooth);        // how much the brush skipped here
 
+    // -- the same tooth, opening the sheet instead of lifting the value -------
+    // System 3 pass 4, STYLE.md 3.3. The dry brush has two separable jobs and
+    // this shader had been running both off one gate:
+    //
+    //   "the paper-tooth texture must show through in streaks"   -- coverage
+    //   "ink is darkest where it collects"                       -- value
+    //
+    // `dryness` above is right for the value half and is untouched: a loaded hem
+    // must not print paler than the chest, which is the ink gravity three passes
+    // fought for, and its `1.0 - wetness * 2.20` switches the lift off past
+    // wetness 0.45. But the haori's lower rows are authored 0.80-1.00 wet, so
+    // every interior term in this file is silent there. Measured on the pass-3
+    // graded window, a 25x60 px box inside the back skirt has a luminance
+    // standard deviation of 3.3 on a mean of 32.6 -- a flat fill, which is the
+    // first row of STYLE.md 3b.5's table, and the reason `hips` measured 100.0%
+    // covered and `torso` 98.2%.
+    //
+    // Opening the sheet is not the same act as lifting the value and bleaches
+    // nothing: the ink that remains is exactly as dark as it was, there is
+    // simply paper between the marks. That is what a loaded brush does on rough
+    // paper, and it is the distinction this file already draws for the cream
+    // reserves -- "washed out is a *coverage* fault and cannot be fixed, or
+    // caused, by value".
+    //
+    // The wet gate multiplies *after* the gain and its clamp, not before. That
+    // ordering is the difference between "wet cloth skips less" and "wet cloth
+    // skips a fifth as much": inside the clamp a large gain saturates both, and
+    // measured at gain 3.5 with the gate inside, the back skirt fell from 85%
+    // covered to 66% while the dry torso only reached 94% -- backwards, since
+    // the references put the heaviest unbroken black on the skirt and the dry
+    // brush on the shoulder.
+    float openWet = 0.08 + (1.0 - 0.08)
+                  * clamp(1.0 - wetness * 1.60, 0.0, 1.0);
+    float openness = clamp(u_paperGrain * dryPatch * (0.35 + (1.0 - 0.35) * (1.0 - tooth)) * 3.0, 0.0, 1.0) * openWet;
+
     // -- the fray (STYLE.md 3.1, shader-fixes-3 items 1, 3, 5) ----------------
     // The threshold ramps from "nothing survives" at the strip's own boundary to
     // "everything survives" frayPx inside it, and frayPx is the authored
@@ -336,7 +386,15 @@ void main() {
     // Contract F1: soft threshold, widening as the marks get sparser so the last
     // flecks are the most feathered of all. Measured in field units against the
     // field's own slope: 0.09 is about two pixels here.
-    float band = 0.09 + 0.13 * dissolve;
+    // Pass 4 widens the dissolve half of this. The pass-3 review measured an
+    // edge scanline across the back skirt going 152, 148, 150 -> 32 with *zero*
+    // intermediate samples, against 145 -> 50 -> 34 in pass 2: the mesh work
+    // moved the boundary and hardened it, and STYLE.md 10 fails a visible
+    // polygon silhouette on sight. A wider band on the frayed rows is the direct
+    // answer -- the last flecks are the most feathered of all, which is what
+    // contract F1 already says and what the number was too small to deliver.
+    // Zero at dissolve 0, so every solid passage in the figure is bit-identical.
+    float band = 0.09 + 0.34 * dissolve;
     float cov = smoothstep(thr - band, thr + band, cutField);
 
     // -- detached flecks (STYLE.md 3.1, shader-fixes-3 item 3) ----------------
@@ -396,20 +454,44 @@ void main() {
     float speckW = 0.62 * f40 + 0.38 * f64;
     float speckN = (dnoise2(mp * 40.00 + 77.0, dir * 0.30) * 0.62 * f40
                   + dnoise2(mp * 64.00 - 33.0, dir * 0.30) * 0.38 * f64) / max(speckW, 1e-3);
-    float speckDrift = smoothstep(0.50, 0.80, vnoise(mp * 2.20 - 91.0) * 0.62
+    // Pass 4, STYLE.md 3.1 and the pass-3 review's ranked-1 item: "let the fleck
+    // octave reach the boundary". Measured on the graded window, a vertical cut
+    // through the back skirt returned three runs and no detached mark at all --
+    // the boundary was one continuous contour at 4x, 6x and 8x. The splatter was
+    // present in the shader and almost never firing on the frayed rows: its drift
+    // gate opened over the top 20% of a coarse field and its own threshold took
+    // the top 8% of another, so the joint rate near a hem was a few percent.
+    //
+    // Both gates widen, and BOTH are multiplied by the authored dissolve, so
+    // nothing above the waist can change: every solid row in the figure carries
+    // dissolve 0 and `speckZone` already gates on it. The reach extends too --
+    // 3.1's "breaks into separate brush marks" happens *beyond* the fray band,
+    // not inside it.
+    float speckDrift = smoothstep(0.30, 0.66, vnoise(mp * 2.20 - 91.0) * 0.62
                                             + vnoise(mp * 5.60 + 13.0) * 0.38);
     float speckZone = smoothstep(0.2, 1.6, edgePx)
-                    * (1.0 - smoothstep(frayPx * 0.5, frayPx * 2.6 + 7.0, edgePx))
+                    * (1.0 - smoothstep(frayPx * 0.5, frayPx * 4.5 + 7.0, edgePx))
                     * smoothstep(0.03, 0.24, dissolve)
                     * speckDrift
                     * step(0.02, speckW);
-    cov = max(cov, smoothstep(0.700, 0.775, speckN) * speckZone * 0.88);
+    cov = max(cov, smoothstep(0.560, 0.660, speckN) * speckZone * 0.88);
 
     // The tooth is allowed to open the coverage, not just lift the value:
     // STYLE.md 3.3 asks for paper showing through in streaks, and ink that only
-    // ever gets paler reads as airbrush. Kept well under the fray so it can
-    // never break the silhouette.
-    cov = clamp(cov * (1.0 - skip * 0.30), 0.0, 1.0);
+    // ever gets paler reads as airbrush.
+    //
+    // Pass 4 raises the authority, and it had to be measured to be believed:
+    // with the old `skip` term run at 1.00 instead of 0.30 and its blotch gate
+    // opened wide, `torso` coverage moved 98.2% -> 97.8% and `hips` did not move
+    // off 100.0% at all. The cut was never the binding constraint. See the bleed
+    // channel near the bottom of this file for what was.
+    //
+    // Still kept off the silhouette. `edgeGuard` is zero within a couple of
+    // pixels of any strip boundary and one well inside, so the tooth punches the
+    // sheet and can never eat the outline -- an outline eaten by an interior
+    // term is revision 2's forearm-eating lobe arriving by a different route.
+    float edgeGuard = smoothstep(2.0, 9.0, edgePx);
+    cov = clamp(cov * (1.0 - openness * edgeGuard), 0.0, 1.0);
 
     // -- value (contract F4) --------------------------------------------------
     float poolNoise = vnoise3(vec3(mp * 1.60 + 41.0, tz * 0.6)) * 0.55
@@ -471,6 +553,24 @@ void main() {
     float dryVar = (1.0 - smoothstep(0.10, 0.52, wetness))
                  * (dryField - 0.5) * 0.60;
 
+    // Pass 4. `wetness * (0.85 + 0.16 * poolNoise)` plus the 0.14 base plus any
+    // blot at all is >= 1.0 for every wetness above about 0.85, so the haori's
+    // lower rows -- authored 0.84 to 1.00 -- were *saturated*, and poolNoise,
+    // blot and hang were all being clipped away. That is the arithmetic behind
+    // the flat fill measured above: standard deviation 3.3 inside the back
+    // skirt.
+    //
+    // The fix keeps the ceiling and lowers the mean, which is STYLE.md 3.4's own
+    // amendment read the other way round -- "the pooling rail sits *on* the
+    // floor and everything else lifts off it". The deepest pool is still exactly
+    // as deep as it was (poolNoise saturates the term above ~0.72, and a pool
+    // that reaches the ceiling still reaches it), so nothing can breach the
+    // value floor that was not already breaching it; what changes is that the
+    // cloth *between* the pools now lifts. No new frequency enters the picture:
+    // poolNoise's octaves are 141, 48 and 23 px at capture framing, all far
+    // clear of STYLE.md 3b.1's floor, which matters because 3's postscript
+    // records that the last frequency artefact misdiagnosed as structural cost
+    // two passes.
     float dark = clamp(0.14
                      + wetness * (0.85 + 0.16 * poolNoise)
                      + blot * 0.16
@@ -575,7 +675,45 @@ void main() {
     // still bleeds roughly twice as hard as a shoulder crest, which is the
     // distinction this channel exists to carry; it is the *floor* that was
     // wrong, not the slope.
-    float bleed = 0.52 + 0.48 * dissolve;
+    //
+    // Pass 4, and this is the change that makes STYLE.md 3.3 reachable at all.
+    //
+    // Measured on the pass-3 graded window: the brightest pixel anywhere in the
+    // interior of `torso`, `hips` or the back skirt is luminance 150, against an
+    // ink threshold of 0.85 x paper = 185. There is a floor under the entire
+    // figure some eight levels darker than the threshold, and it is this halo --
+    // deep inside a silhouette the resolve's cM and cF both saturate and
+    // haloTight + haloWide lands near 0.32 alpha whatever the coverage buffer
+    // says. A hole punched in `cov` is repainted by the bleed of the cloth
+    // around it, so no setting of the cut above could ever show paper. That is
+    // why "make the ink skip" kept failing to move the number.
+    //
+    // The halo has to skip with the ink. `bleedAvg` in the resolve is a ~9 px
+    // coverage-weighted blur and the streak octaves here are 20 and 12 px across
+    // the stroke, so a dry passage is wide enough for that blur to follow: the
+    // halo thins over a streak rather than averaging it away.
+    //
+    // Gated on being well inside the strip, and that gate is the whole safety
+    // argument. STYLE.md 3.2 exists to make the figure sit *in* the paper rather
+    // than on it, and debt D3 records this floor being raised from 0.30 to 0.52
+    // precisely because the halo was absent above the waist. The outer band of
+    // every strip keeps its bleed untouched, so the halo that reaches out past
+    // the silhouette is fed entirely by fragments this term does not reach. What
+    // thins is the halo under the *middle* of the cloth, which is the only place
+    // it was doing damage.
+    // Driven by the coarse blotch mask and NOT by `openness`, and that is the
+    // whole trick. `bleedAvg` in the resolve is mid.b / cM -- a *coverage
+    // weighted* average -- so a fragment whose coverage the tooth has just taken
+    // to zero contributes almost nothing to it, and thinning that fragment's
+    // bleed changes the halo by almost nothing. Measured: driven by `openness`,
+    // `torso` coverage moved 98.2% -> 96.6% at eight times the gain. The halo
+    // has to thin over the whole dry *passage* -- 26 to 118 px across, which the
+    // 9 and 20 px blurs can follow -- while the streaks inside it cut the marks.
+    // That is also what a dry passage physically is: less water on the paper
+    // over an area, with the tooth showing inside it.
+    float bleedInside = smoothstep(7.0, 24.0, edgePx);
+    float bleed = (0.52 + 0.48 * dissolve)
+                * (1.0 - 1.0 * dryPatch * openWet * u_paperGrain * bleedInside);
 
     // Premultiplied. See the header: this is ordinary "over" compositing, which
     // averages overlapping ribbons instead of letting the topmost replace them.

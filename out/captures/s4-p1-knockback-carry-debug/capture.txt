@@ -1,0 +1,13 @@
+# Reproduce this capture:
+./gw capture -Pscene=duel-knockback-debug -Pout=out/captures/s4-p1-knockback-carry-debug -Pframes=24 -Pcols=6 -Pstart=0.62 -Pstep=0.0167 -Pw=960 -Ph=720
+
+scene=duel-knockback-debug
+description=Debug: a shove, and a body carried: cloth and hair thrown along the travel
+frames=24
+start=0.62
+step=0.0167
+window=0.3841
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false

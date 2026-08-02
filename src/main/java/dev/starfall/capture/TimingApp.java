@@ -143,6 +143,7 @@ public class TimingApp extends ApplicationAdapter {
     private String toJson() {
         Json.Writer w = new Json.Writer().beginObject();
         w.prop("scene", spec.sceneName);
+        w.prop("clamp", spec.clamp.isEmpty() ? "none" : spec.clamp);
         w.prop("sceneDescription", scene.description());
         w.prop("warmup", scene.warmup());
         w.prop("start", spec.start);
@@ -212,6 +213,8 @@ public class TimingApp extends ApplicationAdapter {
         public float rate = 240f;
         public double threshold = 0.85;
         public RegionSet regions = RegionSet.samurai();
+        /** {@code cloth} welds every cloth chain to bind. See {@link dev.starfall.sim.ClothSim#clampRigid}. */
+        public String clamp = "";
 
         public float interval() {
             return 1f / Math.max(1f, rate);
@@ -236,6 +239,7 @@ public class TimingApp extends ApplicationAdapter {
                     case "--rate" -> { s.rate = Float.parseFloat(value); i++; }
                     case "--threshold" -> { s.threshold = Double.parseDouble(value); i++; }
                     case "--regions" -> { s.regions = RegionSet.load(new File(value)); i++; }
+                    case "--clamp" -> { s.clamp = value; i++; }
                     default -> { }
                 }
             }

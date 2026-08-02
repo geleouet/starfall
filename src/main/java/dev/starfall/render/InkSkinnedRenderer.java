@@ -184,6 +184,23 @@ public final class InkSkinnedRenderer {
             return;
         }
 
+        // The resolve is per *group*, not per draw: u_base, u_deep, u_stain and
+        // u_bleedRadius are read once in flushCloth() and painted over everything
+        // that has accumulated in the coverage buffer. With one figure that
+        // distinction never surfaced. With two it is a silent wrong-colour bug --
+        // a pale duellist drawn before a dark one comes out dark -- so a material
+        // whose resolve-stage parameters differ from the group's ends the group.
+        //
+        // It also gives each figure its own coverage field, which matters for more
+        // than colour: the wet bleed of STYLE.md 3.2 reaches tens of pixels past a
+        // silhouette, and two figures merged into one premultiplied buffer average
+        // their ink where they overlap instead of the near one sitting over the
+        // far one. Two figures passing through each other is the Pilgrim's whole
+        // movement verb, so that is not a corner case.
+        if (materialBound && anyCloth && !resolvesTheSame(material)) {
+            flushCloth();
+        }
+
         clothBase.set(material.base);
         clothDeep.set(material.deep);
         clothStain.set(material.stain);
@@ -200,12 +217,40 @@ public final class InkSkinnedRenderer {
         matShader.setUniformMatrix4fv("u_bones", bones, 0, MAX_BONES * 16);
         matShader.setUniformf("u_dissolveBias", material.dissolveBias);
         matShader.setUniformf("u_paperGrain", material.paperGrain);
+        matShader.setUniformf("u_inkSeed", material.seedX, material.seedY);
         mesh.mesh().render(matShader, GL20.GL_TRIANGLES);
         anyCloth = true;
     }
 
+    /**
+     * Resolves everything drawn so far and starts a new merge group.
+     *
+     * <p>{@link #draw} calls this for you when a material's resolve-stage
+     * parameters change, which covers the ordinary two-figure case. It is public
+     * for the case that is not ordinary: two figures the <em>same</em> colour,
+     * which must still not share a coverage field if either is meant to occlude
+     * the other.
+     */
+    public void flush() {
+        flushCloth();
+    }
+
     public void end() {
         flushCloth();
+    }
+
+    /**
+     * True when {@code material} would resolve identically to the group currently
+     * open, i.e. when merging it in costs nothing. Only the four parameters
+     * {@link #flushCloth} actually reads are compared -- {@code dissolveBias},
+     * {@code paperGrain} and {@code seedX/Y} are per-draw uniforms on the
+     * material pass and never a reason to split a group.
+     */
+    private boolean resolvesTheSame(InkMaterial material) {
+        return clothBase.equals(material.base)
+                && clothDeep.equals(material.deep)
+                && clothStain.equals(material.stain)
+                && clothBleed == material.bleedRadius;
     }
 
     public void dispose() {

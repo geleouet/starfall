@@ -146,6 +146,9 @@ public class CaptureApp extends ApplicationAdapter {
         if (spec.step > 0f) {
             cmd.append(" -Pstep=").append(spec.step);
         }
+        if (!spec.clamp.isEmpty()) {
+            cmd.append(" -Pclamp=").append(spec.clamp);
+        }
         cmd.append(" -Pw=").append(spec.width).append(" -Ph=").append(spec.height);
 
         StringBuilder out = new StringBuilder();
@@ -158,6 +161,10 @@ public class CaptureApp extends ApplicationAdapter {
         out.append("\nwindow=").append(window);
         out.append("\nsize=").append(spec.width).append('x').append(spec.height);
         out.append("\nsubstep=").append(SceneClock.SUBSTEP);
+        // Recorded even when empty: a reader must be able to tell "this is a live capture"
+        // from "nobody wrote it down", which is STYLE.md §11.3 one level up from rectangles.
+        out.append("\nclamp=").append(spec.clamp.isEmpty() ? "none" : spec.clamp);
+        out.append("\nclothRigid=").append(dev.starfall.sim.ClothSim.isClampedRigid());
         out.append('\n');
         new FileHandle(new File(spec.outDir, "capture.txt")).writeString(out.toString(), false);
     }

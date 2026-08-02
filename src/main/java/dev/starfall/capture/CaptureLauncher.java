@@ -15,6 +15,10 @@ public final class CaptureLauncher {
     public static void main(String[] args) {
         CaptureSpec spec = CaptureSpec.parse(args);
         spec.outDir.mkdirs();
+        // Thrown before the scene is built, because a control has to be a control from the
+        // warmup onward: a garment that simulated for its warmup and then froze would carry
+        // whatever drape the breeze had already put into it.
+        dev.starfall.sim.ClothSim.clampRigid("cloth".equals(spec.clamp));
 
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("starfall-capture");

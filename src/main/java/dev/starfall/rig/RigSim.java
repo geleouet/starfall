@@ -55,12 +55,31 @@ public final class RigSim {
     /** Cloth is a hanging mass and falls harder than hair, but still nothing like 9.81 -- see {@code HairSim}. */
     private static final float CLOTH_GRAVITY = 2.4f;
 
+    /**
+     * Per-chain wind gains, held here as well as handed to {@link ClothSim}.
+     *
+     * <p>{@link ClothSim#refresh()} multiplies one scene-wide breeze by these, which
+     * is exactly right for a breeze and exactly wrong for the gusts of STYLE.md
+     * 7.3 -- {@code Directive.Impulse} names a <em>region</em>, and a hem thrown
+     * along a knockback while the sleeve answers the wrist is two different
+     * vectors on two chains of the same garment. So the gusts are applied per
+     * chain after the refresh, and the gains have to be reapplied here because
+     * they are the cloth's own and not the caller's.
+     */
+    private static final float BACK_GAIN = 0.95f;
+    private static final float FRONT_GAIN = 0.80f;
+    private static final float SLEEVE_GAIN = 1.00f;
+
     private final HairSim hair;
     private final ClothSim cloth;
     private final VerletSolver solver = new VerletSolver();
 
     private float windX;
     private float windY;
+
+    private float hemGustX, hemGustY;
+    private float sleeveGustX, sleeveGustY;
+    private float hairGustX, hairGustY;
 
     public RigSim(Skeleton skeleton) {
         this.hair = SamuraiHair.build(skeleton);
@@ -118,14 +137,14 @@ public final class RigSim {
         // degrees of deviation, i.e. the limit was shaping the drape rather than
         // catching an accident. At 40 the knee is 22 and it catches accidents.
         cloth.addChain(new String[] {"clothBackA", "clothBackB", "clothBackC", "clothBackD", "clothBackE"},
-                0.286f, BACK_TAU, 0.070f, CLOTH_GRAVITY, 0.95f, 40f);
+                0.286f, BACK_TAU, 0.070f, CLOTH_GRAVITY, BACK_GAIN, 40f);
         // The front hem clears the near leg, so it is limited harder: a front
         // panel free to swing 26 degrees per joint intersects the thigh it is
         // meant to hang in front of.
         cloth.addChain(new String[] {"clothFrontA", "clothFrontB", "clothFrontC"},
-                0.160f, FRONT_TAU, 0.060f, CLOTH_GRAVITY, 0.80f, 20f);
+                0.160f, FRONT_TAU, 0.060f, CLOTH_GRAVITY, FRONT_GAIN, 20f);
         cloth.addChain(new String[] {"sleeveA", "sleeveB"},
-                0.210f, SLEEVE_TAU, 0.060f, 2.2f, 1.00f, 30f);
+                0.210f, SLEEVE_TAU, 0.060f, 2.2f, SLEEVE_GAIN, 30f);
 
         hair.register(solver);
         cloth.register(solver);
@@ -160,12 +179,73 @@ public final class RigSim {
         return windY;
     }
 
+    /**
+     * A gust on the hem, in world units per second squared, on top of the breeze.
+     *
+     * <p>The interface {@code docs/system3-debt.md} records as missing: "System 4
+     * must express impact through <em>how cloth trails</em>, because 7.1 bans
+     * freeze and shake -- and it has nothing to express it with." An acceleration
+     * on the chain is that something, and it is deliberately an acceleration
+     * rather than a velocity kick: a kick would be a snap, and STYLE.md 7.2's
+     * first line is "no snapping". Held for the length of the directive and
+     * released, the chain leans out and relaxes back on its own {@code dragTau} --
+     * one soft return, which is the other thing 7.2 asks for.
+     *
+     * <p>Both hem chains, because {@code Region.CLOTH_HEM} is one region: the
+     * front panel and the trailing panel are the same garment and are thrown by
+     * the same blow, at their own gains.
+     */
+    public RigSim hemGust(float ax, float ay) {
+        this.hemGustX = ax;
+        this.hemGustY = ay;
+        return this;
+    }
+
+    /** A gust on the sleeve. {@code Region.CLOTH_SLEEVE}, which trails the wrist. */
+    public RigSim sleeveGust(float ax, float ay) {
+        this.sleeveGustX = ax;
+        this.sleeveGustY = ay;
+        return this;
+    }
+
+    /** A gust on the hair. {@code Region.HAIR}, which trails the head. */
+    public RigSim hairGust(float ax, float ay) {
+        this.hairGustX = ax;
+        this.hairGustY = ay;
+        return this;
+    }
+
     /** One frame. Call after the animation pose and after {@link RigIk#update}. */
     public void update(float dt, float timeSeconds) {
+        // The gust rides on the breeze rather than replacing it, and is applied
+        // before the refresh for hair (which reads HairSim's own field per strand)
+        // and after it for cloth (whose refresh overwrites each chain's wind from
+        // the scene-wide value). Both end up as one acceleration per chain.
+        hair.wind(windX + hairGustX, windY + hairGustY);
         hair.refresh(timeSeconds);
         cloth.refresh();
+        applyClothGusts();
         solver.update(dt);
         cloth.writeBack();
+        // The breeze is restored so a caller that never gusts sees exactly the
+        // behaviour System 3 shipped, and so a gust released this frame is gone
+        // next frame unless it is set again.
+        hair.wind(windX, windY);
+    }
+
+    private void applyClothGusts() {
+        if (cloth.chainCount() >= 3) {
+            gust(0, hemGustX, hemGustY, BACK_GAIN);
+            gust(1, hemGustX, hemGustY, FRONT_GAIN);
+            gust(2, sleeveGustX, sleeveGustY, SLEEVE_GAIN);
+        }
+    }
+
+    private void gust(int index, float ax, float ay, float gain) {
+        if (ax == 0f && ay == 0f) {
+            return;
+        }
+        cloth.chain(index).solverChain().wind((windX + ax) * gain, (windY + ay) * gain);
     }
 
     /**
