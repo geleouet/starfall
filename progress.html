@@ -159,7 +159,7 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — system 1 pass 3 regressed the look; keep-or-revert decision with the reviewer, rig revision 3 in flight",
+  updated: "2026-08-02 — system 1 pass 4: silhouette fixed, material fix (pass 5, the cap) in flight",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
@@ -175,7 +175,7 @@ const DATA = {
   },
 
   systems: [
-    { n:"01", name:"Skeleton + skinning", status:"building", passes:3,
+    { n:"01", name:"Skeleton + skinning", status:"building", passes:4,
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
     { n:"02", name:"IK", status:"pending", passes:0,
       summary:"2-bone analytic solver for limbs, FABRIK for spine and long chains." },
@@ -245,6 +245,66 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 1", kind:"build", pass:4,
+      title:"Pass 4 — the figure finally has shoulders, and the cone's real cause was the ankles",
+      sheet:"out/captures/s1-p4-swing/contact-sheet.png",
+      sheetNote:"Rig revision 3. The ink material is unchanged from pass 3 here and is still " +
+                "carrying its own faults — judge this pass on silhouette, grounding and motion.",
+      body:[
+        "<b>The top-ranked fix in the system landed, and the diagnosis behind it was better than " +
+        "mine.</b> I had specified widening the shoulders. The agent did that — a shoulder mantle " +
+        "arching over both shoulders, weighted to chest and spine so it never spins with the sword " +
+        "arm — but then found the cone's actual cause was <i>the bottom, not the top</i>. The " +
+        "hakama was hanging its last two rows off the <b>foot</b> bones, whose bind world rotation " +
+        "is 0°, so a wide half-width there became a vertical smear thrown forward from each ankle. " +
+        "Rows now hang off thigh and shin only, wide at the knee and gathered at the ankle. " +
+        "Measured, the shoulder-to-lower-body ratio is now <b>1.84</b>, against 0.30 in pass 2 and " +
+        "a reference target of about 1.6.",
+
+        "<b>The mist is inverted the right way round now.</b> It measures lighter and warmer than " +
+        "the paper (226.6 luminance and R−B 30.9, against paper at 221.6 and 25.2), where pass 2 " +
+        "measured 176 and 9 — a grey subtractive haze. It is broken into drifting overlapping " +
+        "bands, the topmost straddling the figure's lower third, with grass strokes drawn over the " +
+        "hem. Jewel motes are at full palette chroma: frame-wide maximum saturation is 0.561, up " +
+        "from 0.23.",
+
+        "Also landed: a hand and a hilt with a flared tsuba, so the blade emerges from a solid " +
+        "dark mass rather than open paper; the leg slivers drawn under their hakama with matched " +
+        "wetness; and the head rebuilt as a directional mass with a crown, a jaw-side interruption " +
+        "and an offset topknot lobe. The bright vertical seam down the legs turned out to be the " +
+        "ochre stain printing as bars — removing ochre from the lower body fixed it."
+      ],
+      notes:[
+        { kind:"crit", label:"My critique — from wraith to armour stand",
+          text:"The silhouette is no longer a cone, but the figure now reads as a <b>headless " +
+               "armour stand</b>: the shoulder mass is right and the head is a small nub barely " +
+               "attached above it, with no arm connecting shoulder to hilt. The rig <i>builds</i> " +
+               "a neck, a hand, a hilt and a guard now — the material is eating them. That is the " +
+               "shader's fray band, sized for the haori hem and applied uniformly, plus a wander " +
+               "term that opens pale lobes inside the figure. The agent isolated that second one " +
+               "properly, by re-capturing with the blade mesh not drawn to prove it was neither " +
+               "the blade nor the new hilt. Both are now high-priority items in the material fix " +
+               "rather than cleanup. Contrast also dropped frame-wide — a consequence of the mist " +
+               "brightening — and the blade trail still shows straight grey polygon edges." },
+        { kind:"crit", label:"Ink gravity: the mesh side is now provably correct",
+          text:"Ink still pools at the chest and thins at the hem, the reverse of the rule. But " +
+               "the rig agent proved this is not a mesh problem: hem wetness is authored at 1.0 " +
+               "and chest at 0.03, and the chest still renders at the exact ink floor. The value " +
+               "is dominated by alpha coverage and by a position-noise term that saturates " +
+               "wherever the mesh is dense, so authored wetness contributes at most about half of " +
+               "a value that clamps at 1. Correctly handed to the shader rather than worked around " +
+               "in geometry." },
+        { kind:"crit", label:"Two deviations accepted, one of which breaks a rule on purpose",
+          text:"<code>PaperBackground</code> gained a <code>renderOverlay()</code> call so grass " +
+               "can be drawn over the hem; the contract fixes that API and needs amending either " +
+               "way. More interestingly, <b>STYLE.md §2.2 says the paper is the brightest " +
+               "non-emissive thing in the frame, and §6 requires the mist to be lighter than the " +
+               "paper.</b> Those two rules are in direct conflict and cannot both hold. §6 wins, " +
+               "because a mist darker than the paper is exactly the muddy-fog failure the previous " +
+               "review measured. Flagged in source at the constant rather than silently broken." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 1", kind:"review", pass:3, verdict:"FAIL",
       title:"Independent review of pass 3 — verdict HYBRID, and the architecture is to be demoted rather than kept or reverted",

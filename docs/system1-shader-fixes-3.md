@@ -117,7 +117,35 @@ permitted to nothing but the blade itself.
   0.218 s capture step. The angle-about-the-base interpolation is the correct
   construction; the ribbon is simply too narrow and short to expose the curve.
 
-### 7. Bring back the dry-brush tooth
+### 7. Give authored `wetness` real authority over value — ink gravity is still inverted
+
+STYLE.md §3.4 requires ink to be darkest where it collects, including at the bottom of a
+hanging garment. It currently runs the other way: measured after rig revision 3, chest
+≈ 33-40 and hem ≈ 110-123. The rig agent improved the absolute numbers and cut the spread
+by a third, then hit a wall and correctly identified it as shader-side:
+
+> the apparent value is dominated by alpha coverage and by `blot*1.12`, a position-noise
+> term that saturates `dark` to 1.0 wherever the mesh is dense; the authored `wetness`
+> contributes at most ~0.5 into a value that clamps at 1. The chest sits at the exact ink
+> floor with an authored wetness of **0.03**.
+
+The mesh side is already authored correctly — hem wetness is 1.0, chest 0.03. Give
+`wetness` enough weight in `dark` that those authored values actually decide the result,
+and/or reduce the figure's `fog*0.30` tint. The hem must end up darker than the chest.
+
+### 8. Remove the silhouette-wander lobe that eats the forearm
+
+A pale lobe intermittently opens *inside* the figure, eating the forearm and hand
+(visible at frames 0 and 6 of `out/captures/s1-p4-swing/`). The rig agent isolated it by
+re-capturing with the blade mesh not drawn — it persists, so it is neither the blade nor
+the new hilt. It is `ink_resolve.frag`'s wander term,
+`dist += (coarse-0.5)*mix(13,44,aDis)`.
+
+Item 1 already requires this displacement to go to zero, so this should fall out of that
+work — but verify it explicitly, because it is currently destroying the one weld the rig
+agent just built.
+
+### 9. Bring back the dry-brush tooth
 
 At the corrected 9-19 px scale, once item 2 means region boundaries no longer print.
 STYLE.md §3.3 and §3.4 are System 1's own requirements and are not deferred to System 3c.
@@ -154,6 +182,12 @@ Judge from **individual full-resolution frames**, and compare directly against b
 
 Confirm all of:
 - **No straight line anywhere inside the silhouette.** This is the pass/fail gate.
+- The head reads as a head and the sword arm is findable as a silhouette. After rig
+  revision 3 the figure reads as a headless armour stand: the shoulder mass is now
+  correct but the head is a small nub and no arm connects the shoulder to the hilt. The
+  rig now *builds* a hand, a hilt and a tsuba — items 5 and 8 are what will let them
+  survive the material.
+- The hem is darker than the chest.
 - Edges read as torn, angular and directional rather than as smooth lobes; detached marks
   are shards, not dots.
 - A horizontal scanline through the chest shows no periodic ripple — the pass-3 gain must
