@@ -588,9 +588,31 @@ merely correct, say what would give it an origin.
   scabbard reports the *body's* motion whatever the cloth does. Proven by control: a garment
   clamped rigid, welded to the hips with no simulation at all, read +0.34 frames through a
   box that had been used to grade cloth lag — against +0.72 and +0.87 for two live
-  configurations. The statistic's whole dynamic range there was half a frame. **Before
-  quoting a lag, run the rigid control**; if a dead system scores near the live one, the
-  rectangle is measuring the wrong thing.
+  configurations. **Before quoting a lag, run the rigid control**; if a dead system scores
+  near the live one, the rectangle is measuring the wrong thing.
+
+  **A rule that needs an instrument must ship the instrument.** The paragraph above was
+  written before anything in the repository could clamp a simulation, so it required a
+  control nobody could run — which is the exact failure §11.3 exists to prevent, committed
+  by the section warning about it. Ship the switch with the rule.
+
+  **For a hanging panel, reversal-time lag is ill-posed as a *form*, not merely mis-boxed.**
+  A panel answers a body *translation* with a *rotation about its pin*. Registration fits one
+  translation per box, so the panel's silhouette prints as a picture of the body's
+  **velocity** — and velocity leads position by a quarter period. So a correctly trailing hem
+  reports a *negative* lag, and cloth boxes routinely "reverse" before the hips do. Measured:
+  a rigidly skinned torso box manufactured **+2.32 frames** of lag against the hips with no
+  simulation anywhere in the scene.
+
+  **Grade cloth by displacement, not by phase.** The working statistic is **drape excursion**
+  — D(t) = x(cloth box) − x(anchor), sub-pixel registration, with three gates: peak |D| at
+  least 1.5× the anchor's own travel in the window; a monotone return to ≤25% of peak within
+  0.15-0.25 s of the anchor reversing, with at most one small sign change (§7.2's one soft
+  return, on the relative signal where it is well posed); and a rigid control scoring ≤0.15×.
+  This is the same move §7.2 already made for "streaming ahead is a displacement, not an
+  arrival time", for the same reason. It has real dynamic range (a welded garment scores 0 by
+  construction), and it is box-invariant — moving the rectangle 6 px changed it by 0.01 px,
+  where the phase statistic moved by whole frames.
 
 ### 7.2 Extreme cases (this is where the aesthetic dies)
 
