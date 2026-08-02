@@ -159,18 +159,19 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — hair judged poetic; cloth failed on one cause; staging layer and pass 3 building",
+  updated: "2026-08-02 — cloth acceptance criterion refuted by control; system 4 joining the whole stack",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 3 pass 3 \u2014 giving the cloth an edge, and the staging layer beside it",
-    detail: "The pass-2 review's verdict: <i>the hair is poetic, the cloth is correct in the " +
-            "solver and absent in the picture, the figure is poetic from the collar up and " +
-            "inert from the sash down.</i> Pass 3 is authorised to break a rendering identity " +
-            "it was previously told to hold \u2014 but only after proving the cheap half first. " +
-            "In parallel, the staging layer that maps ordinal combat events onto real time and " +
-            "space, which is the hinge System 4 is built on."
+    title: "System 4 \u2014 running the whole stack, and two figures for the first time",
+    detail: "Every layer below is built and tested and <b>none of them has ever run " +
+            "together</b>. Combat rules, staging, IK, simulation and renderer now join up " +
+            "behind a director that consumes a schedule and drives the rig frame by frame. And " +
+            "there have never been two figures on screen \u2014 in a project that exists for the " +
+            "animation of interaction <i>between two bodies</i>. The gate is whether a " +
+            "five-beat phrase reads as one phrase rather than five events, and whether a parry " +
+            "reads as a deflection rather than a collision."
   },
 
   systems: [
@@ -184,7 +185,7 @@ const DATA = {
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
-    { n:"04", name:"Procedural interaction", status:"pending", passes:0,
+    { n:"04", name:"Procedural interaction", status:"building", passes:0,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
     { n:"05", name:"Combat + action queue", status:"partial", passes:0,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
@@ -254,6 +255,109 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"System 3", kind:"build", pass:3,
+      title:"The acceptance criterion was refuted \u2014 by a control experiment nobody asked for",
+      sheet:"out/captures/s3-p3-sway/frame_004.png",
+      sheetNote:"System 3 pass 3. The skirt now carries three overlapping trailing panels with " +
+                "separated brush marks below them, where it was one continuous boundary.",
+      body:[
+        "The pass was ordered to raise damping until a named rectangle read a 4-to-8 frame " +
+        "cloth lag, and only then to touch the mesh. It built the measurement tool first, as " +
+        "instructed \u2014 <b>and the tool showed the criterion had no solution.</b>",
+
+        "So it ran a control nobody had asked for: capture the same window with the cloth " +
+        "<b>clamped rigid, welded to the hips, with no simulation at all</b>.",
+
+        "<b>The dead garment reads +0.34 frames through the graded rectangle.</b> Pass 2 read " +
+        "+0.72, pass 3 reads +0.87. The statistic's entire dynamic range in that box is about " +
+        "half a frame \u2014 because registration fits <i>one translation to the whole box</i>, " +
+        "and that box is mostly sash, both thighs, and a scabbard crossing it diagonally. " +
+        "Meanwhile the <i>particle</i> inside the same box went from 2.1 to 4.0 frames: the " +
+        "solver doubled its lag and the picture moved 0.15 of a frame.",
+
+        "That is §11.3's own discipline \u2014 <i>record the region or the measurement is an " +
+        "anecdote</i> \u2014 turned back on the review that wrote it."
+      ],
+      notes:[
+        { kind:"crit", label:"Two of my rubric sections were in direct conflict",
+          text:"<b>A first-order lag that relaxes rather than rings tops out at a quarter period " +
+               "of phase</b> \u2014 and that relaxation is not a choice, it is exactly what §7.2's " +
+               "\u201cat most one soft return\u201d requires. On a ~0.4 s beat at 60 Hz the ceiling " +
+               "is about <b>6 frames at zero amplitude</b>, so §7.1's demand for 8 forces a " +
+               "resonance §7.2 bans. I have ruled: <b>§7.2 wins</b>, because a ringing hem is a " +
+               "worse failure than a hem trailing four frames instead of eight. The band is now " +
+               "recorded as a target for the <i>settled, swaying</i> figure rather than a floor " +
+               "for every beat. And on the sway scene \u2014 where the one-sentence test is " +
+               "actually answered \u2014 the band was <i>already satisfied</i> at pass 2's " +
+               "stiffness, with no headroom above it." },
+        { kind:"fix", label:"A third measurement fault, in the test itself",
+          text:"The verification test graded the hem <i>tip</i>. At 1.15 units of lever, " +
+               "<b>2.7\u00b0 of bend cancels the hips' entire travel</b> \u2014 so a properly " +
+               "trailing hem leaves its tip world-static and the statistic reads noise. With the " +
+               "new damping the tip's onset lands <i>two frames before the hips</i>. It now " +
+               "grades the row that actually carries readable ink. Three separate measurement " +
+               "faults in one pass, all found by an agent measuring its own instrument before " +
+               "trusting it." },
+        { kind:"fix", label:"What shipped anyway, and why",
+          text:"The mesh change went in on the argument that it was necessary <b>for the picture " +
+               "rather than for the number</b> \u2014 three overlapping trailing panels, each " +
+               "skinned further down the chain so a bend opens gaps between them, with authored " +
+               "fray reaching rows that were previously flat. At 4x the back of the skirt is now " +
+               "three overlapping arcs with separated brush marks instead of one continuous " +
+               "boundary. It moved the graded number by nothing, exactly as the control predicts. " +
+               "Two bugs were caught by looking at pixels: a one-pixel hard line down the whole " +
+               "back of the skirt, and ink smoke being filled in where it should stay open. " +
+               "Buried hair tips went from <b>45% at the knockback peak to 0%</b>, verified " +
+               "against a capsule independent of the collider list. The bind guard was re-armed " +
+               "with a new recorded baseline rather than removed." }
+      ]
+    },
+    {
+      ts:"2026-08-02", system:"System 4", kind:"build",
+      title:"The staging layer \u2014 ordinal events become a timed schedule, and the timing derives itself",
+      body:[
+        "The hinge the whole interaction layer stands on. The combat engine is deliberately " +
+        "<b>ordinal</b> \u2014 turns, tiles, proportions, sides, no seconds and no pixels \u2014 " +
+        "because the moment it learns what a second is, the reproducibility the review loop " +
+        "depends on becomes a rendering concern. Its author said plainly that mapping that onto " +
+        "time and space was <i>a whole layer that does not exist</i>. It exists now: a schedule " +
+        "placing every beat in seconds with its phases, its contact instants, and typed " +
+        "directives for IK targets, simulation impulses, camera keys, poses, ink and time ramps.",
+
+        "<b>The absolute timing is derived rather than tuned, and that is the good part.</b> A " +
+        "base beat of <b>1.12 s</b> falls out of two independent rubric numbers that agree to " +
+        "2%: read the 0.3-0.6 s settle band as a range to <i>spend across a chain</i> and its " +
+        "middle sits near 0.50 s, which a strike's 45-part recovery must contain; separately a " +
+        "shove's contact plus recovery comes to 0.784 s against a stated knockback of about " +
+        "0.8 s. Two routes, one number, neither fitted to the other.",
+
+        "The engine's contact-ordering theorem was asserted to <b>survive the mapping</b>, swept " +
+        "over roughly 230,000 generated placements plus every contact of whole real turns across " +
+        "six lane lengths, two heroes and five archetypes. The closest two contacts can ever get " +
+        "is more than four frames at 60 Hz."
+      ],
+      notes:[
+        { kind:"crit", label:"Two rubric sections that could not both be true",
+          text:"<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>The camera's fixed half-second push-in contradicted the lane design.</b> " +
+               "On a 15-tile lane that duration covers a <b>5.2x zoom crossing 13.3 tiles of " +
+               "framing</b> \u2014 fast enough to read as the cut §9 itself forbids. The duration " +
+               "now scales with the square root of the zoom ratio. " +
+               "<b style='display:inline;font-size:inherit;letter-spacing:0;text-transform:none'>And \u201cnever cut, never shake\u201d was ungradeable.</b> " +
+               "They are the same defect at different durations: a move short enough <i>is</i> a " +
+               "cut, and a run of short moves <i>is</i> shake. There is now a 0.25 s floor, and " +
+               "colliding moves are <b>delayed rather than compressed</b> \u2014 because " +
+               "compressing a glide is precisely how a push-in becomes a cut." },
+        { kind:"fix", label:"And the rule System 2 was failed on, sharpened",
+          text:"The settle band was being read as a <i>tolerance to sit inside</i> when it is a " +
+               "<i>range to spread a chain across</i>. A single chain-wide settle of 0.45 s " +
+               "satisfies §7.1 perfectly and violates §7.0.3 completely \u2014 which is exactly " +
+               "the state System 2's third pass was failed for, now impossible to construct. " +
+               "Also: the no-simultaneity rule must be asserted across the <i>whole run</i>, " +
+               "since pelvis-to-blade-tip crosses three separate solver chains and a per-chain " +
+               "check would happily pass a rig whose clavicle arrived before its chest." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 3", kind:"review", pass:2, verdict:"FAIL",
       title:"\u201cPoetic from the collar up and inert from the sash down\u201d",
