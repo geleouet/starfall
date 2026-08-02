@@ -111,7 +111,15 @@ public final class CombatEngine {
         for (Combatant e : state.enemies()) {
             ids.add(e.id());
         }
-        emit(new CombatEvent.EncounterBegan(state.lane().length(), state.hero().hero(), state.hero().id(), ids));
+        // state.all() is the hero followed by the Charted Shadows in creation order,
+        // which is ascending id -- ids are handed out in exactly that sequence in
+        // create() -- so this needs no sort to honour the field's own contract.
+        List<CombatEvent.EncounterBegan.Position> board = new ArrayList<>();
+        for (Combatant c : state.all()) {
+            board.add(new CombatEvent.EncounterBegan.Position(c.id(), c.tile(), c.facing()));
+        }
+        emit(new CombatEvent.EncounterBegan(state.lane().length(), state.hero().hero(), state.hero().id(), ids,
+                board));
         declareIntents();
         checkOutcome();
         history.addAll(current);

@@ -527,6 +527,17 @@ So alongside §7.2, every motion system is graded on three positives:
    stopped. This is the cheapest poetry available and it is almost free — it requires only
    that settle times differ down the chain rather than being shared.
 
+   **The unit of assertion is the whole run, not one solver chain.** The run this describes
+   — pelvis, spine, chest, clavicle, shoulder, elbow, wrist, blade tip — crosses three
+   separate IK chains, so a per-chain check would happily pass a rig whose clavicle arrived
+   before its chest. Assert across the composite.
+
+   **And §7.1's 0.3-0.6 s settle band is a range to spend, not a tolerance to sit inside.**
+   A single chain-wide settle of, say, 0.45 s satisfies §7.1's letter perfectly and violates
+   this rule and §10's last row completely — which is precisely the state System 2's third
+   pass was failed for. Spread the chain across the band: hips near 0.30, blade tip near
+   0.60.
+
 A reviewer should state explicitly whether motion is **poetic or merely correct**, and if
 merely correct, say what would give it an origin.
 
@@ -632,10 +643,22 @@ Per the chosen framing: **wide to plan, push in to strike.**
 - **Planning framing:** the full lane readable, figures small, heavy fog, Family C
   mood. Slight slow drift — the camera is never perfectly still.
 - **Execution framing:** on queue execution, the camera glides (never cuts) toward the
-  exchange over ~0.5 s with a soft ease, ending near the intimacy of images 3/4/5 — figures
-  large, blades crossing near frame centre.
-- **Return** is slower than the push-in (~0.8 s).
-- **Never cut. Never shake.** All camera movement is eased and continuous.
+  exchange with a soft ease, ending near the intimacy of images 3/4/5 — figures large,
+  blades crossing near frame centre.
+- **The push-in duration scales with the distance it travels, it is not fixed.** ~0.5 s
+  describes the short-lane exchange this section was written about. Held as a constant it
+  contradicts `combat-design.md` §1.6, which requires the push-in to be small on a short lane
+  and large on a long one: on a 15-tile lane the same half-second covers a **5.2× zoom
+  crossing 13.3 tiles of framing**, which is fast enough to read as the cut this very section
+  forbids. Scale the duration with the square root of the zoom ratio — a 5-tile lane keeps
+  exactly 0.50 s in and 0.80 s out; a 15-tile lane gets 0.80 s and 1.27 s. §1.6 is the
+  tie-breaker: a long lane has nothing *but* the approach.
+- **Return** is slower than the push-in, in the same ratio (~1.6×).
+- **Never cut. Never shake — and both need a floor to be gradeable.** They are the same
+  defect at different durations: a move short enough *is* a cut, and a run of short moves
+  *is* shake. So **no camera move is shorter than 0.25 s**, and when moves would collide,
+  **delay the next one rather than compressing it** — compressing a glide is exactly how a
+  push-in becomes a cut.
 - A subtle parallax between fog layers, figures, and ground sells depth during the move.
 
 ---

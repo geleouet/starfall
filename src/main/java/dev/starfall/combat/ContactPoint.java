@@ -94,8 +94,13 @@ public record ContactPoint(int body, ContactPoint.Part part, ContactPoint.Side s
      * comes down; from reach two it comes in flat. This is the one thing on the
      * lane that genuinely varies a contact's height, and a Reacher's stroke
      * reading like a Wisp's would waste the only distance the design gives.
+     *
+     * <p>Public because the animation layer needs the same rule to fill in a
+     * contact height of its own -- see {@code dev.starfall.stage.Scheduler} -- and
+     * a rule this small is better shared than restated. It takes an {@code int} and
+     * returns an {@code enum}: nothing here can widen into a liability.
      */
-    static Height heightForReach(int distance) {
+    public static Height heightForReach(int distance) {
         return distance <= 1 ? Height.HIGH : Height.MIDDLE;
     }
 

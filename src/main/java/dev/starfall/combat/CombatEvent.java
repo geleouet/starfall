@@ -144,8 +144,30 @@ public sealed interface CombatEvent {
 
     // -- structure: the shape of a turn and of a phrase ------------------------
 
-    /** @param enemyIds ids of the Charted Shadows on the board at the opening, in board order */
-    record EncounterBegan(int laneLength, Hero hero, int heroId, List<Integer> enemyIds) implements CombatEvent {
+    /**
+     * The opening of the fight, including where everyone is standing.
+     *
+     * <p><b>Why the board rides along.</b> Nothing else in the stream states an
+     * opening position: {@link Moved} states a departure, and a body that never
+     * moves in the whole encounter never appears in one; {@link Turned} is the
+     * same story for facing. Without this, the one thing the animation layer needs
+     * before it can place a single body in space would have to be handed in from
+     * outside the stream, which is exactly the workaround the staging layer had to
+     * take before this field existed. A tile and a facing are units the engine
+     * already speaks everywhere else in this interface, so stating them here keeps
+     * the stream entirely ordinal -- see combat-design.md 3d.5.
+     *
+     * @param enemyIds ids of the Charted Shadows on the board at the opening, in board order
+     * @param board    every body present at the opening -- the hero and every
+     *                 Charted Shadow -- with the tile it stands on and the way it
+     *                 faces, in ascending id order
+     */
+    record EncounterBegan(int laneLength, Hero hero, int heroId, List<Integer> enemyIds, List<Position> board)
+            implements CombatEvent {
+
+        /** One body's opening stand: a tile and a facing, which is all the engine has. */
+        public record Position(int entity, int tile, Facing facing) {
+        }
     }
 
     record TurnBegan(int turn) implements CombatEvent {
