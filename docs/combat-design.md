@@ -172,13 +172,13 @@ its wide framing from lane length rather than using a fixed value.
 
 Chosen so the interaction layer is proved **generic** rather than fitted to one case.
 
-**The Ronin — verb: *push*.**
+**The Warden — verb: *push*.**
 Advancing into an occupied tile shoves the occupant back one tile. If there is no room
 behind them, both take collision damage.
 *Choreography:* a shoulder-and-hilt check. Two bodies meeting, one giving ground, cloth
 compressing between them. Contact is sustained, not instantaneous.
 
-**The Wanderer — verb: *swap*.**
+**The Pilgrim — verb: *swap*.**
 Advancing into an occupied tile exchanges places with the occupant.
 *Choreography:* two figures passing through each other within one beat — sleeves and hair
 crossing, each trailing into the space the other has left. This is the harder animation
@@ -223,8 +223,8 @@ Five is enough to make one fight tactical. Each is defined by how it *forces con
 
 | Enemy | HP | Trait | Forces you to |
 |---|---|---|---|
-| **Ashigaru** | 3 | — | Nothing. The baseline the others are read against |
-| **Lancer** | 4 | — | Respect 2 tiles of reach, so closing is not free |
+| **Wisp** | 3 | — | Nothing. The baseline the others are read against |
+| **Reacher** | 4 | — | Respect 2 tiles of reach, so closing is not free |
 | **Runner** | 4 | Charger | React to sudden distance collapse — the extreme-motion test case |
 | **Warden** | 1 | Explosive | Choose *where* it dies, not just whether |
 | **Bulwark** | 5 | Unyielding, Aggressive | Solve a problem without your movement verb |
@@ -247,6 +247,40 @@ borders. Specifically here:
 - The **lane** is a row of faint wash marks that only intensify near relevant tiles.
 - Everything sits on the aged-paper substrate of STYLE.md §3b.3, so the interface is marks
   on the same sheet the figures are painted on rather than a layer above it.
+
+---
+
+## 3b. Setting and vocabulary
+
+`STORY.md` sets the world: *The Atlas of Extinguished Dreams*. The player is the **Night
+Pilgrim**; enemies are **Charted Shadows**; the lane is the **Fold of the World**; the
+action queue is the **Ink Stanza**; an intent telegraph is a **Strikethrough**.
+
+**This is a re-skin, not a redesign.** `STORY.md` §2 retires the samurai framing because it
+anchored the world to one specific culture, but it keeps the entire visual language — warm
+paper, edge dissolve, the blade as the only hard edge, dream motes, impact as an ink bloom
+rather than a shockwave. So nothing about the geometry, the mechanics or the rubric changes.
+What changes is naming and fittings:
+
+| Was | Is |
+|---|---|
+| tsuba (guard) | star-guard |
+| tsuka (grip) | grip |
+| daisho / saya | traveller's scabbard, second sheathed blade |
+| obi | sash |
+| haori | outer robe, mantle |
+| hakama | split robe |
+| katana | star-blade |
+| hamon | temper line |
+
+The reference corpus stays ground truth for **material, value, atmosphere and motion**, and
+stops being ground truth for **iconography** — see STYLE.md's preamble and §11.0. The
+matched-scale test counts *readable parts*, not Japanese garment parts: a guard is a guard
+whether it is a tsuba or a star-forged crossbar; what matters is that the eye finds a mark
+there.
+
+The two heroes keep their verbs and are renamed to fit: **the Warden** pushes, **the
+Pilgrim** swaps.
 
 ---
 

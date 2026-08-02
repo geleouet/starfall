@@ -5,8 +5,27 @@ this file and against the eight reference images in `inspirations/`. When this d
 a reviewer's personal taste disagree, this document wins. When this document and the
 reference images disagree, **the reference images win** and this document gets corrected.
 
-Project codename: **Starfall**. A 2D turn-based tactical duel on a linear lane of 5 to 15 tiles,
-samurai/shogun, rendered as a half-remembered ink painting.
+Project codename: **Starfall**. A 2D turn-based tactical duel on a linear lane of 5 to 15
+tiles, rendered as a half-remembered ink painting.
+
+**Setting** (see `STORY.md`): *The Atlas of Extinguished Dreams*. The world is a
+cosmo-atlas drawn in ink; the player is the **Night Pilgrim**, carrying a blade forged
+from a fallen star, fighting **Charted Shadows** across the **Fold of the World**.
+
+**On the reference corpus and the setting.** Every reference image is a Japanese feudal
+painting, and the setting deliberately is not. That is not a contradiction — it is the
+division of labour this document runs on:
+
+- The references are ground truth for **material, value, atmosphere and motion**. They
+  are what the whole rubric is calibrated on and what produced every useful diagnosis so
+  far. Grade against them without hesitation.
+- They are **not** ground truth for **iconography**. Do not require a tsuba, a daisho, a
+  hakama or lamellar plate. The silhouette they teach — a robed figure whose garment
+  dissolves into ink, carrying one hard-edged blade — is the target; their specific
+  cultural fittings are not.
+
+Where this document still names a Japanese garment part, read it as shorthand for the
+shape, not as a requirement for the object.
 
 ---
 
@@ -209,28 +228,28 @@ family E are the existing `#C8382E` at low opacity, and remain a budget per §2.
 
 Each class is a distinct shader path with its own detail octaves.
 
-**Shibori indigo cloth** — the core material and most of the on-screen surface (haori,
+**Resist-dyed indigo cloth** — the core material and most of the on-screen surface (haori,
 kimono). Wet-edged dye pools, cream reserves, subtle linen weave. Detail octaves: bloom
 boundaries (always visible) → weave (push-in only).
 
-**Pleated hakama** — parallel vertical pleats with per-pleat value variation, deforming
+**Pleated lower robe** — parallel vertical pleats with per-pleat value variation, deforming
 with the skin. This is what will finally give the lower body legibility; both System 1
 reviews called it an undifferentiated curtain. Pleat lines are a mid-frequency octave and
 should stay visible at planning framing.
 
-**Lamellar armour and brass** — rows of lacquered plates, rivets, ochre lacing, patinated
+**Plated scale and brass** — rows of lacquered plates, rivets, ochre lacing, patinated
 brass bosses. Carries the warrior read and a large part of the ochre loudness the last
 review demanded. This is *regular* structure, so misalignment is instantly visible —
 rivet rows must follow the plate rows, which must follow the body's curvature.
 
-**Sashiko linen and cordage** — beige linen with running-stitch grids, braided cord, and
+**Stitched linen and cordage** — beige linen with running-stitch grids, braided cord, and
 frayed knots. Small on-screen area but high value contrast; these are the light warm
 accents that break the indigo at the obi, the sageo and the braids.
 
-**Blade steel** — pale steel with a visible **hamon**, the wavy temper line between hard
-edge and softer spine. Present in all three grids. Since the blade is the object the eye
-follows, the hamon is the one high-frequency detail that should remain faintly readable
-even at planning framing.
+**Star-blade steel** — pale steel with a visible **temper line**, the wavy boundary between
+hard edge and softer spine. Present in all three grids. Since the blade is the object the eye
+follows, the temper line is the one high-frequency detail that should remain faintly
+readable even at planning framing.
 
 **Weathered wood** — vertical grain, cracks, knots. The lane's ground plane.
 
@@ -238,7 +257,7 @@ even at planning framing.
 per §8, so that UI reads as marks on the same sheet the figures are painted on rather
 than as a layer floating above it.
 
-**Embroidered silk** — chrysanthemum and floral motifs with visible satin-stitch
+**Embroidered silk** — woven floral and constellation motifs with visible satin-stitch
 direction, on coral ground. **Reserved for the hero and bosses only.** It is high
 frequency on small surface, so it only survives on a character the player looks at for a
 long time; on an ordinary enemy it would be sub-pixel noise.
@@ -615,10 +634,16 @@ analysis, any zoom, any measurement.
 It was introduced after five System 1 passes had been spent refining how ink behaves at
 the edge of a shape, while nobody had asked whether there were **enough shapes**. The
 matched-scale test answered that instantly: at a 330 px figure height, reference image 1
-still resolves a head with a face, a shoulder, a sword arm, a hand, a tsuka, a tsuba, a
-second sheathed sword across the back, an obi, a hip, two legs, two feet and a loud ochre
+still resolves a head with a face, a shoulder, a weapon arm, a hand, a grip, a guard, a
+second sheathed blade across the back, a sash, a hip, two legs, two feet and a loud ochre
 bloom over the thigh. The capture at identical scale resolved a torso, a topknot and a
 hairline white scratch — roughly a third of the readable parts.
+
+**Count readable parts, not cultural fittings.** The list above is a count of *how much
+figure survives at this scale*, and that is the only thing the test measures. A guard is
+a guard whether it is a tsuba or a star-forged crossbar; what matters is that the eye
+finds a distinct mark there. Never fail a capture for lacking a specific Japanese
+garment part — fail it for resolving fewer parts than the reference does.
 
 Four passes of material analysis never surfaced that. One matched-scale comparison did.
 

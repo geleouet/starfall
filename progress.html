@@ -159,7 +159,7 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-02 — IK failed as “merely correct”; pass 3 giving the motion an origin",
+  updated: "2026-08-02 — setting re-skinned to the Atlas; IK pass 3 gave the motion an origin",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
@@ -197,8 +197,10 @@ const DATA = {
       w:"Direct GLSL, no engine abstraction over the custom rig, trivial offscreen capture." },
     { k:"Art pipeline", v:"Fully procedural, code-defined",
       w:"No external art dependency, so the iterate→capture→review loop runs at full speed." },
+    { k:"Setting",     v:"The Atlas of Extinguished Dreams",
+      w:"Samurai framing retired as too culturally specific; the ink language kept whole." },
     { k:"Visual direction", v:"The 8 reference images",
-      w:"Codified into STYLE.md, which is the grading rubric for every review." },
+      w:"Ground truth for material, value and motion — no longer for iconography." },
     { k:"Board",       v:"Linear lane, 5 to 15 tiles",
       w:"Length is a composition dial: 5 is a knife fight, 15 is an approach." },
     { k:"Framing",     v:"Wide to plan, push in to strike",
@@ -250,6 +252,50 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-02", system:"Setting", kind:"note",
+      title:"The samurai framing is retired — a re-skin, deliberately not a redesign",
+      body:[
+        "A <code>STORY.md</code> arrived setting the world as <i>The Atlas of Extinguished " +
+        "Dreams</i>: an ink cosmo-atlas drawn by a Forgotten Dreamer, a Night Pilgrim carrying a " +
+        "blade forged from a fallen star, Charted Shadows born of broken dreams. Its section 2 " +
+        "explicitly retires the samurai brief, on the grounds that it anchored the world to one " +
+        "specific culture where a more universal imaginary gives full freedom over character " +
+        "design and lore.",
+
+        "<b>That put a lot of finished work in question, so I stopped rather than guessing.</b> " +
+        "The System 1 rig is a specific samurai — haori, hakama, obi, daisho, tsuka, tsuba — and " +
+        "the single largest silhouette gain of its last pass was the daisho. The matched-scale " +
+        "test in the rubric counts Japanese garment parts by name. System 3c's material classes " +
+        "are lamellar armour, sashiko linen and hakama pleats. And all 31 reference images are " +
+        "samurai paintings.",
+
+        "<b>The resolution is a re-skin.</b> The silhouette stays — it already reads as a hooded " +
+        "pilgrim as readily as a samurai — and the explicitly Japanese fittings are renamed: the " +
+        "tsuba becomes a star-guard, the daisho a traveller's scabbard, the hakama a split robe. " +
+        "Nothing about the geometry, the mechanics or five passes of rig work is discarded, and " +
+        "<code>STORY.md</code>'s own stated goal is met, because what it objects to is the " +
+        "cultural anchor rather than the shape."
+      ],
+      notes:[
+        { kind:"fix", label:"The rubric now divides labour explicitly",
+          text:"The eight references remain ground truth for <b>material, value, atmosphere and " +
+               "motion</b> — they are what the entire rubric is calibrated on and what produced " +
+               "every useful diagnosis so far. They are <b>no longer ground truth for " +
+               "iconography</b>. The matched-scale test now counts <i>readable parts</i> rather " +
+               "than named Japanese pieces: a guard is a guard whether it is a tsuba or a " +
+               "star-forged crossbar, and what matters is that the eye finds a distinct mark " +
+               "there. Material classes were renamed the same way — resist-dyed indigo, pleated " +
+               "lower robe, plated scale, stitched linen, star-blade steel with a temper line." },
+        { kind:"crit", label:"One contradiction I resolved in your favour rather than the document's",
+          text:"<code>STORY.md</code>'s lexicon describes the Ink Stanza as <b>3 slots</b>, which " +
+               "contradicts your instruction to raise the queue. I took the later instruction as " +
+               "authoritative, set the queue to 5 everywhere, and corrected the document's lexicon " +
+               "to match rather than leaving two sources disagreeing. Also worth knowing: " +
+               "<code>STORY.md</code> was swept into an earlier commit by a <code>git add -A</code> " +
+               "before I had read it." }
+      ]
+    },
     {
       ts:"2026-08-02", system:"System 2", kind:"review", pass:2, verdict:"FAIL",
       title:"“Merely correct — emphatically, measurably, and rather admirably correct, and not poetic”",

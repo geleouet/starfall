@@ -20,11 +20,11 @@ Le joueur incarne le **Pèlerin de la Nuit**, une silhouette d'encre épurée ar
 
 ### 1.2 La File d'Actions : La Mécanique comme Philosophie
 
-Dans *L'Atlas des Songes Éteints*, la file d'actions (limitée à 3 tuiles) n'est pas une simple contrainte d'interface : elle est le pilier philosophique et narratif du combat.
+Dans *L'Atlas des Songes Éteints*, la file d'actions (limitée à 5 tuiles) n'est pas une simple contrainte d'interface : elle est le pilier philosophique et narratif du combat.
 
 ```
  [ GÈLE L'INSTANT ]  ──>  [ ANCRE LES GLYPHES ]  ──>  [ DÉCLENCHE LA STROPHE ]
-   (Pause tactique)        (Queue : 1 à 3 tuiles)       (Exécution ininterrompue)
+   (Pause tactique)        (Queue : 1 à 5 tuiles)       (Exécution ininterrompue)
 ```
 
 1. **L'Ancrage des Glyphes (Préparation / Ajout de tuile) :**
@@ -81,7 +81,7 @@ Pour nourrir l'interface, les tuiles et le bestiaire :
 | **Pèlerin de la Nuit** | Le personnage joueur |
 | **Ombre Cartographiée** | Ennemi / Chimère née du songe |
 | **Plis du Monde** | La grille de combat (5 à 15 cases) |
-| **Strophe d'Encre** | La file d'actions de 3 emplacements |
+| **Strophe d'Encre** | La file d'actions de 5 emplacements |
 | **Rature** | Indicateur d'intention adverse (zone menacée) |
 | **Glissement de Compas** | Tuile de déplacement |
 | **Trait d'Étoile** | Tuile d'attaque lourde (5 dégâts) |
