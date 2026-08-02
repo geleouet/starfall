@@ -225,7 +225,7 @@ Five is enough to make one fight tactical. Each is defined by how it *forces con
 |---|---|---|---|
 | **Wisp** | 3 | — | Nothing. The baseline the others are read against |
 | **Reacher** | 4 | — | Respect 2 tiles of reach, so closing is not free |
-| **Runner** | 4 | Charger | React to sudden distance collapse — the extreme-motion test case |
+| **Runner** | 4 | Charger, Quick | React to sudden distance collapse, with no telegraph — the extreme-motion test case. See §3d.2 |
 | **Warden** | 1 | Explosive | Choose *where* it dies, not just whether |
 | **Bulwark** | 5 | Unyielding, Aggressive | Solve a problem without your movement verb |
 
@@ -312,6 +312,86 @@ drawn as a **solid black mass with one-to-two-pixel wisps escaping it, and nothi
 between** — which is exactly the bimodal structure the System 3 review measured in the
 references and made the single named cause of that pass's failure. Two unrelated routes to
 the same finding.
+
+---
+
+## 3d. Corrections found by building the engine
+
+The rules engine was implemented headless with 90 tests before any UI existed. That
+surfaced things reading the design could not.
+
+### 3d.1 "Others give ground" is broken at reach 1 — FIXED
+
+**The bug, found as a non-terminating test loop.** A non-Aggressive enemy attacks, retreats
+to distance 2, then returns. A hero alternating bank / execute is therefore *never* swinging
+on a turn when the enemy is adjacent — **Cut literally cannot land on a Wisp**. The Bulwark,
+being the only Aggressive archetype, was the only enemy producing stable adjacency, which is
+why it ended up the fixture for every multi-turn test in the suite. One archetype was
+carrying the entire fight's rhythm.
+
+**Resolution: enemies give ground only when wounded — below half HP — not after every
+attack.**
+
+Chosen over the alternatives (retreat every other attack, retreat to reach distance) because
+it is the only one that converts a rhythm bug into a *character beat*. A healthy enemy holds
+its ground and trades; a wounded one starts backing away. That reads instantly, it needs no
+explanation, and per §0's filter it produces choreography — a figure giving ground is a
+two-body relationship, where "retreat on a timer" is bookkeeping.
+
+### 3d.2 Quick had no home — FIXED
+
+The trait was specified with no enemy carrying it, reachable only via a placement override.
+**The Runner now carries Charger *and* Quick**: it closes the whole distance and strikes
+without telegraph. That is coherent — it is the extreme-motion test case in both the
+combat design and the animation brief — and it gives the trait's mechanic, *the absence of
+a strikethrough*, something to be absent from. Flagged as the most likely thing to need
+toning down once the fight is playable.
+
+### 3d.3 Open tuning items — recorded, not resolved
+
+Both need a playable fight to settle and neither should be guessed at now.
+
+- **Cooldowns 0-8 recovering 1/turn are nearly inert at a 5-slot queue.** Banking a full
+  stanza already costs 5 turns, so anything under about cooldown 5 is back before you want
+  it, and only enchanted tiles feel the system. The scale probably wants compressing, or
+  recovery slowing. This is the same problem as §1.1a's note that combo rewards need
+  retuning for the longer queue, seen on the other axis.
+- **Facing is a resource for the hero only.** Enemies re-face free every turn while the hero
+  pays a whole turn or a Turn tile. Making an enemy spend its step to turn would give
+  flanking real value and hand the Pilgrim's swap a second payoff beyond the one-turn disarm
+  it already has.
+
+### 3d.4 Rules the design left implicit, resolved in the engine
+
+| Question | Resolution and why |
+|---|---|
+| Does cooldown gate banking or execution? | **Banking**, and a banked tile does not recover — otherwise a 5-turn stanza silently pre-charges itself and banking's cost leaks away. |
+| "No room behind" — only the lane edge? | **Also another body**, and it does not chain: a column of enemies is a wall, not dominoes. |
+| Push that kills the occupant — does the pusher follow through? | **No.** The beat is the brace, not the follow-through. |
+| Does Unyielding refuse *swap*? | **Yes** — §2.4 says it denies **both** heroes their verb. It refuses external displacement and external turning, and does **not** refuse damage: the blade lands, the haul does not. |
+| Is a telegraph pinned to tiles or to the body? | **To the body.** Tile-pinning would make one cooldown-0 Step a full disarm and would gut the Bulwark's refusal. Divergence is announced explicitly. |
+| Does a phrase stop when the board is clear? | **No**, and every tile is spent even if the hero dies mid-phrase. All-or-nothing on the *cost*, not only the effect — which is what makes over-committing cost something. |
+| Guard versus Marked ordering | **Guard first.** Marked doubles the next hit *taken*, and a negated attack was not taken; the other order silently eats a seal for free. |
+| Do Guard and Marked apply to Seeping? | **No.** A raised brushstroke stands between body and blade; a wound already bleeding is behind it. |
+| Do status durations stack? | **Refresh.** Stacking makes a status tile scale with queue length, which is arithmetic rather than choreography. |
+| Maximum simultaneous enemies | `max(2, length/2)` — invented, since the design gave only the intent. Keeps density roughly constant across a 5-to-15 lane. |
+
+### 3d.5 What the engine deliberately does not provide
+
+The event stream is **ordinal**: turns and tiles, no world positions and no durations.
+Mapping that to space and time is the animation layer's job and it does not exist yet. Also
+missing, and all of it needed by System 4:
+
+- **Intra-beat phases.** A strike is a single instant; a parry needs a *contact moment* to
+  synchronise two skeletons to, and a wind-up / contact / recovery split to blend IK weight
+  across.
+- **Contact points.** A shove says two bodies met, not whether at shoulder or hilt; a blade
+  meeting gives no crossing point. IK targets need both.
+- **Overlap hints.** Nothing says "beat 3 may begin before beat 2 settles" — which is
+  precisely what makes five beats read as one phrase rather than five.
+- **Death staging.** Death is instantaneous; an ink dissolve wants a duration and a
+  direction.
+- **A camera focus hint.** Which tile is the subject of a beat is derivable but never stated.
 
 ---
 
