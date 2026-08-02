@@ -510,6 +510,7 @@ public final class InkSkinnedRenderer {
         if (n < 2) {
             return;
         }
+        blade.unwrapAngles();
         beginRibbon();
 
         // A ribbon following the tip, not the whole swept sector. STYLE.md 5
@@ -532,40 +533,80 @@ public final class InkSkinnedRenderer {
         final float peak = 0.24f;
         int rows = 0;
 
+        // Catmull-Rom through the stored poses rather than a chord per segment.
+        //
+        // Revision 2 interpolated angle and base linearly *within* each segment,
+        // which is C0: the spine's tangent changed direction at every stored pose,
+        // and where the blade turns hard between two frames that prints as a
+        // chevron kink -- visible at frame 05 of s2-check-extreme24, with frame 06
+        // clean because its samples happened to be collinear. STYLE.md 5 is
+        // explicit that the trail "must curve", so C0 is not enough: the ribbon's
+        // own spine has to be C1, which is what a centripetal Catmull-Rom through
+        // (base, angle, length) gives. Angles are unwrapped first so a pose
+        // sequence crossing +-180 does not spline the long way round.
+        //
+        // Substepping is then driven by the *curvature* the spline actually has
+        // rather than by the chord's turn, which is the review's "insert
+        // intermediate samples when angular rate is high and swept path is short":
+        // a hard turn covering little ground is exactly the case a fixed step
+        // count under-samples, and it is the case that kinks.
         for (int i = 0; i < n - 1; i++) {
-            float t0 = blade.time[i];
-            float t1 = blade.time[i + 1];
-            float a0 = MathUtils.atan2(blade.tipY[i] - blade.baseY[i], blade.tipX[i] - blade.baseX[i]);
-            float a1 = MathUtils.atan2(blade.tipY[i + 1] - blade.baseY[i + 1], blade.tipX[i + 1] - blade.baseX[i + 1]);
-            float da = MathUtils.atan2(MathUtils.sin(a1 - a0), MathUtils.cos(a1 - a0));
-            float l0 = Vector2.len(blade.tipX[i] - blade.baseX[i], blade.tipY[i] - blade.baseY[i]);
-            float l1 = Vector2.len(blade.tipX[i + 1] - blade.baseX[i + 1], blade.tipY[i + 1] - blade.baseY[i + 1]);
-
-            int budget = Math.max(1, 180 / Math.max(1, n - 1));
-            int steps = MathUtils.clamp(
-                    Math.round(Math.abs(da) * MathUtils.radiansToDegrees / 4f), 1, Math.min(10, budget));
+            float turnDeg = Math.abs(blade.angle[i + 1] - blade.angle[i]) * MathUtils.radiansToDegrees;
+            float sweptPx = Vector2.len(blade.tipX[i + 1] - blade.tipX[i], blade.tipY[i + 1] - blade.tipY[i]);
+            // Two independent demands, whichever is larger. The angular term is
+            // the old one; the second raises the sample count when the tip barely
+            // moved, because a short arc with a big turn has the tightest radius
+            // in the ribbon and the least geometry to hide a facet in.
+            int byAngle = Math.round(turnDeg / 3f);
+            int byTightness = sweptPx > 1e-4f ? Math.round(turnDeg / (60f * (sweptPx + 0.02f))) : 0;
+            int budget = Math.max(2, 200 / Math.max(1, n - 1));
+            int steps = MathUtils.clamp(Math.max(byAngle, byTightness), 2, Math.min(14, budget));
             // Only the last row of a segment is shared with the next segment's
             // first row, so emit [0, steps) here and the final row after the loop.
             for (int k = 0; k < steps; k++) {
                 float s = k / (float) steps;
-                emitTrailRow(blade, i, s, t0 + (t1 - t0) * s, a0 + da * s, l0 + (l1 - l0) * s, rail, railA, peak);
+                emitSplineRow(blade, i, s, rail, railA, peak);
                 rows++;
             }
         }
-        emitTrailRow(blade, n - 2, 1f, blade.time[n - 1],
-                MathUtils.atan2(blade.tipY[n - 1] - blade.baseY[n - 1], blade.tipX[n - 1] - blade.baseX[n - 1]),
-                Vector2.len(blade.tipX[n - 1] - blade.baseX[n - 1], blade.tipY[n - 1] - blade.baseY[n - 1]),
-                rail, railA, peak);
+        emitSplineRow(blade, n - 2, 1f, rail, railA, peak);
         rows++;
 
         ribbonIndices(rows, rail.length);
         renderRibbon();
     }
 
-    private void emitTrailRow(Blade blade, int seg, float s, float t, float angle, float len,
+    /**
+     * One ribbon row at parameter {@code s} inside stored segment {@code seg},
+     * with every channel taken off the same Catmull-Rom so the spine, the width
+     * and the fade all stay C1 together.
+     */
+    private void emitSplineRow(Blade blade, int seg, float s, float[] rail, float[] railA, float peak) {
+        int n = blade.count;
+        int i0 = Math.max(0, seg - 1);
+        int i1 = seg;
+        int i2 = Math.min(n - 1, seg + 1);
+        int i3 = Math.min(n - 1, seg + 2);
+        float bx = catmullRom(blade.baseX[i0], blade.baseX[i1], blade.baseX[i2], blade.baseX[i3], s);
+        float by = catmullRom(blade.baseY[i0], blade.baseY[i1], blade.baseY[i2], blade.baseY[i3], s);
+        float angle = catmullRom(blade.angle[i0], blade.angle[i1], blade.angle[i2], blade.angle[i3], s);
+        float len = catmullRom(blade.len[i0], blade.len[i1], blade.len[i2], blade.len[i3], s);
+        float t = MathUtils.lerp(blade.time[i1], blade.time[i2], s);
+        emitTrailRow(bx, by, t, angle, len, rail, railA, peak);
+    }
+
+    /** Uniform Catmull-Rom, clamped at the ends by duplicating the endpoint control values. */
+    private static float catmullRom(float p0, float p1, float p2, float p3, float s) {
+        float s2 = s * s;
+        float s3 = s2 * s;
+        return 0.5f * ((2f * p1)
+                + (-p0 + p2) * s
+                + (2f * p0 - 5f * p1 + 4f * p2 - p3) * s2
+                + (-p0 + 3f * p1 - 3f * p2 + p3) * s3);
+    }
+
+    private void emitTrailRow(float bx, float by, float t, float angle, float len,
                                float[] rail, float[] railA, float peak) {
-        float bx = MathUtils.lerp(blade.baseX[seg], blade.baseX[seg + 1], s);
-        float by = MathUtils.lerp(blade.baseY[seg], blade.baseY[seg + 1], s);
         float dx = MathUtils.cos(angle);
         float dy = MathUtils.sin(angle);
         // Age fade. Squared-ish so the freshest sliver of the arc carries most of
@@ -694,6 +735,9 @@ public final class InkSkinnedRenderer {
         private final float[] baseY = new float[TRAIL_SAMPLES];
         private final float[] tipX = new float[TRAIL_SAMPLES];
         private final float[] tipY = new float[TRAIL_SAMPLES];
+        /** Base-to-tip direction and length per stored pose, rebuilt by {@link #unwrapAngles}. */
+        private final float[] angle = new float[TRAIL_SAMPLES];
+        private final float[] len = new float[TRAIL_SAMPLES];
         private int count;
 
         private float bx, by, tx, ty;
@@ -740,6 +784,35 @@ public final class InkSkinnedRenderer {
 
         boolean valid() {
             return baseVerts.length > 0 && tipVerts.length > 0;
+        }
+
+        /**
+         * Rebuilds the per-pose angle and length channels the trail spline
+         * interpolates, with the angles unwrapped into a continuous run.
+         *
+         * <p>Unwrapping is not cosmetic. A blade sweeping through the -180/+180
+         * seam gives {@code atan2} a sign change, and a spline fitted through
+         * {@code (+179, -179)} takes the long way round -- 358 degrees of ribbon
+         * laid across the frame in one segment. Accumulating the shortest arc
+         * instead keeps the stored run monotone through the seam, and because
+         * only differences are ever used downstream the absolute value drifting
+         * past a turn costs nothing.
+         */
+        void unwrapAngles() {
+            float prev = 0f;
+            for (int i = 0; i < count; i++) {
+                float dx = tipX[i] - baseX[i];
+                float dy = tipY[i] - baseY[i];
+                len[i] = Vector2.len(dx, dy);
+                float a = MathUtils.atan2(dy, dx);
+                if (i == 0) {
+                    angle[i] = a;
+                } else {
+                    float d = a - prev;
+                    angle[i] = angle[i - 1] + MathUtils.atan2(MathUtils.sin(d), MathUtils.cos(d));
+                }
+                prev = a;
+            }
         }
 
         void sample(float[] mats, float now, Vector2 a, Vector2 b) {

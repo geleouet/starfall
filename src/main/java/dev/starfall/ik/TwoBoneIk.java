@@ -72,6 +72,10 @@ public final class TwoBoneIk {
     private float flipSeconds = 0.60f;
     private float holdRadius = 0.06f;
     private float flipMinOpeningDeg = 45f;
+    /** Interior angle at which the limb starts resisting; 180 disables the preference entirely. */
+    private float foldEaseFromDeg = 180f;
+    /** Interior angle the limb asymptotically approaches however far the target goes. */
+    private float foldCeilingDeg = 180f;
 
     private IkConstraint rootLimit = IkConstraint.free();
     private IkConstraint jointLimit = IkConstraint.free();
@@ -131,6 +135,61 @@ public final class TwoBoneIk {
      */
     public TwoBoneIk flipMinOpeningDeg(float deg) {
         this.flipMinOpeningDeg = IkMath.clamp(deg, 0f, 170f);
+        return this;
+    }
+
+    /**
+     * A gravity-loaded limb's reluctance to straighten, per STYLE.md 7.0's second
+     * positive: "the corpus's limbs are gravity-loaded and reluctant -- elbows
+     * held between 90 and 130 degrees... A limb that extends fully because a
+     * coordinate permitted it reads as a linkage. A limb that declines to
+     * straighten reads as a brushstroke."
+     *
+     * <p>It is expressed in interior angle rather than as an abstract stiffness
+     * because that is the quantity the reference corpus is measured in and the
+     * quantity a reviewer can check in a capture. {@code easeFromDeg} is where the
+     * limb starts giving way, {@code ceilingDeg} is the angle it approaches but
+     * never reaches however far out of reach the target is driven. So
+     * {@code foldPreference(112, 142)} means "opens freely to 112 degrees, then
+     * resists, and is never straighter than 142" -- against the 3.9 degrees of
+     * bend that System 2's pass-2 capture held at maximum reach, which is a rod.
+     *
+     * <p>Implemented as a second {@link IkMath#softCeil} on the solved distance,
+     * composed after the reach ceiling. That placement matters:
+     *
+     * <ul>
+     *   <li>it is monotone and C1, like every other limit in this package, so it
+     *       cannot introduce a pop -- and unlike a post-solve angle clamp it
+     *       cannot fight the bend filter or the joint limit either;</li>
+     *   <li>the bone lengths stay exact and the hand stays on the target
+     *       <em>ray</em>. The limb declines to reach the last few millimetres; it
+     *       does not detach from the direction it was asked for;</li>
+     *   <li>it is the identity below {@code easeFromDeg}, so a limb working inside
+     *       the corpus band solves exactly as it did before. That is what keeps
+     *       {@code ik-gesture} unaffected by a knob authored for {@code ik-extreme}.</li>
+     * </ul>
+     *
+     * <p>The cost is reach: the limb can no longer put its hand on a target near
+     * the boundary, and misses by the difference between the two distances -- 4 px
+     * at capture framing with the numbers RigIk uses. That is the price of the
+     * effect and it is the right way round, because a hand 4 px short of an
+     * unreachable target is invisible and a straight arm is not.
+     *
+     * @param easeFromDeg interior angle where resistance begins, in (0, 180]
+     * @param ceilingDeg  interior angle approached asymptotically, in (easeFromDeg, 180]
+     */
+    public TwoBoneIk foldPreference(float easeFromDeg, float ceilingDeg) {
+        float ease = IkMath.clamp(easeFromDeg, 1f, 180f);
+        float ceil = IkMath.clamp(ceilingDeg, ease, 180f);
+        this.foldEaseFromDeg = ease;
+        this.foldCeilingDeg = ceil;
+        return this;
+    }
+
+    /** Drops the fold preference: the limb straightens as far as the target asks. */
+    public TwoBoneIk noFoldPreference() {
+        this.foldEaseFromDeg = 180f;
+        this.foldCeilingDeg = 180f;
         return this;
     }
 
@@ -238,6 +297,17 @@ public final class TwoBoneIk {
             float wLow = Math.min(foldSoftness * total, span * 0.25f);
             solved = IkMath.softCeil(d, total - wHigh, total);
             solved = IkMath.softFloor(solved, fold + wLow, fold);
+            // The fold preference, composed after the reach ceiling rather than
+            // instead of it. Both are monotone C1 soft ceilings, so the
+            // composition is one too, and the reach ceiling still guarantees the
+            // acos argument stays inside (-1, 1) if the preference is switched off.
+            if (foldCeilingDeg < 179.999f && l1 > IkMath.EPS && l2 > IkMath.EPS) {
+                float knee = interiorDistance(l1, l2, foldEaseFromDeg);
+                float limit = interiorDistance(l1, l2, foldCeilingDeg);
+                if (limit > knee + IkMath.EPS) {
+                    solved = IkMath.softCeil(solved, knee, limit);
+                }
+            }
         }
         out.solvedDistance = solved;
 
@@ -320,6 +390,12 @@ public final class TwoBoneIk {
         out.endY = rootY + l1 * IkMath.sinDeg(rootWorld) + l2 * IkMath.sinDeg(jointWorld);
 
         primed = true;
+    }
+
+    /** Root-to-effector distance that puts the joint at a given interior angle. Law of cosines, forwards. */
+    private static float interiorDistance(float l1, float l2, float interiorDeg) {
+        float c = IkMath.cosDeg(interiorDeg);
+        return (float) Math.sqrt(Math.max(0f, l1 * l1 + l2 * l2 - 2f * l1 * l2 * c));
     }
 
     /** Convenience for the unrotated, unmirrored, pole-less case -- mostly tests. */

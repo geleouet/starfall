@@ -85,19 +85,25 @@ class RigIkTest {
         // self-reinforcing, so an orbiting target must never provoke a flip -- and
         // a flip is the one motion in this solver that cannot be made to look
         // like a brushstroke.
+        // Driven through the whole rig rather than through the arm chain alone,
+        // because as of pass 3 the shoulder is no longer a fixed point: the hips
+        // shift, the chest counters and the clavicle rolls, so the aim direction
+        // the bend filter sees is measured from a socket that is itself moving.
+        // A flip provoked by the body would be invisible to a bare-chain test.
         Skeleton s = rig();
         RigIk ik = new RigIk(s);
-        IkChain arm = ik.swordArm().weight(1f);
+        IkChain arm = ik.swordArm();
         IkTargetScript script = new IkTargetScript(IkTargetScript.Kind.REACH, rig());
+        SwingAnimation swing = new SwingAnimation();
 
-        script.sample(0f);
-        arm.target(script.armX, script.armY);
-        arm.snap();
+        pose(s, swing, script, 0f);
+        aim(ik, script);
+        ik.snap();
         float side0 = Math.signum(arm.bendSide());
         for (float t = 0f; t <= script.duration(); t += DT) {
-            script.sample(t);
-            arm.target(script.armX, script.armY);
-            arm.update(DT);
+            pose(s, swing, script, t);
+            aim(ik, script);
+            ik.update(DT);
             assertEquals(side0, Math.signum(arm.bendSide()), 0f,
                     "the elbow changed sides at t=" + t + ", bendSide " + arm.bendSide());
         }
@@ -204,9 +210,9 @@ class RigIkTest {
         float worstRebound = 0f;
         float previous = Float.NaN;
         boolean returning = false;
+        SwingAnimation swing = new SwingAnimation();
         for (float t = 2.95f; t <= script.duration(); t += DT) {
-            applyBind(s);
-            script.sample(t);
+            pose(s, swing, script, t);
             aim(ik, script);
             ik.update(DT);
             float d = ik.swordArm().residual();
@@ -231,6 +237,203 @@ class RigIkTest {
         assertTrue(worstRebound < 0.004f, "the hand rebounded " + worstRebound + " world units after settling");
         assertTrue(ik.swordArm().residual() < 0.004f,
                 "and it never arrived: residual " + ik.swordArm().residual());
+    }
+
+    // -- the STYLE.md 7.0 gate, measured ---------------------------------------
+
+    /**
+     * IkScene's camera is ortho with a half-height of 1.5 on a 540 px capture, so
+     * one world unit is 180 px. Excursions below are quoted in those pixels
+     * because that is the unit the review's acceptance criterion is written in.
+     */
+    private static final float PX_PER_UNIT = 180f;
+
+    @Test
+    void theTorsoMovesDuringIkExtreme() {
+        // The acceptance criterion of the whole pass, and the only measurement in
+        // this file that is about the aesthetic rather than about continuity.
+        //
+        // STYLE.md 7.0: "the body's own centroids must move measurably during any
+        // limb action. A frozen torso fails regardless of how good the limb is."
+        // The pass-2 capture measured a hip ink centroid moving 2 px and a head
+        // moving 4 px while the hand travelled 130 px, and the chain root sat at
+        // the same pixel in all twenty-four frames.
+        //
+        // This measures bone origins rather than ink centroids: a centroid is a
+        // proxy for the thing that has to move, and a proxy that the sword arm
+        // sweeping through the measurement band can drag around by 70 px on its
+        // own. The bones are unambiguous, and if they do not move nothing that
+        // is skinned to them can.
+        float[] hip = new float[2];
+        float[] head = new float[2];
+        float[] shoulder = new float[2];
+        excursions(IkTargetScript.Kind.EXTREME, hip, head, shoulder);
+
+        System.out.println("[RigIkTest] ik-extreme excursion px: hips " + hip[0] + " head " + head[0]
+                + " shoulder " + shoulder[0] + " (paths " + hip[1] + " / " + head[1] + " / " + shoulder[1] + ")");
+        assertTrue(hip[0] > 8f, "the hips moved " + hip[0] + " px, which is a mannequin");
+        assertTrue(head[0] > 12f, "the head moved " + head[0] + " px, which is a mannequin");
+        assertTrue(shoulder[0] > 8f, "the arm chain's root moved " + shoulder[0] + " px; it is still pinned");
+    }
+
+    @Test
+    void theHipLeadsTheHand() {
+        // STYLE.md 7.0's first positive is not "the body also moves", it is that
+        // the movement has a source. A body that responded to the hand would
+        // satisfy the excursion check above and still read as a puppet, so the
+        // ordering is measured too: the pelvis's peak speed must come before the
+        // hand's, at every peak, not on average.
+        Skeleton s = rig();
+        RigIk ik = new RigIk(s);
+        IkTargetScript script = new IkTargetScript(IkTargetScript.Kind.GESTURE, rig());
+        SwingAnimation swing = new SwingAnimation();
+
+        int n = (int) (script.duration() / DT);
+        float[] hipSpeed = new float[n];
+        float[] handSpeed = new float[n];
+        Vector2 v = new Vector2();
+        float px = 0f, py = 0f, hx = 0f, hy = 0f;
+        boolean primed = false;
+        for (int i = 0; i < n; i++) {
+            float t = i * DT;
+            pose(s, swing, script, t);
+            aim(ik, script);
+            if (!primed) {
+                ik.snap();
+            } else {
+                ik.update(DT);
+            }
+            s.worldPosition(s.bone("hips").index, v);
+            if (primed) {
+                hipSpeed[i] = v.dst(px, py);
+            }
+            px = v.x;
+            py = v.y;
+            s.worldPosition(s.bone("handL").index, v);
+            if (primed) {
+                handSpeed[i] = v.dst(hx, hy);
+            }
+            hx = v.x;
+            hy = v.y;
+            primed = true;
+        }
+        int hipPeak = argmax(hipSpeed);
+        int handPeak = argmax(handSpeed);
+        System.out.println("[RigIkTest] ik-gesture peak frames: hips " + hipPeak + " hand " + handPeak
+                + " (lead " + (handPeak - hipPeak) + " frames)");
+        assertTrue(handPeak - hipPeak >= 3,
+                "the hand peaked " + (handPeak - hipPeak) + " frames after the hips; the review asked for about four");
+    }
+
+    @Test
+    void ikGestureStaysInsideTheCorpusBand() {
+        // What makes ik-gesture a different kind of scene from the other three:
+        // it is authored against the reference images rather than against the
+        // solver, and the corpus constraint is a statement about angles. In all
+        // eight references the elbow is bent 90-130 degrees and the upper arm
+        // hangs within about 25 degrees of the torso axis. If a capture of this
+        // scene ever leaves that band the scene has stopped being evidence.
+        Skeleton s = rig();
+        RigIk ik = new RigIk(s);
+        IkTargetScript script = new IkTargetScript(IkTargetScript.Kind.GESTURE, rig());
+        SwingAnimation swing = new SwingAnimation();
+
+        float worstElbowLo = 180f;
+        float worstElbowHi = 0f;
+        float worstOffAxis = 0f;
+        boolean primed = false;
+        Vector2 a = new Vector2();
+        Vector2 b = new Vector2();
+        Vector2 c = new Vector2();
+        for (float t = 0f; t <= script.duration(); t += DT) {
+            pose(s, swing, script, t);
+            aim(ik, script);
+            if (!primed) {
+                ik.snap();
+                primed = true;
+                continue; // the snap frame is the bind pose arriving, not a pose of the clip
+            }
+            ik.update(DT);
+
+            s.worldPosition(s.bone("upperArmL").index, a);
+            s.worldPosition(s.bone("forearmL").index, b);
+            s.worldPosition(s.bone("handL").index, c);
+            float upperDeg = (float) Math.toDegrees(Math.atan2(b.y - a.y, b.x - a.x));
+            float lowerDeg = (float) Math.toDegrees(Math.atan2(c.y - b.y, c.x - b.x));
+            float interior = 180f - Math.abs(shortestArc(upperDeg, lowerDeg));
+            worstElbowLo = Math.min(worstElbowLo, interior);
+            worstElbowHi = Math.max(worstElbowHi, interior);
+
+            // The torso's own downward axis, read off the live spine rather than
+            // written down, so this keeps meaning the same thing if the lean is
+            // ever retuned. Minus ninety, not minus one eighty: trunk bones stack
+            // via a +y offset while their own axes point +x, so the spine's world
+            // rotation is the direction across the body, not along it.
+            float torsoDeg = s.worldRotationDeg(s.bone("spine").index) - 90f;
+            worstOffAxis = Math.max(worstOffAxis, Math.abs(shortestArc(torsoDeg, upperDeg)));
+        }
+        System.out.println("[RigIkTest] ik-gesture elbow " + worstElbowLo + ".." + worstElbowHi
+                + " deg, upper arm off torso axis by up to " + worstOffAxis + " deg");
+        assertTrue(worstElbowLo > 88f, "the elbow opened to " + worstElbowLo + ", tighter than any reference");
+        assertTrue(worstElbowHi < 132f, "the elbow straightened to " + worstElbowHi + ", which no reference contains");
+        assertTrue(worstOffAxis < 27f, "the upper arm left the torso axis by " + worstOffAxis + " degrees");
+    }
+
+    /** Peak-to-peak excursion and total path of the hips, head and shoulder over a whole script, in capture pixels. */
+    private static void excursions(IkTargetScript.Kind kind, float[] hip, float[] head, float[] shoulder) {
+        Skeleton s = rig();
+        RigIk ik = new RigIk(s);
+        IkTargetScript script = new IkTargetScript(kind, rig());
+        SwingAnimation swing = new SwingAnimation();
+
+        String[] watched = {"hips", "head", "upperArmL"};
+        float[][] out = {hip, head, shoulder};
+        int n = (int) (script.duration() / DT) + 1;
+        float[][] xs = new float[watched.length][n];
+        float[][] ys = new float[watched.length][n];
+
+        Vector2 v = new Vector2();
+        boolean primed = false;
+        int f = 0;
+        for (float t = 0f; t <= script.duration() && f < n; t += DT, f++) {
+            pose(s, swing, script, t);
+            aim(ik, script);
+            if (!primed) {
+                ik.snap();
+                primed = true;
+            } else {
+                ik.update(DT);
+            }
+            for (int i = 0; i < watched.length; i++) {
+                s.worldPosition(s.bone(watched[i]).index, v);
+                xs[i][f] = v.x;
+                ys[i][f] = v.y;
+            }
+        }
+        for (int i = 0; i < watched.length; i++) {
+            float span = 0f;
+            float path = 0f;
+            for (int p = 0; p < f; p++) {
+                for (int q = p + 1; q < f; q++) {
+                    span = Math.max(span, (float) Math.hypot(xs[i][p] - xs[i][q], ys[i][p] - ys[i][q]));
+                }
+                if (p > 0) {
+                    path += (float) Math.hypot(xs[i][p] - xs[i][p - 1], ys[i][p] - ys[i][p - 1]);
+                }
+            }
+            out[i][0] = span * PX_PER_UNIT;
+            out[i][1] = path * PX_PER_UNIT;
+        }
+    }
+
+    private static int argmax(float[] v) {
+        int best = 0;
+        for (int i = 1; i < v.length; i++) {
+            if (v[i] > v[best]) {
+                best = i;
+            }
+        }
+        return best;
     }
 
     /**
@@ -260,12 +463,7 @@ class RigIkTest {
         float worstAt = 0f;
 
         for (float t = 0f; t <= script.duration(); t += DT) {
-            if (script.animated()) {
-                applyPose(s, swing, t);
-            } else {
-                applyBind(s);
-            }
-            script.sample(t);
+            pose(s, swing, script, t);
             if (driven) {
                 aim(ik, script);
                 if (!primed) {
@@ -300,9 +498,31 @@ class RigIkTest {
 
     // -- helpers ---------------------------------------------------------------
 
+    /**
+     * Poses the base clip and writes the script's trunk drive, in the order
+     * {@link IkSceneDriver} uses. Every check in this file that claims to measure
+     * a capture scene has to go through here, or it is measuring a figure whose
+     * hips do not move and the capture's do.
+     */
+    private static void pose(Skeleton s, SwingAnimation swing, IkTargetScript script, float t) {
+        if (script.animated()) {
+            applyPose(s, swing, t);
+        } else {
+            applyBind(s);
+        }
+        script.sample(t);
+        script.applyBody(s);
+        s.updateWorldTransforms();
+    }
+
     /** Hands every chain its target and weight for the sample already taken. */
     private static void aim(RigIk ik, IkTargetScript script) {
         ik.swordArm().target(script.armX, script.armY).weight(script.armWeight);
+        if (script.armPoleSet) {
+            ik.armPoleFromChest(script.armPoleLocalX, script.armPoleLocalY);
+        } else {
+            ik.clearArmPole();
+        }
         Vector2 v = ik.fromHips(script.spineLocalX, script.spineLocalY, new Vector2());
         ik.spine().target(v.x, v.y).weight(script.spineWeight);
         ik.legL().target(script.footLX, script.footLY).weight(script.legWeight);
@@ -312,9 +532,9 @@ class RigIkTest {
     /** Runs a bind-pose script from zero up to {@code until}, so a later phase can be examined in context. */
     private static void driveTo(Skeleton s, RigIk ik, IkTargetScript script, float until) {
         boolean primed = false;
+        SwingAnimation swing = new SwingAnimation();
         for (float t = 0f; t < until; t += DT) {
-            applyBind(s);
-            script.sample(t);
+            pose(s, swing, script, t);
             aim(ik, script);
             if (!primed) {
                 ik.snap();

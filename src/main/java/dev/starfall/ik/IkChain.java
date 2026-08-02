@@ -86,6 +86,15 @@ public final class IkChain {
     private final float[] linkOffsetDeg;
     /** Per bone, last frame's animation-to-solved rotation offset. See {@link #writeBack}. */
     private final float[] blendDeltaDeg;
+    /** Per bone, the arrival lag of {@link #boneLagSeconds}. Null entries are "no lag", which is the default. */
+    private final Damped[] boneLag;
+    private final float[] boneLagSeconds;
+    private final float[] lagWorldTarget;
+    private boolean hasLagState;
+    /** Last solved joint direction, in the chain parent's frame. See {@link #solveTwoBone}. */
+    private float lastPoleLocalDeg;
+    private float lastPoleLen;
+    private boolean hasLastPole;
     private boolean hasPrevBlend;
     private boolean hasPrevWorld;
     private float maxSlewDegPerSecond = 1200f;
@@ -128,6 +137,9 @@ public final class IkChain {
         this.preRot = new float[bones.length];
         this.linkOffsetDeg = new float[bones.length];
         this.blendDeltaDeg = new float[bones.length];
+        this.boneLag = new Damped[bones.length];
+        this.boneLagSeconds = new float[bones.length];
+        this.lagWorldTarget = new float[bones.length];
         this.fabrik.limits(limits);
     }
 
@@ -210,6 +222,42 @@ public final class IkChain {
     }
 
     /**
+     * Extra arrival lag on one bone: it reaches the angle the solve asked for a
+     * little after the bones above it do.
+     *
+     * <p>{@link #settleSeconds(float)} lags the whole chain by lagging its target,
+     * so every bone in it arrives on the same frame. STYLE.md 7.0's third positive
+     * bans exactly that -- "nothing may arrive at the same time... the wrist should
+     * arrive after the elbow" -- and 10's last row fails a pass on sight of
+     * "everything peaking on the same frame". This is the knob that separates
+     * them: give bone 1 a little more lag than bone 0 and the elbow leads the hand
+     * down the chain, which is the cheapest overlapping action available and costs
+     * one critically damped scalar per bone.
+     *
+     * <p>It filters the <em>solved world angle</em>, upstream of both the slew
+     * ceiling and the weight blend -- see {@link #applyBoneLag} for why that
+     * placement is the one that works. It is critically damped like everything
+     * else here, so it can lag but never overshoot, and a bone whose target has
+     * stopped still comes to rest: the chain remains exact in the steady state and
+     * is only late in the transient, which is precisely the effect wanted.
+     *
+     * <p>Zero, the default, removes the filter entirely rather than running it at
+     * a tiny time constant, so an unlagged chain is bit-identical to one built
+     * before this existed.
+     */
+    public IkChain boneLagSeconds(int index, float seconds) {
+        float s = Math.max(0f, seconds);
+        boneLagSeconds[index] = s;
+        boneLag[index] = s <= 0f ? null : new Damped(0f);
+        hasLagState = false;
+        return this;
+    }
+
+    public float boneLagSeconds(int index) {
+        return boneLagSeconds[index];
+    }
+
+    /**
      * Ceiling on how fast any bone in the chain may turn, as a net of last
      * resort against the two configurations no solver can be continuous through
      * -- a target passing exactly through the chain root, and a limit-saturated
@@ -233,6 +281,15 @@ public final class IkChain {
         this.targetX = x;
         this.targetY = y;
         return this;
+    }
+
+    /** The requested (not the settled) target, so a driven link upstream can follow the same point. */
+    public float targetX() {
+        return targetX;
+    }
+
+    public float targetY() {
+        return targetY;
     }
 
     /**
@@ -307,12 +364,51 @@ public final class IkChain {
             solveFabrik(refDeg, mirror);
         }
 
+        // Lag first, then slew: the ceiling has to be the last word on how fast a
+        // bone may turn, or a filter catching up after a teleport can carry its
+        // own velocity straight through it.
+        applyBoneLag(primed ? dt : 0f);
         slew(dt);
         writeBack(refDeg, mirror);
         hasPrevBlend = true;
         skeleton.updateWorldTransforms();
         computeEndEffector();
         primed = true;
+    }
+
+    /**
+     * Holds each lagged bone's world angle behind the solved one.
+     *
+     * <p>It runs on the solved <em>world</em> angle, before the slew ceiling and
+     * before the write-back, and both placements are deliberate. Before the slew,
+     * because the ceiling is the last word on angular rate and a filter that had
+     * built up velocity chasing a teleport would otherwise carry it straight
+     * through -- measured at 27 deg/frame on {@code forearmL} against a ceiling of
+     * 20 when this ran after. On the world angle rather than the local one,
+     * because "the wrist arrives after the elbow" is a statement about where the
+     * forearm is pointing, not about a number relative to a parent that is itself
+     * still moving.
+     *
+     * <p>The filter target is accumulated by shortest arc rather than assigned, so
+     * a chain revolving past +-180 degrees does not make the filter chase the long
+     * way round once per turn.
+     */
+    private void applyBoneLag(float dt) {
+        for (int i = 0; i < bones.length; i++) {
+            Damped lag = boneLag[i];
+            if (lag == null) {
+                continue;
+            }
+            if (dt <= 0f || !hasLagState) {
+                lagWorldTarget[i] = worldDeg[i];
+                lag.set(worldDeg[i]);
+            } else {
+                lagWorldTarget[i] += IkMath.deltaDeg(lagWorldTarget[i], worldDeg[i]);
+                lag.step(lagWorldTarget[i], boneLagSeconds[i], dt);
+            }
+            worldDeg[i] = lag.value;
+        }
+        hasLagState = true;
     }
 
     /**
@@ -360,6 +456,8 @@ public final class IkChain {
         primed = false;
         hasPrevWorld = false;
         hasPrevBlend = false;
+        hasLagState = false;
+        hasLastPole = false;
         update(0f);
     }
 
@@ -458,16 +556,50 @@ public final class IkChain {
         float px = poleX;
         float py = poleY;
         if (!poleSet) {
-            // The joint's own current position: "keep bending the way you already
-            // bend". Read before the solve, so it is last frame's answer and the
-            // hysteresis has something stable to hold on to.
+            // "Keep bending the way you already bend", and the definition of
+            // "already" is the whole of this block.
+            //
+            // The obvious reading is the joint's current position, joints[2], and
+            // for four passes that is what this did -- on the stated grounds that
+            // it was "last frame's answer, so the default is self-reinforcing".
+            // It is not, and the gap only shows up on the rig. Every scene in the
+            // capture harness re-poses the skeleton from bind (or from a clip)
+            // before the chains run, so by the time measure() reads it the elbow
+            // is back where the *bind pose* put it. The default was therefore not
+            // last frame's answer at all: it was a pole nailed to the shoulder,
+            // which is exactly the fixed-pole configuration RigIk's own comment
+            // says can never be made pretty. It stayed hidden because with no fold
+            // preference the limb ran near enough to straight that the elbow sat
+            // inside the pole hysteresis deadband and carried no signal; the
+            // moment the limb was given a reason to stay bent, ik-reach flipped
+            // its elbow at t=0.53 on a target that had done nothing unusual.
+            //
+            // So the previous solved joint is remembered here, in the chain, and
+            // carried in the *parent's* frame rather than the world -- a clavicle
+            // that rolls should take the elbow's preference with it, which is what
+            // an anatomical shoulder does. It is blended toward the incoming pose
+            // by weight, so at weight 0 the documented behaviour is exact ("do not
+            // fight the animation") and at weight 1 the default is genuinely
+            // self-reinforcing.
             px = joints[2];
             py = joints[3];
+            if (hasLastPole && weight > 0f) {
+                float deg = refDeg + lastPoleLocalDeg;
+                float rx = joints[0] + lastPoleLen * IkMath.cosDeg(deg);
+                float ry = joints[1] + lastPoleLen * IkMath.sinDeg(deg);
+                px += (rx - px) * weight;
+                py += (ry - py) * weight;
+            }
         }
         twoBone.solve(joints[0], joints[1], lengths[0], lengths[1],
                 settleX.value, settleY.value, px, py, refDeg, mirror, dt, twoBoneResult);
         worldDeg[0] = twoBoneResult.rootWorldDeg;
         worldDeg[1] = twoBoneResult.jointWorldDeg;
+
+        // Remember where the solve put the joint, relative to the parent's frame.
+        lastPoleLocalDeg = IkMath.deltaDeg(refDeg, worldDeg[0]);
+        lastPoleLen = lengths[0];
+        hasLastPole = true;
     }
 
     private void solveFabrik(float refDeg, float mirror) {

@@ -84,7 +84,21 @@ public final class IkSceneDriver {
 
         script.sample(time);
 
+        // The trunk pose, written on top of the base pose and before anything
+        // reads it. This is STYLE.md 7.0's first positive and it has to happen
+        // here, not inside a chain: a pelvis that shifts and a ribcage that
+        // counters it are authored motion with a source, and IK is the thing that
+        // absorbs them -- the legs hold their plants while the hips move, and the
+        // arm solves from a shoulder that has already been carried somewhere.
+        script.applyBody(rig.skeleton());
+        rig.skeleton().updateWorldTransforms();
+
         ik.swordArm().target(script.armX, script.armY).weight(script.armWeight);
+        if (script.armPoleSet) {
+            ik.armPoleFromChest(script.armPoleLocalX, script.armPoleLocalY);
+        } else {
+            ik.clearArmPole();
+        }
 
         ik.fromHips(script.spineLocalX, script.spineLocalY, scratch);
         ik.spine().target(scratch.x, scratch.y).weight(script.spineWeight);

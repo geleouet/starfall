@@ -159,9 +159,11 @@ public class IkDebugScene implements Scene {
         drawChain(ik.legR(), Palette.INK_SLATE, 0.013f);
         drawChain(ik.swordArm(), Palette.INK_BLACK, 0.018f);
 
-        // Poles. Only the legs carry one; the arm's is the pose's own elbow, so
-        // it is drawn as a hollow tick on the elbow itself rather than as a point
-        // out in space, because that is literally where it is.
+        // Poles. The legs always carry one and the arm carries one only in
+        // ik-gesture (see RigIk#armPoleFromChest); everywhere else the arm's pole
+        // is the previous frame's own elbow, so it is drawn as a hollow tick on
+        // the elbow itself rather than as a point out in space, because that is
+        // literally where it is.
         shapes.setColor(Palette.MOTE_CYAN);
         ik.legPoleL(a);
         cross(a.x, a.y, 0.030f);
