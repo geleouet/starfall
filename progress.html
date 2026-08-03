@@ -159,19 +159,19 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — system 3 closed on a demonstrated negative; system 4 in review",
+  updated: "2026-08-03 — the blades meet; system 4 pass 2 with an independent reviewer",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 4 in review \u2014 the system everything else was built to serve",
-    detail: "System 3 closed at its five-pass cap on a <b>demonstrated negative</b>: the rail " +
-            "was fixed, the delivered pixels moved fourteen times more than the previous pass " +
-            "moved them, and the paired captures are still indistinguishable at viewing scale. " +
-            "That is an answer, not an abandonment, and the replacement mechanism is on record. " +
-            "System 4 \u2014 two figures, a parry, a five-beat phrase \u2014 is now with an " +
-            "independent reviewer, which is re-shooting every capture on the fixed harness " +
-            "before grading."
+    title: "System 4 pass 2 \u2014 the blades meet, and the pass does not declare itself passed",
+    detail: "Pass 1 put two figures on screen and a light where a parry was supposed to be, but " +
+            "the blades never came within a fifth of a body height of each other. Pass 2 closed " +
+            "that to <b>0.0287</b> against an acceptance of 0.02 \u2014 a 7.4\u00d7 improvement " +
+            "that misses, <b>reported as a miss</b>. The corridor between the two bodies is still " +
+            "zero and is also reported as unmet. An independent reviewer with a fresh context is " +
+            "grading it now, and has been told first to re-check the three results pass 2 " +
+            "<i>did not</i> re-measure."
   },
 
   systems: [
@@ -185,7 +185,7 @@ const DATA = {
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
-    { n:"04", name:"Procedural interaction", status:"review", passes:1,
+    { n:"04", name:"Procedural interaction", status:"review", passes:2,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
     { n:"05", name:"Combat + action queue", status:"partial", passes:0,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
@@ -255,6 +255,119 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 4", kind:"build", pass:2,
+      title:"The blades meet \u2014 and the pass refuses to call itself a pass",
+      sheet:"out/captures/s4-p2-parry-contact/frame_010.png",
+      sheetNote:"Two figures, blades crossed, the light on the crossing. The closest this " +
+                "project has come to reference family B \u2014 and the first frame in it that " +
+                "was shot on a harness without the mirror ghost.",
+      body:[
+        "Blade separation went from <b>0.213</b> of a figure height to <b>0.0287</b>, against an " +
+        "acceptance of 0.02. <b>A 7.4\u00d7 improvement that misses by nine tenths of a point, and " +
+        "the pass says so in its own first paragraph</b> rather than rounding it into a win. Two " +
+        "instruments disagree and the disagreement is explained rather than averaged: the geometry " +
+        "says the segments <i>intersect</i> for four frames, the pixels say the two cool-bright " +
+        "clouds stop 11.3 px apart, because the cool test correctly refuses to count the warm clash " +
+        "core between them. <b>The pixel number is the honest one and it is quoted first.</b>",
+
+        "The review called it <i>one aiming bug</i>. It was one symptom with <b>three</b> causes. " +
+        "The target named a blade and the chain moved a fist \u2014 and a blade hangs a tenth of a " +
+        "unit out of the fist at 45\u00b0 and runs two thirds further, so two fists a finger apart " +
+        "put two blades most of a metre apart. Nothing in the rig <i>could</i> point a sword: the " +
+        "blade\u2019s world angle was the forearm\u2019s plus a constant. And the elbow was in " +
+        "front of the fist, which points a blade backwards whatever the wrist does \u2014 exactly " +
+        "the review\u2019s <i>grip on the far side of its own torso</i>.",
+
+        "<b>The corridor is still 0.000 and is reported as not met.</b> But the guard is checked " +
+        "in with four cases, and it shows the cause has changed: not that the bodies merge \u2014 " +
+        "merges halved, 25% \u2192 12.5% \u2014 but that the two figures\u2019 arms overlap in x " +
+        "by about <b>eight pixels</b> at the bind. Widening the lane bought five frames; widening " +
+        "further broke the parry. On this rig <i>hands close enough to bind</i> and <i>a column of " +
+        "paper between the bodies</i> are in direct conflict, and pass 2 chose the bind."
+      ],
+      notes:[
+        { kind:"fix", label:"Why moving the pole was not enough \u2014 the finding worth carrying forward",
+          text:"The two-bone solver picks its bend side by testing the pole against the " +
+               "<b>settled</b> aim, and the settle is 0.48 s while the hand crosses most of a body " +
+               "height. So through the entire approach the aim it tests against still points " +
+               "behind the shoulder. Measured: the pole sat 0.37 to the correct side for the whole " +
+               "contact span and the bend side <b>never moved</b>. Even a flip that committed would " +
+               "take 0.60 s \u2014 longer than the beat. The side is now pinned per facing." },
+        { kind:"fix", label:"The bloom is honest by construction, and a test says so",
+          text:"<code>everyClashIsDrawnWhereTwoBladesActuallyAre</code> <b>fails the build</b> when a " +
+               "clash is live on a frame whose blades are more than 2% of a figure height apart, or " +
+               "whose origin is a point on one body rather than the reconciled crossing. Pass 1\u2019s " +
+               "worst failure was <i>a light asserting an event the picture does not contain</i>; " +
+               "that can no longer ship." },
+        { kind:"fix", label:"The enabling instrument: a duel that runs with no screen",
+          text:"<b>Rehearsal</b> plays a whole duel through the real schedule, director, rig, IK and " +
+               "simulation with <b>no GL context</b>, and exposes each blade\u2019s world segment per " +
+               "frame. Its first run reproduced the reviewer\u2019s number to within a tenth of a point " +
+               "by a completely different route. It is the first thing in the project that can assert " +
+               "about the <i>picture</i> without shooting a capture \u2014 and it is why every test in " +
+               "pass 1 was green: <b>all of them were written against the schedule.</b>" },
+        { kind:"crit", label:"Named as not done, rather than left to be discovered",
+          text:"The phrase\u2019s continuity result, the held breath and the blade trail were " +
+               "<b>not re-measured</b>, although four of the pass\u2019s changes touch all three " +
+               "scenes. A static control is on disk for whoever does. The reviewer has been told to " +
+               "check those three <i>first</i>: a pass that fixes a parry by breaking a phrase has " +
+               "not moved forward. One regression is self-reported too \u2014 pooling the pale figure " +
+               "to the floor narrows the dark-vs-pale contrast family B is built on." }
+      ]
+    },
+    {
+      ts:"2026-08-03", system:"System 4", kind:"review", pass:1, verdict:"FAIL",
+      title:"The phrase is poetic. The parry does not happen.",
+      body:[
+        "<b>The blades never come closer than 98.4 px on a 462 px figure</b> \u2014 21% of a body " +
+        "height \u2014 and they stop approaching and diverge monotonically. The clash bloom fires " +
+        "two frames after closest approach, 36 px from the attacker\u2019s own grip and <b>223 px " +
+        "from the defender\u2019s blade</b>. The staging did its job: the debug overlay shows the " +
+        "two meeting targets 32 px apart exactly where the bloom lands. The defender\u2019s blade " +
+        "is simply not on the chain that receives it.",
+
+        "So the deflection rule is not mis-shaped, it is <i>unexercised</i> \u2014 and what is on " +
+        "screen is <b>worse than either a deflection or a collision: a light asserting an event " +
+        "the picture does not contain</b>.",
+
+        "The corridor closes at the same moment. For <b>sixteen consecutive frames</b> of the " +
+        "contact span there is not one column of paper between the two figures, and for a quarter " +
+        "of them they are a single connected ink component holding 78% of the frame\u2019s ink. " +
+        "The reference\u2019s own pinch, measured at matched scale, is 6.3% of figure height and " +
+        "is <i>never</i> zero \u2014 which corrects the build\u2019s phrasing, which overstated the " +
+        "reference, while confirming its conclusion.",
+
+        "<b>The phrase passes, and it is the first real continuity result in the project.</b> A " +
+        "scale- and translation-invariant silhouette difference \u2014 so the camera cancels \u2014 " +
+        "never falls below <b>25\u00d7 a static control\u2019s noise</b> across 417 consecutive " +
+        "inter-frame steps. The held breath measures 0.857\u00d7 for 0.12 s against a control scene " +
+        "with no ramp: the depth is exactly right and the clock never stops."
+      ],
+      notes:[
+        { kind:"crit", label:"The blocking gap was in the tooling, not the picture",
+          text:"<b>The region set fails silently on two-figure frames.</b> The detected figure box " +
+               "spans both bodies, and the tooling cheerfully reported a hem lag <i>inside the " +
+               "specified band</i> from boxes that were nonsense. It only looked sane because boxes " +
+               "resolve against frame 0 \u2014 the one frame where the bodies are apart. A silent " +
+               "wrong answer is worse than a refusal, and this is now §11.3\u2019s rule that a " +
+               "region set must refuse rather than lie." },
+        { kind:"crit", label:"Two honest qualifications on results that did pass",
+          text:"The 17% hip figure is a whole-phrase aggregate <b>inflated by re-planting between " +
+               "clauses</b>; inside the windows where the blade actually sweeps it is 4.4%, and " +
+               "that is the number to hold. And there is a <b>0.317 s hole</b> where the hero is a " +
+               "statue while the enemy winds up." },
+        { kind:"crit", label:"A process failure, recorded as one",
+          text:"Systems 1 to 3 each left a debt document. System 4 left <i>two paragraphs in this " +
+               "page</i>, claiming eight gaps and naming four. <b>A gap reported where the next " +
+               "pass will not read it has not been reported.</b> <code>docs/system4-debt.md</code> " +
+               "is the fix." },
+        { kind:"fix", label:"The standard pass 2 was given",
+          text:"The reviewer\u2019s own closing line: <i>\u201cFix one aiming bug and one corridor, " +
+               "and this becomes the first pass in the project that could answer §0 with a " +
+               "yes.\u201d</i>" }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 3", kind:"build", pass:5,
       title:"Closed at the cap on a demonstrated negative \u2014 which is an answer, not an abandonment",
