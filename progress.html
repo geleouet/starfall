@@ -159,18 +159,17 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — faces pass 2 resumed after an interruption; nothing lost",
+  updated: "2026-08-03 — the ink floor is a measured fraction at last; faces merged",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
-    label: "Now building",
-    title: "Faces pass 2, resumed — and the save point that made resuming cheap",
-    detail: "An API spend limit killed the faces pass mid-iteration. The work was committed and " +
-            "<b>pushed to the remote before anything else</b>, so nothing was lost — " +
-            "including thirteen numbered iteration captures that record what was tried and " +
-            "<i>rejected</i>, which nothing could have reconstructed. The agent’s own " +
-            "reasoning was not recoverable, so a fresh one resumed from the committed state with " +
-            "the two red guards as its starting point."
+    label: "Paused",
+    title: "Faces merged — and the debt this rubric owed itself is paid",
+    detail: "The faces pass closed the oldest open item in the rubric: §2.2 said this morning " +
+            "that the ink floor <i>must</i> be a ratio to the ground rather than an absolute " +
+            "hex, and left the fraction owed. It is measured — <b>0.12–0.14 of local " +
+            "sky</b>, on all six family-B duellists, with regions recorded. Everything in flight " +
+            "is landed, merged and pushed. Queued next: the fittings pass, and the input loop."
   },
 
   systems: [
@@ -180,7 +179,7 @@ const DATA = {
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
     { n:"03", name:"Verlet hair + cloth", status:"failed", passes:5,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
-    { n:"3b", name:"Faces — expression + variety", status:"review", passes:1,
+    { n:"3b", name:"Faces — expression + variety", status:"review", passes:2,
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
@@ -254,6 +253,64 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 3b", kind:"build", pass:2,
+      title:"The ink floor becomes a measured fraction, and the face stops being a decal",
+      sheet:"out/captures/s3b-p2-parry-contact/frame_011.png",
+      sheetNote:"Both faces are now among the <i>darkest</i> things on their figures, as in " +
+                "every family-B reference. Compare with the same beat further down the page, " +
+                "where the pale duellist’s face was the brightest thing in the frame.",
+      body:[
+        "<b>The load-bearing change is a debt this rubric wrote against itself this " +
+        "morning.</b> §2.2 was corrected to say the ink floor must be a <i>ratio to the " +
+        "ground</i> rather than an absolute hex chosen while looking at figures on cream " +
+        "paper — and it left the fraction <i>owed</i>. It is now measured: <b>the " +
+        "corpus’s deepest strokes sit at 0.12–0.14 of local sky</b>, on all six " +
+        "family-B duellists, regions recorded.",
+
+        "That was not decoration. The resolve shader’s clamp is <b>why wetness 0.86 and " +
+        "wetness 1.0 both printed the same value of 26</b>; it now scales with the ground and is " +
+        "the identity on family A, verified bit-stable against the control. <b>Until that " +
+        "landed, a socket darker than its own cheek was physically unreachable</b> — which " +
+        "is why the previous attempt could tune forever and never arrive. Both red guards went " +
+        "green with no threshold, box or tolerance loosened: density 4.46 → <b>5.00</b> " +
+        "against a floor of 4.92, and eye-against-plane 1.354 → <b>0.74</b> against a " +
+        "ceiling of 1.35 — the foe’s through a <i>corrected</i> box, since pass " +
+        "1’s ignored facing and was reading sky, which made the assertion harder.",
+
+        "<b>And then the pass nearly convicted itself, and did not hide it.</b> Its first final " +
+        "measurement read 5.00 while <i>its own same-command twin read 4.60</i> — under the " +
+        "floor. Two rolls of one measurement disagreeing across the acceptance line is the whole " +
+        "case against trusting a single reading. It was fixed <b>in the subject</b>, by pushing " +
+        "borderline boundaries past the detector’s threshold, after which both rolls read " +
+        "identically."
+      ],
+      notes:[
+        { kind:"crit", label:"A fifth vacuous guard, and my own brief understated the failure",
+          text:"The interrupted half-pass’s gaze guard <b>claimed a red observation in its " +
+               "own javadoc</b>, but under the reviewer’s exact sabotage the suite stayed " +
+               "green — clamp saturation plus end-of-score sampling. Rebuilt with " +
+               "mid-schedule probes and an assertion about <i>its own discriminating power</i>, " +
+               "then observed red for real. And the brief I wrote understated the red state: " +
+               "<b>the foe failed the density floor too</b>, masked by assertion order." },
+        { kind:"fix", label:"Two green systems merged into a red suite — and that was useful",
+          text:"The face’s detail knee was calibrated against a planning framing that " +
+               "pulled back far enough to make a head negligible. <b>System 5’s framing law " +
+               "deleted that premise</b>: the planning shot now delivers a <b>32.8 px head</b> " +
+               "where it delivered a speck, so the face was 32% resolved on the very frame §4b.0 " +
+               "says must carry a <i>suggestion</i>. The knee moves 26/44 → 36/54 — " +
+               "maintenance of a rubric property under a changed premise, not a threshold " +
+               "loosened for green. <b>It is a dependent variable of the framing law and nothing " +
+               "in the build said so</b>; that is now written into the constant itself." },
+        { kind:"crit", label:"Thin, and said to be thin",
+          text:"The hero’s density margin is <b>+0.08 per thousand</b> — real, stable " +
+               "across the rerun pair, frozen in the tracked frame, and thin. The remaining " +
+               "distance to the corpus’s absolute band is <b>unmarked hair mass</b>, " +
+               "quantified and handed to the hair pass rather than claimed. Garment and hair " +
+               "still author against the paper-ground floor at about <b>twice the corpus " +
+               "darks</b> — named in §2.2 rather than silently repainted." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 3b", kind:"note",
       title:"Interrupted mid-iteration — what made the resumption cheap",
