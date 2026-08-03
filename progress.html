@@ -159,17 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — the closing record audited; fourteen corrections",
+  updated: "2026-08-03 — a feathered panel still passes both guards, and the pass says so",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "The interface at pass 2 \u2014 and System 4\u2019s record corrected before anyone inherits it",
-    detail: "System 4 is closed, so its debt document is now an <b>inheritance document</b>: " +
-            "faces, textures and the combat UI each build against it without re-deriving its " +
-            "numbers. It was audited for accuracy alone and <b>fourteen statements did not " +
-            "reproduce</b> \u2014 including one that reverses a prescription and one that " +
-            "discredits a good result without cause. Meanwhile the combat interface is at pass 2."
+    title: "The interface at pass 2 \u2014 merged, and its own guards attacked",
+    detail: "The rule that a guard must be <i>attacked</i>, not merely observed red, was applied " +
+            "by the pass to its own work \u2014 and it <b>partly lost</b>. A filled panel with a " +
+            "three-pixel feather still passes both hard-edge guards. So the honest scope is what " +
+            "got written down: <b>these guards forbid a printed boundary, not a rectangular " +
+            "shape</b>, and §10 bans the shape. A reviewer is now re-running the cold read, " +
+            "because two of the five glyphs were redrawn."
   },
 
   systems: [
@@ -185,7 +186,7 @@ const DATA = {
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
     { n:"04", name:"Procedural interaction", status:"failed", passes:5,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
-    { n:"05", name:"Combat + action queue", status:"building", passes:1,
+    { n:"05", name:"Combat + action queue", status:"review", passes:2,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
     { n:"06", name:"Capture harness + MCP", status:"passed", passes:0,
       summary:"Offscreen capture and contact sheets are already live and load-bearing. HTTP debug API and MCP server still to come." }
@@ -253,6 +254,66 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 5", kind:"build", pass:2,
+      title:"The pass attacked its own guards, and partly lost \u2014 so the honest scope is on record",
+      sheet:"out/captures/s5-p2-fold-plan/frame_003.png",
+      sheetNote:"The Parry mark at the top of the stanza is now two curves with no vertex " +
+                "anywhere, where it was a sharp corner. The hand at right is populated: " +
+                "back-step, feint, draw, turn and an enchantment mark, none of them ever drawn " +
+                "before.",
+      body:[
+        "§11.2b(f) now requires that a guard carrying a broad claim be <b>attacked</b>, not " +
+        "merely observed red. This pass attacked its own, four ways, and <b>reports that it " +
+        "partly lost</b>. The predecessor\u2019s HUD panel is caught by both new guards. The " +
+        "same panel with <i>every triangle drawn twice</i> defeats the vertex test and is caught " +
+        "only by a checked-in CPU rasteriser \u2014 so that attack is itself checked in as an " +
+        "assertion, and deleting the rasteriser can never look safe. <b>But a filled panel with " +
+        "a 3-pixel feather passes both</b>, and at 5 pixels it passes comfortably.",
+
+        "So the scope that got written down is the honest one rather than the comfortable one: " +
+        "<b>these guards forbid a printed boundary, not a rectangular shape.</b> §10 bans the " +
+        "shape and nothing in the suite tests for one. The construction that defeats them is " +
+        "recorded so the next pass starts from it rather than rediscovering it.",
+
+        "<b>The glyph collision was real</b>, and the new guard was observed red on the old " +
+        "alphabet: Step drawn facing left was vertex-identical to Back-step facing right \u2014 " +
+        "distance <b>exactly 0.0000</b> as pictures. Back-step now has its own asymmetry and the " +
+        "closest cross-tile pair is <b>0.733</b>. The pass also <i>narrowed the instruction it " +
+        "was given</i>, from 18 pairs to 144, with the reason measured: a Sweep is a 230\u00b0 " +
+        "arc through front <i>and</i> back, so its own mirror scores 0.154 and correctly so.",
+
+        "<b>And the Parry no longer draws what the rubric forbids.</b> It was two straight lines " +
+        "meeting at an apex \u2014 which is what a collision looks like \u2014 on the signature " +
+        "beat of the game. It is now two curves with <b>no vertex anywhere</b>, anchored on " +
+        "§7.1\u2019s own sentence that contact is a span rather than an instant."
+      ],
+      notes:[
+        { kind:"fix", label:"Two claims from the review that do not reproduce",
+          text:"The <i>\u201cthere is no paper\u201d</i> finding compared this stage\u2019s dusk " +
+               "sky against a <b>Family A cream sheet</b>. Against reference image 3 \u2014 the " +
+               "template this stage is actually built on \u2014 the capture matches to <b>1%</b>. " +
+               "The conclusion stands; the 16\u00d7 was a family error. And a haze term written " +
+               "straight through moved the duel by <b>1,180 px against a null control of 0</b>, " +
+               "so it went behind a branch. <b>Second time in two days that a term multiplying " +
+               "out to the identity was not free</b> \u2014 and the first time it was measured " +
+               "before shipping rather than after." },
+        { kind:"fix", label:"Cooldowns are countable now, in delivered pixels",
+          text:"The tick pitch derives from mark width and the ghosts separate by <i>value</i> " +
+               "rather than by breakup, guarded over every cooldown 0\u20138 \u00d7 every charge " +
+               "count at <b>both 720 and 540 rows</b> and observed red on the old geometry. The " +
+               "misread that showed <i>two of three</i> \u2014 a <b>wrong number</b>, not a " +
+               "missing tick \u2014 is gone. Fog is calibrated on the corpus, and the pass " +
+               "reports its own first setting was <b>twice too strong</b>." },
+        { kind:"crit", label:"The standing failure is still standing",
+          text:"Pass 1 was called <i>a diagram on a nice background</i>. Pass 2 concedes the " +
+               "matched-scale part count was <b>not re-run</b>, and that the fog moves it the " +
+               "<b>wrong way</b>: interface-to-world 0.43 \u2192 <b>0.45</b>. Also unpaid: the " +
+               "framing law, a 3-px tooth in the margin, and whether the new Parry still reads " +
+               "as <i>Parry</i> cold \u2014 which only a reviewer can grade, and which is the " +
+               "risk the fix itself created." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 4", kind:"review", pass:5, verdict:"FAIL",
       title:"Auditing the record three systems will inherit \u2014 fourteen corrections",
