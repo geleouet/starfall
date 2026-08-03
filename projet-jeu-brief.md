@@ -1,61 +1,127 @@
-# Brief projet — Jeu de combat 2D tour par tour (inspiration shogun)
+# Brief projet — Starfall
+
+> **Ce document décrit l'état réel du projet.** Il a été réécrit le 3 août 2026 parce
+> qu'il décrivait encore le projet tel qu'il était *envisagé* : choix de moteur ouvert,
+> univers shogun, boucle de feedback « à mettre en place ». Trois de ces points étaient
+> tranchés depuis longtemps et un quatrième était livré. Un audit l'a qualifié de
+> **piège à lecture** pour tout nouvel arrivant — humain ou agent — et il avait raison.
+>
+> La version d'origine est dans l'historique git. Ce qui a changé et pourquoi est en
+> annexe, parce que dans ce projet les décisions se lisent avec leur raison.
+
+---
 
 ## Concept
-Jeu 2D tour par tour sur grille, façon *Shogun Showdown* : combats tactiques sur une quinzaine de cases. Univers d'inspiration shogun/samouraï (épées, vêtements traditionnels).
 
-**Priorité absolue** : un rendu visuel très soigné des combattants — mouvement, vêtements, cheveux — avec des **animations procédurales sur les interactions entre personnages** (parades, contacts d'armes, réactions à l'impact), pas seulement des animations pré-calculées jouées en boucle.
+**Starfall** — duel tactique 2D au tour par tour, sur une lane linéaire de 5 à 15 cases,
+rendu comme une peinture à l'encre à demi rêvée.
 
-## Cibles plateformes
-Mobile (Android/iOS) + Desktop.
+**Priorité absolue, inchangée depuis le premier jour** : un rendu et une animation
+distinctement poétiques et oniriques. Coups de pinceau à l'encre qui coulent, lumière
+douce et peinte, personnages et lames se mouvant comme dessinés dans un rêve à demi
+souvenu. Ni hyper-réaliste, ni sec, ni orienté impact. Les réactions aux coups doivent se
+lire comme des **temps poétiques**, pas comme des chocs.
 
-## Choix moteur (en cours d'arbitrage)
-Deux options envisagées, décision non tranchée :
+Les animations d'**interaction entre personnages** — parades, contacts d'armes, reculs —
+sont procédurales, pas des cycles pré-calculés joués en boucle.
 
-- **libGDX (Java)** — contrôle bas niveau total, accès direct OpenGL/shaders, aucune abstraction gênante pour injecter un système d'animation custom. Tout le système de bones/skinning/IK est à construire from scratch.
-- **Godot (GDScript/C#/GDExtension)** — dispose nativement d'un système de squelette 2D (Bone2D/Skeleton2D, IK type CCDIK/FABRIK) qui peut servir de base à étendre plutôt que tout reconstruire ; GDExtension (C++) permet un contrôle bas niveau équivalent. Implique d'abandonner Java.
-- Unity écarté : historique de pricing instable (runtime fee 2023, tensions sur les frais Enterprise début 2026) malgré un tooling 2D/mobile solide.
+## Univers
 
-**Critère de décision encore ouvert** : rester en Java est-il une contrainte forte, ou négociable si Godot sert mieux le projet ?
+*L'Atlas des Songes Éteints* (voir `STORY.md`). Le monde est un cosmo-atlas dessiné à
+l'encre ; le joueur est le **Pèlerin de la Nuit**, portant une lame forgée dans une
+étoile tombée, affrontant des **Ombres Cartographiées** à travers le **Pli du Monde**.
 
-## Approche animation — décision prise : système custom
-Spine et DragonBones ont été évalués et écartés au profit d'un système recodé sur mesure, pour permettre le contrôle nécessaire aux animations procédurales d'interaction.
+**Le cadrage shogun/samouraï a été retiré** comme trop culturellement situé
+(`STORY.md §2`, `combat-design.md §3b` : *re-skin, not a redesign*). Les huit images de
+référence restent japonaises et restent la vérité terrain — mais **pour la matière, la
+valeur, l'atmosphère et le mouvement, pas pour l'iconographie**. Ne jamais exiger un
+tsuba ou un hakama ; exiger la silhouette qu'ils enseignent.
 
-**Composants du système à construire :**
-1. **Hiérarchie d'os + skinning** — transforms locaux → globaux, linear blend skinning calculé via shader GPU.
-2. **IK** — solution géométrique directe pour chaînes courtes (bras/avant-bras) ; FABRIK pour chaînes plus longues.
-3. **Contraintes physiques (jiggle/cloth)** — système masse-ressort ou intégration de Verlet par segment, pour le sway naturel des cheveux/vêtements.
-4. **Couche d'interactions procédurales** (logique de jeu, au-dessus du système d'animation) — détection de contact (hitboxes armes/cibles), pilotage dynamique des IK targets selon la position de l'adversaire, blending d'animations selon l'état de combat (paré/touché/déséquilibré), offsets procéduraux au runtime (knockback, recul).
+## Plateformes
 
-**Pipeline de rigging envisagé** : Blender (gratuit, gère bien le rig 2D "cutout") → export glTF (porte squelette + animations + poids de skinning) → loader/runtime custom dans le moteur choisi.
+Desktop d'abord, **mobile-safe** : limites GLES 3.0, budget d'os et de particules
+respectés dès le départ (32 os à l'origine, 36 aujourd'hui).
+
+**Point ouvert et honnête** : rien n'a jamais tourné en interactif sur un appareil. La
+cible mobile est une contrainte de conception respectée, pas une contrainte *vérifiée*.
+Un gate de performance interactive est dû avant tout nouvel empilement d'octaves shader.
+
+## Moteur — **tranché : libGDX / Java 21**
+
+Godot et Unity ont été écartés. Le contrôle bas niveau, l'accès direct aux shaders GLSL
+et l'absence d'abstraction gênante au-dessus d'un système d'animation entièrement custom
+l'ont emporté.
+
+Gradle 8.10.2 épinglé via le wrapper `./gw`, parce que le JAVA_HOME de la machine pointe
+sur un JDK 24 que ce Gradle ne sait pas exécuter. **Ne jamais invoquer gradle
+directement, ne jamais modifier JAVA_HOME.**
+
+## Animation — système custom, construit
+
+Spine et DragonBones écartés. Tout est recodé, et **le pipeline Blender → glTF envisagé
+au départ n'existe pas** : l'art est **entièrement procédural, défini dans le code**, ce
+qui supprime toute dépendance à un asset externe et permet à la boucle
+itération → capture → revue de tourner à pleine vitesse.
+
+| # | Système | État |
+|---|---|---|
+| 1 | Hiérarchie d'os + skinning GPU | fermé au plafond de 5 passes, dette consignée |
+| 2 | IK (2 os analytique + FABRIK) | **passé** |
+| 3 | Verlet cheveux + tissu | fermé sur un **négatif démontré** |
+| 3b | Visages (expression + variété) | passe 2 livrée, revue à faire |
+| 3c | Classes de matière et texture | pas commencé |
+| 4 | Couche d'interaction procédurale | fermé au plafond, document d'héritage |
+| 5 | Combat + file d'actions | moteur fait ; couche visuelle en passe 3 |
+| 6 | Harnais de capture + serveur MCP | **fait** |
 
 ## Méthode de développement
-Vibe coding. Besoin d'une boucle de feedback graphique rapide pour que l'itération sur les rendus (fluidité, qualité du jiggle/IK) puisse être évaluée visuellement à chaque étape.
 
-## Boucle de feedback graphique — à mettre en place
+**Construire → capturer → faire relire par un agent indépendant → recommencer**, avec un
+plafond de cinq passes par système. Ce qui n'est pas résolu au plafond est consigné comme
+dette plutôt que de bloquer le projet.
 
-**Capture automatisée** (pas de screenshot manuel) :
-- LibGDX : mode headless (LWJGL), extraction du framebuffer via `ScreenUtils.getFrameBufferPixmap()` → PNG.
-- Godot : `get_viewport().get_texture().get_image().save_png(...)` en script, ou `--write-movie` pour une séquence complète.
+**Ce qui construit ne note jamais son propre travail** : la revue est un sous-agent
+distinct, à contexte neuf, sans intérêt dans les décisions prises. C'est la règle la plus
+rentable du projet — les revues ont trouvé un garde incapable d'échouer, un ennemi hors
+champ sur 69 % des plateaux, une palette de portrait employée sur un ciel crépusculaire,
+et six assertions qui ne s'exécutaient pour personne d'autre que leur auteur.
 
-**Contact sheets** : assembler 8-12 frames clés d'un cycle d'animation en une seule image grille (script Python/PIL ou ImageMagick), pour juger la trajectoire complète d'un coup d'œil plutôt que des frames isolées.
+Les barèmes sont `STYLE.md` (ce que le jeu doit être) et `MEASUREMENT.md` (ce qui compte
+comme preuve). `progress.html` est la fenêtre du propriétaire sur le travail.
 
-**Cas de test prioritaires** : privilégier les captures sur les moments de changement brusque (direction, vitesse, impact) — c'est là que les artefacts d'IK/physique (overshoot, instabilité, clipping) sont visibles. Les poses statiques en idle révèlent peu de choses.
+## Boucle de feedback — **opérationnelle**
 
-**Comparaison** : conserver les contact sheets des itérations précédentes pour comparer ancien/nouveau côte à côte.
+Capture hors écran à pas de temps fixe, planches-contact, manifestes `capture.txt`
+portant la commande qui reproduit la capture. Outil d'analyse en ligne de commande,
+`Rehearsal` qui rejoue un duel entier sans contexte GL, serveur MCP (`mcp/starfall-mcp.mjs`)
+et `tools/sfctl.mjs`.
 
-## Étape suivante envisagée : serveur MCP de contrôle
-Objectif : permettre à Claude Code de piloter directement les tests visuels sans aller-retour manuel.
+## Ce qui n'existe pas encore, et qui compte
 
-**Architecture prévue :**
-1. Debug API côté jeu (socket local ou endpoint HTTP) recevant des commandes, ex. `POST /trigger {"action":"play_animation","character":"shogun1","state":"parry"}`.
-2. Serveur MCP (Python ou Node, SDK MCP) exposant des tools :
-   - `trigger_animation(character, state)` — déclenche une animation/interaction précise à tester
-   - `capture_frame` / `capture_sequence(n)` — prend un ou plusieurs screenshots, génère la contact sheet
-   - `set_camera(...)` — cadre la capture sur la zone d'intérêt
-3. Le serveur retourne le chemin du screenshot/contact sheet généré pour analyse.
+- **Aucune gestion d'entrée. Personne n'a jamais joué à ce jeu.** Sept systèmes de rendu
+  ont été construits sans qu'un humain ait jamais tenu une manette, et trois questions de
+  design ouvertes attendent explicitement « un combat jouable » pour être tranchées.
+- **Les PV ennemis ne sont pas dessinés du tout** — bloqueur de jouabilité sur un jeu
+  tactique.
+- **Aucun métajeu** : ni run, ni progression, ni raison de rejouer.
+- **Aucun son.** L'audit note que c'est la moitié manquante de la poésie.
+- **Le compte de parties lisibles** plafonne sous la cible de 18 (`STYLE.md §11.4`) ; les
+  garnitures — mains, prise, garde, plis, pieds — n'ont jamais figuré sur l'ordre de
+  travail d'une passe en sept systèmes.
 
-Cette boucle MCP ne fonctionne que dans un environnement agentique (Claude Code) — pas dans l'app de chat standard.
+---
 
-## Décisions ouvertes à trancher avec Claude Code
-- Choix final du moteur (libGDX vs Godot) — dépend de l'importance de rester en Java.
-- Point de départ du prototypage : fondation (debug API + MCP) en premier, ou premier prototype du système d'os/skinning/IK pour avoir un rendu à tester rapidement.
+## Annexe — ce que cette réécriture a corrigé
+
+| Le document disait | La réalité |
+|---|---|
+| Choix moteur « en cours d'arbitrage », libGDX vs Godot | libGDX/Java tranché, et tout le code l'est |
+| Univers shogun/samouraï | *L'Atlas des Songes Éteints* ; cadrage shogun retiré |
+| Boucle de feedback « à mettre en place » | livrée, et load-bearing pour chaque revue |
+| Serveur MCP « étape suivante envisagée » | opérationnel |
+| Pipeline Blender → glTF | jamais construit ; l'art est procédural |
+| « Combats sur une quinzaine de cases » | lane de 5 à 15, la longueur est un cadran de composition |
+
+Rien de ce qui était juste n'a été retiré : la priorité au rendu poétique, le rejet de
+Spine/DragonBones, les quatre composants du système d'animation et la discipline de
+capture sur les changements brusques viennent tous du brief d'origine et tiennent encore.
