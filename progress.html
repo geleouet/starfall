@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — the duellists have faces; interface at pass 3",
+  updated: "2026-08-03 — the part count moved for the first time in seven systems",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "The duellists have faces \u2014 and the instrument that proves it was attacked, twice successfully",
-    detail: "Faces were the largest single item on the count that closed System 4: <b>25 " +
-            "readable parts in the reference against 9 delivered</b>. They are built, in a " +
-            "separate worktree, and the first thing built was <b>an instrument that can see the " +
-            "defect the old metric was blind to</b> \u2014 then attacked, and it <b>lost " +
-            "twice</b>, so every guard resting on it now claims only what it can prove. A " +
-            "reviewer is re-taking the part count. The interface is at pass 3 in parallel."
+    title: "The longest-standing failure in the project finally moved",
+    detail: "Seven systems, every review naming it, never on a work order: the matched-scale " +
+            "part count. The framing law — named by three passes, declined by two — " +
+            "landed, and it went <b>~6 → ~13</b> against the reference’s ~16, with the " +
+            "hero at <b>194 px where it was 87</b>. It moved because a decision removed the " +
+            "reason to keep pulling back. Four agents are running; a reviewer is checking " +
+            "whether a bigger figure is doing the work by arithmetic."
   },
 
   systems: [
@@ -186,7 +186,7 @@ const DATA = {
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
     { n:"04", name:"Procedural interaction", status:"failed", passes:5,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
-    { n:"05", name:"Combat + action queue", status:"building", passes:3,
+    { n:"05", name:"Combat + action queue", status:"review", passes:3,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
     { n:"06", name:"Capture harness + MCP", status:"passed", passes:0,
       summary:"Offscreen capture and contact sheets are already live and load-bearing. HTTP debug API and MCP server still to come." }
@@ -254,6 +254,66 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 5", kind:"build", pass:3,
+      title:"The framing law lands, and the count moves for the first time in seven systems",
+      sheet:"out/captures/s5-p3-fold-plan/frame_003.png",
+      sheetNote:"Planning. Compare with the same shot four entries below, where the figures " +
+                "are specks in an empty sky. Same scene, same lane, same interface — the " +
+                "camera stopped showing the whole lane and started showing the exchange.",
+      body:[
+        "<b>The matched-scale part count went from ~6 to ~13</b> against the reference’s " +
+        "~16, and the hero from <b>87 px to 194 px</b>. That number is this project’s " +
+        "longest-standing failure — named by every review since System 1, present on no " +
+        "pass’s work order, unmoved through seven systems — and it moved on the pass " +
+        "immediately after a decision removed the reason to keep pulling back. The bare planning " +
+        "frame goes from 4.76% of pixels that are <i>anything at all</i> to <b>11.79%</b>.",
+
+        "The law itself is derived rather than chosen: the shot is cut to <b>the exchange</b>, " +
+        "floored at the five-tile lane’s own framing and capped at the lane’s. Fog now " +
+        "arrives as <b>bands</b>, a positive element in both live and bare frames, and the term " +
+        "that was <i>attenuating the subject</i> is halved — that term had been paying for " +
+        "atmosphere out of the figure, which is why the count had gone backwards.",
+
+        "<b>The brush-hatch hole is closed by changing what is measured, not by tightening a " +
+        "threshold.</b> The old guards ask how <i>fast</i> ink arrives, and a rectangle answers " +
+        "that by feathering its rim or by being hatched out of legal strokes until it is seven " +
+        "times softer than the interface it hides in. The new criterion is about <b>form</b>: no " +
+        "inked region is thick, in both axes at once, as a whole cartouche — because a " +
+        "filled region has an interior and a stroke is a ridge. Interface 19–25 px, ceiling " +
+        "53–71, the hatch <b>247</b>, the bordered panel 216.",
+
+        "And the raster guard now <b>iterates the shipped heights</b> instead of indexing the " +
+        "first, with its message reporting the size it actually measured. Its ceiling is " +
+        "re-derived from the corpus as a band with both edges — 0.354 the softest blade " +
+        "edge in family B, 0.107 the softest sky — rather than fitted to the artefact."
+      ],
+      notes:[
+        { kind:"fix", label:"Three marks changed, six left byte-identical",
+          text:"That is the right way to spend a cold-read budget, since every altered mark " +
+               "costs a reading a reviewer can only give once. <b>Back-step re-authored from the " +
+               "rear</b> (it had read as <i>“a strike, aimed leftward”</i> — a " +
+               "confident wrong reading); <b>thrust given a body the blade passes through</b> (it " +
+               "had read as two footfalls, i.e. as Step’s own device); <b>feint from a peak " +
+               "lift of 4.5 to 57.4</b>, having been three times fainter than an <i>empty</i> " +
+               "slot — fixed by taking the drier of two drynesses instead of summing them." },
+        { kind:"crit", label:"Two refutations of its own brief",
+          text:"The review’s proposed form criterion, taken literally, <b>convicts the " +
+               "interface’s own lane wash</b> — a wash §8 explicitly asks for — " +
+               "and leaves only a 1.8× margin over the hatch that a slight ripple would " +
+               "close. Thickness in both axes gives 247 against 27 instead. And pass 2’s " +
+               "hero reads <b>87 px, not 77</b>, through one instrument applied to both." },
+        { kind:"crit", label:"Named as unpaid, and one cross-system consequence",
+          text:"The draw-order result is <b>not reproduced in its published form</b>, because at " +
+               "the new framing the published band is no longer under the bodies. A cooldown-zero " +
+               "row still shows one run to an independent reader that the suite’s " +
+               "differencing guard cannot see — <i>the suite differences against a control; " +
+               "a player does not.</i> And the phrase and knockback scenes’ wide framing " +
+               "moved 8.5 → 6.5 tiles, so <b>comparisons against archived System 4 wide " +
+               "frames are void</b> by §11.2b(d). The parry scene is untouched and System 4’s " +
+               "schedules are pinned." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 3b", kind:"build", pass:1,
       title:"Faces \u2014 and an instrument built before the fix, then defeated twice",
