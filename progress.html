@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — the criterion was fitted to one image; system 4 at pass 4 of five",
+  updated: "2026-08-03 — it is a duel at dusk; system 4 in its final review",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 4 pass 4 \u2014 the last pass that can afford to build instruments",
-    detail: "Pass 3\u2019s refusal was <b>upheld</b> and its reasoning refuted in the same " +
-            "review. But the criterion it argued from was fitted to a single reference image, " +
-            "and two others in the family fail it \u2014 one reading the <i>identical</i> number " +
-            "the capture is failed for. Pass 4 is ranked by change-to-the-image per unit work " +
-            "and opens with the dusk sky, deferred twice as cosmetic. <b>One pass follows this " +
-            "one.</b>"
+    title: "System 4 pass 4 in review \u2014 the sky was the whole thing",
+    detail: "Three passes argued about statistics on a picture of two figures standing on cream " +
+            "paper. <b>The sky had been deferred twice as cosmetic.</b> It was the whole thing: " +
+            "the warm/cool opposition the palette is built on had been inverted on every frame " +
+            "this project has ever graded. The reviewer is deciding whether System 4 closes here " +
+            "on recorded debt or spends its <b>one remaining pass</b> \u2014 and that judgement " +
+            "is the deliverable, not the verdict."
   },
 
   systems: [
@@ -184,7 +184,7 @@ const DATA = {
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
-    { n:"04", name:"Procedural interaction", status:"building", passes:4,
+    { n:"04", name:"Procedural interaction", status:"review", passes:4,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
     { n:"05", name:"Combat + action queue", status:"partial", passes:0,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
@@ -254,6 +254,74 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 4", kind:"build", pass:4,
+      title:"It is a duel at dusk",
+      sheet:"out/captures/s4-p4-parry-contact/frame_010.png",
+      sheetNote:"The same beat as the two frames below it, on the stage the palette always " +
+                "specified. Compare it with pass 3 \u2014 same rig, same schedule, same parry.",
+      body:[
+        "<b>The sky had been deferred twice as cosmetic. It was the whole thing.</b> The " +
+        "warm/cool opposition §2.2 is built on had been <i>inverted across every frame this " +
+        "project has ever graded</i>, and drawing it changes the image more than every numerical " +
+        "fix of the last three passes put together. The ramp is measured, not eyeballed \u2014 " +
+        "the median of the outer 70 columns per row on all three Family B images, converted to " +
+        "world height \u2014 and lands within a few luminance levels at five heights. Below world " +
+        "y +0.3 the ground reads 47\u201360 against the corpus\u2019s 27\u201339, and that is " +
+        "named as a miss. <b>Family A is untouched and proved rather than asserted</b>: with only " +
+        "the blade length reverted, the bind pose is bit-identical to pass 3 across all 16,588,800 " +
+        "pixels.",
+
+        "The blades are longer, off a corpus measurement of crossed diagonals, and on two frames " +
+        "<b>the two lit blades are a single component spanning half a figure height</b>. The " +
+        "review predicted this would discharge three problems at once. Two of them it did \u2014 " +
+        "the bind span opens 0.066 \u2192 0.082 s, and the clash can be held four frames instead " +
+        "of three. <b>The third went the other way</b>, and the pass says so with the number: the " +
+        "torso corridor moved from 1.33\u00d7 to 14.58\u00d7 the corpus, because a longer reach " +
+        "pushes the fist target further out of the arm\u2019s range.",
+
+        "<b>And the pass caught itself with its own new instrument.</b> The criterion now carries " +
+        "every reading twice, at two thresholds \u2014 and the fixed-threshold column says most " +
+        "of <i>this pass\u2019s</i> headline corridor gain is photometric, exactly as the last " +
+        "review said pass 3\u2019s was. Under a criterion the corpus passes, the corridor scores " +
+        "<b>0 of 24 frames for passes 2, 3 and 4 alike</b>. That is the honest reading and it is " +
+        "the one on record."
+      ],
+      notes:[
+        { kind:"fix", label:"Three claims from its own brief that do not reproduce",
+          text:"The lane spread the review measured as destroying the parry <b>no longer does at " +
+               "this blade length</b> (0.0068 against the 0.0903 measured with the short blade), " +
+               "so half the argument for the instruction was void. Reference image 5\u2019s " +
+               "zero-corridor reading was taken <b>between a duellist and the ground smear</b>, " +
+               "not between the figures \u2014 cropped to the figures it is one connected " +
+               "component that sets no floor, now excluded by name with the exclusion asserted. " +
+               "And the pass-3 review\u2019s capture span was <b>23% too tall</b>, having used " +
+               "the frame bottom as the feet, so passes 2 and 3 are re-measured through a " +
+               "geometric span rather than quoted." },
+        { kind:"crit", label:"A question the rubric had to answer, not the pass",
+          text:"The contrast statistic <b>broke rather than moved</b>: on a dusk sky the pale " +
+               "duellist is brighter than its ground, so the old threshold changed subject. Its " +
+               "replacement is threshold-free, validated on the corpus first, and reads " +
+               "<b>4.15\u00d7 against a corpus spread of 3.22\u20139.32\u00d7 \u2014 inside it " +
+               "for the first time</b>. That work surfaced this: the corpus\u2019s dark duellist " +
+               "prints at luminance <b>12.2</b> while the palette\u2019s own floor is " +
+               "<b>25.7</b>, so a figure authored exactly at the floor sits at more than twice " +
+               "the reference\u2019s value <i>while obeying the rule</i>. §2.2 now records that " +
+               "the floor is a <b>ratio to the ground</b>, not a constant \u2014 it was chosen " +
+               "looking at figures on cream paper and never audited against §11.2b(d), this " +
+               "project\u2019s own rule that absolute pixel statistics are valid only against the " +
+               "apparatus that produced them. <b>The rubric\u2019s fault, not the pass\u2019s.</b>" },
+        { kind:"fix", label:"Six guards, all observed red \u2014 including one against itself",
+          text:"Each printed the message it was written to print. One of them <b>fails a " +
+               "floors-only criterion for scoring a pass on two bodies four times too far " +
+               "apart</b> \u2014 a guard written specifically to catch the flaw the previous " +
+               "review found in this pass\u2019s own predecessor. And §11.2b(g)\u2019s dynamic " +
+               "control was shot: the graded scene differs between two runs at one commit by " +
+               "<b>983 px on 1 frame of 24</b>, max delta 19, against the previous review\u2019s " +
+               "13,545 px on four frames. Smaller, real, still not characterised as a " +
+               "distribution." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 4", kind:"review", pass:3, verdict:"FAIL",
       title:"The refusal is upheld, its reasoning refuted, and the criterion behind it fitted to one image",
