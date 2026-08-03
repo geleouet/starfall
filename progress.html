@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — a guard that could not fail; system 4 at pass 3 of five",
+  updated: "2026-08-03 — pass 3 measured the reference, then refused its own brief",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 4 pass 3 \u2014 answering a review that found a test which cannot fail",
-    detail: "Pass 2 fixed the parry, and the reviewer confirmed it. Then it found that the " +
-            "<b>guard shipped to prove the clash light was honest is incapable of failing</b> " +
-            "\u2014 and that an acceptance criterion this project had been chasing for two " +
-            "passes is one the reference image itself <b>fails by four times</b>. Both produced " +
-            "new rubric sections. Pass 3, third of a five-pass cap, is building against the " +
-            "reviewer\u2019s eight-item brief in its order."
+    title: "System 4 pass 3 in review \u2014 the builder refused the brief, with a table",
+    detail: "The review\u2019s first instruction was to fix the corridor <i>criterion</i> before " +
+            "the corridor. Pass 3 did \u2014 as a command that measures reference image 3 every " +
+            "time it runs \u2014 and then used it to <b>decline both halves of the review\u2019s " +
+            "prescription in writing</b>, because the profile says the capture is too <i>far " +
+            "apart</i> at the base, not too close everywhere. A fresh reviewer is adjudicating " +
+            "that refusal on measurement rather than authority. Two passes remain of five."
   },
 
   systems: [
@@ -184,7 +184,7 @@ const DATA = {
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
-    { n:"04", name:"Procedural interaction", status:"building", passes:3,
+    { n:"04", name:"Procedural interaction", status:"review", passes:3,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
     { n:"05", name:"Combat + action queue", status:"partial", passes:0,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
@@ -254,6 +254,70 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 4", kind:"build", pass:3,
+      title:"The criterion measures the reference first \u2014 and then refuses the brief",
+      sheet:"out/captures/s4-p3-parry-contact/frame_010.png",
+      sheetNote:"The light has come down onto the steel. In pass 2 it floated high and right " +
+                "of both blades; delivered distance from the clash core to the nearer blade is " +
+                "now 2.5 px where it was 44.8.",
+      body:[
+        "The review\u2019s first instruction was to fix the corridor <i>criterion</i> before the " +
+        "corridor. That is done, and done as a <b>command rather than a paragraph</b>: " +
+        "<code>analyse corridor --profile</code> measures reference image 3 <b>every time it " +
+        "runs</b> and returns non-zero if the corpus fails its own floors. The floors sit at the " +
+        "bottom of a sweep over six spans and four ink factors, and <b>the sweep is asserted, not " +
+        "described</b>. Two independently written readers agree to the pixel on four bands of five.",
+
+        "<b>And with that criterion in hand, pass 3 refuses both halves of the review\u2019s " +
+        "prescription, with the table as its reason.</b> The capture is not uniformly too close. " +
+        "It is <b>3.2\u00d7 wider than the reference at the skirt and 1.6\u00d7 at the feet</b>, " +
+        "and zero <i>only</i> at the pinch. Lowering the lane spread scales every band by one " +
+        "factor \u2014 the skirt would need \u00d70.31 while the torso needs \u00d7\u221e \u2014 " +
+        "and pass 1 already shot the lower spread and merged the bodies on a quarter of its " +
+        "frames. The counter-prescription is the opposite of the brief: <b>widen the lower " +
+        "garment, shorten the reach.</b>",
+
+        "<b>This is the point of measuring the reference.</b> The scalar said we were too close " +
+        "everywhere. The profile says we stand too far apart at the base and lean in at the top " +
+        "\u2014 a different picture and a different fix.",
+
+        "The bloom guard now reads <b>the coordinate the renderer was handed</b>, checks every " +
+        "drawn frame rather than the clash instants, and requires the mark to lie <i>between</i> " +
+        "the blades. It was observed red before being believed, and it found worse than the " +
+        "two-frame error the review named: <b>the clash ran 0.63 s against a 0.066 s bind \u2014 " +
+        "9.5\u00d7 the meeting it was asserting</b> \u2014 and was drawn at the aim point rather " +
+        "than at the steel."
+      ],
+      notes:[
+        { kind:"fix", label:"One line of that fix shipped wrong, and only the pixels caught it",
+          text:"The new crossing was returned to the guard while <code>renderInk</code> still drew " +
+               "the old one. <b>No test caught it. It was found by cropping the frame at 3\u00d7 " +
+               "and looking.</b> Worth recording beside every claim this project makes about " +
+               "instruments: the eye is still one of them." },
+        { kind:"crit", label:"Six guards observed red \u2014 and two named as near-tautological anyway",
+          text:"Each guard is tabulated with the message it printed when broken. The pass then " +
+               "volunteers that <b>two of its placement assertions became near-tautological once " +
+               "the fix landed</b>, and names which half is still load-bearing. That is §11.2b(f) " +
+               "applied honestly rather than ceremonially, one pass after the rule was written." },
+        { kind:"fix", label:"Two findings that reassign the work",
+          text:"<b>The pale figure is already pale enough</b> \u2014 0.513 of ground against the " +
+               "corpus at 0.415. The entire remaining contrast gap is that the <i>dark</i> " +
+               "duellist reads 0.245 against 0.127, and its torso median is <b>exactly " +
+               "<code>INK_INDIGO</code>\u2019s own luminance</b>, because the mesh authors almost " +
+               "no wetness there. That makes the contrast a <b>System 1 mesh change, not a material " +
+               "one</b>. And the bind is held by the blade aim rather than by the hands: both arms " +
+               "sit 0.6\u20130.75 world units from targets they are given, on a 0.56-unit arm." },
+        { kind:"crit", label:"The misses, with both numbers",
+          text:"Torso corridor <b>0.0000 against a floor of 0.014</b> on 8 frames of 24 (was 13). " +
+               "Value ratio <b>2.09 against 3.27</b> (was 1.54). Clash span 0.27 s \u2014 three " +
+               "frames, too short for a soft star. The bind is still an instant, 0.066 s of a " +
+               "0.168 s span; a lever that lengthened it to 0.118 s was measured and <b>rejected " +
+               "on the pixels</b> because it cost blade separation and made the defender\u2019s " +
+               "blade vanish on five frames. The trail and the sky were <b>dropped as the brief " +
+               "instructed, and said so</b> rather than quietly omitted." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 4", kind:"review", pass:2, verdict:"FAIL",
       title:"The blades meet. The test that says the light is honest cannot fail.",
