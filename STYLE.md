@@ -914,6 +914,23 @@ This is the same failure §7.1 already named for lag anchors, one level down. So
 **A measurement whose region is not recorded is an anecdote.** It may still be true. It
 cannot be checked, and it must not be used to fail a pass.
 
+**On any scene with a camera move, a pixel number is quoted normalised or not at all.** §9
+requires the camera to glide during the beat and never be still; §7.1 requires timing measured
+in delivered pixels. Those two pull against each other, and the resolution is normalisation:
+every pixel statistic on a moving-camera scene is a **ratio to the figure's own span**, or to
+a **control shot at the same harness**, or it is void. Measured on one phrase, the hero's
+bounding-box height ranged **4.08×** across the scene — a raw pixel lag taken across that
+window is measuring the lens.
+
+**A region set that resolves against a detected figure box must refuse a frame it cannot
+resolve.** On a two-figure frame the detected box spans *both* bodies, so `head` lands on the
+wrong figure's hair and `torso` straddles the gap — and the tooling reported *"hem trails hips
+by +6.52 frames"*, **a plausible number inside §7.1's own band**, from boxes that were
+nonsense. It only looked sane because the boxes were resolved against frame 0, the one frame
+where the bodies happened to be apart. **A silent wrong answer is worse than a refusal**: the
+tool must refuse when the ink resolves into two components each above some share of the total
+and no figure has been named.
+
 ---
 
 Each review pass must produce, in this order:
