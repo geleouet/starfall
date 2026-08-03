@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — en pause; un ennemi hors champ, et une revue qui bat encore le garde",
+  updated: "2026-08-03 — faces pass 2 resumed after an interruption; nothing lost",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
-    label: "Paused",
-    title: "En pause — le travail en vol est posé, rien de nouveau n’est lancé",
-    detail: "Work is paused at the owner’s request. Everything in flight has been landed, " +
-            "committed and pushed rather than abandoned mid-air. The interface’s pass-3 " +
-            "review is <b>the best pass this project has produced</b> and still fails — on " +
-            "a defect a <i>player</i> would meet rather than a critic: <b>an enemy stands off " +
-            "the planning shot</b>, on 69% of legal boards. Two items remain queued: the " +
-            "fittings pass, and the input loop."
+    label: "Now building",
+    title: "Faces pass 2, resumed — and the save point that made resuming cheap",
+    detail: "An API spend limit killed the faces pass mid-iteration. The work was committed and " +
+            "<b>pushed to the remote before anything else</b>, so nothing was lost — " +
+            "including thirteen numbered iteration captures that record what was tried and " +
+            "<i>rejected</i>, which nothing could have reconstructed. The agent’s own " +
+            "reasoning was not recoverable, so a fresh one resumed from the committed state with " +
+            "the two red guards as its starting point."
   },
 
   systems: [
@@ -254,6 +254,40 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 3b", kind:"note",
+      title:"Interrupted mid-iteration — what made the resumption cheap",
+      body:[
+        "An API spend limit killed the faces pass in the middle of a tuning loop. The first " +
+        "action was not to diagnose anything — it was to <b>commit the worktree and push " +
+        "the branch to the remote</b>, because uncommitted work in an isolated worktree is the " +
+        "most fragile state this project ever holds.",
+
+        "<b>The code was never what was at risk.</b> What could not have been reconstructed is " +
+        "the <b>thirteen numbered iteration captures</b> on disk: they record what was tried " +
+        "<i>and rejected</i>, and a rejected experiment leaves no trace in the final state. The " +
+        "agent’s own transcript proved <b>unrecoverable</b>, so those captures became the " +
+        "only surviving record of its reasoning, and the resumption brief’s first " +
+        "instruction is to read them before re-treading anything.",
+
+        "The interruption caught the pass in a good state, which is worth recording as an " +
+        "argument for how these guards are written: <b>the suite compiled and ran with exactly " +
+        "two tests red, and both were the pass’s own new acceptance guards rather than " +
+        "regressions</b>. Density floor short by <b>0.46</b>; the eye-is-a-socket ceiling exceeded " +
+        "by <b>0.3%</b>. Guards that are red because the work they watch is unfinished are more " +
+        "informative than a green suite would have been."
+      ],
+      notes:[
+        { kind:"fix", label:"And a spend policy, since the limit was real",
+          text:"The token cost of this project lives almost entirely in the builder and reviewer " +
+               "agents, at 200k–550k each, not in orchestration. So: <b>light models for " +
+               "mechanical work</b> (inventories, build verification, file shuffling), " +
+               "<b>mid-weight for construction</b>, and <b>the heaviest reserved for reviews</b> " +
+               "— which stay expensive deliberately, because the reviews are what found the " +
+               "guard that could not fail, the enemy standing off screen, and the portrait " +
+               "palette on a dusk stage. Economising there would cost far more than it saves." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 5", kind:"review", pass:3, verdict:"FAIL",
       title:"The best pass here, and an enemy you cannot see",
