@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — three guards were failing open; system 4 on its last pass",
+  updated: "2026-08-03 — the interface has no text in it; system 4 on its last pass",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 4 pass 5 \u2014 the last one, and two hard edges to kill",
-    detail: "The final review answers §0 with <b>no</b>, on a count: 25 readable parts per " +
-            "duellist in the reference against <b>9</b> here. Two §10 fail-on-sight defects sit " +
-            "exactly where the eye goes. The last pass spends itself on those, on the lane " +
-            "spacing whose refusal is now void, and on a closing debt record that 3b, 3c and " +
-            "System 5 will inherit. <b>Meanwhile the combat UI is being built in parallel, in an " +
-            "isolated worktree.</b>"
+    title: "Two systems at once \u2014 System 4\u2019s last pass, and an interface with no text in it",
+    detail: "System 4 is spending its final pass on the two hard edges at the focal point and " +
+            "on a closing debt record that faces, textures and the combat UI will inherit. In " +
+            "parallel, in an isolated worktree, the <b>combat interface</b> was built: a vertical " +
+            "stanza of brushed marks with <b>no text anywhere in it</b> \u2014 every action drawn " +
+            "as the gesture it produces. Whether a player can actually read it is the question " +
+            "its own author says only a reviewer can answer, and one is answering it now."
   },
 
   systems: [
@@ -254,6 +254,58 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 5", kind:"build", pass:1,
+      title:"An interface with no text in it, painted on the same paper as the duel",
+      sheet:"out/captures/s5-p1-fold-plan/frame_003.png",
+      sheetNote:"Planning. The stanza is the column of brushed marks at the left; the lane is " +
+                "the ground, and the vermillion dashes are the tiles under threat. No panel, no " +
+                "border, no box, and no word anywhere in the frame.",
+      body:[
+        "<b>Every queued action is drawn as the gesture it produces</b>, taken from the design " +
+        "document\u2019s own <i>choreography beat</i> column: Sweep is one 230\u00b0 arc, Thrust " +
+        "is a line <i>interrupted</i> rather than stopped, Feint is the Step\u2019s travel at a " +
+        "dryness that keeps the brush off the paper. <b>There is no text anywhere in the " +
+        "interface</b> \u2014 which is not restraint, it is what makes a label unnecessary.",
+
+        "The mark-making primitive is <b>incapable of printing a boundary</b>: every triangle it " +
+        "emits carries a vertex at exactly alpha 0, and pressure is zero at both ends, so a " +
+        "stroke cannot even print its own cap. And the interface draws through <b>the same shader " +
+        "and blend as the impact bloom and the vermillion seal</b> \u2014 a queue mark and a " +
+        "wound are literally the same ink.",
+
+        "<b>It is not a HUD, and that is measured rather than asserted.</b> The interface is " +
+        "drawn <i>before</i> the figures, so a duellist walking into the margin passes in front " +
+        "of it. It recedes as a continuous function of the framing width <i>alone</i> \u2014 " +
+        "largest step in a 60th of a second <b>under 0.12</b>, against <b>1.00</b> if it were " +
+        "driven off \u2018is a beat running\u2019. LIFO is made legible without instruction " +
+        "because <b>the column dries downward</b>: peak lift 2.64\u00d7 on the mark that resolves " +
+        "first, falling monotonically to 2.16\u00d7 on the last."
+      ],
+      notes:[
+        { kind:"fix", label:"A real bug in the staging layer, invisible until now",
+          text:"<code>Scheduler.returnWide</code> took the cursor at the wrong instant, so " +
+               "<b>STYLE.md §9\u2019s \u2018wide to plan\u2019 never happened in any score with " +
+               "more than one command in it</b>. Every System 4 scene has exactly one, which is " +
+               "why four passes and four reviews never saw it. Observed red: <i>\u201c2.600 s of " +
+               "planning time \u2026 and the camera never opens wider than 3.20 tiles against a " +
+               "planning framing of 6.50.\u201d</i>" },
+        { kind:"crit", label:"Two design documents that cannot both be obeyed",
+          text:"§3 says new tiles enter at the <b>top</b>; §8 says the queue <b>never slides</b>. " +
+               "Inserting at the top of a fixed column moves every mark below it, five times a " +
+               "stanza. The proposed resolution keeps the orientation the owner chose and drops " +
+               "the contradiction: <b>the column is anchored at its base and grows upward</b>, so " +
+               "the newest is topmost, resolves first, and <i>nothing ever moves</i>. It drains " +
+               "from the top back down to the base." },
+        { kind:"crit", label:"And the claim the whole design rests on is untested",
+          text:"In the builder\u2019s own words: <b>\u201cno test says a human can tell a Step " +
+               "from a Sweep \u2014 that is the claim the whole no-text argument rests on and " +
+               "only a reviewer can grade it.\u201d</b> A beautiful interface you cannot play " +
+               "from is a failed interface. Also conceded: enemy hit points are <b>not drawn at " +
+               "all</b>, the planning framing is still mostly sky, and the matched-scale part " +
+               "count was not run." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 4", kind:"review", pass:4, verdict:"FAIL",
       title:"Nine readable parts against twenty-five \u2014 and three guards that were failing open",
