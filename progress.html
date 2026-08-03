@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — the part count moved for the first time in seven systems",
+  updated: "2026-08-03 — en pause; un ennemi hors champ, et une revue qui bat encore le garde",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
-    label: "Now building",
-    title: "The longest-standing failure in the project finally moved",
-    detail: "Seven systems, every review naming it, never on a work order: the matched-scale " +
-            "part count. The framing law — named by three passes, declined by two — " +
-            "landed, and it went <b>~6 → ~13</b> against the reference’s ~16, with the " +
-            "hero at <b>194 px where it was 87</b>. It moved because a decision removed the " +
-            "reason to keep pulling back. Four agents are running; a reviewer is checking " +
-            "whether a bigger figure is doing the work by arithmetic."
+    label: "Paused",
+    title: "En pause — le travail en vol est posé, rien de nouveau n’est lancé",
+    detail: "Work is paused at the owner’s request. Everything in flight has been landed, " +
+            "committed and pushed rather than abandoned mid-air. The interface’s pass-3 " +
+            "review is <b>the best pass this project has produced</b> and still fails — on " +
+            "a defect a <i>player</i> would meet rather than a critic: <b>an enemy stands off " +
+            "the planning shot</b>, on 69% of legal boards. Two items remain queued: the " +
+            "fittings pass, and the input loop."
   },
 
   systems: [
@@ -254,6 +254,53 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 5", kind:"review", pass:3, verdict:"FAIL",
+      title:"The best pass here, and an enemy you cannot see",
+      body:[
+        "<b>All four framing numbers reproduce, and the largest is <i>understated</i>.</b> The " +
+        "pass claimed 87 → 194 px using its own detector, which <b>saturates</b> — " +
+        "both readings terminate at the detection box’s own floor, so the number is head " +
+        "<i>position</i>, not figure height. Through an independent instrument the figure goes " +
+        "<b>79 → 183 px</b> and its ink area grows <b>5.2×</b>. The pass also " +
+        "undercounts its own reference — ~22 parts, not ~16 — which makes the " +
+        "remaining gap larger than it reported, not smaller. <b>The cold read is 7 of 7 with no " +
+        "confident wrong reading</b>, and the retreat that read as a strike now reads as a " +
+        "retreat.",
+
+        "<b>And then the finding a <i>player</i> would meet rather than a critic.</b> The graded " +
+        "15-tile planning shot shows two figures. <b>The board has three.</b> On <b>69.1% of " +
+        "legal three-body boards a Shadow is off screen</b> — and the guard written to " +
+        "prevent exactly this <b>enumerates two-body boards only</b>, which is §11.2b(f)’s " +
+        "<i>enumerate the axis, do not index it</i>, committed four lines below where the debt " +
+        "quotes that rule. It costs 21 px of figure to fix. <b>You cannot plan against something " +
+        "you cannot see</b>, and that is the first defect here that is a bug rather than an " +
+        "ugliness.",
+
+        "<b>The adversarial exhibit succeeds — the fourth consecutive review to beat the " +
+        "guard of its day.</b> The pass’s <i>own checked-in panel fixture</i>, at alpha " +
+        "0.12 instead of 0.45, draws a <b>423×221 px pale rectangle into every frame of " +
+        "every bout</b> — and all 413 tests pass, because the form criterion returns zero " +
+        "when peak coverage falls below its flatness threshold. <i>A rectangle that is faint " +
+        "enough is invisible to a criterion about shape.</i>"
+      ],
+      notes:[
+        { kind:"crit", label:"Four claims in the record that do not reproduce",
+          text:"The sharpest: a three-number progression published under a single frame header " +
+               "is <b>three different frames from three different passes</b>; measured at a " +
+               "matched frame, <b>it did not move at all</b> (17.26 / 17.20 / 17.26). And " +
+               "restoring the previous back-step moves the guard by <b>exactly 0.0000</b>, which " +
+               "refutes attributing a gain to three geometry changes. Also: the phrase and " +
+               "knockback scenes’ framing <i>centres</i> moved as well as their widths, " +
+               "which the debt does not say." },
+        { kind:"fix", label:"Both of the pass’s refutations upheld — one more strongly than claimed",
+          text:"Under the reviewer’s own implementation of the literal form criterion the " +
+               "interface scores <b>944 px against the forbidden panel’s 409</b> — " +
+               "the interface is <b>2.3× worse than the thing the rule bans</b>. And the " +
+               "pass was right to read 87 px rather than 77, having chosen the <i>less</i> " +
+               "flattering of two readings through one instrument applied to both." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 5", kind:"build", pass:3,
       title:"The framing law lands, and the count moves for the first time in seven systems",
