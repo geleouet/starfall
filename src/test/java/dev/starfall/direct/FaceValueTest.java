@@ -50,12 +50,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p><b>The clash-light convention, named (§11.3):</b> on the contact frame the
  * clash bloom of §7.3 — licensed light — lifts everything within ~30 px of the
- * crossing, and the foe's face fights at that range. The graded contact frame
- * is therefore <em>reported</em> with the glow in it and asserted against a
- * ceiling that the pass-1 decal (1.36x) fails by 2x, while the band itself is
- * asserted on the same window's frames where the face plane is clear of the
- * bloom. An assertion that demanded 0.31 through a licensed light would be
- * failing §7.3 for obeying §7.3.
+ * crossing, and the foe's face fights at that range: through the bloom the
+ * foe's plane box reads 1.374, numerically the same as pass 1's 1.36 decal and
+ * mechanically its opposite (glow over dark skin, not pale skin). A contact-
+ * frame ceiling therefore cannot discriminate and is not asserted; the band is
+ * asserted on the window's bloom-free frames (measured sweep: foe 0.309-0.323
+ * on frames 0/16/17/22, against 0.44-1.37 through the clash on frames 4-12 and
+ * 19-21), and the red half of the exhibit is the same reader on pass 1's own
+ * tracked graded frame, where the foe reads above 1.0 on the SAME bloom-free
+ * arithmetic — see {@link #thePassOneDecalFailsThisBand}. An assertion that
+ * demanded 0.31 through a licensed light would be failing §7.3 for obeying
+ * §7.3.
  */
 class FaceValueTest {
 
@@ -88,8 +93,8 @@ class FaceValueTest {
         // against its bind-pose value, so the plane box rides a bowed head
         // instead of sliding off it onto the bloom (which is exactly what a
         // world-constant offset did on the foe: GUARD_RAISED bows the head).
-        double bindX = SamuraiRig.HEAD_LOBE_DX + 0.098;
-        double bindY = SamuraiRig.HEAD_LOBE_DY + 0.036;
+        double bindX = SamuraiRig.HEAD_LOBE_DX + SamuraiRig.EYE_BIND_DX;
+        double bindY = SamuraiRig.HEAD_LOBE_DY + SamuraiRig.EYE_BIND_DY;
         double ex = (b.eye().x - b.head().x) * facing;
         double ey = b.eye().y - b.head().y;
         double rot = Math.atan2(ey, ex) - Math.atan2(bindY, bindX);
@@ -178,15 +183,132 @@ class FaceValueTest {
         }
     }
 
-    /** Diagnostic sweep: every frame of the parry window, both duellists. */
+    /**
+     * The delivered face planes sit in the corpus band, at the intimate
+     * framing, on bloom-free frames, both duellists — review item 1, on
+     * pixels. Boxes are derived from the scene's own arithmetic and the
+     * tolerance is ±0.02 against the corpus's [0.248, 0.313] (the derived
+     * boxes are not the corpus's hand boxes; the corpus test holds the
+     * tighter ±0.01 on its own). Frames 4-12 and 19-21 carry the clash bloom
+     * across the foe (licensed, §7.3) and frame 23's foe head drops against
+     * the horizon wash — excluded and named per §11.0.
+     */
+    @Test
+    void theDeliveredFacePlanesSitInTheBand() throws IOException {
+        Rehearsal r = new Rehearsal(Duel.Kind.PARRY);
+        r.play();
+        int[] frames = {0, 16, 17, 22};
+        for (int fr : frames) {
+            Frame f = Frame.load(new File(String.format(
+                    "out/captures/s3b-p2-parry-contact/frame_%03d.png", fr)));
+            double t = START + fr * STEP;
+            for (boolean hero : new boolean[] {true, false}) {
+                int body = hero ? r.staged().hero() : r.staged().enemy();
+                Boxes b = boxesAt(r, body, t);
+                double ratio = mean(f, b.face()) / mean(f, b.sky());
+                assertTrue(ratio >= BAND_LO - 0.02 && ratio <= BAND_HI + 0.02,
+                        (hero ? "hero" : "foe") + " frame " + fr + ": face/sky " + ratio
+                                + " through " + b.face().describe() + " / " + b.sky().describe()
+                                + " — outside the corpus's 0.25-0.31 band (4b.2 as amended); "
+                                + "pass 1 delivered 0.56 and 1.36 here");
+            }
+        }
+    }
+
+    /**
+     * The red half of the exhibit, permanent: the same reader on pass 1's own
+     * tracked graded capture fails the band on both duellists — the foe by 4x
+     * (the decal the review's §0 named). Uses a bloom-free frame of that
+     * window (17), so the licensed clash light cannot be blamed.
+     */
+    @Test
+    void thePassOneDecalFailsThisBand() throws IOException {
+        Rehearsal r = new Rehearsal(Duel.Kind.PARRY);
+        r.play();
+        Frame f = Frame.load(new File("out/captures/s3b-p1-parry-contact/frame_017.png"));
+        double t = START + 17 * STEP;
+        Boxes foe = boxesAt(r, r.staged().enemy(), t);
+        double foeRatio = mean(f, foe.face()) / mean(f, foe.sky());
+        assertTrue(foeRatio > BAND_HI + 0.02,
+                "pass 1's foe face was supposed to exhibit the decal this band forbids; it reads "
+                        + foeRatio + " through " + foe.face().describe());
+        Boxes hero = boxesAt(r, r.staged().hero(), t);
+        double heroRatio = mean(f, hero.face()) / mean(f, hero.sky());
+        assertTrue(heroRatio > BAND_HI + 0.02,
+                "pass 1's hero face read 0.56x sky in the review; here " + heroRatio
+                        + " through " + hero.face().describe());
+    }
+
+    /**
+     * STYLE.md 4b.0's field half, the piece review §6.3 failed: at the
+     * planning framing the pale duellist's head must not be a white blob. On
+     * pass 1's wide capture the head box held nothing darker than the sky
+     * (5th percentile 72.4 = 0.99x sky, max 167.5 = 2.28x — the blob). The
+     * delivered head keeps a genuine dark-face register at 25 px of head and
+     * adds nothing brighter than the bareface control. Boxes are the
+     * review's own (§4, planning framing row).
+     */
+    @Test
+    void theWideFramingHeadIsNotAWhiteBlob() throws IOException {
+        Frame live = Frame.load(new File("out/captures/s3b-p2-wide/frame_000.png"));
+        Frame bare = Frame.load(new File("out/captures/s3b-p2-wide-bareface/frame_000.png"));
+        Rect head = Rect.ofCorners(205, 518, 249, 551);
+        Rect sky = Rect.ofCorners(300, 500, 339, 539);
+        double liveP05 = percentile(live, head, 5);
+        double bareP05 = percentile(bare, head, 5);
+        double skyMean = mean(live, sky);
+        assertTrue(liveP05 <= 0.45 * skyMean,
+                "the foe head's darkest register at planning framing is " + liveP05 + " against sky "
+                        + skyMean + " through " + head.describe()
+                        + " — no dark face register; pass 1's blob read p05 at 0.99x sky");
+        assertTrue(liveP05 < bareP05 - 10,
+                "the face must darken the wide-framing head against its own bareface control: "
+                        + liveP05 + " vs " + bareP05);
+        assertTrue(max(live, head) <= max(bare, head) + 2,
+                "the face added a brighter pixel (" + max(live, head) + ") than the bareface head's "
+                        + max(bare, head) + " at planning framing — 4b.0's field rule");
+        assertTrue(mean(live, head) <= mean(bare, head),
+                "the skin field lightened the wide-framing head: " + mean(live, head)
+                        + " vs bareface " + mean(bare, head));
+    }
+
+    private static double percentile(Frame f, Rect r, double p) {
+        java.util.ArrayList<Double> v = new java.util.ArrayList<>();
+        for (int y = r.y; y <= r.y1(); y++) {
+            for (int x = r.x; x <= r.x1(); x++) {
+                v.add(f.lum(x, y));
+            }
+        }
+        java.util.Collections.sort(v);
+        return v.get((int) Math.min(v.size() - 1, Math.round(p / 100.0 * (v.size() - 1))));
+    }
+
+    private static double max(Frame f, Rect r) {
+        double m = 0;
+        for (int y = r.y; y <= r.y1(); y++) {
+            for (int x = r.x; x <= r.x1(); x++) {
+                m = Math.max(m, f.lum(x, y));
+            }
+        }
+        return m;
+    }
+
+    /**
+     * Diagnostic sweep: every frame of the parry window, both duellists,
+     * against the delivered capture (which the acceptance tests read, so it
+     * is force-added and exists on every clone — a diagnostic that silently
+     * returns on a missing file is a skip wearing a print's clothes, and
+     * this one did exactly that while pointed at an untracked iteration
+     * directory, s3b-p2-try9).
+     */
     @Test
     void printTheParryWindowRatios() throws IOException {
         Rehearsal r = new Rehearsal(Duel.Kind.PARRY);
         r.play();
         for (int fr = 0; fr < 24; fr++) {
-            File file = new File(String.format("out/captures/s3b-p2-try9/frame_%03d.png", fr));
+            File file = new File(String.format("out/captures/s3b-p2-parry-contact/frame_%03d.png", fr));
             if (!file.isFile()) {
-                return;
+                continue;
             }
             Frame f = Frame.load(file);
             double t = START + fr * STEP;

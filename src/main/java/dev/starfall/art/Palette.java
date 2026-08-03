@@ -24,6 +24,24 @@ public final class Palette {
     // -- Ink --------------------------------------------------------------
     /** Never use {@link Color#BLACK}. Ink is blue-black. */
     public static final Color INK_BLACK = rgb(0x161A22);
+
+    /**
+     * The ink floor on the DUSK stage, per STYLE.md 2.2 as amended: the floor
+     * is a ratio to the ground, and {@code #161A22} is only its value on cream
+     * paper. Measured on all six family-B duellists (matched-scale refs, 2nd
+     * percentile of the head-region luminance over the local sky mean): the
+     * corpus's deepest strokes sit at <b>0.12-0.14 of the local sky</b> —
+     * ref3 dark 0.117 (ink x145..184 y182..231, sky x190..210 y165..185),
+     * ref3 pale 0.135, ref4 dark 0.135, ref4 pale 0.134, ref5 dark 0.129,
+     * ref5 pale 0.137 (regions in docs/system3b-debt.md). Against the duel's
+     * 87-luma sky that is L 10-12; this hex is L 12.9. A stroke authored at
+     * {@code INK_BLACK} on that stage prints at 0.30x sky — the "figure
+     * authored at the floor sits at more than twice the reference's value"
+     * failure 2.2 records — and a face mark at 0.30x on a plane at 0.30x is
+     * invisible. System 3b pass 2 uses this for the face's strokes only; the
+     * garment and hair re-anchor is named debt.
+     */
+    public static final Color INK_BLACK_DUSK = rgb(0x0A0D14);
     public static final Color INK_INDIGO = rgb(0x2C3A4F);
     public static final Color INK_SLATE = rgb(0x4A5A6B);
     public static final Color CLOTH_PALE = rgb(0xB9BEC0);

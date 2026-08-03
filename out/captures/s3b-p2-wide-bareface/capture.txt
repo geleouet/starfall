@@ -11,5 +11,5 @@ size=960x720
 substep=0.004166667
 clamp=none
 clothRigid=false
-commit=4bdde59-dirty
+commit=78151df-dirty
 harness=f0ad18994eec

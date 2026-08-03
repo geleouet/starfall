@@ -71,6 +71,20 @@ uniform float u_bleedRadius;
 uniform vec3  u_fogBands[3];
 
 // #161A22. STYLE.md 2.2: ink is blue-black, never #000000.
+//
+// System 3b pass 2: this is the floor ON CREAM PAPER, per 2.2 as amended —
+// "the floor is a ratio to the ground, not a constant, and this line had it
+// wrong for four systems". The fraction, measured on all six family-B
+// duellists (2nd-percentile head-region ink over local-sky mean, regions in
+// Palette.INK_BLACK_DUSK's doc and docs/system3b-debt.md): 0.12-0.14 of the
+// local ground. main() below scales this constant by the ground's luminance
+// against the cream paper it was chosen on (0.775, the luminance at which
+// #161A22 IS 13% of the ground), clamped at 1 so every Family A frame is
+// bit-identical. On the dusk stage the clamp stops silently lifting anything
+// authored below 0.30x sky — which until this pass was nothing, and which
+// after it is the face's socket, contour line and stroke ink. Materials
+// authored AT the old floor (hair mass, cloth pooling) print their own hex
+// exactly as before; the clamp only ever bit values pushed beneath it.
 const vec3 INK_FLOOR = vec3(0.0863, 0.1020, 0.1333);
 
 float hash2(vec2 p) {
@@ -335,8 +349,11 @@ void main() {
     ink += d8 * (1.6 / 255.0);
     alpha += d8 * (1.0 / 255.0);
 
-    // STYLE.md 2.2 / anti-pattern table: nothing reaches either end of the range.
-    ink = clamp(ink, INK_FLOOR, vec3(0.96));
+    // STYLE.md 2.2 / anti-pattern table: nothing reaches either end of the
+    // range — with the floor derived as a fraction of the local ground (see
+    // the INK_FLOOR doc above; identical on Family A by the clamp to 1.0).
+    float ground = dot(paper, vec3(0.2126, 0.7152, 0.0722));
+    ink = clamp(ink, INK_FLOOR * clamp(ground / 0.775, 0.0, 1.0), vec3(0.96));
 
     gl_FragColor = vec4(ink, clamp(alpha, 0.0, 1.0));
 }

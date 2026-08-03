@@ -218,8 +218,31 @@ public final class Figure {
         // (measured on s3b-p2-parry-contact frame 11, regions in
         // FaceValueTest), and `base` carries only the narrow break of light,
         // which the corpus peaks at 0.59–1.22x sky over a 2–3 px band.
-        f.skin.base.mul(0.46f, 0.42f, 0.40f, 1f);   // the break of light, ~1.0x sky, clash-lit warm
-        f.skin.deep.mul(0.28f, 0.28f, 0.30f, 1f);   // the plane: ~L26, the corpus's 0.25x band edge
+        // +10% over the second iteration: the run-to-run head noise (max
+        // channel delta 88 on this window) flips wash boundaries whose step
+        // sits at 8-9 levels, and the acceptance's own margin was smaller
+        // than the noise — the delivered frame read 5.00 straight edges per
+        // 1000 px where its bit-identical rerun read 4.60 (s3b-p2-parry-
+        // contact vs -repro, frame 11, hero head box). A brighter break
+        // moves every break-adjacent boundary to 11+ levels, which no
+        // one-LSB dither can flip.
+        f.skin.base.mul(0.505f, 0.462f, 0.44f, 1f); // the break of light, ~1.05x sky, clash-lit warm
+        // 0.25, not iteration one's 0.28: the resolve's noise lift prints the
+        // w=1 plane ~3.5 levels over `deep`, so a deep at L26.5 delivered a
+        // plane at L30 = 0.34x sky. Measured s3b-p2-try14 frame 11, plane box
+        // x427..435 y297..308 vs sky x469..491 y274..295.
+        //
+        // Third iteration: deep is no longer the PLANE, it is the register
+        // BELOW the plane — socket, contour line, under-jaw — because a
+        // socket can only be a shadow if the material has somewhere darker
+        // than the plane to go. The plane moved onto the wetness ramp
+        // (buildFace, ~0.86) and deep dropped to the corpus's own deep-stroke
+        // register, 0.17-0.19x sky (ref3 dark socket 18-25 on sky 103.6).
+        // The face's ink strokes sit lower still, on INK_BLACK_DUSK's
+        // measured 0.12-0.14x floor — see Palette.
+        f.skin.deep.mul(0.145f, 0.145f, 0.16f, 1f);
+        f.faceInk.base = copyOf(Palette.INK_BLACK_DUSK);
+        f.faceInk.deep = copyOf(Palette.INK_BLACK_DUSK);
         f.skin.stain.mul(0.30f, 0.28f, 0.28f, 1f);  // warm notes must not glow on a near-black plane
         f.skin.stainPale.mul(0.32f, 0.30f, 0.30f, 1f);
         // The other half of the Family B separation, and the half the review did not
@@ -309,8 +332,13 @@ public final class Figure {
         // The pale figure's face sits at the TOP of the corpus band (0.31)
         // where the hero sits at the bottom (0.25): that is all that remains,
         // on the faces, of the dark-against-pale pairing.
-        f.skin.base.mul(0.49f, 0.47f, 0.48f, 1f);   // the break of light, a shade over the hero's
-        f.skin.deep.mul(0.30f, 0.30f, 0.33f, 1f);   // the plane: ~L28, the corpus's 0.31x band edge
+        f.skin.base.mul(0.54f, 0.517f, 0.528f, 1f); // the break of light, a shade over the hero's
+        // Deep is the below-the-plane register, a shade lighter than the
+        // hero's — the pale duellist's face sits at the TOP of the corpus
+        // band. See dark() for the full derivation.
+        f.skin.deep.mul(0.165f, 0.165f, 0.18f, 1f);
+        f.faceInk.base = copyOf(Palette.INK_BLACK_DUSK);
+        f.faceInk.deep = copyOf(Palette.INK_BLACK_DUSK);
         f.skin.stain.mul(0.36f, 0.34f, 0.34f, 1f);
         f.skin.stainPale.mul(0.36f, 0.34f, 0.34f, 1f);
         // <b>And this is the compensation pass 2 named as missing and did not build.</b>

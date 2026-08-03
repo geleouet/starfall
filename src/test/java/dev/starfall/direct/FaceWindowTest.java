@@ -35,22 +35,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * heads — §11.0's "show it on every image in the family", and 11.2b(f)'s
  * "enumerate the axis, do not index it".
  *
- * <h2>What the delivered floors are, and the shortfall, named</h2>
+ * <h2>What the delivered floors are, and where the density comes from</h2>
  *
  * <p>The delivered heads are asserted against BOTH edges: density must exceed
  * the same head's own bareface control by a real margin (the face must add
  * marks — the floor the review's decisive finding demanded) and stay under the
- * corpus ceiling; runs must stay under the lattice's. The delivered base-1
- * densities (foe 3.9, hero 3.9 on the graded frame) still sit <b>below the
- * corpus's own 6.8 floor</b>, and that gap is named here rather than papered
- * over with a fitted band: on this stage the ink floor {@code #161A22} (L 25.7)
- * is 0.30x the local sky, the face plane is authored one wash above it
- * (L 26-31), and the corpus gets its extra mark density from strokes at
- * L 12-20 — <em>below the floor</em> — on planes at L 25. A moustache at
- * |dL| 3 against its own plane is invisible to the eye and the instrument
- * alike. Closing the last ~3/1000 needs either the floor re-derived as a
- * fraction of the ground (§2.2's own amendment, filed upward) or the hair
- * pass's wisps and hairline (debt item 5). See docs/system3b-debt.md §2.1.
+ * corpus ceiling; runs must stay under the lattice's. The floor became
+ * reachable when the pass did what this javadoc's earlier revision said it
+ * would need: <b>the ink floor was re-derived as a fraction of the ground</b>
+ * (STYLE.md 2.2 as amended; the measured family-B fraction, 0.12-0.14 of
+ * local sky, lives in {@code Palette.INK_BLACK_DUSK} and the clamp in
+ * {@code ink_resolve.frag}), which put a register BELOW the face plane back
+ * into the material's reach. The delivered density is coverage-edged marks on
+ * grounds that contrast — strokes at L 12-16 on washes at 33-40 and on the
+ * lit break, the contour line against sky, the moustache and lip parting on
+ * the lit lip — because the resolve's own anti-seam averaging blurs any
+ * value-channel step to 2-3 px, so interior wetness structure counts at base
+ * 2 only, by design. The remaining distance to the corpus's absolute 6.8-9.6
+ * is the un-marked HAIR mass (bareface heads read 3.0-3.9 against corpus
+ * heads' 6.8+ before any face is drawn) — the hair pass's item, named in
+ * docs/system3b-debt.md.
  *
  * <h2>Scope of the facet instrument, restated at the use site</h2>
  *
@@ -228,75 +232,76 @@ class FaceWindowTest {
     }
 
     /**
-     * The gaze guard, rebuilt after the reviewer broke the pass-1 version and
-     * the suite stayed green (§6.2: {@code gazeX() > 0.25f} cannot distinguish
-     * "the schedule's anchor drives the eye" from "the eye stares forward").
+     * The gaze guard, rebuilt TWICE. The pass-1 version was vacuous (review
+     * §6.2: {@code gazeX() > 0.25f} cannot distinguish "the schedule's anchor
+     * drives the eye" from "the eye stares forward"). The first pass-2
+     * rebuild claimed a red observation this pass could not reproduce: under
+     * the review's exact sabotage ({@code Figure.gazeAt} replaced by
+     * {@code face.gazeToward(1f, 0f)}) it stayed GREEN, measured on this
+     * worktree — because it sampled only the END of the score, where the
+     * horizontal expectation saturates at clamp() = 1.0 (indistinguishable
+     * from the constant stare) and the final anchor's vertical component
+     * happens to sit inside the 0.08 tolerance. A guard that samples one
+     * state can be satisfied by a constant equal to that state.
      *
-     * <p>The expectation is computed from the <b>schedule's own data</b> — the
-     * {@code PoseChange} list's gaze anchors, resolved through the same lane
-     * stretch and the same {@code /0.9} mapping, against the head position the
-     * skeleton actually holds — never from {@code Figure.gazeAt} or
-     * {@code FaceRig}, whose behaviour is the thing under test (11.2b(c): a
-     * test that shares its input with the code under test is a bit-identity
-     * check). Both channels are asserted, at every settled sample, for both
-     * duellists.
+     * <p>So this version probes MID-SCHEDULE: for every gaze-carrying
+     * {@code PoseChange} it replays the score to anchor-time + 0.8 s (six
+     * gaze taus: settled, STYLE.md 7) and compares both channels of the
+     * delivered {@code FaceRig} against expectations computed from the
+     * schedule's own anchor data — never from {@code Figure.gazeAt}, whose
+     * behaviour is under test (11.2b(c)). And it asserts its OWN
+     * discriminating power: across the probes, at least one expectation must
+     * differ from the forward stare by more than twice the tolerance, so if
+     * the schedule ever degenerates to all-saturated anchors this guard says
+     * so instead of silently certifying anything.
      *
-     * <p><b>Observed red, against the reviewer's own sabotage:</b> with
-     * {@code Figure.gazeAt}'s body replaced by {@code face.gazeToward(1f, 0f)}
-     * — the exact break of review §6.2 — this fails with
-     * <i>"body 0 at t=1.42: gazeY 0.0 vs the schedule's -0.148"</i>, because a
-     * hard-coded forward stare has no vertical component and every anchor the
-     * schedule authors sits at head height on a tile, below the eye of a
-     * standing figure. The run is quoted in docs/system3b-debt.md §4.
-     *
-     * <p>And the anchor is tied to the opponent, not just obeyed: at the
-     * contact the active anchor's world X must sit within a tile of the
-     * opponent's actual head.
+     * <p><b>Observed red against the sabotage above, this version:</b>
+     * <i>"body 0 at t=0.8: gazeX 1.0 vs the schedule's -0.3071025013923645"</i>
+     * — mid-schedule even the horizontal channel discriminates, because the
+     * early anchors sit close enough that the mapping is unsaturated. The
+     * run is quoted in docs/system3b-debt.md; restored and re-run green.
      */
     @Test
     void bothDuellistsLookAtEachOtherThroughTheContact() {
-        Rehearsal r = new Rehearsal(Duel.Kind.PARRY);
-        r.play();
-        Duel.Staged staged = r.staged();
-        for (Figure fig : r.director().figures()) {
-            int body = fig.body();
-            List<Directive.PoseChange> changes = r.schedule().of(Directive.PoseChange.class).stream()
-                    .filter(p -> p.body() == body).toList();
-            assertTrue(!changes.isEmpty(), "no pose changes for body " + body);
-            int settled = 0;
-            for (Rehearsal.Frame frame : r.frames()) {
-                double t = frame.t();
+        Rehearsal probe = new Rehearsal(Duel.Kind.PARRY);
+        Duel.Staged staged = probe.staged();
+        double duration = probe.schedule().duration();
+        // Probe instants: settled under each gaze-carrying anchor.
+        java.util.TreeSet<Double> times = new java.util.TreeSet<>();
+        for (Directive.PoseChange p : probe.schedule().of(Directive.PoseChange.class)) {
+            if (p.gaze() == null) {
+                continue;
+            }
+            double t = Math.min(p.at() + 0.80, duration);
+            times.add(Math.round(t * 60.0) / 60.0);
+        }
+        assertTrue(!times.isEmpty(), "no gaze-carrying pose changes in the schedule");
+
+        double maxOffAxis = 0;
+        int settled = 0;
+        for (double t : times) {
+            Rehearsal r = new Rehearsal(Duel.Kind.PARRY);
+            r.play(t, 60.0);
+            Rehearsal.Frame frame = r.frames().get(r.frames().size() - 1);
+            for (Figure fig : r.director().figures()) {
+                int body = fig.body();
                 Directive.PoseChange active = null;
-                for (Directive.PoseChange p : changes) {
-                    if (p.at() <= t) {
+                for (Directive.PoseChange p : r.schedule().of(Directive.PoseChange.class)) {
+                    if (p.body() == body && p.at() <= t + 1e-6) {
                         active = p;
-                    } else {
-                        break;
                     }
                 }
-                if (active == null || active.gaze() == null) {
+                if (active == null || active.gaze() == null || t - active.at() < 0.66) {
                     continue;
                 }
-                // Only assert once the channel has had >= 6 gaze taus (0.66 s)
-                // to settle onto the active anchor; during a blend the channel
-                // lawfully lags (STYLE.md 7).
-                if (t - active.at() < 0.66) {
-                    continue;
-                }
+                settled++;
                 Rehearsal.Body me = frame.body(body);
                 double facing = body == staged.hero() ? 1 : -1;
                 double dirX = clamp((Director.stretch(active.gaze()) - me.head().x) / 0.9 * facing);
                 double dirY = clamp((active.gaze().y() - me.head().y) / 0.9);
-                // The DELIVERED channel — the rehearsal's director drove the
-                // same FaceRig the capture draws from.
-                dev.starfall.rig.FaceRig face = figOf(r, body).face();
-                // Sample the channel at the END of the play (frames list is a
-                // recording; the rig holds the final state) — so compare only
-                // on the final frame, plus mid-window snapshots via re-walk:
-                if (frame != r.frames().get(r.frames().size() - 1)) {
-                    continue;
-                }
-                settled++;
+                maxOffAxis = Math.max(maxOffAxis,
+                        Math.max(Math.abs(dirX - 1.0), Math.abs(dirY)));
+                dev.starfall.rig.FaceRig face = fig.face();
                 assertEquals(dirX, face.gazeX(), 0.08,
                         "body " + body + " at t=" + t + ": gazeX " + face.gazeX()
                                 + " vs the schedule's " + dirX
@@ -312,8 +317,12 @@ class FaceWindowTest {
                         "body " + body + "'s gaze anchor x=" + Director.stretch(active.gaze())
                                 + " is nowhere near the opponent's head at " + other.head().x);
             }
-            assertTrue(settled >= 1, "no settled sample for body " + body);
         }
+        assertTrue(settled >= 2, "only " + settled + " settled gaze samples across the score");
+        assertTrue(maxOffAxis > 0.16,
+                "every sampled expectation sits within " + maxOffAxis
+                        + " of the constant forward stare — this guard has no discriminating"
+                        + " power against review 6.2's sabotage and must not count as a guard");
     }
 
     private static Figure figOf(Rehearsal r, int body) {
@@ -397,7 +406,15 @@ class FaceWindowTest {
             int ex = (int) Math.round((b.eye().x - xMin) / worldW * W);
             int ey = (int) Math.round((1 - (b.eye().y - yMin) / worldH) * H);
             Rect eyeBox = new Rect(ex - 5, ey - 5, 11, 11);
-            Rect plane = new Rect(ex - 14, ey - 3, 10, 12);   // the cheek behind the eye
+            // The cheek behind the eye — which is toward the skull, so the
+            // offset follows the facing. The pass-1 version used ex-14 for
+            // both duellists, which on the left-facing foe put the "plane"
+            // in front of the face where it read part sky: a ceiling of
+            // 1.35x sky is no socket assertion at all, and the foe's side
+            // of this guard was vacuously green the whole time it was red
+            // on the hero.
+            Rect plane = hero ? new Rect(ex - 14, ey - 3, 10, 12)
+                    : new Rect(ex + 5, ey - 3, 10, 12);
             double eyeMean = mean(live, eyeBox);
             double planeMean = mean(live, plane);
             double eyeMax = max(live, eyeBox);
@@ -411,6 +428,67 @@ class FaceWindowTest {
             assertTrue(eyeMax >= planeMean * 1.35,
                     who + ": no specular found — brightest eye pixel " + eyeMax
                             + " against plane " + planeMean);
+        }
+    }
+
+    /**
+     * Review item 7: the head-region run-to-run noise, re-characterised and
+     * BOUNDED, because pass 1 recorded it as "±1 LSB / invisible" and the
+     * review measured max 78 over 1,539 px — a false reassurance that would
+     * have poisoned every future before/after at a head.
+     *
+     * <p>Re-characterised on this pass's own final pair (same command, same
+     * commit, twice): 0 of 24 frames bit-identical, 19,768 px total, per
+     * frame up to 2,816 px at max channel delta 99, confined to the two
+     * head regions; on the graded frame, 1,900 px at max 33. The un-faced
+     * control pair is 21/24 identical, so the cost is the face's (plus the
+     * pre-existing fleck class). Not bisected — the suspects are still the
+     * two quarter-res blur/resolve passes per figure — but no longer
+     * mischaracterised, and bounded here on the tracked pair so a future
+     * pass reading a one-frame head delta bigger than this KNOWS it is
+     * signal. The acceptance metrics themselves must agree across the pair
+     * by more than the guards' own margins, which is what makes
+     * {@link #theHeadRegionsAreNoLongerTheLattice} a property of the code
+     * rather than of one lucky roll: this pass's first delivery read 5.00
+     * against its twin's 4.60 — a criterion sitting inside its apparatus's
+     * noise — and was reworked until both rolls clear the floor.
+     */
+    @Test
+    void theHeadNoiseIsBoundedAcrossReruns() throws IOException {
+        Frame a = Frame.load(CONTACT);
+        Frame b = Frame.load(new File("out/captures/s3b-p2-parry-repro/frame_011.png"));
+        int differing = 0;
+        double maxDelta = 0;
+        for (int y = 0; y < 720; y++) {
+            for (int x = 0; x < 960; x++) {
+                double d = Math.abs(a.lum(x, y) - b.lum(x, y));
+                if (d > 0) {
+                    differing++;
+                    maxDelta = Math.max(maxDelta, d);
+                }
+            }
+        }
+        assertTrue(differing <= 6000,
+                differing + " px differ between the graded frame and its same-command twin — "
+                        + "three times the characterised class; a real change is hiding in the noise record");
+        assertTrue(maxDelta <= 120, "max luma delta " + maxDelta + " across the rerun pair");
+
+        Rehearsal r = new Rehearsal(Duel.Kind.PARRY);
+        r.play();
+        for (boolean hero : new boolean[] {true, false}) {
+            Rect box = headBox(r, hero);
+            Facets.Reading a1 = Facets.measure(a, box, 8, 6, 1, true);
+            Facets.Reading b1 = Facets.measure(b, box, 8, 6, 1, true);
+            Facets.Reading a2 = Facets.measure(a, box, 8, 6, 2, true);
+            Facets.Reading b2 = Facets.measure(b, box, 8, 6, 2, true);
+            String who = hero ? "hero" : "foe";
+            assertTrue(Math.abs(a1.per1000() - b1.per1000()) <= 0.55,
+                    who + ": base-1 facet density differs by "
+                            + Math.abs(a1.per1000() - b1.per1000())
+                            + " across a same-command pair — the acceptance is noise");
+            assertTrue(Math.abs(a2.per1000() - b2.per1000()) <= 1.5,
+                    who + ": base-2 facet density differs by "
+                            + Math.abs(a2.per1000() - b2.per1000()) + " across a same-command pair");
         }
     }
 

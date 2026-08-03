@@ -319,8 +319,8 @@ public final class SamuraiRig {
         // (translate+rotate), eyelid (eye scaleY), jaw (rotate), gaze (eye
         // translate).
         Bone headBone = bones.stream().filter(b -> "head".equals(b.name)).findFirst().orElseThrow();
-        addFaceBone(bones, headBone, "brow", 0.106f, 0.044f);
-        addFaceBone(bones, headBone, "eye", 0.098f, 0.036f);
+        addFaceBone(bones, headBone, "brow", 0.096f, 0.062f);
+        addFaceBone(bones, headBone, "eye", EYE_BIND_DX, EYE_BIND_DY);
         addFaceBone(bones, headBone, "jaw", -0.010f, -0.062f);
 
         return new Skeleton(bones);
@@ -602,6 +602,22 @@ public final class SamuraiRig {
     public static final float HEAD_LOBE_DX = 0.012f;
     public static final float HEAD_LOBE_DY = 0.048f;
     public static final float SKULL_RADIUS = 0.150f;
+
+    /**
+     * The eye bone's bind offset from the head bone, shared with the tests that
+     * recover the head's world rotation from the head-to-eye vector
+     * ({@code FaceValueTest#boxesAt}).
+     *
+     * <p>Pass 2 moves the eye up and in: the pass-1 offset (0.098, 0.036) put the
+     * eye at minus 8 degrees from the lobe centre — nostril height — and 3 px
+     * inside the delivered silhouette, which is the review's own eye finding on
+     * the foe ("at nostril height, on the silhouette edge") and the reason the
+     * hero's 11x11 eye box read three columns of sky. The socket now sits where
+     * 4b.4's degradation demands: behind the brow ridge, above nostril height,
+     * with the break of light dipped dark across it (see buildFace).
+     */
+    public static final float EYE_BIND_DX = 0.078f;
+    public static final float EYE_BIND_DY = 0.058f;
     public static final float TOPKNOT_ANGLE_DEG = 140f;
     public static final float TOPKNOT_DIST = 0.146f;
     public static final float TOPKNOT_RADIUS = 0.072f;
@@ -746,6 +762,22 @@ public final class SamuraiRig {
         private static final float[] FACE_R = {0.150f, 0.146f, 0.134f, 0.162f, 0.130f, 0.126f, 0.154f, 0.106f, 0.090f};
         /** The neutral radius the notch/jut deviations are measured against. */
         private static final float FACE_R0 = 0.146f;
+
+        /** {@link #contourR} interpolated at an arbitrary angle, for marks
+         * that follow the head's edge rather than sit on a station. Above the
+         * face table's 42-degree top station it follows the skull lobe. */
+        private float contourRAt(float a) {
+            if (a >= FACE_A[0]) {
+                return 0.153f;
+            }
+            for (int i = 0; i < FACE_A.length - 1; i++) {
+                if (a <= FACE_A[i] && a >= FACE_A[i + 1]) {
+                    float u = (FACE_A[i] - a) / (FACE_A[i] - FACE_A[i + 1]);
+                    return contourR(i) + (contourR(i + 1) - contourR(i)) * u;
+                }
+            }
+            return contourR(FACE_A.length - 1);
+        }
 
         /** Contour radius at station {@code i}, reshaped by this rig's face. */
         private float contourR(int i) {
@@ -2118,8 +2150,14 @@ public final class SamuraiRig {
             // two above 42 degrees follow the skull lobe (forehead into hairline).
             float[] ang = {74f, 58f, 42f, 25f, 10f, -2f, -12f, -22f, -34f, -50f, -64f};
             float[] rOut = new float[ang.length];
-            rOut[0] = 0.158f;
-            rOut[1] = 0.153f;
+            // A pixel prouder at the crown (0.164/0.159, was 0.158/0.153):
+            // the upper-front silhouette was the hair sim's ragged fringe,
+            // and its boundary wandered a column every 3-5 rows — the head's
+            // one long clean edge, shredded (try31: 4-5 px step runs at
+            // x443-444 where the corpus holds 9-12). The skin's own spline
+            // now owns that edge on both heads; the fringe frays over it.
+            rOut[0] = 0.164f;
+            rOut[1] = 0.159f;
             for (int i = 2; i < ang.length; i++) {
                 // PROUD of the ink contour strip, not inside it. Pass 2: the skin
                 // group owns the head's silhouette in the duel scenes, so the
@@ -2129,33 +2167,65 @@ public final class SamuraiRig {
                 // washed flat by its own sash lift: the pale rim of the shard the
                 // pass-1 review measured at 1.36x the sky. The body strip stays,
                 // for the Family A scenes that draw rig.mesh() alone.
-                rOut[i] = contourR(i - 2) * 1.05f;
+                rOut[i] = contourR(i - 2) * (i == 2 ? 1.065f : 1.05f);
             }
             // Value structure, from family B rather than family D, and pass 2
-            // re-derives it from the measured ratio (STYLE.md 4b.2 as amended):
-            // the face plane sits at 0.25–0.31 of its own local sky, so on the
-            // dusk stage a face is MOSTLY the deep tone — "just enough interior
-            // modelling to find the face" — and the light is one narrow break
-            // along brow, nose, lip and chin, 2–3 px at the intimate framing,
-            // peaking at 0.59–1.22x sky (ref3 measured band). Pass 1 authored
-            // an 11 px lit field with dark edges and delivered a plane at
-            // 0.56x/1.36x — the decal 4b.7 fails on sight. So the rails invert:
-            // wetness is HIGH (the plane pools onto `deep`) everywhere except
-            // the break rail, which stays dilute only where the corpus lights
-            // it — brow ridge, bridge, nose, lip, chin — never the forehead
-            // (hair shadow) and never under the jaw.
+            // (second iteration) re-derives the STRUCTURE from the corpus, not
+            // only the mean. The first iteration hit the 4b.2 ratio and went
+            // flat doing it: the whole interior printed L 27-31, the authored
+            // break of light sat on the feathered silhouette where blending
+            // against an 87-luma sky lifted it to 74-76 — eight levels below
+            // the sky, i.e. invisible — and the face read as a plain dark
+            // shard with a floating specular. Measured on ref3's dark duellist
+            // (x145..184 y182..231, sky 96..105), the corpus profile is FOUR
+            // value events per row, inside out: the plane (L 12-24), a lit
+            // break 2-4 px wide (L 45-61 at the nose, dipped dark 18-25 across
+            // the socket and bridge, lit again 30-48 on the brow ridge), then
+            // a dark contour LINE 1-2 px wide (L 33-39) between the break and
+            // the sky — 4b.3's "one continuous flowing line", which is also
+            // what stops the break from bleeding into the sky the way
+            // iteration one's did. The rails below are those four events.
             float socket = 0.90f + 6f * p.socketDepth();   // deepens with age
-            float[] wLight = {0.85f, 0.80f, 0.55f, 0.28f, 0.30f, 0.10f, 0.60f, 0.22f, 0.34f, 0.75f, 0.92f};
+            // The break of light per station: lit on the brow ridge (42),
+            // dark across socket and bridge (25, 10), brightest on the nose
+            // (-2), lit on lip and chin (-22, -34), dark under the jaw.
+            // Third iteration: the lit break runs CONTINUOUSLY from the nose
+            // through lip to chin (ref3 rows 207-231 hold 40-90 the whole
+            // way), where the second iteration re-dipped at the philtrum and
+            // cut the one near-vertical lit boundary the delivered profile
+            // has into sub-run fragments (try20: 5 contiguous step rows at
+            // the nose inner edge, one short of the instrument's own 6).
+            // (A lit bridge was tried and reverted — try22: it printed 25-47,
+            // too dim to count and a texture right at the eye box's edge.)
+            float[] wLight = {0.85f, 0.75f, 0.28f, 0.70f, 0.68f, 0.10f, 0.28f, 0.12f, 0.24f, 0.72f, 0.92f};
+            // The plane sits ON the ramp (~0.86), not at the ceiling: with
+            // `deep` re-anchored to the corpus's below-the-plane register
+            // (Figure.dark()), full wetness now means socket / contour line /
+            // under-jaw — the registers the corpus paints BELOW its plane —
+            // and a socket that is 8-10 levels under the plane exists at all.
+            // Iteration two had plane == deep == socket == hair, one flat 26.
             float[] wMid = new float[ang.length];
             float[] wIn = new float[ang.length];
+            // 0.55, not 0.80: the pool term saturates above ~0.60 wetness
+            // (measured across try16/try17: 0.80, 0.86 and 1.0 all print the
+            // deep register), so the plane sits under the knee and full
+            // wetness keeps a real register below it for the socket.
             for (int i = 0; i < ang.length; i++) {
-                wMid[i] = 0.98f;
-                wIn[i] = 1f;
+                wMid[i] = 0.55f;
+                wIn[i] = 0.55f;
             }
-            wMid[3] = Math.min(1f, socket);           // the socket shadow: the darkest plane
+            // The washes brightened one step (0.48/0.42 printed 26-30, a
+            // Delta-L of barely 8 against the socket's 17-19 — the exact
+            // knife-edge the instrument cannot be trusted to hold through
+            // run-to-run noise): at 0.40/0.34 they print 33-36 and the
+            // wash-to-socket turns, which run near-horizontal along the 25
+            // and -12 degree station lines, become honest 1-px-readable
+            // wet edges. Corpus cheek turn: 27-35 on a 12-24 plane.
+            wMid[2] = 0.30f;                          // the lift under the ridge, prints ~40
+            wMid[3] = Math.min(1f, socket);           // the socket shadow: BELOW the plane now
             wMid[4] = Math.min(1f, socket * 0.99f);
-            wMid[6] = 0.94f;                          // the cheek keeps a shade of turn
-            wMid[8] = 0.97f;
+            wMid[6] = 0.26f;                          // the cheek's turn of light, prints ~40
+            wMid[8] = 0.46f;
 
             // Blush and marks: asymmetric by construction (4b.7) — everything is
             // placed off the generator's own noise, nothing mirrored.
@@ -2163,12 +2233,15 @@ public final class SamuraiRig {
             float blushB = p.stainAmount() * (0.30f + 0.5f * fr.nextFloat());
             float[] sLight = new float[ang.length];
             float[] sMid = new float[ang.length];
-            sMid[6] = blushA;                    // cheek
-            sMid[7] = blushB * 0.7f;
+            // Halved from the third iteration: on the brightened washes the
+            // full blush printed a flat tan blotch across the whole mid-face
+            // (s3b-p2-try24) — 4b.7's "symmetric blush reads as makeup" in
+            // spirit. The corpus's warmth is a small note, not a field.
+            sMid[6] = blushA * 0.5f;             // cheek
+            sMid[7] = blushB * 0.35f;
             sLight[5] = blushB * 0.5f;           // nose tip warmth
             sLight[7] = 0.85f;                   // the lip: pushes toward stainPale = LIP
-            sLight[2] = 0.30f;                   // the corpus's coral rim on the lit
-            sLight[3] = 0.55f;                   // brow ridge (review 11.0 part list)
+            sLight[2] = 0.45f;                   // the corpus's coral rim, on the lit ridge
 
             // The rails are sampled through a Catmull-Rom spline of the stations,
             // three points per span. Pass 2, from the review's 4b.3 row: "the
@@ -2201,6 +2274,8 @@ public final class SamuraiRig {
                 sMidS[k] = MathUtils.clamp(catmullRom(sMid, i, u), 0f, 1f);
             }
             short[] vo = new short[n];
+            short[] vo2 = new short[n];
+            short[] vb = new short[n];
             short[] vl = new short[n];
             short[] vm = new short[n];
             short[] vi = new short[n];
@@ -2225,17 +2300,42 @@ public final class SamuraiRig {
                 int bA = head.index;
                 int bB = jaw.index;
                 float wA = 1f - jawW;
-                // Outer rail: the break of light peaks ON the contour, which is
-                // what the corpus paints — the lit profile rim against the sky,
-                // then the fall to the deep plane inside it. (Pass 1 had the
-                // break a rail inside a darker rim, one more inversion of the
-                // same value structure.) The feather takes the outermost ~1.5 px
-                // to zero coverage, so the rim blends to sky, not to a step.
+                // Outermost rail: the contour LINE, not the break. Iteration
+                // one put the break here and the feather blended it into the
+                // sky (authored ~52, delivered 74-76 against sky 87 — nothing).
+                // The corpus closes the profile with a dark line OUTSIDE the
+                // break (ref3 nose rows 209-215: break 45-61, line 33-39, sky
+                // 96-105), so the break reads against dark on BOTH sides and
+                // the silhouette's feather blends dark-to-sky, which no bright
+                // rim can survive.
+                //
+                // The widths are the second iteration's measured correction:
+                // at ratios 1.0/0.956/0.90 on a 29-32 px face radius the line
+                // was 1.3 px and the break 1.8, the 1.6 px feather ate the
+                // line whole and the break printed one broken pixel
+                // (s3b-p2-try14, hero rows 287-290: a lone 72-73 column).
+                // Line 2.4 px (outer 1.6 is the feather's dark-to-sky ramp,
+                // ~1 px solid), break 2.4, falloff 2.4 — corpus widths.
                 vo[i] = builder.vertex(cx + rS[i] * ca, cy + rS[i] * sa, 1f, t,
-                        0f, Math.max(0.04f, wLightS[i] - 0.06f), sLightS[i] * 0.5f, flow, bA, wA, bB, jawW);
-                vl[i] = builder.vertex(cx + rS[i] * 0.945f * ca, cy + rS[i] * 0.945f * sa, 0.8f, t,
+                        0f, 0.97f, 0f, flow, bA, wA, bB, jawW);
+                vo2[i] = builder.vertex(cx + rS[i] * 0.925f * ca, cy + rS[i] * 0.925f * sa, 0.92f, t,
+                        0f, 0.97f, 0f, flow, bA, wA, bB, jawW);
+                // The break of light, fully inside the line.
+                vb[i] = builder.vertex(cx + rS[i] * 0.85f * ca, cy + rS[i] * 0.85f * sa, 0.85f, t,
                         0f, wLightS[i], sLightS[i], flow, bA, wA, bB, jawW);
-                vm[i] = builder.vertex(cx + rS[i] * 0.84f * ca, cy + rS[i] * 0.84f * sa, 0.45f, t,
+                // The break's inner falloff: half a step down toward the plane,
+                // so the inner edge is a wash edge (~2.4 px, 12-17 levels per
+                // px where the break is lit) rather than either a cliff or a
+                // 6-px gradient the facet instrument reads at base 2 only.
+                // +0.28, not +0.35: at +0.35 the falloff-to-plane step sat
+                // at 8-10 levels and the head's run-to-run noise (max delta
+                // 88) flipped exactly those runs between reruns of one
+                // command — the repro capture read 0.4 straight-edge runs
+                // per 1000 px under its own twin. A criterion may not sit
+                // inside its apparatus's noise floor (11.2b(g)).
+                vl[i] = builder.vertex(cx + rS[i] * 0.775f * ca, cy + rS[i] * 0.775f * sa, 0.8f, t,
+                        0f, Math.min(1f, wLightS[i] + 0.28f), sLightS[i] * 0.5f, flow, bA, wA, bB, jawW);
+                vm[i] = builder.vertex(cx + rS[i] * 0.70f * ca, cy + rS[i] * 0.70f * sa, 0.45f, t,
                         0f, wMidS[i], sMidS[i], flowDown, bA, wA, bB, jawW);
                 // u = 0.5 so the inner rail never feathers: the fan's core is
                 // FILLED (below), and a rail that fed the fray band there would
@@ -2245,14 +2345,19 @@ public final class SamuraiRig {
                 vi[i] = builder.vertex(cx + rS[i] * 0.34f * ca, cy + rS[i] * 0.34f * sa, 0.5f, t,
                         0f, wInS[i], 0f, flowDown, bA, wA, bB, jawW);
             }
+            // (The contour line rides at 0.97 wetness: on the re-anchored deep
+            // that is the corpus's own line register, ~0.2x sky, dark against
+            // both the break inside it and the sky outside it.)
             for (int i = 0; i < n - 1; i++) {
-                builder.quad(vo[i], vo[i + 1], vl[i + 1], vl[i]);
+                builder.quad(vo[i], vo[i + 1], vo2[i + 1], vo2[i]);
+                builder.quad(vo2[i], vo2[i + 1], vb[i + 1], vb[i]);
+                builder.quad(vb[i], vb[i + 1], vl[i + 1], vl[i]);
                 builder.quad(vl[i], vl[i + 1], vm[i + 1], vm[i]);
                 builder.quad(vm[i], vm[i + 1], vi[i + 1], vi[i]);
             }
             // The core fill behind the inner rail, at the same u so no fray band
             // can open between the two.
-            short core = builder.vertex(cx + 0.010f, cy + 0.004f, 0.5f, 0.5f, 0f, 0.95f, 0f,
+            short core = builder.vertex(cx + 0.010f, cy + 0.004f, 0.5f, 0.5f, 0f, 0.55f, 0f,
                     angleToU(-72f), head.index, 1f, head.index, 0f);
             for (int i = 0; i < n - 1; i++) {
                 builder.triangle(core, vi[i], vi[i + 1]);
@@ -2341,7 +2446,15 @@ public final class SamuraiRig {
                 float rK = crWrap(knotRadius[j0], knotRadius[j], knotRadius[j2], knotRadius[j3], u);
                 float caK = MathUtils.cosDeg(aK);
                 float saK = MathUtils.sinDeg(aK);
-                float rr3 = rK * 1.005f;
+                // Elongated along its own axis into a folded queue: ref3's
+                // knot is an oblong that clears the crown with sky behind
+                // it, and a knot buried in the hair mass contributes
+                // nothing to the head's silhouette (every capture through
+                // try25 printed it fully inside the mass). The stretch
+                // points up-back (the TOPKNOT_ANGLE axis), tapering to a
+                // round root, so the fold reads and the crown still owns it.
+                float stretch = 1f + 0.60f * Math.max(0f, MathUtils.cosDeg(aK - TOPKNOT_ANGLE_DEG));
+                float rr3 = rK * 1.005f * stretch;
                 kOut[i] = builder.vertex(kx + rr3 * caK, ky + rr3 * saK,
                         0.5f + 0.5f * caK, 0.5f + 0.5f * saK, 0.02f, 0.93f, 0f, flowUp,
                         head.index, 1f, head.index, 0f);
@@ -2401,14 +2514,18 @@ public final class SamuraiRig {
             // the one highlight is the specular, which is authored LAST and
             // dies first (4b.4's degradation order, restored).
             Vector2 ec = skeleton.worldPosition(eye.index, new Vector2());
-            float el = 0.011f + 0.007f * p.eyeSize();
-            short s0 = builder.vertex(ec.x - el * 0.9f, ec.y, 0f, 0f, 0f, 0.58f, 0f, 0.25f,
+            float el = 0.018f + 0.011f * p.eyeSize();
+            short s0 = builder.vertex(ec.x - el * 0.9f, ec.y, 0f, 0f, 0f, 0.32f, 0f, 0.25f,
                     eye.index, 1f, eye.index, 0f);
-            short s1 = builder.vertex(ec.x + el, ec.y, 1f, 0f, 0f, 0.54f, 0f, 0.25f,
+            short s1 = builder.vertex(ec.x + el, ec.y, 1f, 0f, 0f, 0.28f, 0f, 0.25f,
                     eye.index, 1f, eye.index, 0f);
-            short s2 = builder.vertex(ec.x + el * 0.7f, ec.y - 0.0075f, 1f, 1f, 0f, 0.62f, 0f, 0.25f,
+            // -0.011, not -0.0075: at 1.65 px tall the 1.6 px feather left
+            // half a pixel of solid sclera and the eye's pale band never
+            // printed more than a sliver (try24). The corpus's sclera/upper-
+            // lid light is a 2 px band ~6 px long (ref3 rows 204-206).
+            short s2 = builder.vertex(ec.x + el * 0.7f, ec.y - 0.011f, 1f, 1f, 0f, 0.36f, 0f, 0.25f,
                     eye.index, 1f, eye.index, 0f);
-            short s3 = builder.vertex(ec.x - el * 0.6f, ec.y - 0.0070f, 0f, 1f, 0f, 0.64f, 0f, 0.25f,
+            short s3 = builder.vertex(ec.x - el * 0.6f, ec.y - 0.0105f, 0f, 1f, 0f, 0.38f, 0f, 0.25f,
                     eye.index, 1f, eye.index, 0f);
             builder.quad(s0, s1, s2, s3);
 
@@ -2462,8 +2579,18 @@ public final class SamuraiRig {
             // lit ground, which is what makes it a readable mark; pass 1 drew
             // ink on the near-black socket plane, |dL| about 3, invisible to
             // the eye and to the instrument alike.
-            float[] bu = {-0.003f, 0.013f, 0.031f, 0.047f};
-            float[] bv = {0.013f - sag, 0.018f, 0.017f, 0.007f};
+            // bv +0.006 over the second iteration: the stroke sat wholly
+            // inside the socket passage (ink 13 on ground 14-16, invisible,
+            // the exact defect class the FaceWindowTest javadoc names). Its
+            // upper edge now borders the forehead wash (26-31), which is the
+            // corpus's own construction: a dark brow line against lit ground.
+            // Shifted inward (bu -0.008) so the stroke's length lies over
+            // the brightened ridge wash rather than the socket passage: a
+            // dark brow only exists where its ground is lit, and the wash
+            // zone is the one lit ground at brow height (the corpus's own
+            // construction, ref3 rows 197-204: stroke 12-27 on ground 29-48).
+            float[] bu = {-0.011f, 0.005f, 0.023f, 0.039f};
+            float[] bv = {0.019f - sag, 0.024f, 0.023f, 0.013f};
             float[] bt = {0.35f, 1f, 0.95f, 0.30f};
             short[] hi2 = new short[4];
             short[] lo2 = new short[4];
@@ -2484,7 +2611,7 @@ public final class SamuraiRig {
             // dark-iris-plus-specular, because the lash and iris are one dark
             // cluster and the specular is the scene's light speck.
             Vector2 ec = skeleton.worldPosition(eye.index, new Vector2());
-            float el = 0.016f + 0.010f * p.eyeSize();
+            float el = 0.020f + 0.012f * p.eyeSize();
             short l0 = builder.vertex(ec.x - el, ec.y + 0.0035f, 0f, 0f, 0f, 1f, 0f, 0.5f,
                     eye.index, 1f, eye.index, 0f);
             short l1 = builder.vertex(ec.x + el * 1.05f, ec.y + 0.0045f, 1f, 0f, 0f, 1f, 0f, 0.5f,
@@ -2498,7 +2625,7 @@ public final class SamuraiRig {
             // Pass 2 sizes it up: the review's eye finding is a specular with "no
             // dark iris behind it" — the iris is the anchor and must survive both
             // the feather and the 2-px degradation of 4b.4.
-            float ir = 0.0070f + 0.0040f * p.eyeSize();
+            float ir = 0.0100f + 0.0055f * p.eyeSize();
             float ix = ec.x + el * 0.18f;
             float iy = ec.y - 0.0025f;
             short icv = builder.vertex(ix, iy, 0.5f, 0.5f, 0f, 0.95f, 0f, 0.5f,
@@ -2519,10 +2646,15 @@ public final class SamuraiRig {
             float nr = contourR(2) * 0.94f;
             float nx2 = cx + nr * MathUtils.cosDeg(-6f);
             float ny2 = cy + nr * MathUtils.sinDeg(-6f);
-            short n0 = builder.vertex(nx2 - 0.0026f, ny2 + 0.002f, 0f, 0f, 0f, 0.62f, 0f, 0.3f, head.index, 1f, head.index, 0f);
-            short n1 = builder.vertex(nx2 + 0.0026f, ny2 + 0.002f, 1f, 0f, 0f, 0.62f, 0f, 0.3f, head.index, 1f, head.index, 0f);
-            short n2 = builder.vertex(nx2 + 0.002f, ny2 - 0.0026f, 1f, 1f, 0f, 0.58f, 0f, 0.3f, head.index, 1f, head.index, 0f);
-            short n3 = builder.vertex(nx2 - 0.002f, ny2 - 0.0026f, 0f, 1f, 0f, 0.58f, 0f, 0.3f, head.index, 1f, head.index, 0f);
+            // 0.94 wetness, not the old 0.58-0.62: with base == deep this
+            // material prints its stroke colour only where the pool is full —
+            // at mid wetness the resolve mixes toward dilute-on-paper and the
+            // mark printed at ~45 on a lit band, which is why no capture of
+            // pass 1 or 2 ever showed a nostril.
+            short n0 = builder.vertex(nx2 - 0.0026f, ny2 + 0.002f, 0f, 0f, 0f, 0.94f, 0f, 0.3f, head.index, 1f, head.index, 0f);
+            short n1 = builder.vertex(nx2 + 0.0026f, ny2 + 0.002f, 1f, 0f, 0f, 0.94f, 0f, 0.3f, head.index, 1f, head.index, 0f);
+            short n2 = builder.vertex(nx2 + 0.002f, ny2 - 0.0026f, 1f, 1f, 0f, 0.92f, 0f, 0.3f, head.index, 1f, head.index, 0f);
+            short n3 = builder.vertex(nx2 - 0.002f, ny2 - 0.0026f, 0f, 1f, 0f, 0.92f, 0f, 0.3f, head.index, 1f, head.index, 0f);
             builder.quad(n0, n1, n2, n3);
             // The lip parting. Two pass-2 changes, both from the review's mouth
             // finding (its §0 second failure): the quad's skin weights now MATCH
@@ -2534,18 +2666,41 @@ public final class SamuraiRig {
             // other mark: a mouth is a soft dark parting, not a rectangle.
             // 0.945: ON the lit lip band, not inside the dark plane — a dark
             // parting against lit ground, the corpus's own "lip + moustache".
+            // Widened in pass 2's second iteration: the corpus's "lip +
+            // moustache" is an 8-10 px mark and the 3.3 px version could not
+            // carry a single 6-px facet run; on the now-lit lip band its two
+            // long edges are the mark's whole readability.
             float lr = contourR(5) * 0.945f;
             float lx2 = cx + lr * MathUtils.cosDeg(-22f);
             float ly2 = cy + lr * MathUtils.sinDeg(-22f);
-            short p0 = builder.vertex(lx2 - 0.011f, ly2 + 0.0008f, 0f, 0f, 0f, 0.55f, 0f, 0.3f,
+            short p0 = builder.vertex(lx2 - 0.021f, ly2 + 0.0008f, 0f, 0f, 0f, 0.90f, 0f, 0.3f,
                     head.index, 0.75f, jaw.index, 0.25f);
-            short p1 = builder.vertex(lx2 + 0.004f, ly2 + 0.002f, 1f, 0f, 0f, 0.62f, 0f, 0.3f,
+            short p1 = builder.vertex(lx2 + 0.009f, ly2 + 0.002f, 1f, 0f, 0f, 0.96f, 0f, 0.3f,
                     head.index, 0.75f, jaw.index, 0.25f);
-            short p2 = builder.vertex(lx2 + 0.0035f, ly2 - 0.0012f, 1f, 1f, 0f, 0.58f, 0f, 0.3f,
+            short p2 = builder.vertex(lx2 + 0.0065f, ly2 - 0.0012f, 1f, 1f, 0f, 0.94f, 0f, 0.3f,
                     head.index, 0.75f, jaw.index, 0.25f);
-            short p3 = builder.vertex(lx2 - 0.010f, ly2 - 0.002f, 0f, 1f, 0f, 0.5f, 0f, 0.3f,
+            short p3 = builder.vertex(lx2 - 0.017f, ly2 - 0.002f, 0f, 1f, 0f, 0.88f, 0f, 0.3f,
                     head.index, 0.75f, jaw.index, 0.25f);
             builder.quad(p0, p1, p2, p3);
+
+            // The moustache, with any facial hair at all: the corpus's "lip +
+            // moustache" is ONE compound mark (ref3 dark, rows 215-219: a
+            // dark horizontal stroke over the lit lip), and it is the only
+            // near-horizontal ink mark the profile owns at lip height. Rides
+            // the same head/jaw blend as the parting so the mouth cluster
+            // moves as one thing.
+            if (p.facialHair() > 0.15f) {
+                float mw = 0.010f + 0.014f * p.facialHair();
+                short m0 = builder.vertex(lx2 - 0.007f - mw, ly2 + 0.0046f, 0f, 0f, 0f, 0.92f, 0f, 0.3f,
+                        head.index, 0.75f, jaw.index, 0.25f);
+                short m1 = builder.vertex(lx2 + 0.009f, ly2 + 0.0058f, 1f, 0f, 0f, 0.97f, 0f, 0.3f,
+                        head.index, 0.75f, jaw.index, 0.25f);
+                short m2 = builder.vertex(lx2 + 0.008f, ly2 + 0.0112f, 1f, 1f, 0f, 0.95f, 0f, 0.3f,
+                        head.index, 0.75f, jaw.index, 0.25f);
+                short m3 = builder.vertex(lx2 - 0.006f - mw, ly2 + 0.0100f, 0f, 1f, 0f, 0.90f, 0f, 0.3f,
+                        head.index, 0.75f, jaw.index, 0.25f);
+                builder.quad(m0, m1, m2, m3);
+            }
 
             // The beard, when there is one: hair, not skin, so unlike everything
             // above it carries dissolve on its free rim and may fray (4b.1 exempts
@@ -2559,7 +2714,12 @@ public final class SamuraiRig {
                     // Base radius: hug the contour where the contour exists,
                     // close over the under-jaw cutback below it.
                     float baseR = ba[i] > -40f ? contourR(6) : 0.118f;
-                    float outR = baseR + 0.010f + 0.052f * p.facialHair() * (0.55f + 0.45f * MathUtils.sinDeg(-ba[i]));
+                    // Reaches past the jaw wedge into the neck's 29-44
+                    // register: a beard fringe on an under-jaw that is
+                    // already ink-dark is invisible (Delta-L 3); ref3's
+                    // beard reads where it crosses the lit collar band
+                    // (rows 224-231, values 41-105 under strokes 15-27).
+                    float outR = baseR + 0.014f + 0.085f * p.facialHair() * (0.55f + 0.45f * MathUtils.sinDeg(-ba[i]));
                     float caB = MathUtils.cosDeg(ba[i]);
                     float saB = MathUtils.sinDeg(ba[i]);
                     float flow = angleToU(ba[i] - 90f);
@@ -2570,6 +2730,36 @@ public final class SamuraiRig {
                 }
                 for (int i = 0; i < ba.length - 1; i++) {
                     builder.quad(bin[i], bin[i + 1], bout[i + 1], bout[i]);
+                }
+            }
+
+            // The hairline — 4b.1's own order, never delivered until now:
+            // "the hairline is where the two treatments meet... that boundary
+            // should be a hard wet edge, not a blend." An authored root-line
+            // arc under the sim's hair mass, from the crown front down the
+            // temple, whose INNER edge cuts against the forehead wash — the
+            // corpus part list's "hair mass / hairline" (review 11.0, part 3).
+            // Hair-valued and drawn in the ink group, so it fades on pull-out
+            // with every other authored mark and the wide framing keeps
+            // 4b.0's suggestion-of-a-face.
+            {
+                float[] ha = {58f, 46f, 34f, 22f};
+                short[] hIn = new short[ha.length];
+                short[] hOut = new short[ha.length];
+                for (int i = 0; i < ha.length; i++) {
+                    float t = i / (float) (ha.length - 1);
+                    float rIn = contourRAt(ha[i]) * (0.86f + 0.02f * t);
+                    float rOut2 = rIn + 0.013f + 0.004f * MathUtils.sin(t * MathUtils.PI);
+                    float caH = MathUtils.cosDeg(ha[i]);
+                    float saH = MathUtils.sinDeg(ha[i]);
+                    float fl = angleToU(ha[i] - 90f);
+                    hIn[i] = builder.vertex(cx + rIn * caH, cy + rIn * saH, 0f, t,
+                            0f, 0.94f, 0f, fl, head.index, 1f, head.index, 0f);
+                    hOut[i] = builder.vertex(cx + rOut2 * caH, cy + rOut2 * saH, 1f, t,
+                            0f, 0.97f, 0f, fl, head.index, 1f, head.index, 0f);
+                }
+                for (int i = 0; i < ha.length - 1; i++) {
+                    builder.quad(hIn[i], hIn[i + 1], hOut[i + 1], hOut[i]);
                 }
             }
 
@@ -2584,18 +2774,35 @@ public final class SamuraiRig {
             // mark, so nothing shimmers at the planning framing. Seeded and
             // asymmetric (4b.7).
             java.util.Random wr = new java.util.Random(p.seed() * 31L + 7L);
-            for (int w = 0; w < 3; w++) {
-                // 96+: clear of the face-front hair edge, whose own near-vertical
-                // boundary a 78-degree wisp extended into one compound 28-px
-                // straight (s3b-p2-try10, V x=599..601).
-                float a0 = 96f + 30f * w + 14f * (wr.nextFloat() - 0.5f);
+            for (int w = 0; w < 5; w++) {
+                // Five, not three — the corpus crowns trail many escapees and
+                // the two extra strands carry the last of the head's mark
+                // density against the one ground the ink floor cannot
+                // compress, the sky. 92+: clear of the face-front hair edge,
+                // whose own near-vertical boundary a 78-degree wisp extended
+                // into one compound 28-px straight (s3b-p2-try10, V x=599..601).
+                // The first strand is the corpus's long nape strand
+                // (prominent down the back of ref3's pale duellist): rooted
+                // behind the skull, hanging toward the shoulder, barely
+                // drooping. The curls curl; one strand hangs. Crown-rooted
+                // versions of it grew straight out of the top of the frame's
+                // head box and counted for nothing (tries 26-28).
+                boolean hanging = w < 2;
+                float a0 = hanging ? 186f + 13f * w + 8f * wr.nextFloat()
+                        : 92f + 20f * w + 14f * (wr.nextFloat() - 0.5f);
                 float r0 = SKULL_RADIUS * 0.98f;
-                float len = 0.055f + 0.055f * wr.nextFloat();
+                // Long enough that the tips clear the hair mass the strands
+                // root under — the two extra strands of the fourth iteration
+                // printed nothing because everything inside the mass is
+                // painted over by the hair pass, which draws after the face.
+                float len = hanging ? 0.100f + 0.030f * wr.nextFloat()
+                        : 0.080f + 0.070f * wr.nextFloat();
                 // Enough turn that no chord of the stroke is straight: the
                 // first cut of this drooped only at the tip and printed a
                 // 28-px vertical run — the very defect class Facets polices.
-                float droop = 36f + 34f * wr.nextFloat();
-                float hw0 = 0.0035f + 0.0012f * wr.nextFloat();
+                float droop = hanging ? 12f + 10f * wr.nextFloat()
+                        : 36f + 34f * wr.nextFloat();
+                float hw0 = (hanging ? 0.0068f : 0.0048f) + 0.0016f * wr.nextFloat();
                 int segs = 4;
                 short[] wa = new short[segs + 1];
                 short[] wb = new short[segs + 1];

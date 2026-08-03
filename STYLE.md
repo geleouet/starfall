@@ -127,6 +127,23 @@ material should drift within a few degrees of hue, the way real pigment does.
   next pass to touch the palette owes that fraction, measured, with the region recorded. Until
   then, a figure that reads too pale against a dark ground is a fault of this line and not of
   the pass reporting it.
+
+  **Paid by System 3b pass 2, and here is the fraction: the corpus's deepest strokes sit at
+  0.12–0.14 of the local sky luminance, on all six family-B duellists.** Measured as the 2nd
+  percentile of head-region luminance over the local-sky mean on the tracked matched-scale
+  references: ref3 dark **0.117** (ink `x145..184 y182..231`, sky `x190..210 y165..185`),
+  ref3 pale **0.135** (`x290..329 y190..239` / `x270..288 y170..190`), ref4 dark **0.135**
+  (`x117..202 y157..242` / `x85..105 y120..140`), ref4 pale **0.134** (`x267..352 y152..237`
+  / `x390..410 y140..160`), ref5 dark **0.129** (`x127..212 y192..277` / `x150..170
+  y150..170`), ref5 pale **0.137** (`x332..417 y192..277` / `x450..470 y180..200`). The
+  resolve now clamps ink to `#161A22` scaled by the ground's luminance against the cream
+  paper the hex was chosen on (`ink_resolve.frag`; identity on Family A by a clamp to 1), so
+  on the dusk stage the floor is L 10–12 rather than 25.7. Materials authored *at* the old
+  floor print their own hex exactly as before; only authoring below it — which System 3b's
+  face materials now do, see `Palette.INK_BLACK_DUSK` — reaches the corpus's stroke register.
+  The garment and hair masses are still authored against the paper-ground constant and read
+  ~2x the corpus's darks on the dusk stage; re-anchoring them is named debt
+  (docs/system3b-debt.md), not silently done here.
 - **Vermillion is a budget.** At most a few small marks per frame. It is the only genuinely
   loud colour and it must always mean something (danger, intent, blood, a seal).
 
