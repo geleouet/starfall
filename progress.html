@@ -159,19 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — the blades meet; system 4 pass 2 with an independent reviewer",
+  updated: "2026-08-03 — a guard that could not fail; system 4 at pass 3 of five",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 4 pass 2 \u2014 the blades meet, and the pass does not declare itself passed",
-    detail: "Pass 1 put two figures on screen and a light where a parry was supposed to be, but " +
-            "the blades never came within a fifth of a body height of each other. Pass 2 closed " +
-            "that to <b>0.0287</b> against an acceptance of 0.02 \u2014 a 7.4\u00d7 improvement " +
-            "that misses, <b>reported as a miss</b>. The corridor between the two bodies is still " +
-            "zero and is also reported as unmet. An independent reviewer with a fresh context is " +
-            "grading it now, and has been told first to re-check the three results pass 2 " +
-            "<i>did not</i> re-measure."
+    title: "System 4 pass 3 \u2014 answering a review that found a test which cannot fail",
+    detail: "Pass 2 fixed the parry, and the reviewer confirmed it. Then it found that the " +
+            "<b>guard shipped to prove the clash light was honest is incapable of failing</b> " +
+            "\u2014 and that an acceptance criterion this project had been chasing for two " +
+            "passes is one the reference image itself <b>fails by four times</b>. Both produced " +
+            "new rubric sections. Pass 3, third of a five-pass cap, is building against the " +
+            "reviewer\u2019s eight-item brief in its order."
   },
 
   systems: [
@@ -185,7 +184,7 @@ const DATA = {
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
-    { n:"04", name:"Procedural interaction", status:"review", passes:2,
+    { n:"04", name:"Procedural interaction", status:"building", passes:3,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
     { n:"05", name:"Combat + action queue", status:"partial", passes:0,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
@@ -255,6 +254,70 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 4", kind:"review", pass:2, verdict:"FAIL",
+      title:"The blades meet. The test that says the light is honest cannot fail.",
+      body:[
+        "The aiming fix is real and the reviewer reproduced it exactly \u2014 0.0287 at frame 11, " +
+        "a bind with a light in the fork at viewing scale. <b>Everything the pass claimed around " +
+        "it did not survive</b>, and the most valuable finding is about a test rather than a " +
+        "picture.",
+
+        "<b><code>everyClashIsDrawnWhereTwoBladesActuallyAre</code> cannot fail.</b> Its helper " +
+        "takes the mark from a point <i>on a blade</i> and measures it against <i>that same " +
+        "blade\u2019s own segment</i> \u2014 three collinear points, distance identically 0.0, " +
+        "asserted against a ceiling of 0.10. Its failure message describes the exact defect the " +
+        "pass-1 review found and it is incapable of detecting it. It was cited as proof in a " +
+        "commit message and in this page. <b>Measured in delivered pixels the bloom is drawn on " +
+        "eleven frames and sits on the crossing for one</b>; on two of them it floats in open " +
+        "paper a fifth of a figure height from <i>both</i> blades.",
+
+        "The second correction is to an acceptance this project set for itself. The corridor " +
+        "threshold of 0.06 of a figure height came from an eyeballed reading of reference image 3. " +
+        "Measured, that image\u2019s clear whole-frame column is <b>0.015</b> \u2014 and, like " +
+        "the capture, <b>0.000</b> over the full figure height, because its duellists\u2019 hands " +
+        "nearly touch. <b>Two passes chased a number the ground truth fails by four times.</b> The " +
+        "real difference is a <i>profile</i>, not a scalar: the reference pinches at the hands and " +
+        "opens at sash, skirt and feet; the capture does the opposite, standing too far apart at " +
+        "the base and leaning in at the top.",
+
+        "<b>All three results pass 2 declined to re-measure were re-measured, and all three " +
+        "hold.</b> The phrase separates from its static control by <b>44\u00d7</b> over 417 " +
+        "steps. The held breath is <i>at spec</i> \u2014 0.850\u00d7 for 0.258 s \u2014 and is " +
+        "present on the knockback too, which makes the debt document wrong <i>in the direction of " +
+        "pessimism</i>. The trail has no kink, and no fix either: still a near-closed dome, " +
+        "untapered, apex 225.3 against paper 222.0."
+      ],
+      notes:[
+        { kind:"crit", label:"§11.2b(f) \u2014 a guard must be shown to fail",
+          text:"The mechanism is not carelessness, which is why it earned a rubric section. <b>A " +
+               "guard is written by whoever just fixed the bug, from inside the fixed model of the " +
+               "world, and reaches for the value nearest to hand \u2014 which is the one the fix " +
+               "just made correct.</b> A test that consumes its own fix\u2019s output cannot " +
+               "witness it. So: <b>no assertion counts as a guard until it has been observed " +
+               "red.</b> And a vacuous test is <i>worse than no test</i> \u2014 it does not merely " +
+               "fail to catch the defect, it certifies it and persuades the next reviewer to stop " +
+               "looking." },
+        { kind:"crit", label:"Two findings nobody had named",
+          text:"The hero\u2019s pelvis has <b>exactly 0.0000</b> figure heights of horizontal " +
+               "motion relative to its own stance, in both scenes \u2014 so §7.0.1 is unmet, and " +
+               "pass 1\u2019s accepted <i>17.1% hip excursion</i> was camera-contaminated. And the " +
+               "sky palette is referenced by <b>exactly one scene in the repository \u2014 the " +
+               "smoke test</b>. Every graded duel has been fought on cream paper, inverting " +
+               "§2.2\u2019s warm/cool opposition across the whole frame." },
+        { kind:"fix", label:"The reviewer proved its own apparatus first",
+          text:"Its null capture is <b>bit-identical</b> to the pass\u2019s \u2014 0 of 691,200 " +
+               "pixels differ \u2014 so its re-shoots are in scope, and every pixel number came " +
+               "from an <b>independently written reader</b> rather than the project\u2019s own " +
+               "tooling. That is §11.2b(c) done properly, and it is why the findings stick." },
+        { kind:"fix", label:"What must not be lost",
+          text:"The reviewer published its own list of what pass 2 got right: the blades meet; " +
+               "<b>Rehearsal</b> is the right instrument and its three-cause diagnosis is the best " +
+               "debugging write-up in the repository; <code>Scheduler.supersede</code> fixed a real " +
+               "bug; the region set refuses in both directions; the skirt pooling is correct " +
+               "against the corpus; <b>and the pass did not declare itself passed.</b>" }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 4", kind:"build", pass:2,
       title:"The blades meet \u2014 and the pass refuses to call itself a pass",
