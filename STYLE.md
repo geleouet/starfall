@@ -736,8 +736,20 @@ Poetic beats, not physical impacts. The vocabulary:
 - **No chrome.** No boxes, no bevels, no bars with borders, no drop shadows, no gradients that
   look like glass. Nothing that reads as "widget".
 - UI elements are **brush marks on the paper**: the action queue is three ink cartouches, the
-  health is a column of ink strokes that dry out and fade as it drops, the tile grid is a row
-  of faint wash marks that only intensify near relevant tiles.
+  health is a **row of ink strokes at the head of the stanza**, drying and fading as it drops,
+  and never a second column beside it; the tile grid is a row of faint wash marks that only
+  intensify near relevant tiles.
+
+  *(Amended after System 5 pass 1, which raised the contradiction rather than resolving it
+  quietly, and pass 1's review, which upheld it. This line was written before
+  `combat-design.md` §3 chose a vertical column for the queue; with the stanza owning the
+  vertical axis, a second vertical run of similar marks beside it is precisely the confusable
+  pair §3 warns about, one axis rotated. §8 is the older of the two and yields.*
+  *And the marks that carry a **count** — health, and a tile's charges — are countable at
+  every resolution the game ships, or they stop being counts. A run whose pitch is under two
+  mark widths delivers a **wrong number** rather than a missing mark: at 960×720 pass 1's
+  charge run showed three separable marks for a cooldown of four, and a player reads "two of
+  three".)*
 - **Enemy intent telegraphs** are the one place vermillion is spent freely: a thin vermillion
   wash over threatened tiles, appearing with a wet-bleed animation rather than a fade-in.
 - Type: a serif or brush-derived face, generously letterspaced, low contrast against the

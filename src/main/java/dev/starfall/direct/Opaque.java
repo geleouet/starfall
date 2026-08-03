@@ -46,13 +46,21 @@ import com.badlogic.gdx.graphics.GL20;
  * scene at once and would also change the alpha of frames the project's bind
  * baseline is md5-guarded against, so it is deliberately not done there.
  */
-final class Opaque {
+public final class Opaque {
 
     private Opaque() {
     }
 
-    /** Call last, after everything the frame contains has been drawn. */
-    static void seal() {
+    /**
+     * Call last, after everything the frame contains has been drawn.
+     *
+     * <p>Public rather than package-private since System 5, because the scene that
+     * draws the interface is in another package and is on the same 4:3 stage with
+     * the same empty upper half. Widening it is not the fix -- the fix is still one
+     * line in {@code CaptureApp} -- but a second copy of the workaround would be a
+     * second thing to forget to remove.
+     */
+    public static void seal() {
         Gdx.gl.glColorMask(false, false, false, true);
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);

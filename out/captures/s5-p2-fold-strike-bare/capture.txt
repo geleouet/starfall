@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p2-fold-strike-bare -Pframes=12 -Pcols=4 -Pstart=3.3 -Pstep=0.42 -Pw=960 -Ph=720
+
+scene=lane-fold-bare
+description=eleven tiles: plan, strike, and plan again -- the interface in one score -- CONTROL: the same score with no interface
+frames=12
+start=3.3
+step=0.42
+window=4.62
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=1564fcf-dirty
+harness=f0ad18994eec

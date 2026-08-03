@@ -348,6 +348,28 @@ public final class InkSkinnedRenderer {
                 && clothBleed == material.bleedRadius;
     }
 
+    /**
+     * How far the figures have receded into the air, 0 at the intimate framing and
+     * 1 at the widest one.
+     *
+     * <p>STYLE.md 9's planning framing asks for <i>"the full lane readable, figures
+     * small, heavy fog, Family C mood"</i>, and the pass-1 review found the last two
+     * absent: <b>the 86 px hero held 85% of the contrast the 280 px hero held</b>, so
+     * going wide cost size and cost nothing else. This is the one dial that makes
+     * distance cost value, and it is a continuous function of the framing width, so
+     * it inherits {@code Schedule.cameraIsContinuous} and cannot introduce a step
+     * into a shot the schedule guarantees is a glide.
+     *
+     * <p>Zero by default, which is every scene shot before System 5.
+     */
+    private float haze = 0f;
+
+    /** @see #haze */
+    public InkSkinnedRenderer haze(float haze) {
+        this.haze = Math.max(0f, Math.min(1f, haze));
+        return this;
+    }
+
     public void dispose() {
         matShader.dispose();
         downShader.dispose();
@@ -540,6 +562,7 @@ public final class InkSkinnedRenderer {
                 PaperBackground.BACKDROP_STOP_Y[1],
                 PaperBackground.BACKDROP_STOP_Y[2]);
         setColor(resolveShader, "u_fogColor", Palette.FOG);
+        resolveShader.setUniformf("u_haze", haze);
         resolveShader.setUniformf("u_bleedRadius", clothBleed);
         Atmosphere.setFogUniforms(resolveShader);
         fullscreenQuad.render(resolveShader, GL20.GL_TRIANGLES);
@@ -579,6 +602,7 @@ public final class InkSkinnedRenderer {
         bladeShader.setUniformMatrix4fv("u_bones", bones, 0, MAX_BONES * 16);
         setColor(bladeShader, "u_base", material.base);
         setColor(bladeShader, "u_fogColor", Palette.FOG);
+        bladeShader.setUniformf("u_haze", haze);
         Atmosphere.setFogUniforms(bladeShader);
         mesh.mesh().render(bladeShader, GL20.GL_TRIANGLES);
     }

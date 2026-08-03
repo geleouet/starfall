@@ -12,6 +12,7 @@ import dev.starfall.combat.Resolution;
 import dev.starfall.combat.Status;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
 
@@ -215,6 +216,8 @@ public final class Scheduler {
     private int driftPhase;
     private double floor;
     private boolean wantWide;
+    /** When the board last went quiet, captured before the next beat is placed. */
+    private double idleAt;
 
     public Scheduler(Stage stage, Standing opening) {
         this.stage = stage;
@@ -226,6 +229,20 @@ public final class Scheduler {
     /** The board as the scheduler currently understands it. Read-only in practice. */
     public Standing standing() {
         return standing;
+    }
+
+    /**
+     * The beats placed so far, without closing the score.
+     *
+     * <p>{@link #schedule()} cannot be used for this: it flushes a pending
+     * {@code returnWide}, so asking a half-built scheduler what it has done would
+     * change what it does next. A caller that has to pair a command's beats with
+     * something outside the schedule -- the interface pairing a stanza beat with the
+     * cartouche it drinks -- reads the list length before and after
+     * {@link #accept(Resolution)} instead.
+     */
+    public List<ScheduledBeat> beats() {
+        return Collections.unmodifiableList(beats);
     }
 
     /**
@@ -258,7 +275,7 @@ public final class Scheduler {
     public Schedule schedule() {
         if (wantWide) {
             wantWide = false;
-            returnWide();
+            returnWide(cursor());
         }
         List<Directive> sorted = new ArrayList<>(out);
         // Stable by time, so the emission order breaks ties. Both halves are
@@ -335,6 +352,10 @@ public final class Scheduler {
 
     private void open(int index, ScheduledBeat.Bracket bracket, int actor, Phases phases,
                       Overlap overlap, Focus focus) {
+        // When the board last went quiet, taken before this beat is placed. The
+        // return to the wide framing belongs in that gap and not after the beat
+        // that ends it -- see returnWide.
+        idleAt = cursor();
         ScheduledBeat beat = ScheduledBeat.after(previous, index, bracket, actor, phases, overlap, focus);
         if (beat.start() < floor) {
             beat = beat.shifted(floor - beat.start());
@@ -840,7 +861,7 @@ public final class Scheduler {
         if (wantWide) {
             wantWide = false;
             if (beat.start() - framingAt >= stage.returnSeconds() + stage.pushInSeconds()) {
-                returnWide();
+                returnWide(idleAt);
             }
         }
         Framing to = stage.execution(beat.focus());
@@ -850,12 +871,29 @@ public final class Scheduler {
                 wide ? Directive.CameraReason.PUSH_IN : Directive.CameraReason.TRACK);
     }
 
-    private void returnWide() {
+    /**
+     * Back to the planning framing, starting at {@code at}.
+     *
+     * <p><b>The argument is the whole of a correction System 5 found.</b> This used
+     * to take {@code cursor()}, which is the end of the <em>most recently placed</em>
+     * beat -- and {@link #track} calls it from inside {@code stageBeat}, by which
+     * point the beat that triggered the return is already the most recent one. So
+     * the camera went wide <em>after</em> the action it was supposed to go wide
+     * before, and STYLE.md 9's "wide to plan" never happened at all in a score with
+     * more than one command in it. System 4's scenes each contain exactly one, so
+     * the only call was the closing one from {@link #schedule()}, where
+     * {@code cursor()} is right and the defect could not appear.
+     *
+     * <p>The fix is to hand in the instant the board went quiet, captured in
+     * {@link #open} before the new beat is placed. The closing call still passes
+     * {@code cursor()}, which is the same instant when there is nothing after it.
+     */
+    private void returnWide(double at) {
         Framing plan = stage.planning();
         if (same(plan, framing)) {
             return;
         }
-        glide(plan, cursor(), stage.returnSeconds(), Directive.CameraReason.RETURN);
+        glide(plan, at, stage.returnSeconds(), Directive.CameraReason.RETURN);
     }
 
     /**

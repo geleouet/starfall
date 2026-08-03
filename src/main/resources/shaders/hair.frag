@@ -87,6 +87,7 @@ uniform float u_time;
 uniform vec3 u_fogColor;
 uniform vec3 u_fogBands[3];
 uniform float u_fogStrength;
+uniform float u_haze;
 
 // Same value-noise vocabulary as ink_skin.frag, deliberately: hair and cloth are
 // the same pigment on the same paper and a second noise basis would print as a
@@ -262,6 +263,13 @@ void main() {
     float fog = fogAt(v_world) * u_fogStrength;
     ink = mix(ink, u_fogColor, 0.55 * fog);
     a *= 1.0 - 0.45 * fog;
+
+    // The same distance haze as the cloth this hair hangs off, so the two do not
+    // recede at different rates.
+    if (u_haze > 0.0) {
+        ink = mix(ink, u_fogColor, u_haze * 0.04);
+        a *= 1.0 - u_haze * 0.16;
+    }
 
     gl_FragColor = vec4(ink, clamp(a, 0.0, 1.0));
 }

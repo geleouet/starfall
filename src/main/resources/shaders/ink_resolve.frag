@@ -66,6 +66,7 @@ uniform vec3  u_paperMid;
 uniform vec3  u_paperHi;
 uniform vec3  u_paperStops;
 uniform vec3  u_fogColor;
+uniform float u_haze;
 uniform float u_bleedRadius;
 uniform vec3  u_fogBands[3];
 
@@ -292,6 +293,39 @@ void main() {
     float dense = smoothstep(0.52, 0.86, pool);
     ink = mix(ink, u_fogColor, fog * 0.05 * (1.0 - 0.75 * dense));
     alpha *= 1.0 - fog * 0.06 * (1.0 - 0.6 * dense);
+
+
+    // ------------------------------------------------------------------
+    // Distance haze: STYLE.md 9's "heavy fog, Family C mood" at the planning
+    // framing, driven by how wide the camera is and by nothing else.
+    //
+    // The pass-1 review measured what was missing: the 86 px hero at the
+    // planning framing held 32.5 luminance of contrast against its local sky
+    // where the 280 px hero held 38.4 -- a figure at a third of the size
+    // keeping 85% of its contrast, which is no atmosphere at all. Family C is
+    // "background figures desaturate and half-dissolve into mist".
+    //
+    // It is an alpha term first and a tint second, and that ordering is a
+    // measurement rather than a taste. Mixing a near-black figure toward
+    // FOG #D6D2CE on a *dusk* stage does not dissolve it, it inverts it: at a
+    // mix of 0.45 the ink passes straight through the sky's own value and comes
+    // out brighter than the sky. What dissolves a dark figure into a dark sky is
+    // letting the sky through it. u_haze is 0 everywhere except the lane scene,
+    // so every capture shot before this is bit-identical.
+    //
+    // <b>And it is behind a branch on the uniform, which is not a micro-optimisation.</b>
+    // Written straight through, the two lines below multiply out to the identity at
+    // u_haze = 0 -- mix(x, y, 0.0) is x and alpha * (1.0 - 0.0) is alpha, exactly, in
+    // IEEE arithmetic. They are still not free: shot against the same scene with the
+    // lines deleted, duel-parry differed by <b>1180 pixels over six frames</b>, against
+    // a null control (the same scene shot twice at one commit) of <b>0</b>. The driver
+    // recompiles the whole expression tree around them. Behind the branch the same
+    // comparison is 0 of 691,200 on every frame, so every capture System 4 is graded on
+    // is bit-identical across this change.
+    if (u_haze > 0.0) {
+        ink = mix(ink, u_fogColor, u_haze * 0.04);
+        alpha *= 1.0 - u_haze * 0.16;
+    }
 
     // Sub-LSB dither. The material buffer is 8-bit and several of the fields
     // above are smooth ramps across large areas; without this they quantise into

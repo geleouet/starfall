@@ -251,6 +251,19 @@ borders. Specifically here:
   player never learns "LIFO", they just read downward. Appending at the bottom would put the
   first-to-resolve tile at the bottom and reintroduce the whole problem.
 
+  **The column is anchored at its foot.** The first tile banked is written at the base; each
+  further tile is written above the last; so the newest mark is always the topmost and always
+  resolves first, and no mark ever moves. The column drains from the top back down to the base
+  as the phrase resolves. The lines not yet written carry the impression the nib leaves —
+  fainter than any mark, and strongest on the line the next tile will land on — so the column
+  always states its own capacity and where the next mark goes.
+
+  *(Added after System 5 pass 1 raised the contradiction and its review upheld it. "New tiles
+  enter at the top" and STYLE.md §8's "never slides" cannot both hold unless something is
+  nailed down, and neither document said which end. Base-anchoring is the only arrangement in
+  which the LIFO order is legible and nothing slides; it changes nothing about what this
+  section chose — vertical, newest at the top, read downward.)*
+
   Three supporting reasons. The lane is horizontal and long, so a horizontal bar sits
   *parallel* to it — two horizontal rows of similarly sized elements read as one confusable
   thing, whereas a column is orthogonal to the board and can never be mistaken for it. The
@@ -258,12 +271,30 @@ borders. Specifically here:
   out of that path. And it is thematically correct: `STORY.md` names the queue the **Ink
   Stanza**, and a stanza is read downward on a hanging scroll — a horizontal hand of cards
   reads as a deckbuilder hotbar, which is precisely the generic UI STYLE.md §8 forbids.
-- **Cooldowns** are strokes that dry out and refill, not numeric counters.
-- **Health** is a column of ink strokes that dry and fade.
+- **Cooldowns** are strokes that dry out and refill, not numeric counters. They are a
+  **count**, so they are subject to STYLE.md §8's countability rule: separable at every
+  resolution the game ships, or not a count at all.
+- **Health** is a **row** of ink strokes at the head of the stanza, drying and fading as it
+  drops. *(Corrected from "a column" after System 5 pass 1; see STYLE.md §8. Two vertical runs
+  of similar marks beside each other are the confusable pair this very section warns about.)*
 - **Intent telegraphs** are vermillion washes over threatened tiles, arriving by bleed.
 - The **lane** is a row of faint wash marks that only intensify near relevant tiles.
 - Everything sits on the aged-paper substrate of STYLE.md §3b.3, so the interface is marks
   on the same sheet the figures are painted on rather than a layer above it.
+
+  **Correction, and it is the fourth contradiction between these two documents.** A Family B
+  dusk stage has no paper in it. The measurement that appeared to prove this bullet undelivered
+  compared the capture's sky against reference image **1** — a Family A *cream sheet* — and
+  found 16× less surface; against the sky of the family this stage is actually quoting, the
+  capture matches to 1% (3 px high-pass sd 0.476 against reference image 3's 0.481, boxes
+  `x300..699 y120..319` and `x80..699 y80..239`). §3b.3's aged paper is a Family A ground and
+  cannot be given to a dusk sky without turning the stage into a different family. What the
+  interface can sit on, and now does, is **its own margin**: the two margins carry foxing —
+  irregular stains at a scale far above the pixel grid, so §3b.1's anti-shimmer rule is not
+  touched. Measured through a mark-free band of the margin (`x140..176 y60..400`), live over
+  bare: 1.03× at a 3 px high-pass, 1.12× at 9 px, **1.53× at 17 px**. It is stain structure and
+  not tooth, and that is what a wash primitive can carry. **A 3 px tooth in the margin is a
+  `PaperBackground` question and is unpaid.**
 
 ---
 
@@ -421,6 +452,24 @@ Both need a playable fight to settle and neither should be guessed at now.
   it, and only enchanted tiles feel the system. The scale probably wants compressing, or
   recovery slowing. This is the same problem as §1.1a's note that combo rewards need
   retuning for the longer queue, seen on the other axis.
+
+  **A second and independent arrival at the same item, from the drawing side — and it is
+  *not* an argument for compressing the scale.** System 5 pass 1 measured that a run of charge
+  marks at the pitch it shipped delivered three separable marks for a cooldown of four at
+  960×720, and its review reproduced that and sharpened it: a Parry at 2 charges of 4 printed
+  two ochre marks and one legible ghost, so a player counts **"two of three"** — a wrong
+  number, not a missing tick, about the resource that decides whether a tile is bankable.
+
+  The review then refused the prescription, correctly: *"a rendering constraint at one
+  resolution is not a reason to change a mechanic."* What it left in its place is a rule for
+  the drawing layer, now discharged: **a mark that is counted must be countable at every
+  resolution the game ships, or stop being a count.** The pitch of a charge run is derived
+  from the mark's own width (2.6 widths), the ghosts are separated by value rather than by
+  being broken, and both the geometry and the delivered pixels are asserted at 960×720 and
+  720×540 for every cooldown 0–8 at every charge count. Delivered, `s5-p2-fold-replan`
+  frames 2 and 4 read **3 / 3 / 4 / 1 / 5** separable runs at *both* resolutions, for tiles
+  whose cooldowns are 3, 3, 4, 1 and 5. **The economy item above stands open on its own
+  merits; the drawing layer no longer has an opinion about it.**
 - **Facing is a resource for the hero only.** Enemies re-face free every turn while the hero
   pays a whole turn or a Turn tile. Making an enemy spend its step to turn would give
   flanking real value and hand the Pilgrim's swap a second payoff beyond the one-turn disarm

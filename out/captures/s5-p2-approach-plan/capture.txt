@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=lane-approach -Pout=out/captures/s5-p2-approach-plan -Pframes=4 -Pcols=2 -Pstart=0.6 -Pstep=0.7 -Pw=960 -Ph=720
+
+scene=lane-approach
+description=fifteen tiles: the approach, and the largest push-in in the game
+frames=4
+start=0.6
+step=0.7
+window=2.1
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=1564fcf-dirty
+harness=f0ad18994eec

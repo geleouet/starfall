@@ -12,6 +12,8 @@ import dev.starfall.rig.RigSwingScene;
 import dev.starfall.rig.SimDebugScene;
 import dev.starfall.rig.SimScene;
 import dev.starfall.rig.SimScript;
+import dev.starfall.ui.Bout;
+import dev.starfall.ui.LaneScene;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -64,6 +66,22 @@ public final class SceneRegistry {
             String name = kind.sceneName();
             register(name, () -> new DuelScene(kind, name));
             register(name + "-debug", () -> new DuelDebugScene(kind, name + "-debug"));
+        }
+
+        // System 5. The same world, with an interface on it: the Ink Stanza written
+        // up the margin, the Fold of the World drawn as ground, and the camera of
+        // STYLE.md 9 driven by the phase the engine is actually in. Three lanes,
+        // because combat-design.md 1.6 makes lane length the composition dial and a
+        // dial cannot be shown at one setting.
+        // Each ships with its own control: -bare is the identical score with the
+        // interface not drawn, which is what STYLE.md 11.2b(g) asks for -- "say what
+        // a number would read if the thing being measured were absent, and then
+        // produce that case". It is a separate scene rather than a flag so that
+        // capture.txt names it and a control can never be confused with a live shot.
+        for (Bout.Kind kind : Bout.Kind.values()) {
+            String name = kind.sceneName();
+            register(name, () -> new LaneScene(kind, name));
+            register(name + "-bare", () -> new LaneScene(kind, name + "-bare", true));
         }
     }
 

@@ -163,6 +163,15 @@ public final class HairRenderer {
         stateSet = false;
     }
 
+    /** The distance haze of {@code InkSkinnedRenderer#haze}, so hair recedes with its cloth. */
+    private float haze = 0f;
+
+    /** @see #haze */
+    public HairRenderer haze(float h) {
+        this.haze = Math.max(0f, Math.min(1f, h));
+        return this;
+    }
+
     /** How far the hair fades into the fog bands. 0 disables it (the debug scenes). */
     public HairRenderer fogStrength(float s) {
         this.fogStrength = s;
@@ -224,6 +233,7 @@ public final class HairRenderer {
             shader.setUniformf("u_time", time);
             shader.setUniformf("u_pxWorld", pxWorld);
             shader.setUniformf("u_fogStrength", fogStrength);
+            shader.setUniformf("u_haze", haze);
             shader.setUniformf("u_fogColor", Palette.FOG.r, Palette.FOG.g, Palette.FOG.b);
             Atmosphere.setFogUniforms(shader);
 

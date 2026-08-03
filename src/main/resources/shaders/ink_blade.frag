@@ -20,6 +20,7 @@ varying vec2 v_worldPos;
 uniform float u_time;
 uniform vec3  u_base;
 uniform vec3  u_fogColor;
+uniform float u_haze;
 uniform vec3  u_fogBands[3];
 
 void main() {
@@ -108,6 +109,15 @@ void main() {
     fog = clamp(fog, 0.0, 1.0);
     ink = mix(ink, u_fogColor, fog * 0.16);
     alpha *= 1.0 - fog * 0.34;
+
+    // The same distance haze as the cloth, at half of it: the blade is the object
+    // the eye follows (STYLE.md 5) and it is the last thing a wide shot should give
+    // up, but a blade that holds full luminance in a figure that is dissolving reads
+    // as a bright scratch hanging in mist.
+    if (u_haze > 0.0) {
+        ink = mix(ink, u_fogColor, u_haze * 0.14);
+        alpha *= 1.0 - u_haze * 0.12;
+    }
 
     // STYLE.md 2.2: only the clash bloom and the blade specular may approach
     // white, and neither ever reaches it.
