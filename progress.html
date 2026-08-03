@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — the parry reads; the retreat reads as an attack",
+  updated: "2026-08-03 — the duellists have faces; interface at pass 3",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "Interface pass 3, and faces in parallel \u2014 the count that has failed since day one",
-    detail: "The cold read was re-run on the redrawn alphabet: <b>the parry survived</b> and " +
-            "reads as a deflection from its shape alone. The <b>retreat reads as an attack</b>. " +
-            "And a guard that was correct, observed red and adversarially attacked still failed " +
-            "\u2014 <b>because it only ever ran at one of the two shipped resolutions</b>. " +
-            "Meanwhile <b>faces</b> are being built in a separate worktree: they are the largest " +
-            "single item on the 9-against-25 part count that closed System 4."
+    title: "The duellists have faces \u2014 and the instrument that proves it was attacked, twice successfully",
+    detail: "Faces were the largest single item on the count that closed System 4: <b>25 " +
+            "readable parts in the reference against 9 delivered</b>. They are built, in a " +
+            "separate worktree, and the first thing built was <b>an instrument that can see the " +
+            "defect the old metric was blind to</b> \u2014 then attacked, and it <b>lost " +
+            "twice</b>, so every guard resting on it now claims only what it can prove. A " +
+            "reviewer is re-taking the part count. The interface is at pass 3 in parallel."
   },
 
   systems: [
@@ -180,7 +180,7 @@ const DATA = {
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
     { n:"03", name:"Verlet hair + cloth", status:"failed", passes:5,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
-    { n:"3b", name:"Faces — expression + variety", status:"building", passes:1,
+    { n:"3b", name:"Faces — expression + variety", status:"review", passes:1,
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
@@ -254,6 +254,67 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 3b", kind:"build", pass:1,
+      title:"Faces \u2014 and an instrument built before the fix, then defeated twice",
+      sheet:"out/captures/s3b-p1-parry-contact/frame_011.png",
+      sheetNote:"Both duellists now carry a profile: a shadow in the socket, one stroke for the " +
+                "brow, a 2\u20133 px break of light along brow, nose and chin. Compare with the " +
+                "same beat two frames below, where the heads are dark lobes.",
+      body:[
+        "<b>The instrument came first, as it had to.</b> The audit had found the foe\u2019s head " +
+        "was <i>a grid of axis-aligned filled rectangles on a 4-pixel lattice</i> \u2014 and that " +
+        "the metric which certified the ink flecks as clean was <b>structurally blind to it</b>, " +
+        "because the blocks merge into one component. So <code>analyse facets</code> counts " +
+        "straight axis-aligned edges per 1000 px, refuses without a rectangle, and is <b>pinned " +
+        "to the audit\u2019s own five numbers</b> on a tracked frame.",
+
+        "<b>Then it was attacked, and it lost twice.</b> A 2-pixel staircase evades the " +
+        "single-pixel base; a 3-pixel staircase of 4-level risers evades <i>both</i> bases. Both " +
+        "attacks are checked in. So every guard resting on the instrument now claims only " +
+        "<b>\u201cno <i>near-single-pixel</i> lattice\u201d</b> \u2014 nothing broader. That is " +
+        "§11.2b(f)\u2019s adversarial clause producing exactly what it exists to produce: a " +
+        "narrower claim that is true, instead of a broad one that is not.",
+
+        "The face itself is built the way the references build one \u2014 <b>mostly shadow, with " +
+        "a 2\u20133 px break of light along brow, nose and chin</b>, no drawn eye. Delivered " +
+        "<b>5.7</b> straight axis-aligned edges per 1000 px against <b>the corpus\u2019s own face " +
+        "at 6.8</b>, and against the inherited lattice at 9.1\u201311.5 with runs of 44\u201362. " +
+        "Running the criterion on the reference <i>moved it</i>: a 6.0 ceiling failed reference " +
+        "image 3\u2019s own face, so the ceiling is now 8.0 with the corpus row asserted in the " +
+        "suite.",
+
+        "<b>And a finding nobody was looking for: the schedule\u2019s gaze anchors have existed " +
+        "since System 4 and were honoured by nothing.</b> They now drive the eye, and a headless " +
+        "test proves the two duellists look at each other through the parry."
+      ],
+      notes:[
+        { kind:"crit", label:"Three corrections to documents three systems inherit",
+          text:"<b>The audit\u2019s own box does not contain the face</b> on this staging \u2014 " +
+               "it is chest and sleeve \u2014 and roughly <b>half its 11.5 headline is the " +
+               "blade\u2019s own licensed edge</b> (masked: 10.1\u21927.5). The real residual is " +
+               "garment strips and hair erosion, which belongs to 3c, not to a skull. Second: " +
+               "the <i>\u201cpale face patch\u201d</i> in the debt <b>was never a face</b> " +
+               "\u2014 the head lobes were rendering in the <i>cloth</i> group, so the pale " +
+               "duellist\u2019s skull was cloth flattened by its own sash lift. The fix was " +
+               "giving the head its own material, not softening anything. Third: the rig\u2019s " +
+               "\u201c28 bones, four spare\u201d was stale \u2014 31 bones, one spare." },
+        { kind:"fix", label:"Reworked after its own first attempt read as a decal",
+          text:"The portrait palette printed verbatim <b>read as a decal pasted on a " +
+               "silhouette</b>. It was recalibrated against reference image 3\u2019s own dark " +
+               "duellist \u2014 which is dark with one warm rim, not a portrait \u2014 and " +
+               "reworked. Five guards observed red, and one of them is <b>permanently red by " +
+               "construction</b>: a test re-runs the inherited lattice failure on the tracked old " +
+               "frame every build, so the defect cannot quietly return." },
+        { kind:"crit", label:"Named as unpaid",
+          text:"The part count is <b>the author\u2019s own</b> \u2014 hero 9\u2192~13, foe " +
+               "9\u2192~10-11 \u2014 and explicitly handed to a reviewer to re-take, which is " +
+               "the right way to report a number you are not positioned to certify. The face also " +
+               "adds <b>\u00b11-LSB noise</b> at the head box: the live pair now differs on 22 " +
+               "of 24 frames where the bareface pair matches System 4\u2019s 17. Unbisected, and " +
+               "recorded as a constraint rather than discovered later." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 5", kind:"review", pass:2, verdict:"FAIL",
       title:"The parry reads. The retreat reads as an attack. And a good guard ran in the wrong place.",
