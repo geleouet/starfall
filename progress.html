@@ -159,17 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — the ink floor is a measured fraction at last; faces merged",
+  updated: "2026-08-03 — the game becomes playable; two passes interrupted, both preserved",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
-    label: "Paused",
-    title: "Faces merged — and the debt this rubric owed itself is paid",
-    detail: "The faces pass closed the oldest open item in the rubric: §2.2 said this morning " +
-            "that the ink floor <i>must</i> be a ratio to the ground rather than an absolute " +
-            "hex, and left the fraction owed. It is measured — <b>0.12–0.14 of local " +
-            "sky</b>, on all six family-B duellists, with regions recorded. Everything in flight " +
-            "is landed, merged and pushed. Queued next: the fittings pass, and the input loop."
+    label: "Interrupted — work preserved",
+    title: "The two passes that turn this from a renderer into a game",
+    detail: "Two independent audits reached the same verdict: <b>seven rendering systems were " +
+            "built and nobody has ever played this.</b> So the input loop and the fittings pass " +
+            "went out together — the first to make a fight playable and losable, the " +
+            "second to give the duellists <b>hands you can see holding the swords</b>, a gap " +
+            "open since System 1. A session limit cut both mid-work. <b>Both worktrees were " +
+            "committed and pushed before anything else</b>, so nothing is lost."
   },
 
   systems: [
@@ -253,6 +254,48 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"Project", kind:"note",
+      title:"The founding brief described a different project — and two audits agreed on what comes next",
+      body:[
+        "<b><code>projet-jeu-brief.md</code> was a reading trap</b>, and in this project a new " +
+        "reader is usually an agent about to make decisions from it. It still presented the " +
+        "engine choice as <i>under arbitration between libGDX and Godot</i>, described the " +
+        "shogun setting <code>STORY.md</code> retired long ago, listed the feedback loop as " +
+        "<i>to be built</i> when it has carried every review here, and described a Blender " +
+        "→ glTF pipeline that was never built because <b>the art is entirely " +
+        "procedural</b>. Rewritten to say what is true — including that nobody has played " +
+        "this, enemy hit points are not drawn, and there is no metagame and no sound.",
+
+        "<b>A second audit, in French, reached a sharper conclusion than the first: the poetry " +
+        "is <i>painted, not played</i>.</b> The rendering carries all of it; the gameplay is a " +
+        "faithful retro-spec with renamed terms. And it found a contradiction in our own " +
+        "documents, verified in black and white: <code>combat-design.md</code> §0 lists " +
+        "<b>“pure cooldown arithmetic” in its own <i>does-not-earn-its-place</i> " +
+        "column</b> — while §1.2 makes exactly that the central economy.",
+
+        "<b>The approach change that follows is uncomfortable and correct.</b> We invented the " +
+        "rule that <i>a discipline written into a document but not into the tool that reads it " +
+        "is documentation, not a guard</i> — and §0’s choreography filter, the only " +
+        "rule that decides what goes into this game, <b>has never once been applied</b>. We " +
+        "built a formidable apparatus for pixels and none at all for mechanics."
+      ],
+      notes:[
+        { kind:"fix", label:"Both interrupted passes were preserved before being diagnosed",
+          text:"A session limit cut both agents. The first action was <b>commit and push</b>, " +
+               "not triage — uncommitted work in an isolated worktree is the most fragile " +
+               "state this project holds. What was actually at risk was never the code: it was " +
+               "the fittings pass’s <b>reference crops of the corpus’s own hands at " +
+               "matched scale</b>, and the input loop’s <b>judgement calls about turn " +
+               "structure</b>. Rendering can be re-derived from the rubric; a decision only " +
+               "exists once made." },
+        { kind:"crit", label:"We grade an image, never a turn",
+          text:"Every review here has graded <code>frame_011</code> of the parry. <b>Nobody has " +
+               "ever graded a turn</b>, which is why legibility could collapse unnoticed until a " +
+               "cold read caught it, and why <b>enemy hit points — not drawn at all</b> " +
+               "— blocked no pass. The unit of judgement has to become the turn." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 3b", kind:"build", pass:2,
       title:"The ink floor becomes a measured fraction, and the face stops being a decal",
