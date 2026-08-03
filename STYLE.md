@@ -995,6 +995,17 @@ between what the assertion tests and what its name promises, and that gap is whe
 live — the guard is written from the same mental model as the code, so it inherits exactly
 the blind spots that produced the bug.
 
+**The rule paid for itself on its first use, which is the strongest thing that can be said
+for it.** The skip-detector written *in response to* the paragraph above — count what the
+suite declined to run, rather than regex-match paths, so that composed paths and assumptions
+are covered alike — was then attacked as this section requires. **The first attempt
+defeated it.** Capture frames are not declared gradle inputs, so hiding one leaves
+`./gw test` reporting UP-TO-DATE, and the checker read a *stale* report that still said zero
+skips. Green build, green checker, six tests never run. The fix is a second clause — a
+report older than its inputs is not a report — and both routes are now exhibited: staleness
+refused by name, and a genuine skip caught with its count. **Had the guard merely been
+observed red, it would have shipped with the hole in it.**
+
 **So a guard that carries a broad claim owes a second exhibit: the adversarial instance.**
 Try to build the thing the guard forbids *while satisfying it*. If you succeed, the guard's
 scope is the finding and the name is a lie; narrow the name or widen the test. If you

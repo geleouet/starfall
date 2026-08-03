@@ -84,8 +84,65 @@ for (const [rel, from] of srcRefs) {
   }
 }
 
+// The path scan above is a HINT, not the guard, and an audit proved why: it regex-matches
+// literal paths, so `CorpusTest`, which composes them from two arguments, walked straight
+// past it -- six tests skipping, BUILD SUCCESSFUL, and this checker printing OK. That is
+// exactly the defect STYLE.md 11.2b(f) describes: the assertion was reachable, but its
+// scope never covered its claim.
+//
+// The scope-correct guard does not look at paths at all. It asks the suite how many tests
+// it declined to run, which catches every skip mechanism -- composed paths, assumptions,
+// empty parameter sets, a forgotten @Disabled -- regardless of how the artefact is named.
+const resultsDir = path.join(root, 'build/test-results/test');
+if (!fs.existsSync(resultsDir)) {
+  // Refusing here is the point. A missing report is the one input under which a
+  // skip-counting check would otherwise pass by having nothing to count.
+  console.error('FAIL no test results at build/test-results/test — run `./gw test` before '
+    + 'trusting this checker; with no report it cannot see a skipped test.');
+  bad++;
+} else {
+  // And the report must be NEWER than what it claims to have tested. The first adversarial
+  // attempt against the skip check defeated it this way: capture frames are not declared
+  // gradle inputs, so hiding one leaves `./gw test` UP-TO-DATE and this checker reads a
+  // stale XML that still says skipped=0. Results older than their inputs are not results.
+  const newest = (dir, acc = 0) => {
+    if (!fs.existsSync(dir)) return acc;
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      acc = e.isDirectory() ? newest(p, acc) : Math.max(acc, fs.statSync(p).mtimeMs);
+    }
+    return acc;
+  };
+  const reportAt = Math.max(...fs.readdirSync(resultsDir)
+    .filter(f => f.endsWith('.xml'))
+    .map(f => fs.statSync(path.join(resultsDir, f)).mtimeMs), 0);
+  const inputAt = Math.max(newest(path.join(root, 'src')), newest(path.join(root, 'out/captures')));
+  if (inputAt > reportAt) {
+    console.error('FAIL test report is older than its inputs by '
+      + Math.round((inputAt - reportAt) / 1000) + 's — re-run `./gw test --rerun-tasks`. '
+      + 'Capture frames are not declared gradle inputs, so a green UP-TO-DATE build can '
+      + 'certify a suite that never saw them.');
+    bad++;
+  }
+
+  let skipped = 0, files = 0;
+  for (const f of fs.readdirSync(resultsDir)) {
+    if (!f.endsWith('.xml')) continue;
+    files++;
+    const xml = fs.readFileSync(path.join(resultsDir, f), 'utf8');
+    const m = xml.match(/<testsuite[^>]*\bskipped="(\d+)"/);
+    if (m && +m[1] > 0) {
+      skipped += +m[1];
+      console.error('FAIL ' + m[1] + ' skipped test(s) in ' + f + ' — a skipped assertion '
+        + 'certifies nothing and the suite reports it as success');
+      bad++;
+    }
+  }
+  console.log('test classes: ' + files + ', skipped: ' + skipped);
+}
+
 // Sanity counts
-console.log('captures read by code: ' + srcRefs.size);
+console.log('captures read by code (literal paths only — see above): ' + srcRefs.size);
 console.log('log entries: ' + (DATA.log || []).length);
 console.log('systems: ' + (DATA.systems || []).map(s => s.n + ':' + s.status + '/p' + s.passes).join(' '));
 console.log('updated: ' + DATA.updated);
