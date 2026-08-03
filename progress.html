@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — a feathered panel still passes both guards, and the pass says so",
+  updated: "2026-08-03 — the parry reads; the retreat reads as an attack",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "The interface at pass 2 \u2014 merged, and its own guards attacked",
-    detail: "The rule that a guard must be <i>attacked</i>, not merely observed red, was applied " +
-            "by the pass to its own work \u2014 and it <b>partly lost</b>. A filled panel with a " +
-            "three-pixel feather still passes both hard-edge guards. So the honest scope is what " +
-            "got written down: <b>these guards forbid a printed boundary, not a rectangular " +
-            "shape</b>, and §10 bans the shape. A reviewer is now re-running the cold read, " +
-            "because two of the five glyphs were redrawn."
+    title: "Interface pass 3, and faces in parallel \u2014 the count that has failed since day one",
+    detail: "The cold read was re-run on the redrawn alphabet: <b>the parry survived</b> and " +
+            "reads as a deflection from its shape alone. The <b>retreat reads as an attack</b>. " +
+            "And a guard that was correct, observed red and adversarially attacked still failed " +
+            "\u2014 <b>because it only ever ran at one of the two shipped resolutions</b>. " +
+            "Meanwhile <b>faces</b> are being built in a separate worktree: they are the largest " +
+            "single item on the 9-against-25 part count that closed System 4."
   },
 
   systems: [
@@ -180,13 +180,13 @@ const DATA = {
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
     { n:"03", name:"Verlet hair + cloth", status:"failed", passes:5,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
-    { n:"3b", name:"Faces — expression + variety", status:"pending", passes:0,
+    { n:"3b", name:"Faces — expression + variety", status:"building", passes:1,
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
     { n:"04", name:"Procedural interaction", status:"failed", passes:5,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
-    { n:"05", name:"Combat + action queue", status:"review", passes:2,
+    { n:"05", name:"Combat + action queue", status:"building", passes:3,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
     { n:"06", name:"Capture harness + MCP", status:"passed", passes:0,
       summary:"Offscreen capture and contact sheets are already live and load-bearing. HTTP debug API and MCP server still to come." }
@@ -254,6 +254,62 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 5", kind:"review", pass:2, verdict:"FAIL",
+      title:"The parry reads. The retreat reads as an attack. And a good guard ran in the wrong place.",
+      body:[
+        "<b>The cold read was re-run, and the protected result held.</b> The reviewer wrote down " +
+        "six readings before opening any source: <b>4 of 5 on the stanza</b>, and the Parry " +
+        "\u2014 the mark pass 2 redrew, and therefore the thing most at risk \u2014 read as " +
+        "<i>\u201ca blade caught and turned; the trough is a curve, not a corner\u201d</i>. It " +
+        "reads as a <b>deflection</b>, from shape alone, with no apex to reason from.",
+
+        "<b>The other mark it redrew produced a confident wrong reading.</b> Back-step was read " +
+        "as <i>\u201ca strike, aimed leftward \u2014 the enemy\u2019s intent\u201d</i>. It is a " +
+        "retreat. Its dominant mark is a blade-like travel stroke at peak <b>77.8</b>, while the " +
+        "hook (21.6) and dry scuff (18.9) that carry the retreat are the faintest parts: " +
+        "<b>the loud part says the wrong word.</b> A confident wrong reading is worse than an " +
+        "unreadable one, and on a lane, forward versus back is the sharpest choice there is.",
+
+        "<b>And the fourth way a guard can fail, which is the least like the other three.</b> " +
+        "The rasteriser guard is correct, was observed red, and survived an adversarial attempt. " +
+        "It also reads <code>SHIPPED_HEIGHTS[0]</code>. Pointed at the second entry \u2014 " +
+        "<b>540 rows, a resolution that same pass added</b> \u2014 it goes red at once, 0.3563 " +
+        "against a ceiling of 0.34. Its failure message prints <code>960x720</code> whatever it " +
+        "measured, so a reader watching it fail would have been told the wrong thing.",
+
+        "The first three clauses of the rule all ask <i>is this assertion any good?</i>. This one " +
+        "asks <b>where does it run?</b> A guard is a claim about the product, and the product is " +
+        "every configuration it ships in \u2014 so testing one and naming the file after the " +
+        "claim is <b>a sampling decision disguised as a proof</b>. Enumerate the axis; do not " +
+        "index it."
+      ],
+      notes:[
+        { kind:"crit", label:"The pass\u2019s own headline finding was wrong in both directions",
+          text:"Which is worth more than if it had simply been right. The feathered panel does " +
+               "<b>not</b> defeat the guards \u2014 drawn into the sheet rather than measured in " +
+               "isolation, the 5 px panel <i>is</i> caught. But a panel hatched out of <b>nothing " +
+               "but legal brush strokes</b> reads <b>0.0515</b>, seven times softer than the " +
+               "attempt the pass abandoned, and passes all 410 tests. And the 0.34 ceiling is " +
+               "<b>fitted, not derived</b>: delivered worst is 0.266, so any value in between " +
+               "would pass \u2014 a floor with no upper edge, taken from the artefact rather than " +
+               "the corpus, which §11.0 forbids by name." },
+        { kind:"crit", label:"The composition went backwards, and the diagnosis is precise",
+          text:"Matched-scale count fell from ~8 readable parts to <b>~6</b> against the " +
+               "reference\u2019s ~16; the hero shrank 87 px \u2192 <b>77 px</b>. The cause: " +
+               "<b>the fog was spent as alpha attenuation of the subject</b> \u2014 atmosphere " +
+               "that removes marks and adds none \u2014 where §6 asks for fog <i>bands</i>. Also " +
+               "newly measured: the Feint is <b>unidentifiable</b>, peak lift 4.5, three times " +
+               "fainter than an <i>empty</i> slot\u2019s impression." },
+        { kind:"fix", label:"A correction to this page\u2019s own record",
+          text:"The haze number reported here this morning <b>does not reproduce</b>. Written " +
+               "straight through it moves <b>0 px</b>, not 1,180; <i>deleted</i> it moves 192. " +
+               "The phenomenon is real, six times smaller, and attached to a different edit than " +
+               "the one described. Six of pass 2\u2019s statements failed to reproduce in total " +
+               "\u2014 and its narrowing of an instruction it was given was <b>upheld, with " +
+               "better reasoning than the brief had</b>." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 5", kind:"build", pass:2,
       title:"The pass attacked its own guards, and partly lost \u2014 so the honest scope is on record",
