@@ -827,6 +827,25 @@ leaning in at the top. So state such criteria **per band, with the reference's o
 as the target**, and let the assertion that the reference passes live in the test suite
 beside the one that the capture must.
 
+**One reference image is not the corpus.** The paragraph above was written after two passes
+chased a threshold image 3 fails, and the pass that answered it built exactly the tool asked
+for — and ran it on image 3 alone. Pointed at the rest of the family, **image 4 fails three
+bands and image 5 fails four, reading `torso = 0.0000`: the identical number the capture was
+being failed for.** So the rule is not "show it on the reference", it is **show it on every
+image in the family that depicts the situation being measured, and name the ones you
+excluded and why.** A criterion validated against a single image is fitted to that image;
+that is the whole failure this section exists to prevent, committed one level up by the
+section itself.
+
+**And a criterion of floors alone rewards the defect it was written to catch.** The corridor
+profile has minimums and no maximums, so the highest score in the sweep — 21 of 24 bands
+passing — belongs to the setting that pushes the skirt gap to **4.19× the corpus** and
+destroys the parry entirely. A one-sided criterion does not measure resemblance to the
+reference, it measures distance in one direction, and something will always score well by
+running away. **State the target as a band with both edges**, taken from the corpus's own
+spread, and make the sweep report where the score peaks — if the peak sits at a setting you
+would refuse on sight, the criterion is wrong and not the setting.
+
 ### 11.2 Capture cadence — anything about timing must be captured at a true frame rate
 
 A review once could not grade a pass's central claim at all, because the capture sampled
@@ -922,6 +941,20 @@ And the corollary that costs the most to learn late: a checked-in test is the st
 evidence this project produces, so a **vacuous** one is worse than none. It does not merely
 fail to catch the defect — it certifies it, and it persuades the next reviewer to stop
 looking.
+
+**(g) The control must exercise the property it certifies.** Every review since the harness
+bug has opened by proving its apparatus in scope against `rig-bindpose`, a static null, and
+reporting *0 of 691,200 pixels differ*. That sentence was read as "captures are
+reproducible". It only ever established that **a scene with nothing moving in it renders the
+same twice**. Shooting the graded scene twice at one commit on one harness — which no review
+had done, because the null had appeared to settle the question — gives **13,545 differing
+pixels, peak delta 122, on four frames including the graded one**. Every before/after in
+this project rests on a determinism nobody had measured where it could vary.
+
+A null case answers exactly the question its own content can pose. A static frame certifies
+the *readback path*; only a moving one can certify the *simulation*. So state what each
+control establishes in the words of its content, and when a claim needs a property the
+control cannot express, shoot the control that can.
 
 **And generalise the control from the subject to the instrument.** §7.1 learned "run the
 control" about cloth. Stated generally: **before a number is allowed to decide anything,

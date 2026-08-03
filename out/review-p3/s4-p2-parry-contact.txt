@@ -1,0 +1,185 @@
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+
+> Task :analyse
+per-band corridor (STYLE.md 11.0), ink < factor x the row's own background
+  ink factor 0.85, background = median of the outer 70 columns of each row
+
+-- the criterion, run on the corpus first (11.0) --
+  inspirations\image - 2026-08-02T101033.164.png
+  figure x0..831 y283..955 (832x673) (height 673)   window between body centroids x288..x629
+  head   x288..629 y283..403 (342x121)   57 px = 0.0847  (floor 0.080)  pass   run starts x=374
+  torso  x288..629 y404..558 (342x155)   10 px = 0.0149  (floor 0.014)  pass   run starts x=418
+  sash   x288..629 y559..699 (342x141)   62 px = 0.0921  (floor 0.085)  pass   run starts x=372
+  skirt  x288..629 y700..881 (342x182)   68 px = 0.1010  (floor 0.095)  pass   run starts x=399
+  feet   x288..629 y882..955 (342x74)   76 px = 0.1129  (floor 0.065)  pass   run starts x=382
+  reference passes its own floors: yes
+  and the whole-column scalar the first two passes chased: 0.0149 against the 0.06 they were failed on
+
+-- the capture --
+frame   0
+  figure x215..515 y264..718 (301x455) (height 455)   window between body centroids x386..x697
+  head   x386..697 y264..345 (312x82)  161 px = 0.3538  (floor 0.080)  pass   run starts x=468
+  torso  x386..697 y346..450 (312x105)   98 px = 0.2154  (floor 0.014)  pass   run starts x=516
+  sash   x386..697 y451..545 (312x95)   95 px = 0.2088  (floor 0.085)  pass   run starts x=516
+  skirt  x386..697 y546..668 (312x123)  137 px = 0.3011  (floor 0.095)  pass   run starts x=458
+  feet   x386..697 y669..718 (312x50)   72 px = 0.1582  (floor 0.065)  pass   run starts x=496
+frame   1
+  figure x214..515 y256..719 (302x464) (height 464)   window between body centroids x389..x696
+  head   x389..696 y256..339 (308x84)  152 px = 0.3276  (floor 0.080)  pass   run starts x=478
+  torso  x389..696 y340..445 (308x106)  109 px = 0.2349  (floor 0.014)  pass   run starts x=514
+  sash   x389..696 y446..543 (308x98)   95 px = 0.2047  (floor 0.085)  pass   run starts x=516
+  skirt  x389..696 y544..668 (308x125)  136 px = 0.2931  (floor 0.095)  pass   run starts x=458
+  feet   x389..696 y669..719 (308x51)   72 px = 0.1552  (floor 0.065)  pass   run starts x=496
+frame   2
+  figure x214..515 y255..719 (302x465) (height 465)   window between body centroids x393..x694
+  head   x393..694 y255..338 (302x84)  120 px = 0.2581  (floor 0.080)  pass   run starts x=509
+  torso  x393..694 y339..445 (302x107)  108 px = 0.2323  (floor 0.014)  pass   run starts x=514
+  sash   x393..694 y446..542 (302x97)   95 px = 0.2043  (floor 0.085)  pass   run starts x=516
+  skirt  x393..694 y543..668 (302x126)  135 px = 0.2903  (floor 0.095)  pass   run starts x=458
+  feet   x393..694 y669..719 (302x51)   72 px = 0.1548  (floor 0.065)  pass   run starts x=496
+frame   3
+  figure x214..534 y262..718 (321x457) (height 457)   window between body centroids x396..x693
+  head   x396..693 y262..343 (298x82)   90 px = 0.1969  (floor 0.080)  pass   run starts x=535
+  torso  x396..693 y344..448 (298x105)   98 px = 0.2144  (floor 0.014)  pass   run starts x=522
+  sash   x396..693 y449..544 (298x96)   93 px = 0.2035  (floor 0.085)  pass   run starts x=516
+  skirt  x396..693 y545..668 (298x124)  132 px = 0.2888  (floor 0.095)  pass   run starts x=460
+  feet   x396..693 y669..718 (298x50)   71 px = 0.1554  (floor 0.065)  pass   run starts x=496
+frame   4
+  figure x214..562 y276..718 (349x443) (height 443)   window between body centroids x398..x691
+  head   x398..691 y276..355 (294x80)   57 px = 0.1287  (floor 0.080)  pass   run starts x=563
+  torso  x398..691 y356..457 (294x102)   65 px = 0.1467  (floor 0.014)  pass   run starts x=542
+  sash   x398..691 y458..550 (294x93)   99 px = 0.2235  (floor 0.085)  pass   run starts x=507
+  skirt  x398..691 y551..669 (294x119)  132 px = 0.2980  (floor 0.095)  pass   run starts x=460
+  feet   x398..691 y670..718 (294x49)   71 px = 0.1603  (floor 0.065)  pass   run starts x=496
+frame   5
+  figure x214..583 y295..719 (370x425) (height 425)   window between body centroids x400..x688
+  head   x400..688 y295..371 (289x77)   34 px = 0.0800  (floor 0.080)  pass   run starts x=584
+  torso  x400..688 y372..468 (289x97)   50 px = 0.1176  (floor 0.014)  pass   run starts x=556
+  sash   x400..688 y469..558 (289x90)  130 px = 0.3059  (floor 0.085)  pass   run starts x=472
+  skirt  x400..688 y559..672 (289x114)  131 px = 0.3082  (floor 0.095)  pass   run starts x=460
+  feet   x400..688 y673..719 (289x47)   72 px = 0.1694  (floor 0.065)  pass   run starts x=495
+frame   6
+  figure x214..596 y320..719 (383x400) (height 400)   window between body centroids x400..x685
+  head   x400..685 y320..391 (286x72)   18 px = 0.0450  (floor 0.080)  MISS   run starts x=597
+  torso  x400..685 y392..483 (286x92)   50 px = 0.1250  (floor 0.014)  pass   run starts x=563
+  sash   x400..685 y484..567 (286x84)  137 px = 0.3425  (floor 0.085)  pass   run starts x=456
+  skirt  x400..685 y568..675 (286x108)  130 px = 0.3250  (floor 0.095)  pass   run starts x=460
+  feet   x400..685 y676..719 (286x44)   72 px = 0.1800  (floor 0.065)  pass   run starts x=495
+frame   7
+  figure x214..603 y327..719 (390x393) (height 393)   window between body centroids x399..x682
+  head   x399..682 y327..397 (284x71)   40 px = 0.1018  (floor 0.080)  pass   run starts x=475
+  torso  x399..682 y398..487 (284x90)   23 px = 0.0585  (floor 0.014)  pass   run starts x=580
+  sash   x399..682 y488..570 (284x83)  135 px = 0.3435  (floor 0.085)  pass   run starts x=456
+  skirt  x399..682 y571..676 (284x106)  130 px = 0.3308  (floor 0.095)  pass   run starts x=460
+  feet   x399..682 y677..719 (284x43)   72 px = 0.1832  (floor 0.065)  pass   run starts x=495
+frame   8
+  figure x214..606 y323..719 (393x397) (height 397)   window between body centroids x397..x680
+  head   x397..680 y323..393 (284x71)   62 px = 0.1562  (floor 0.080)  pass   run starts x=474
+  torso  x397..680 y394..485 (284x92)    4 px = 0.0101  (floor 0.014)  MISS   run starts x=606
+  sash   x397..680 y486..568 (284x83)  136 px = 0.3426  (floor 0.085)  pass   run starts x=456
+  skirt  x397..680 y569..675 (284x107)  130 px = 0.3275  (floor 0.095)  pass   run starts x=460
+  feet   x397..680 y676..719 (284x44)   72 px = 0.1814  (floor 0.065)  pass   run starts x=495
+frame   9
+  figure x213..591 y325..719 (379x395) (height 395)   window between body centroids x391..x677
+  head   x391..677 y325..395 (287x71)   28 px = 0.0709  (floor 0.080)  MISS   run starts x=581
+  torso  x391..677 y396..486 (287x91)    5 px = 0.0127  (floor 0.014)  MISS   run starts x=592
+  sash   x391..677 y487..569 (287x83)  143 px = 0.3620  (floor 0.085)  pass   run starts x=458
+  skirt  x391..677 y570..676 (287x107)  135 px = 0.3418  (floor 0.095)  pass   run starts x=460
+  feet   x391..677 y677..719 (287x43)   72 px = 0.1823  (floor 0.065)  pass   run starts x=495
+frame  10
+  figure x213..594 y321..719 (382x399) (height 399)   window between body centroids x392..x678
+  head   x392..678 y321..392 (287x72)   45 px = 0.1128  (floor 0.080)  pass   run starts x=464
+  torso  x392..678 y393..484 (287x92)    7 px = 0.0175  (floor 0.014)  pass   run starts x=592
+  sash   x392..678 y485..567 (287x83)  147 px = 0.3684  (floor 0.085)  pass   run starts x=455
+  skirt  x392..678 y568..675 (287x108)  134 px = 0.3358  (floor 0.095)  pass   run starts x=460
+  feet   x392..678 y676..719 (287x44)   72 px = 0.1805  (floor 0.065)  pass   run starts x=495
+frame  11
+  figure x214..602 y314..719 (389x406) (height 406)   window between body centroids x390..x676
+  head   x390..676 y314..386 (287x73)  142 px = 0.3498  (floor 0.080)  pass   run starts x=455
+  torso  x390..676 y387..479 (287x93)    0 px = 0.0000  (floor 0.014)  MISS
+  sash   x390..676 y480..565 (287x86)  148 px = 0.3645  (floor 0.085)  pass   run starts x=455
+  skirt  x390..676 y566..674 (287x109)  133 px = 0.3276  (floor 0.095)  pass   run starts x=460
+  feet   x390..676 y675..719 (287x45)   72 px = 0.1773  (floor 0.065)  pass   run starts x=495
+frame  12
+  figure x214..604 y317..719 (391x403) (height 403)   window between body centroids x389..x669
+  head   x389..669 y317..389 (281x73)  156 px = 0.3871  (floor 0.080)  pass   run starts x=457
+  torso  x389..669 y390..481 (281x92)    0 px = 0.0000  (floor 0.014)  MISS
+  sash   x389..669 y482..566 (281x85)  112 px = 0.2779  (floor 0.085)  pass   run starts x=456
+  skirt  x389..669 y567..675 (281x109)  133 px = 0.3300  (floor 0.095)  pass   run starts x=460
+  feet   x389..669 y676..719 (281x44)   72 px = 0.1787  (floor 0.065)  pass   run starts x=495
+frame  13
+  the two bodies are one connected ink component: no corridor exists
+frame  14
+  the two bodies are one connected ink component: no corridor exists
+frame  15
+  figure x214..616 y314..719 (403x406) (height 406)   window between body centroids x400..x677
+  head   x400..677 y314..386 (278x73)  159 px = 0.3916  (floor 0.080)  pass   run starts x=454
+  torso  x400..677 y387..479 (278x93)    0 px = 0.0000  (floor 0.014)  MISS
+  sash   x400..677 y480..565 (278x86)   44 px = 0.1084  (floor 0.085)  pass   run starts x=458
+  skirt  x400..677 y566..674 (278x109)  132 px = 0.3251  (floor 0.095)  pass   run starts x=460
+  feet   x400..677 y675..719 (278x45)   71 px = 0.1749  (floor 0.065)  pass   run starts x=496
+frame  16
+  figure x214..608 y313..719 (395x407) (height 407)   window between body centroids x398..x678
+  head   x398..678 y313..385 (281x73)  159 px = 0.3907  (floor 0.080)  pass   run starts x=454
+  torso  x398..678 y386..479 (281x94)    4 px = 0.0098  (floor 0.014)  MISS   run starts x=611
+  sash   x398..678 y480..564 (281x85)   26 px = 0.0639  (floor 0.085)  MISS   run starts x=525
+  skirt  x398..678 y565..674 (281x110)  131 px = 0.3219  (floor 0.095)  pass   run starts x=461
+  feet   x398..678 y675..719 (281x45)   72 px = 0.1769  (floor 0.065)  pass   run starts x=496
+frame  17
+  figure x214..601 y314..718 (388x405) (height 405)   window between body centroids x398..x678
+  head   x398..678 y314..386 (281x73)  159 px = 0.3926  (floor 0.080)  pass   run starts x=454
+  torso  x398..678 y387..479 (281x93)    0 px = 0.0000  (floor 0.014)  MISS
+  sash   x398..678 y480..564 (281x85)   53 px = 0.1309  (floor 0.085)  pass   run starts x=502
+  skirt  x398..678 y565..673 (281x109)  131 px = 0.3235  (floor 0.095)  pass   run starts x=461
+  feet   x398..678 y674..718 (281x45)   72 px = 0.1778  (floor 0.065)  pass   run starts x=496
+frame  18
+  figure x215..602 y313..719 (388x407) (height 407)   window between body centroids x397..x679
+  head   x397..679 y313..385 (283x73)  105 px = 0.2580  (floor 0.080)  pass   run starts x=508
+  torso  x397..679 y386..479 (283x94)    0 px = 0.0000  (floor 0.014)  MISS
+  sash   x397..679 y480..564 (283x85)  109 px = 0.2678  (floor 0.085)  pass   run starts x=461
+  skirt  x397..679 y565..674 (283x110)  130 px = 0.3194  (floor 0.095)  pass   run starts x=462
+  feet   x397..679 y675..719 (283x45)   71 px = 0.1744  (floor 0.065)  pass   run starts x=497
+frame  19
+  figure x215..623 y313..719 (409x407) (height 407)   window between body centroids x399..x679
+  head   x399..679 y313..385 (281x73)   72 px = 0.1769  (floor 0.080)  pass   run starts x=542
+  torso  x399..679 y386..479 (281x94)    0 px = 0.0000  (floor 0.014)  MISS
+  sash   x399..679 y480..564 (281x85)  103 px = 0.2531  (floor 0.085)  pass   run starts x=462
+  skirt  x399..679 y565..674 (281x110)  130 px = 0.3194  (floor 0.095)  pass   run starts x=462
+  feet   x399..679 y675..719 (281x45)   72 px = 0.1769  (floor 0.065)  pass   run starts x=497
+frame  20
+  figure x216..620 y313..718 (405x406) (height 406)   window between body centroids x399..x679
+  head   x399..679 y313..385 (281x73)   71 px = 0.1749  (floor 0.080)  pass   run starts x=455
+  torso  x399..679 y386..478 (281x93)    0 px = 0.0000  (floor 0.014)  MISS
+  sash   x399..679 y479..564 (281x86)  102 px = 0.2512  (floor 0.085)  pass   run starts x=463
+  skirt  x399..679 y565..673 (281x109)  129 px = 0.3177  (floor 0.095)  pass   run starts x=463
+  feet   x399..679 y674..718 (281x45)   71 px = 0.1749  (floor 0.065)  pass   run starts x=498
+frame  21
+  figure x216..617 y315..719 (402x405) (height 405)   window between body centroids x399..x680
+  head   x399..680 y315..387 (282x73)   59 px = 0.1457  (floor 0.080)  pass   run starts x=455
+  torso  x399..680 y388..480 (282x93)    1 px = 0.0025  (floor 0.014)  MISS   run starts x=618
+  sash   x399..680 y481..565 (282x85)  102 px = 0.2519  (floor 0.085)  pass   run starts x=464
+  skirt  x399..680 y566..674 (282x109)  129 px = 0.3185  (floor 0.095)  pass   run starts x=463
+  feet   x399..680 y675..719 (282x45)   73 px = 0.1802  (floor 0.065)  pass   run starts x=498
+frame  22
+  figure x217..605 y315..719 (389x405) (height 405)   window between body centroids x401..x680
+  head   x401..680 y315..387 (280x73)   35 px = 0.0864  (floor 0.080)  pass   run starts x=458
+  torso  x401..680 y388..480 (280x93)    0 px = 0.0000  (floor 0.014)  MISS
+  sash   x401..680 y481..565 (280x85)  137 px = 0.3383  (floor 0.085)  pass   run starts x=465
+  skirt  x401..680 y566..674 (280x109)  129 px = 0.3185  (floor 0.095)  pass   run starts x=464
+  feet   x401..680 y675..719 (280x45)   72 px = 0.1778  (floor 0.065)  pass   run starts x=499
+frame  23
+  figure x217..582 y315..719 (366x405) (height 405)   window between body centroids x402..x680
+  head   x402..680 y315..387 (279x73)   15 px = 0.0370  (floor 0.080)  MISS   run starts x=603
+  torso  x402..680 y388..480 (279x93)    5 px = 0.0123  (floor 0.014)  MISS   run starts x=616
+  sash   x402..680 y481..565 (279x85)  137 px = 0.3383  (floor 0.085)  pass   run starts x=465
+  skirt  x402..680 y566..674 (279x109)  128 px = 0.3160  (floor 0.095)  pass   run starts x=465
+  feet   x402..680 y675..719 (279x45)   72 px = 0.1778  (floor 0.065)  pass   run starts x=500
+
+8 of 24 frames pass every band; 2 are one mass
+worst miss: head on frame 23, 0.0430 below its floor
+acceptance: FAIL
+
+BUILD SUCCESSFUL in 3s
+3 actionable tasks: 1 executed, 2 up-to-date
