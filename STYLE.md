@@ -1018,6 +1018,28 @@ report older than its inputs is not a report — and both routes are now exhibit
 refused by name, and a genuine skip caught with its count. **Had the guard merely been
 observed red, it would have shipped with the hole in it.**
 
+**And a guard that does not run in every configuration the product ships is not a guard for
+the ones it skips.** This is the fourth distinct failure and the least like the others,
+because nothing is wrong with the assertion at all.
+
+System 5's rasteriser guard is correct, was observed red, and survived an adversarial
+attempt. It also reads `SHIPPED_HEIGHTS[0]`. Pointed at the second entry — **540 rows, a
+resolution that same pass added** — it goes red immediately: 0.3563 against a ceiling of
+0.34. And its failure message prints `960x720` whatever it actually measured, so even a
+reader watching it fail would have been told the wrong thing.
+
+The first three rules all ask *is this assertion any good?*. This one asks a question none
+of them reach: **where does it run?** A guard is a claim about the product, and the product
+is every configuration it ships in — every resolution, every scene, every lane length, every
+figure. Testing one and naming the file after the claim is a sampling decision disguised as
+a proof.
+
+So: **enumerate the axis, do not index it.** If a constant lists the shipped configurations,
+the guard iterates the list; if it cannot, it names in its own message the single case it
+checked, so nobody mistakes a sample for the set. And a failure message must report the
+parameters it actually ran with rather than the ones it was written against — a message that
+lies about its own inputs turns a red run into a wrong diagnosis.
+
 **So a guard that carries a broad claim owes a second exhibit: the adversarial instance.**
 Try to build the thing the guard forbids *while satisfying it*. If you succeed, the guard's
 scope is the finding and the name is a lie; narrow the name or widen the test. If you

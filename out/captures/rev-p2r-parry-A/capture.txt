@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=duel-parry -Pout=out/captures/rev-p2r-parry-A -Pframes=6 -Pcols=3 -Pw=960 -Ph=720
+
+scene=duel-parry
+description=blade meets blade: one contact instant, two skeletons, a deflection
+frames=6
+start=0.0
+step=0.608
+window=3.04
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=4bdde59-dirty
+harness=f0ad18994eec
