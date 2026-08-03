@@ -393,6 +393,31 @@ are pale, cool and papery, with warmth reserved for small areas.
 
 Ochre stain and vermillion from §2.1 carry over unchanged for skin marks.
 
+**This whole table is a *portrait* palette, and the duel is not a portrait. Read the next
+paragraph before using any hex above.** These values were sampled from `inspirations/faces/`
+— close studies on pale ground — and the combat stage is family B, a figure against a dusk
+sky. Used literally there, `SKIN_DEEP` is luminance 94, **3.7× the ink floor**, and System 3b
+delivered a face reading **1.36× its local sky** where the corpus's two duellists read
+**0.25× and 0.31×**. In family B the face is one of the *darkest* things on the figure. The
+first delivery made it one of the *brightest things in the frame*, while obeying this table
+exactly.
+
+**So the binding value is a ratio, and here it is, measured on all three family B images,
+both duellists: the face plane sits at 0.25–0.31 of its own local sky luminance.** Author to
+that fraction and let the hexes above govern only *relative* structure within the face —
+which plane is cooler than which, where the one warm note goes. A face lit like a portrait,
+dropped onto a dusk stage, reads as a decal pasted on a silhouette, and no amount of
+softening the edges will fix a value that is inverted.
+
+**And the general fault, which is the rubric's and not any pass's.** §2.2 was caught this
+morning stating the ink floor as an absolute hex chosen while looking at figures on cream
+paper. §4b.2 is the *same defect, one section later, and it went unnoticed in the same
+document on the same day.* Every colour value written in this file predates the dusk stage.
+**Treat each of them as a paper-ground measurement until someone has re-derived it as a
+fraction of the ground it will actually be seen against**, and when you do, record the
+fraction here with its region. The failure mode is not a wrong colour; it is a document that
+silently assumes a background it no longer has.
+
 ### 4b.3 Profile construction
 
 At profile, only five things read. Build these and nothing else:
