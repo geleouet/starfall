@@ -158,7 +158,7 @@ public final class Bout {
      * never been through the renderer -- plus one enchanted tile, so the enchantment
      * mark is drawn somewhere for the first time as well.
      */
-    private static List<Tile> hand(Kind kind) {
+    static List<Tile> hand(Kind kind) {
         List<Tile> out = new ArrayList<>(List.of(
                 Tile.of(TileType.CUT), Tile.of(TileType.STEP), Tile.of(TileType.SWEEP),
                 Tile.of(TileType.THRUST), Tile.of(TileType.PARRY)));
@@ -283,7 +283,10 @@ public final class Bout {
                 Readout.footprint(engine.previewExecution()));
 
         Schedule schedule = scheduler.schedule();
-        return new Staged(schedule, readout.build(schedule), heroId, heroStands, heroFacing,
+        // The scheduler's second-exact wounds and deaths ride along, so the health
+        // rows -- the hero's and now the Shadows' -- drop when the blade lands.
+        return new Staged(schedule, readout.build(schedule, scheduler.wounds(), scheduler.passings()),
+                heroId, heroStands, heroFacing,
                 List.copyOf(bodies), scheduler.planningFraming());
     }
 

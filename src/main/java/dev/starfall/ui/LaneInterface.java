@@ -274,6 +274,58 @@ public final class LaneInterface {
 
     public static final float REACH_RY = 0.0215f;
 
+    // -- the Shadows' strokes, in world x and shares of the frame ---------------
+
+    /**
+     * One of a Charted Shadow's strokes, as a share of the frame height.
+     *
+     * <h2>The grammar, and why it cannot be confused with the two things it rhymes
+     * with</h2>
+     *
+     * <p>STYLE.md 8 draws health as "a row of ink strokes... drying and fading as it
+     * drops", and warns by name that a second vertical run of similar marks beside
+     * the stanza is a confusable pair. So the Shadow's row is the same grammar with
+     * three different anchorings at once: it is <b>horizontal</b> where the stanza is
+     * vertical; it is <b>pinned to the body it counts</b>, in world x, where the
+     * hero's row lives at the head of the margin; and it is smaller than either. It
+     * moves with the body and the camera, which no margin mark ever does -- and that
+     * motion is the strongest of the three signals, because it is the one a cold
+     * reader cannot miss.
+     *
+     * <p>Sized as a share of the frame height, like {@link #STRIKE_WIDTH}, because
+     * the framing law changes the frame's world height 3.9x across the push-in: a
+     * count authored in world units would be sub-pixel at the planning shot or a
+     * banner at the intimate one. A share of the frame is the same number of pixels
+     * at every framing, which is what a <em>count</em> has to be
+     * (combat-design.md 3: separable at every resolution the game ships, or not a
+     * count at all).
+     */
+    public static final float SHADOW_WIDTH = 0.0100f;
+
+    /** Same spacing law as the charge run: more paper between marks than mark. */
+    public static final float SHADOW_PITCH = SHADOW_WIDTH * TICK_SPACING;
+
+    /** Half the length of one stroke, in frame heights. */
+    public static final float SHADOW_HALF_LENGTH = 0.0155f;
+
+    /**
+     * How far above the ground plane the row sits, in world units: above the
+     * figure's head, in the air the fog bands leave clear. {@code SamuraiRig}'s
+     * figure stands 1.70 tall and its topknot and hair ride a little higher.
+     */
+    public static final float SHADOW_Y = 2.02f;
+
+    /**
+     * How loud a living stroke is. Quieter than the hero's {@link #HEALTH_ALPHA}
+     * for the same reason the health row is quieter than the stanza: the enemy's
+     * state is a thing you check, and it stands inside the picture, where every
+     * unit of alpha costs more than it does in the margin.
+     */
+    public static final float SHADOW_ALPHA = 0.60f;
+
+    /** And a spent one: a dry ghost, same statement as the hero's lost strokes. */
+    public static final float SHADOW_GHOST = 0.24f;
+
     /** Where a Strikethrough is drawn: just under the feet, above the lane's own wash. */
     public static final float STRIKE_DROP = 0.014f;
 
@@ -324,6 +376,43 @@ public final class LaneInterface {
             strikethrough(sink, (float) (tile * spread), (float) (0.48 * spread),
                     (float) (-STRIKE_DROP * frameHeight), (float) (STRIKE_WIDTH * frameHeight),
                     (float) look.bleed(), 0.74f * fade, 41.3f + tile * 8.7f);
+        }
+    }
+
+    /**
+     * One Charted Shadow's strokes, over the body that carries them.
+     *
+     * <p>Drawn in the same pass as {@link #ground} -- world x, sizes in shares of
+     * the frame -- and <b>before the figures</b>, like everything else in the
+     * interface, so the marks live behind the ink of the world rather than on a
+     * layer above it. The row is centred on the body, each stroke leans the way
+     * the hero's health strokes lean, spent strokes stay as dry ghosts, and the
+     * whole row recedes with the push-in and dries away with the body's own
+     * dissolve.
+     *
+     * <p>No vermillion: the row states a fact, not a threat, and guard B owns
+     * that colour.
+     *
+     * @param x           the body's world x, from the figure the scene is drawing
+     * @param frameHeight how much world the frame holds vertically
+     */
+    public static void shadow(Brush.Sink sink, Look.Shadow s, float x, float frameHeight,
+                              double intimacy) {
+        float fade = (1f - RECESSION * (float) intimacy) * (1f - (float) s.dying());
+        if (fade <= 0.01f || s.maxHp() <= 0) {
+            return;
+        }
+        float seed = 67.3f + s.body() * 9.1f;
+        float pitch = SHADOW_PITCH * frameHeight;
+        float first = x - (s.maxHp() - 1) * pitch * 0.5f;
+        for (int i = 0; i < s.maxHp(); i++) {
+            boolean wet = i < s.hp();
+            tick(sink, first + i * pitch, SHADOW_Y,
+                    SHADOW_HALF_LENGTH * frameHeight, 0.0030f * frameHeight,
+                    SHADOW_WIDTH * frameHeight,
+                    (wet ? SHADOW_ALPHA : SHADOW_GHOST) * fade,
+                    wet ? Palette.CLOTH_PALE : Palette.PAPER_COOL,
+                    seed + i * 2.3f, wet ? 0f : 0.30f);
         }
     }
 

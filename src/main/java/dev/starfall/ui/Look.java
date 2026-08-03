@@ -17,8 +17,10 @@ import java.util.List;
  * <p>Its shape is also the argument about what the interface is allowed to
  * contain. Every field below is something a player cannot choose without, and the
  * omissions are as deliberate as the entries: there is no turn counter, no damage
- * number, no name, no timer and no enemy hit points. See
- * {@code docs/system5-debt.md} for the one of those that is a genuine miss.
+ * number, no name and no timer. Enemy hit points were on that list for two passes
+ * and {@code docs/system5-debt.md} 8 called their absence "the largest omission";
+ * they are now {@link Shadow}, because a player cannot plan against a state that
+ * is not drawn.
  *
  * @param time       schedule seconds, so a mark can age
  * @param stanza     the written column, <b>top first</b> -- index 0 resolves next
@@ -32,10 +34,24 @@ import java.util.List;
  * @param threatened every tile under a Strikethrough, ascending
  * @param bleed      0..1, how far the vermillion has wicked into the paper
  * @param intimacy   0 at the planning framing, 1 at the intimate one
+ * @param shadows    every Charted Shadow still on the sheet, in board order --
+ *                   the enemy hit points the planning phase is read against
  */
 public record Look(double time, List<Written> stanza, List<Held> hand, int health, int maxHealth,
                    int laneLength, int heroTile, int heroStep, List<Integer> reached,
-                   List<Integer> threatened, double bleed, double intimacy) {
+                   List<Integer> threatened, double bleed, double intimacy,
+                   List<Shadow> shadows) {
+
+    /**
+     * The old arity, for callers that predate the shadows. Same picture, no
+     * enemies on it.
+     */
+    public Look(double time, List<Written> stanza, List<Held> hand, int health, int maxHealth,
+                int laneLength, int heroTile, int heroStep, List<Integer> reached,
+                List<Integer> threatened, double bleed, double intimacy) {
+        this(time, stanza, hand, health, maxHealth, laneLength, heroTile, heroStep,
+                reached, threatened, bleed, intimacy, List.of());
+    }
 
     /**
      * One cartouche in the column.
@@ -83,6 +99,34 @@ public record Look(double time, List<Written> stanza, List<Held> hand, int healt
      */
     public record Held(TileType type, Enchantment enchantment, int charges, int cooldown,
                        boolean banked) {
+    }
+
+    /**
+     * One Charted Shadow's standing, for the row of strokes drawn over its body.
+     *
+     * <h2>Why this is in the Look at all, given the record's own argument</h2>
+     *
+     * <p>This record's preamble used to list "no enemy hit points" among the
+     * deliberate omissions, and {@code docs/system5-debt.md} 8 named that the
+     * largest omission in the system -- <i>"on a turn-based tactical game you
+     * cannot plan against an enemy whose state you cannot see"</i>. It is a
+     * playability blocker, not a decoration, so it joins the fields a player
+     * cannot choose without.
+     *
+     * <p>The grammar is the hero's own (STYLE.md 8): a <b>row</b> of ink strokes
+     * that dry to ghosts as they are spent, never a second vertical run beside
+     * the stanza -- the row is horizontal, pinned to the body it counts, and
+     * drawn in the world rather than in the margin, which is what keeps it from
+     * being confusable with either column.
+     *
+     * @param body   the engine's id, so the scene can pin the row to the figure
+     * @param tile   where the body stood at the last board chapter (fallback pin)
+     * @param hp     strokes still wet, exact to the blow's own second
+     * @param maxHp  how many there ever were, so the spent ones stay as ghosts
+     * @param dying  0 while the body stands; rising to 1 as its dissolve runs,
+     *               so the row dries off the sheet with the figure it counted
+     */
+    public record Shadow(int body, int tile, int hp, int maxHp, double dying) {
     }
 
     /** The topmost cartouche, or {@code null} on an empty stanza. */

@@ -7,6 +7,7 @@ import dev.starfall.combat.InkStanza;
 import dev.starfall.combat.Resolution;
 import dev.starfall.stage.Schedule;
 import dev.starfall.stage.ScheduledBeat;
+import dev.starfall.stage.Scheduler;
 import dev.starfall.stage.Stage;
 
 import java.util.ArrayList;
@@ -70,13 +71,18 @@ public final class Readout {
     private final Schedule schedule;
     private final List<Chapter> chapters;
     private final List<Mark> marks;
+    private final List<Scheduler.Wound> wounds;
+    private final List<Scheduler.Passing> passings;
     private final double planningWidth;
 
-    private Readout(Stage stage, Schedule schedule, List<Chapter> chapters, List<Mark> marks) {
+    private Readout(Stage stage, Schedule schedule, List<Chapter> chapters, List<Mark> marks,
+                    List<Scheduler.Wound> wounds, List<Scheduler.Passing> passings) {
         this.stage = stage;
         this.schedule = schedule;
         this.chapters = List.copyOf(chapters);
         this.marks = List.copyOf(marks);
+        this.wounds = List.copyOf(wounds);
+        this.passings = List.copyOf(passings);
         this.planningWidth = widestOf(schedule, stage);
     }
 
@@ -173,10 +179,68 @@ public final class Readout {
         }
 
         return new Look(t, Collections.unmodifiableList(stanza), Collections.unmodifiableList(hand),
-                s.hero().hp(), s.hero().maxHp(), s.lane().length(),
+                hpAt(t, s.hero().id(), c, s.hero().hp()), s.hero().maxHp(), s.lane().length(),
                 s.hero().tile(), s.hero().facing().step(),
                 c.reached(), s.threatenedTiles(),
-                clamp01((t - c.at()) / BLEED_SECONDS), intimacy(t));
+                clamp01((t - c.at()) / BLEED_SECONDS), intimacy(t), shadowsAt(t, c));
+    }
+
+    /**
+     * A body's strokes at {@code t}, exact to the blow's own second.
+     *
+     * <p>The chapter is a fact about a turn and a blow is a fact about a second;
+     * between two chapters the row has to drop when the blade lands, not when the
+     * board is next recorded. {@link Scheduler.Wound} carries the absolute value
+     * the engine stated, so this cannot drift from the chapters -- the next
+     * chapter simply agrees with the last wound before it.
+     */
+    private int hpAt(double t, int body, Chapter c, int chapterHp) {
+        int hp = chapterHp;
+        for (Scheduler.Wound w : wounds) {
+            if (w.body() == body && w.at() > c.at() + 1e-9 && w.at() <= t + 1e-9) {
+                hp = w.hpAfter();
+            }
+        }
+        return hp;
+    }
+
+    /**
+     * Every Charted Shadow the sheet still counts at {@code t}, in board order.
+     *
+     * <p>Built from the chapter's own state -- the same source as everything else
+     * in the Look -- with two per-second refinements: the strokes drop at the
+     * blow's instant ({@link #hpAt}), and a body whose dissolve is running keeps
+     * its row until the ink has gone, drying with the figure. A dead body whose
+     * dissolve has finished contributes nothing: the ground keeps no counter, only
+     * the stain the death itself left.
+     */
+    private List<Look.Shadow> shadowsAt(double t, Chapter c) {
+        List<Look.Shadow> out = new ArrayList<>();
+        for (var body : c.state().all()) {
+            if (body.isHero()) {
+                continue;
+            }
+            Scheduler.Passing p = null;
+            for (Scheduler.Passing q : passings) {
+                if (q.body() == body.id() && q.at() <= t + 1e-9) {
+                    p = q;
+                }
+            }
+            double dying = p == null ? 0.0
+                    : clamp01((t - p.at()) / Math.max(1e-6, p.span()));
+            if (!body.alive() && p == null) {
+                // Dead before this chapter and its dissolve is not running at t:
+                // the row has already dried off the sheet.
+                continue;
+            }
+            if (dying >= 1.0) {
+                continue;
+            }
+            out.add(new Look.Shadow(body.id(), body.tile(),
+                    Math.max(0, hpAt(t, body.id(), c, body.hp())), body.maxHp(), dying));
+        }
+        out.sort((a, b) -> Integer.compare(a.tile(), b.tile()));
+        return Collections.unmodifiableList(out);
     }
 
     /**
@@ -325,6 +389,30 @@ public final class Readout {
         }
 
         /**
+         * A tile un-banked: the topmost mark is rubbed out, and the line it stood
+         * on is free for the next mark.
+         *
+         * <p>LIFO is the queue's whole grammar (combat-design.md 1.1), so only the
+         * top can be taken back, and the mark leaves the way every mark leaves --
+         * STYLE.md 8, "elements... leave by drying out and fading". No flood, no
+         * drink: its resolve window is empty, so the drying starts at once, and
+         * because the marks below keep their heights, nothing on the sheet moves.
+         *
+         * @return the slot index the engine should be told to remove, always 0
+         */
+        public int erase(double at) {
+            for (int k = pending.size() - 1; k >= 0; k--) {
+                Mark m = pending.get(k);
+                if (m.shape().height() == pending.size() - 1) {
+                    pending.remove(k);
+                    done.add(new Mark(m.shape(), m.writtenAt(), at, at));
+                    return 0;
+                }
+            }
+            throw new IllegalStateException("nothing banked to erase");
+        }
+
+        /**
          * The stanza resolves: the beats of {@code beats} drink the marks from the
          * top of the column downward.
          *
@@ -353,12 +441,23 @@ public final class Readout {
         }
 
         public Readout build(Schedule schedule) {
+            return build(schedule, List.of(), List.of());
+        }
+
+        /**
+         * Builds with the scheduler's own second-exact record of blows and deaths,
+         * so the rows drop when the blade lands rather than when the board is next
+         * recorded. The two lists come from {@link Scheduler#wounds()} and
+         * {@link Scheduler#passings()} -- the same mapping that placed the beats.
+         */
+        public Readout build(Schedule schedule, List<Scheduler.Wound> wounds,
+                             List<Scheduler.Passing> passings) {
             if (chapters.isEmpty()) {
                 throw new IllegalStateException("a readout needs at least one board");
             }
             List<Mark> all = new ArrayList<>(done);
             all.addAll(pending);
-            return new Readout(stage, schedule, chapters, all);
+            return new Readout(stage, schedule, chapters, all, wounds, passings);
         }
     }
 }
