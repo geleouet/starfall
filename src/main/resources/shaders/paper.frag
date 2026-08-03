@@ -175,7 +175,15 @@ void main() {
     // and 5 the smear begins *below* the feet (image 3: feet at y955, smear from
     // y960) and the figures stand clear of it. World y 0.06 is the sole line.
     float groundW = 0.06 + 0.05 * fbm(vec2(w.x * 1.6, 5.0));
-    ground = mix(ground, smoothstep(groundW + 0.42, groundW - 0.10, w.y), u_dusk);
+    // <b>System 4 pass 5: steeper, and it starts lower.</b> The 0.42 above put the
+    // smear's own transition across world y 0.50 down to -0.04, which is a soft
+    // 220-row ramp -- an airbrush, and the pass-4 review named it as one. Reference
+    // image 3's outer-column background falls from 49.0 at world y 0.00 to 16.7 at
+    // -0.10: the corpus's ground band is a *step*, one tenth of a figure height
+    // deep, not a gradient a third of a figure high. The smear now runs its whole
+    // transition between world y 0.25 and -0.04, which also puts its top edge below
+    // the feet where all three Family B images have it.
+    // (the dusk smear's own edge is set inside the branch below)
     // And it reaches the frame edges, which the Family A smear deliberately does
     // not ("fading out before it reaches either side of the frame"). Reference
     // image 3's background at its own far left edge reads #171B26 at world
@@ -185,11 +193,76 @@ void main() {
     ground *= mix(smoothstep(0.01, 0.26, uv.x) * smoothstep(0.01, 0.26, 1.0 - uv.x),
                   1.0, u_dusk);
     float bloom = smoothstep(0.42, 0.86, fbm(w * 2.6 + 19.0));
-    // On the dusk stage the smear is the darkest thing in frame and it is what
-    // the figures' feet dissolve into. On cream it is a wash at 0.42-0.87; here
-    // it goes nearly opaque, because reference images 3, 4 and 5 all put a solid
-    // band of near-black across the bottom of the sheet.
-    col = mix(col, lowInk, ground * mix(0.42 + 0.45 * bloom, 0.74 + 0.24 * bloom, u_dusk));
+    if (u_dusk < 0.5) {
+        // Family A, unchanged: a wash at 0.42-0.87 over cream, and it fades out
+        // before it reaches either side of the frame.
+        col = mix(col, lowInk, ground * (0.42 + 0.45 * bloom));
+    } else {
+        // -- System 4 pass 5, item 3: the smear is ragged, not solid ----------
+        //
+        // Measured, lower third of the figure span plus 30 rows, matched scale and
+        // matched crop: reference image 3 reads sd 24.7 and p99-p01 = 91.4 through
+        // that band, and 41.6% of its pixels are below STYLE.md 2.2's own floor of
+        // luminance 25.73. Clamped at that floor -- which is what a pass obeying
+        // 2.2 can reach -- the same band reads sd 21.0 and range 76.6, and pass 4
+        // delivered 20.2 and 70.8. So the number in the pass-5 brief was not
+        // reachable, and what is left to pay is not dispersion, it is the three
+        // things a reader can name: an airbrushed ramp instead of a step, grass
+        // strokes at 2% contrast, and a band that got *brighter* toward the frame
+        // bottom where every Family B image gets darker.
+        //
+        // <b>And the marks go ABOVE the smear, not on it.</b> STYLE.md 3.4's rule
+        // read one level out: "when the base colour already sits on the floor, pool
+        // by lifting everything else... it has nothing left to darken into." Three
+        // probes of this pass put splatter, drips and wet blooms *inside* the smear
+        // and measured no change at all in the band, for exactly that reason -- the
+        // smear is INK_BLACK, the marks are INK_BLACK, and a mark drawn on its own
+        // colour is not a mark. What the corpus has in its bottom third is dark
+        // marks standing on a ground that is not at the floor: image 3's row median
+        // runs 56.7 at world y +0.05 and 15.8 at -0.15, and the marks are the
+        // difference between the two.
+        //
+        // Every octave states its world-space period against STYLE.md 3b.1's 2 px
+        // floor: the intimate framing puts 222 px on a world unit.
+        //
+        // <b>The whole dusk ground is inside this branch, and that is deliberate.</b>
+        // Written as terms multiplied by u_dusk it is arithmetically identical on
+        // cream -- and it was not identical in delivered pixels: the null control
+        // moved 97,791 px over 24 frames at a maximum channel delta of 6, purely
+        // from the driver recompiling a longer shader. Multiplying by zero is not
+        // the same as not executing. STYLE.md 11.2b(g), one level down.
+
+        // The smear proper: a step below the feet rather than a ramp through the
+        // skirt. The pass-4 form put its transition across world y 0.50 down to
+        // -0.04, a soft 220-row gradient; reference image 3's outer-column
+        // background falls from 49.0 at world y 0.00 to 16.7 at -0.10.
+        ground = smoothstep(groundW + 0.16, groundW - 0.12, w.y);
+        // Holes, and they live at the smear's top edge rather than all through it:
+        // a wash breaks up where it thins and is solid where it pooled, so a
+        // uniform hole field only lifts the darkest rows -- measured, it did
+        // exactly that and took the band's median the wrong way.
+        float holes = 1.0 - 0.45
+                    * smoothstep(0.44, 0.78, fbm(vec2(w.x * 2.3, w.y * 5.0) - 61.0))
+                    * smoothstep(groundW - 0.06, groundW + 0.10, w.y);
+        // The band the marks live in: from the smear's own edge up to about a
+        // quarter of a figure height, which is the ankle. Clumped, and it stops
+        // well short of the sash -- this is the ground's own smoke, not a second
+        // horizon.
+        float above = smoothstep(groundW - 0.02, groundW + 0.09, w.y)
+                    * smoothstep(groundW + 0.52, groundW + 0.19, w.y);
+        float fingers = smoothstep(0.56, 0.86, fbm(vec2(w.x * 1.5, w.y * 2.6) + 23.0))   // 148 px
+                      * above;
+        float drip = smoothstep(0.56, 0.90, vnoise(vec2(w.x * 26.0, w.y * 2.6 + 3.0)))   //  8.5 px
+                   * smoothstep(groundW - 0.04, groundW + 0.07, w.y)
+                   * smoothstep(groundW + 0.40, groundW + 0.10, w.y);
+        float splat = smoothstep(0.74, 0.97, vnoise(vec2(w.x * 31.0, w.y * 33.0) + 77.0))//  7.2 px
+                    * smoothstep(0.46, 0.86, vnoise(vec2(w.x * 4.5, w.y * 5.5) - 12.0))
+                    * above;
+        col = mix(col, lowInk, ground * holes * (0.80 + 0.19 * bloom));
+        col = mix(col, wetInk, fingers * 0.92);
+        col = mix(col, wetInk, drip * 0.80);
+        col = mix(col, lowInk, splat * 0.95);
+    }
 
     // Contact pool: a rounder, darker wash directly under the figure's feet,
     // distinct from the wide side-to-side ground smear above -- the rig
@@ -228,7 +301,11 @@ void main() {
     float clump = smoothstep(0.40, 0.78, vnoise(vec2(w.x * 1.3, 11.0)))
                 * (0.55 + 0.45 * smoothstep(1.0, 0.0, abs(w.x) / 1.1));
     float grass = smoothstep(0.72, 0.95, vnoise(vec2(w.x * 38.0, w.y * 2.0)));
-    col = mix(col, lowInk, bladeMask * grass * clump * 0.34
+    // 0.34 on cream, 0.80 at dusk. The pass-4 review measured the delivered grass
+    // at "roughly 2% contrast" against a corpus whose strokes are the darkest marks
+    // in the frame, and a stroke that cannot be seen is not a stroke. The mask and
+    // the clumping are unchanged; only the amplitude moves, and only at dusk.
+    col = mix(col, lowInk, bladeMask * grass * clump * mix(0.34, 0.80, u_dusk)
                     * smoothstep(0.05, 0.28, uv.x) * smoothstep(0.05, 0.28, 1.0 - uv.x));
 
     // Fog bands. Same construction as ink_skin.frag so the mist the figure fades
@@ -246,6 +323,14 @@ void main() {
         fog += b.z * (1.0 - smoothstep(0.0, 1.0, dist));
     }
     fog = clamp(fog, 0.0, 1.0);
+    // Dead on every scene that ships, and worth a line rather than a deletion:
+    // PaperBackground hands this pass NO_BANDS and draws the mist in its own
+    // alpha-blended pass afterwards, so u_fogBands is all zeros here and this
+    // term contributes nothing on either stage. System 4 pass 5 spent a probe
+    // capture attenuating it before measuring that -- STYLE.md 11.2b(g), one
+    // level down: state what a term would read if the thing it acts on were
+    // absent, and here it is always absent. The attenuation that was wanted lives
+    // in PaperBackground.MIST_FRAG, which is where the bands actually are.
     col = mix(col, mix(u_fogColor, u_paperWarm, 0.35), fog * mix(0.62, 0.34, u_dusk));
 
     // Jewel motes: out-of-focus, slow, and few (STYLE.md 6). Additive but tiny --

@@ -88,6 +88,54 @@ class ControlGuardTest {
         assertTrue(refusal(live, bare).contains("no capture.txt"), "the missing manifest must be named");
     }
 
+    /**
+     * {@code analyse corridor} must refuse without {@code --span}.
+     *
+     * <h2>Why this is here and not in a comment</h2>
+     *
+     * <p>The rule was written down. {@code docs/system4-debt.md}'s Commands section ended
+     * with <i>"Give {@code --span} on every Family B capture. Without it the detected figure
+     * box spans the ground smear and both frame edges, and every ratio in this document is
+     * wrong by 30-50%"</i> — and the pass-4 review then found that the same document's §6.1
+     * had compared a spanned reading of one {@code LANE_SPREAD} against an un-spanned reading
+     * of another, and drew a structural refusal out of the difference. The gap between the
+     * two readings on the shipped capture is <b>1 of 24 frames one mass against 17 of 24</b>.
+     *
+     * <p>§11.2b(e) is the rule this closes: a discipline written into a document but not into
+     * the tool that reads it is documentation, not a guard.
+     */
+    @Test
+    void corridorRefusesWithoutASpan() throws IOException {
+        File dir = capture("corridor", "duel-parry", "1.42", "0.0167", "none", "abc123");
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> corridorRun(dir, false, false));
+        assertTrue(e.getMessage().contains("--span is required"), e.getMessage());
+        assertTrue(e.getMessage().contains("17 of 24"), e.getMessage());
+        // Both forms of the command, because both normalise by a figure height.
+        assertThrows(IllegalArgumentException.class, () -> corridorRun(dir, false, true));
+        // And both waivers are accepted, so the refusal is a gate and not a wall.
+        assertEquals(0, corridorRun(dir, true, false), "an explicit --span must be accepted");
+    }
+
+    private int corridorRun(File dir, boolean withSpan, boolean profile) throws IOException {
+        PrintStream saved = System.out;
+        System.setOut(new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8));
+        try {
+            java.util.List<String> argv = new java.util.ArrayList<>(
+                    java.util.List.of("corridor", dir.getPath()));
+            if (withSpan) {
+                argv.add("--span");
+                argv.add("0,10,120,100");
+            }
+            if (profile) {
+                argv.add("--profile");
+            }
+            return AnalysisCli.run(argv.toArray(new String[0]));
+        } finally {
+            System.setOut(saved);
+        }
+    }
+
     @Test
     void aMatchingRigidControlIsAccepted() throws IOException {
         File live = capture("live", "sim-sway", "1.0", "0.0167", "none", "abc123");

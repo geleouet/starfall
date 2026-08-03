@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * against a true 329.
  *
  * <p>So the span quoted in {@code docs/system4-debt.md} and passed to
- * {@code analyse ... --span 0,348,960,329} is derived here, from
+ * {@code analyse ... --span 0,299,960,378} is derived here, from
  * {@code Schedule.framingAt} and {@code Stage.FIGURE_HEIGHT} through the same camera
  * arithmetic {@code DuelScene.aim} runs, and asserted so it cannot rot silently when a
  * framing constant moves.
@@ -45,12 +45,25 @@ class ParryWindowTest {
     /** {@code EYE} in {@code DuelScene}: where the camera looks, as a fraction of frame height. */
     private static final double EYE = 0.44;
 
-    /** The span every {@code s4-p4-*} parry measurement is normalised by. */
-    static final int SPAN_TOP = 348;
-    static final int SPAN_HEIGHT = 329;
+    /**
+     * The span every {@code s4-p5-*} parry measurement is normalised by.
+     *
+     * <p><b>It moved in pass 5 and the move is the point of the assertion.</b>
+     * {@code Director.LANE_SPREAD} went 1.55 to 1.35, and the camera framing is
+     * stretched by the same factor ({@code Director.stretchTiles}), so the intimate
+     * shot is 13% narrower and the same 1.70-unit figure lands on <b>378</b> rows
+     * rather than 329. Every ratio in {@code docs/system4-debt.md} is taken through
+     * whichever of the two the capture was shot at, and each is labelled with it.
+     *
+     * <p>The feet row does not move: {@code rowOfGround} works out to
+     * {@code (0.5 + EYE) * H} whatever the zoom, so world y = 0 sits at row 677 at
+     * both spreads. Only the crown rises, 348 to 299.
+     */
+    static final int SPAN_TOP = 299;
+    static final int SPAN_HEIGHT = 378;
 
     @Test
-    void theGradedParryWindowPutsAFigureHeightAt329Rows() {
+    void theGradedParryWindowPutsAFigureHeightAt378Rows() {
         Rehearsal r = new Rehearsal(Duel.Kind.PARRY);
         r.play();
         double minH = Double.MAX_VALUE;
@@ -77,7 +90,7 @@ class ParryWindowTest {
         assertTrue(maxH - minH < 4, "the framing moves " + (maxH - minH)
                 + " rows of figure height across the graded window; one span no longer serves it");
         assertEquals(SPAN_HEIGHT, Math.round((minH + maxH) / 2), 2,
-                "docs/system4-debt.md normalises every s4-p4 parry number by " + SPAN_HEIGHT
+                "docs/system4-debt.md normalises every s4-p5 parry number by " + SPAN_HEIGHT
                         + " rows; the scene now says " + (minH + maxH) / 2);
         assertEquals(SPAN_TOP, Math.round((minTop + maxTop) / 2), 2,
                 "the crown row quoted with that span is " + SPAN_TOP + "; the scene now says "

@@ -47,7 +47,11 @@ import dev.starfall.art.Palette;
  *       different blend states.</b> See {@code ink_fx.frag}.</li>
  *   <li><b>No hard edge.</b> Every polygon in this file ends on zero alpha, so
  *       nothing can print a boundary of its own -- STYLE.md 3's "nothing in this
- *       game has a hard edge except the blades".</li>
+ *       game has a hard edge except the blades". <b>That sentence was false for
+ *       three marks until System 4 pass 5</b> -- the shed flecks, the embers and
+ *       the clash rays -- and it is the kind of false a comment is worst at
+ *       catching, because the two marks it was wrong about are the two drawn most
+ *       often and nearest the eye. See {@link #FLECK_RIM} and {@link #ray}.</li>
  * </ol>
  *
  * <p>Deterministic: every random-looking quantity is a hash of the mark's seed
@@ -59,6 +63,22 @@ public final class InkFxRenderer {
 
     /** Rim points on a bloom. Enough to hide the polygon, few enough to stay cheap. */
     private static final int BLOOM_RIM = 20;
+
+    /**
+     * Rim points on a single shed fleck or ember.
+     *
+     * <p>Seven rather than four, and the difference is the whole of System 4 pass 5's
+     * first item. Through pass 4 a fleck was a rotated quad of <em>uniform</em> alpha,
+     * and the pass-4 review measured what that prints: blobs at (555,343), (562,349),
+     * (570,349) and (549,353) on frame 11 of {@code s4-p4-parry-contact}, 7x7 and 8x8
+     * px, <b>bounding-box fill 0.78 to 1.00</b>, all within a pixel of the same size,
+     * 60 px from the focal point of the frame. Filled axis-aligned quadrilaterals are
+     * STYLE.md 10's "hard-edged sprites" and STYLE.md 3's first line -- "nothing in
+     * this game has a hard edge except the blades" -- and the class comment below
+     * claimed the opposite: <i>"every polygon in this file ends on zero alpha"</i>.
+     * It was true of every mark here except the two that are drawn most often.
+     */
+    private static final int FLECK_RIM = 7;
 
     private static final int MAX_VERTS = 8192;
     private static final int MAX_INDICES = 12288;
@@ -136,8 +156,15 @@ public final class InkFxRenderer {
      * than radially -- a symmetric spray is the particle system STYLE.md 10 fails
      * on sight, and a shed fleck is a piece of the figure coming off, so it goes
      * where the figure was hit from. Each fleck carries its own size, its own
-     * speed and its own slight rotation, and they are quads rather than discs
-     * because a brush fleck is angular.
+     * speed and its own slight rotation.
+     *
+     * <p><b>Sizes are spread over a cube rather than a line (pass 5).</b> STYLE.md 3's
+     * failure-signature list names "flecks that are all the same size", and a size
+     * drawn as {@code a + b * h} for uniform {@code h} puts most of the population in
+     * the middle of its range: the pass-4 review found five blobs by the clash "all
+     * within a pixel of the same size". Cubing the hash and widening the range gives
+     * a few large marks and many small ones, which is what a brush shedding pigment
+     * actually leaves.
      */
     public void flecks(float x, float y, float dirX, float dirY, float mag, float age,
                        Color ink, float seed) {
@@ -160,12 +187,15 @@ public final class InkFxRenderer {
             float travel = speed * u * (1.35f - 0.35f * u);
             float fx = x + MathUtils.cos(angle) * travel;
             float fy = y + MathUtils.sin(angle) * travel + 0.10f * u * u * (h3 - 0.75f);
-            float size = (0.006f + 0.016f * h3) * (1f - 0.45f * u);
+            float size = (0.0035f + 0.026f * h3 * h3 * h3) * (1f - 0.45f * u);
             float alpha = mag * (0.55f + 0.35f * h2) * (1f - u) * (1f - u);
             if (alpha <= 0.004f) {
                 continue;
             }
-            quad(soakVerts, soakIndices, fx, fy, size, angle + h1 * 2f, alpha, ink);
+            // Elongated along its own flight, because a fleck thrown off a wet
+            // surface leaves a dab with a direction, not a dot.
+            fleck(soakVerts, soakIndices, fx, fy, size, angle + h1 * 2f,
+                    1.25f + 0.9f * h2, alpha, ink, seed + i * 1.7f);
         }
     }
 
@@ -246,17 +276,26 @@ public final class InkFxRenderer {
             irregularDisc(lightVerts, lightIndices, x, y, (0.045f + 0.075f * mag) * (1f + 1.6f * u) * 0.34f,
                     Math.min(1f, core * 2.6f), Palette.CLASH_CORE, seed + 5.5f, 0.22f);
 
-            int rays = 5;
+            // Four to six, per STYLE.md 5, and the count itself is a hash of the
+            // mark rather than a constant: five rays every time is a star sprite
+            // however unequal their lengths are.
+            int rays = 4 + Math.round(2f * hash(seed, 0, 61));
             for (int i = 0; i < rays; i++) {
                 float h = hash(seed, i, 5);
+                float h2 = hash(seed, i, 43);
                 // Unevenly spaced, and the two nearest the blades' shared axis are
                 // the long ones.
-                float angle = along + i * MathUtils.PI2 / rays + (h - 0.5f) * 0.42f;
+                float angle = along + i * MathUtils.PI2 / rays + (h - 0.5f) * 0.62f;
                 float axisness = Math.abs(MathUtils.cos(angle - along));
+                // Lengths spread over a square, for the reason the flecks are: a
+                // linear spread clusters, and rays of nearly equal length print the
+                // "symmetric, uniform particle burst" STYLE.md 10 fails on sight.
+                // Pass 4's five rays ran 0.55x to 1.00x of each other; these run
+                // 0.375x to 1.00x, and the count varies too.
                 float length = (0.14f + 0.44f * mag) * (0.42f + 0.58f * axisness)
-                        * (0.55f + 0.45f * h) * (1f + 0.9f * u);
-                float half = length * 0.070f;
-                ray(lightVerts, lightIndices, x, y, angle, length, half, core * (0.55f + 0.45f * h));
+                        * (0.45f + 0.75f * h * h) * (1f + 0.9f * u);
+                float half = length * (0.075f + 0.055f * h2);
+                ray(x, y, angle, length, half, core * (0.45f + 0.55f * h2), h2);
             }
         }
 
@@ -277,13 +316,16 @@ public final class InkFxRenderer {
             // 2 px at the first pass's size, which is under the paper grain and
             // therefore not a mark at all. STYLE.md 5 asks for "8-20 warm embers"
             // and an ember that cannot be seen is not one of them.
-            float size = (0.009f + 0.017f * h3) * (1f - 0.55f * u);
+            float size = (0.005f + 0.030f * h3 * h3 * h3) * (1f - 0.55f * u);
             float alpha = mag * (0.5f + 0.5f * h1) * (1f - u) * (1f - u);
             if (alpha <= 0.004f) {
                 continue;
             }
             scratch.set(Palette.EMBER);
-            quad(lightVerts, lightIndices, ex, ey, size, angle, alpha, scratch);
+            // Smeared along its own drift. An ember at rest is a dot; an ember
+            // floating like paper ash (STYLE.md 5) has a long axis.
+            fleck(lightVerts, lightIndices, ex, ey, size, angle,
+                    1.4f + 1.1f * h2, alpha, scratch, seed + i * 2.3f);
         }
     }
 
@@ -383,50 +425,148 @@ public final class InkFxRenderer {
         }
     }
 
-    /** One soft ray: a triangle from a bright base to a zero-alpha point. */
-    private void ray(float[] verts, short[] indices, float x, float y, float angle,
-                     float length, float half, float alpha) {
-        if (lightV + 3 >= MAX_VERTS || lightI + 3 >= MAX_INDICES) {
+    /** Stations along one ray's spine. Four gaps is enough to bend it and to fade it. */
+    private static final int RAY_STATIONS = 5;
+
+    /**
+     * The peak of the spindle's own alpha profile, so replacing the triangle did not
+     * dim the star.
+     *
+     * <p>The pass-4 triangle carried {@code 0.85 * alpha} at its single tip vertex.
+     * The spindle's profile {@code min(1, t/0.15) * (1-t)^1.6} peaks at 0.771, so an
+     * unscaled swap would dim the star for no reason. Dividing by the profile's own
+     * peak keeps the mark's brightness a property of {@code core}, which is where the
+     * amplitude reasoning in {@link #clash} lives, rather than an accident of the shape.
+     *
+     * <p><b>The exponent is 1.6 rather than a cube, and that is a measured correction
+     * inside this pass.</b> The first probe faded the spindle as {@code (1-t)^3} and
+     * shortened the length distribution at the same time; at 4x on frame 11 the star
+     * had a core and <em>no visible rays at all</em>, which trades one STYLE.md 5 miss
+     * for another -- 5 asks for "4-6 long soft rays". A cube puts 95% of the light
+     * inside the first third of the ray. 1.6 still reaches exactly zero at the point,
+     * which is the whole reason for the shape, and carries legible light to about 80%
+     * of the length.
+     */
+    private static final float RAY_PEAK = 0.771f / 0.85f;
+
+    /**
+     * One soft ray: a tapering spindle whose whole boundary sits on zero alpha.
+     *
+     * <h2>What this replaces, and why it is item 1 of the pass-5 brief</h2>
+     *
+     * <p>Through pass 4 a ray was <em>one triangle</em>: two zero-alpha vertices at
+     * the base and a single vertex at the tip carrying {@code alpha * 0.85}. Read
+     * along the spine that is a soft ramp, which is what it was written for -- but
+     * read <em>across</em> it, the alpha at the tip is constant to the last pixel and
+     * then stops. The triangle therefore prints two straight aliased edges converging
+     * on a hard terminating point, which is STYLE.md 10's "hard-edged sprites /
+     * visible polygon silhouettes" drawn at the focal point of the frame.
+     *
+     * <p>The pass-4 review measured it against reference image 3's own clash box at
+     * matched scale: single-pixel luminance steps of <b>max 134</b> and 0.021% of
+     * pixels stepping over 100, where the reference has a max of 76 and <b>nothing</b>
+     * over 100.
+     *
+     * <p>So the ray is now a strip of {@link #RAY_STATIONS} stations. Every station
+     * carries a centre vertex with the light and two flank vertices at zero alpha, and
+     * the last station has both zero width and zero alpha -- so there is no boundary
+     * anywhere on the mark, lateral or terminal, that is not a fade to nothing. The
+     * spine also bows: a straight ray is a polygon, and a hand-drawn flare is not.
+     *
+     * <p>The light still peaks a little way out rather than at the origin, which is
+     * what the pass-4 comment got right and is kept: the core disc already holds the
+     * centre, so a ray brightest at its base would only fatten it.
+     */
+    private void ray(float x, float y, float angle, float length, float half,
+                     float alpha, float bow) {
+        if (lightV + RAY_STATIONS * 3 >= MAX_VERTS || lightI + (RAY_STATIONS - 1) * 12 >= MAX_INDICES) {
             return;
         }
         float dx = MathUtils.cos(angle);
         float dy = MathUtils.sin(angle);
+        // Perpendicular, and the spine's own sideways drift along it. Signed off the
+        // hash so rays bow both ways within one star.
+        float curve = (bow - 0.5f) * 0.55f * length;
         int base = lightV;
-        put(verts, lightV++, x - dy * half, y + dx * half, Palette.CLASH_CORE, 0f);
-        put(verts, lightV++, x + dy * half, y - dx * half, Palette.CLASH_CORE, 0f);
-        put(verts, lightV++, x + dx * length, y + dy * length, Palette.CLASH_CORE, alpha * 0.85f);
-        indices[lightI++] = (short) base;
-        indices[lightI++] = (short) (base + 1);
-        indices[lightI++] = (short) (base + 2);
-        // The base of the ray is transparent and its tip carries the light, which
-        // is backwards for a ray and right for this one: the core disc already
-        // holds the centre, so a ray that was brightest at the origin would just
-        // fatten it. Brightest a little out and dying at the point is what makes
-        // the star read as rays rather than as a blob with spikes.
+        for (int k = 0; k < RAY_STATIONS; k++) {
+            float t = k / (float) (RAY_STATIONS - 1);
+            // Width: a little narrower at the throat than at the shoulder, then to
+            // nothing at the point. Not linear, so the silhouette is a spindle.
+            float w = half * (0.85f + 1.05f * t * (1f - t) * 2f) * (1f - t) * (1f - t * 0.35f);
+            // Light: in over the first sixth, then out as a soft power so the last
+            // station is unambiguously zero rather than a small residue that would
+            // print the strip's own end.
+            float rise = Math.min(1f, t / 0.15f);
+            float fall = (float) Math.pow(1f - t, 1.6);
+            float a = Math.min(1f, alpha * rise * fall / RAY_PEAK);
+            float off = curve * t * t;
+            float cx = x + dx * length * t - dy * off;
+            float cy = y + dy * length * t + dx * off;
+            put(lightVerts, lightV++, cx - dy * w, cy + dx * w, Palette.CLASH_CORE, 0f);
+            put(lightVerts, lightV++, cx, cy, Palette.CLASH_CORE, a);
+            put(lightVerts, lightV++, cx + dy * w, cy - dx * w, Palette.CLASH_CORE, 0f);
+        }
+        for (int k = 0; k < RAY_STATIONS - 1; k++) {
+            int p = base + k * 3;
+            int q = p + 3;
+            // Left panel, then right panel, each as two triangles.
+            tri(p, p + 1, q + 1);
+            tri(p, q + 1, q);
+            tri(p + 1, p + 2, q + 2);
+            tri(p + 1, q + 2, q + 1);
+        }
     }
 
-    /** One fleck or ember: a small rotated quad, uniform alpha, no hard rim of its own. */
-    private void quad(float[] verts, short[] indices, float x, float y, float size, float angle,
-                      float alpha, Color ink) {
+    private void tri(int a, int b, int c) {
+        lightIndices[lightI++] = (short) a;
+        lightIndices[lightI++] = (short) b;
+        lightIndices[lightI++] = (short) c;
+    }
+
+    /**
+     * One shed fleck or ember: a small irregular fan, elongated along its own
+     * flight, whose rim sits on zero alpha.
+     *
+     * <h2>What this replaces</h2>
+     *
+     * <p>A rotated quad of uniform alpha -- four vertices all carrying the mark's
+     * full value, so every one of its four edges was a step from the mark's own
+     * brightness to the ground's. At the sizes these are drawn (6 to 17 px across at
+     * the intimate framing) the rotation does not save it: the pass-4 review read
+     * bounding-box fills of 0.78 to 1.00 and called them, correctly, "filled
+     * axis-aligned quadrilaterals... the single most damaging object in the picture
+     * because of where it sits".
+     *
+     * <p>The same mark as a fan costs three more vertices and has no boundary at all:
+     * the centre carries the light and every rim point is zero. The rim radius is
+     * hashed per point so no two flecks share an outline, and the ellipse is stretched
+     * along the direction of travel so the mark reads as a dab with a direction rather
+     * than as a disc.
+     */
+    private void fleck(float[] verts, short[] indices, float x, float y, float size,
+                       float angle, float stretch, float alpha, Color ink, float seed) {
         boolean soak = verts == soakVerts;
-        int v = soak ? soakV : lightV;
+        int base = soak ? soakV : lightV;
         int i = soak ? soakI : lightI;
-        if (v + 4 >= MAX_VERTS || i + 6 >= MAX_INDICES) {
+        if (base + FLECK_RIM + 1 >= MAX_VERTS || i + FLECK_RIM * 3 >= MAX_INDICES) {
             return;
         }
-        float c = MathUtils.cos(angle) * size;
-        float s = MathUtils.sin(angle) * size;
-        int base = v;
-        put(verts, v++, x - c - s, y - s + c, ink, alpha);
-        put(verts, v++, x + c - s, y + s + c, ink, alpha);
-        put(verts, v++, x + c + s, y + s - c, ink, alpha);
-        put(verts, v++, x - c + s, y - s - c, ink, alpha);
-        indices[i++] = (short) base;
-        indices[i++] = (short) (base + 1);
-        indices[i++] = (short) (base + 2);
-        indices[i++] = (short) (base + 2);
-        indices[i++] = (short) (base + 3);
-        indices[i++] = (short) base;
+        int v = base;
+        float c = MathUtils.cos(angle);
+        float s = MathUtils.sin(angle);
+        put(verts, v++, x, y, ink, alpha);
+        for (int k = 0; k < FLECK_RIM; k++) {
+            float a = MathUtils.PI2 * k / FLECK_RIM;
+            float wob = 0.60f + 0.80f * hash(seed, k, 29);
+            float lx = MathUtils.cos(a) * size * stretch * wob;
+            float ly = MathUtils.sin(a) * size * wob;
+            put(verts, v++, x + c * lx - s * ly, y + s * lx + c * ly, ink, 0f);
+        }
+        for (int k = 0; k < FLECK_RIM; k++) {
+            indices[i++] = (short) base;
+            indices[i++] = (short) (base + 1 + k);
+            indices[i++] = (short) (base + 1 + (k + 1) % FLECK_RIM);
+        }
         if (soak) {
             soakV = v;
             soakI = i;

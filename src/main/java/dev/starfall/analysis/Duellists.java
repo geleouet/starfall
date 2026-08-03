@@ -250,8 +250,23 @@ public final class Duellists {
      * different claim.
      */
     public static Corridor corridor(Frame f, Paper paper, double inkFactor) {
-        Figure figure = Figure.detect(f, paper, inkFactor);
-        List<Component> parts = inkComponents(f, paper.threshold(inkFactor));
+        return corridor(f, paper, inkFactor, null);
+    }
+
+    /**
+     * The same, normalised by a <em>given</em> figure span and measured only inside it.
+     *
+     * <p>System 4 pass 5. Without a span this reads its normaliser from
+     * {@link Figure#detect}, and on the Family B stage that box runs from the head down
+     * into the ground smear and out to both frame edges -- measured on
+     * {@code s4-p4-parry-contact} frame 11, {@code x17..699 y320..719} against a true
+     * figure of 329 rows. Both halves of the answer move: the components merge through
+     * the ground band, and the fraction is divided by the wrong number. {@code analyse
+     * corridor} now refuses without one.
+     */
+    public static Corridor corridor(Frame f, Paper paper, double inkFactor, Rect span) {
+        int height = span != null ? span.h : Figure.detect(f, paper, inkFactor).height();
+        List<Component> parts = inkComponents(f, paper.threshold(inkFactor), span);
         int total = 0;
         for (Component c : parts) {
             total += c.pixels;
@@ -263,7 +278,7 @@ public final class Duellists {
             }
         }
         if (bodies.size() < 2) {
-            return new Corridor(0, figure.height(), 0, 0, bodies.size());
+            return new Corridor(0, height, 0, 0, bodies.size());
         }
         bodies.sort(Comparator.comparingInt(c -> c.x0));
         Component left = bodies.get(0);
@@ -282,7 +297,7 @@ public final class Duellists {
             run = clear ? run + 1 : 0;
             best = Math.max(best, run);
         }
-        return new Corridor(best, figure.height(), left.x1, right.x0, bodies.size());
+        return new Corridor(best, height, left.x1, right.x0, bodies.size());
     }
 
     /** One connected ink component, with the columns it occupies. */
@@ -316,9 +331,21 @@ public final class Duellists {
      * the eye sees. The share threshold does the work the opening was doing.
      */
     static List<Component> inkComponents(Frame f, double threshold) {
+        return inkComponents(f, threshold, null);
+    }
+
+    /** The same, with the ink mask cropped to a given span (null means the whole frame). */
+    static List<Component> inkComponents(Frame f, double threshold, Rect span) {
+        int y0 = span == null ? 0 : Math.max(0, span.y);
+        int y1 = span == null ? f.height : Math.min(f.height, span.y + span.h);
+        int x0 = span == null ? 0 : Math.max(0, span.x);
+        int x1 = span == null ? f.width : Math.min(f.width, span.x + span.w);
         boolean[] ink = new boolean[f.width * f.height];
-        for (int i = 0; i < ink.length; i++) {
-            ink[i] = f.lum[i] < threshold;
+        for (int y = y0; y < y1; y++) {
+            for (int x = x0; x < x1; x++) {
+                int i = y * f.width + x;
+                ink[i] = f.lum[i] < threshold;
+            }
         }
         List<Component> out = new ArrayList<>();
         boolean[] seen = new boolean[ink.length];

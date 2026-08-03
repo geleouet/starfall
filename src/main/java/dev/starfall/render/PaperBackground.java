@@ -348,6 +348,22 @@ public final class PaperBackground {
             // Reference image 3 keeps its lower third at luminance 29-55 with pale
             // smoke *wisps* through it, not a bank; this is the wisp strength.
             + "        a *= mix(1.0, 0.42, u_dusk);\n"
+            // System 4 pass 5, item 3's second-order term. STYLE.md 6 wants the
+            // bands "to occlude the lower body of figures and separate depth
+            // layers"; band 0 is centred at world y -0.14 with a half height of
+            // 0.56, so most of its area lies *under the ground line*, where the
+            // corpus has its darkest passage. Measured on the pass-4 capture the
+            // outer-column background runs 52.9 at world y 0.00 and 57.0 at -0.10,
+            // where reference image 3 reads 49.0 and 16.7: the bottom of this
+            // frame was brightening toward the frame edge while every Family B
+            // image darkens. The mist is the whole of that difference -- at 0.38
+            // alpha the dusk mist (luminance 139) lifts a 28-luminance ink smear
+            // to 70.
+            //
+            // So the band keeps its full strength through the feet (world y 0.13
+            // still reads 0.95 of it) and lets go below the ground line. Nothing
+            // above the hem changes, which is the part STYLE.md 6 is about.
+            + "        a *= mix(1.0, 0.25 + 0.75 * smoothstep(-0.18, 0.15, w.y), u_dusk);\n"
             // A faint high, wide veil across the top so the sky end of the sheet
             // is not perfectly clean either -- references 6-8 have light
             // everywhere, just less of it up high.

@@ -136,8 +136,38 @@ public final class Director {
      * {@code Stage}, which this pass does not own: either {@code TILE_WIDTH} rises
      * against {@code FIGURE_HEIGHT}, or {@code BODY_HALF} grows to the width the
      * rig actually has and the lane spacing follows it.
+     *
+     * <h2>1.55 to 1.35, System 4 pass 5, and the refusal that carried it is void</h2>
+     *
+     * <p>Pass 2 raised this to 1.55 to stop the two figures merging. Pass 3 shot 1.35
+     * and reported the parry destroyed; pass 4 re-shot it with the longer blade, found
+     * the blades met <em>better</em> at 1.35 (0.0068 of a figure height against the
+     * shipped 0.0182), and kept the refusal anyway on the merge count -- <i>"8 of 24
+     * at 1.35, 1 of 24 at 1.55"</i>.
+     *
+     * <p><b>That comparison crossed spans.</b> The pass-4 review ran both settings
+     * through the project's own tool consistently and got 1 of 24 either way with
+     * {@code --span}, and 8 of 24 at 1.35 against <b>17</b> of 24 at 1.55 without it.
+     * Taken consistently the lower spread is equal or twice better on the merge, which
+     * was the last surviving half of the instruction not to lower it.
+     *
+     * <p>And it is the only lever on the thing pass 4's own corrected measurement
+     * says is worst: through the 329-row span its capture stood the duellists
+     * <b>1.048</b> figure heights apart at the skirt, against the corpus's 0.582 to
+     * 0.614 -- 1.7x, not the 1.3x the record claimed. The stand separation is
+     * {@code LANE_SPREAD * TILE_WIDTH / FIGURE_HEIGHT}: 0.912 at 1.55 and <b>0.794</b>
+     * at 1.35. Still above the corpus, and the structural answer is still the
+     * {@code Stage} change above -- 1.05 would be needed to match the corpus outright,
+     * and that is a combat-design decision, not a visual one.
+     *
+     * <p><b>What it costs is measured and recorded, not assumed:</b> the framing is
+     * stretched by the same factor, so at 1.35 the intimate shot is 13% narrower and
+     * the figure lands at 378 rows of a 720-row frame rather than 329. See
+     * {@code ParryWindowTest}, which recomputes the span from this constant, and
+     * {@code docs/system4-debt.md} for the shipped comparison against
+     * {@code out/captures/s4-p5-spread155}.
      */
-    public static final double LANE_SPREAD = 1.55;
+    public static final double LANE_SPREAD = 1.35;
 
     /**
      * Moves an anchor's tile without moving the anchor within its tile.

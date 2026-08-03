@@ -81,6 +81,56 @@ public final class InkSkinnedRenderer {
     private static final float TRAIL_SECONDS = 0.48f;
     private static final int TRAIL_SAMPLES = 24;
 
+    /**
+     * The other end the trail is trimmed from: how much <em>turn</em> it may hold,
+     * in radians, however little time that took.
+     *
+     * <h2>Why time alone is the wrong trim, measured</h2>
+     *
+     * <p>{@link #TRAIL_SECONDS} bounds the trail's age. At a tip speed around 18
+     * units/s that is an enormous arc, and the pass-4 review measured what it prints
+     * on the phrase capture: a single connected ridge in the sky window
+     * {@code x200..800 y130..320} of frame 6, box {@code x228..591 y143..319} --
+     * <b>364 px wide = 1.11 figure heights</b>, best-fit circle of radius 162 px =
+     * 0.49 figure heights, and an <b>angular extent of 177 degrees</b>. A half-circle
+     * of pale light standing in empty sky is a moon, and the review said so twice:
+     * once in its measurements and once, before it measured, by describing it as one.
+     *
+     * <p>STYLE.md 5 asks for "a smooth ribbon following the blade's <em>swept path</em>,
+     * brightest at the leading edge". A wake is a fragment of the path, not the whole
+     * of it. So the history is trimmed on <b>accumulated turn</b> as well as on age:
+     * the stored run may hold {@code TRAIL_SWEEP} radians of angular path, summed over
+     * its own steps so a back-and-forth spends the budget rather than cancelling it.
+     *
+     * <p><b>0.60 rad = 34 degrees, and the pass-5 brief asked for 60 to 80. The reason
+     * for the difference is granularity, and it is worth recording because it is a
+     * property of the mechanism rather than a taste.</b> On a fast phrase beat the
+     * stored poses are already <em>0.5 to 0.7 rad apart</em> -- one sample of history is
+     * a third of the budget the brief names -- so this constant does not choose an angle,
+     * it chooses a <em>number of stored poses</em>. Measured on {@code duel-phrase} frame
+     * 108, largest local-background sky ridge with the blade's own cool-bright mask
+     * excluded, window {@code x100..860 y60..330}, width as a fraction of the figure
+     * span:
+     *
+     * <ul>
+     *   <li>pass 4 (no cap): <b>432 px = 1.31 figure heights</b>, and the ridge is the
+     *       arc;</li>
+     *   <li>1.22 rad, which keeps three poses: 423 px = <b>1.12</b>, still an arc, still
+     *       reads as a crescent at 4x;</li>
+     *   <li>0.60 rad, which keeps two: 221 px = <b>0.58</b>, and the largest ridge in
+     *       that window is no longer the trail at all -- it is the hero's own ink at
+     *       {@code x208..428 y239..329}. Every value from 0.60 down to 0.05 draws the
+     *       identical frame, because two poses is the floor this method will trim to.</li>
+     * </ul>
+     *
+     * <p>So 60-80 degrees is not available: the choice is 34 or about 80, and at 80 the
+     * mark still reads as a moon. Taking the lower one is the one that answers the
+     * defect. A slow blade is unaffected either way -- 34 degrees of turn takes longer
+     * than 0.48 s to accumulate at a walking pace, so {@code TRAIL_SECONDS} still binds
+     * and the ribbon behaves exactly as it did.
+     */
+    private static final float TRAIL_SWEEP = 0.60f;
+
     private static final int FLOATS = SkinnedMesh.FLOATS_PER_VERTEX;
 
     static {
@@ -974,6 +1024,54 @@ public final class InkSkinnedRenderer {
             tipX[count] = b.x;
             tipY[count] = b.y;
             count++;
+
+            trimToSweep();
+        }
+
+        /**
+         * The second trim, on accumulated turn rather than on age.
+         *
+         * <p>Walks back from the newest pose summing the absolute shortest-arc turn
+         * between consecutive stored poses, and drops everything older than the point
+         * where the sum passes {@link #TRAIL_SWEEP}. Summed absolute rather than
+         * end-to-end so a reversal inside the window spends budget instead of
+         * cancelling it: the ring the pass-4 review measured is drawn by a sweep, but
+         * a sweep-and-return would print the same area with an end-to-end difference
+         * of nothing.
+         *
+         * <p>Two poses are always kept; a trail of one row is not a ribbon, and the
+         * cap must never be able to delete the smear STYLE.md 7.2 requires.
+         */
+        private void trimToSweep() {
+            if (count < 3) {
+                return;
+            }
+            float sum = 0f;
+            int keepFrom = 0;
+            for (int i = count - 1; i > 0; i--) {
+                float a1 = MathUtils.atan2(tipY[i] - baseY[i], tipX[i] - baseX[i]);
+                float a0 = MathUtils.atan2(tipY[i - 1] - baseY[i - 1], tipX[i - 1] - baseX[i - 1]);
+                float d = a1 - a0;
+                sum += Math.abs(MathUtils.atan2(MathUtils.sin(d), MathUtils.cos(d)));
+                if (sum > TRAIL_SWEEP) {
+                    keepFrom = i - 1;
+                    break;
+                }
+            }
+            // Keep the pose that took the sum over the cap, so the ribbon still
+            // reaches the whole of the permitted turn rather than stopping short of it.
+            if (keepFrom <= 0) {
+                return;
+            }
+            keepFrom = Math.min(keepFrom, count - 2);
+            for (int i = keepFrom; i < count; i++) {
+                time[i - keepFrom] = time[i];
+                baseX[i - keepFrom] = baseX[i];
+                baseY[i - keepFrom] = baseY[i];
+                tipX[i - keepFrom] = tipX[i];
+                tipY[i - keepFrom] = tipY[i];
+            }
+            count -= keepFrom;
         }
 
         /** Linear blend skinning of a group of vertices, matching ink_skin.vert exactly. */
