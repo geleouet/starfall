@@ -976,6 +976,15 @@ machine they pass, and on a clean clone they **silently skip** and the results t
 do not exist for anyone else. One of them was a pass's headline value result. This survived
 a review that checked the guard's *logic*, because the logic was fine.
 
+**And a guard whose exit code the pipeline discards has not run.** Recorded because the
+author of this section then did it: `check-progress.mjs` was invoked as
+`node tools/check-progress.mjs | tail -3 && git commit && git push`, and a pipe takes the
+exit status of its *last* command. The checker printed two FAILs in red, `tail` returned 0,
+and the commit and push proceeded over the top of them. Nothing was damaged, and nothing
+would have warned anybody if it had been. **Run a guard as itself, never through a pipe,
+and never as anything but the first link of a `&&` chain** — every convenience that
+reformats its output also throws away its verdict.
+
 Two things follow. **Never let a guard depend on an artefact the repository does not
 publish** — if an assertion needs a frame, that frame is source and must be force-added,
 whatever the ignore rules say about its neighbours. And **`skipped="0"` on the machine that
