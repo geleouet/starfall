@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=face-gallery -Pout=out/captures/s3b-p2-gallery -Pframes=1 -Pcols=1 -Pw=960 -Ph=720
+
+scene=face-gallery
+description=six seeded faces at push-in scale: 4b.6's variety, on screen instead of in a table
+frames=1
+start=0.0
+step=0.0
+window=0.0
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=4bdde59-dirty
+harness=f0ad18994eec

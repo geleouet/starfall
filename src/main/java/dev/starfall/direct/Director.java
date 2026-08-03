@@ -339,14 +339,16 @@ public final class Director {
     /**
      * The stance the body is holding, and how far into it it is.
      *
-     * <p>{@code PoseChange} carries a stance, a gaze, a duration and a settle. The
-     * stance and the duration are honoured here; <b>the gaze is not, and that is a
-     * gap worth naming rather than papering over</b> -- there is no head-aim
-     * channel in this rig. {@code RigIk} has chains for the trunk, the arm and both
-     * legs and nothing for the neck or the eye, and STYLE.md 4b.6's gaze is a real
-     * requirement that no layer below System 4 provides a mechanism for. What the
-     * stance table does carry is the head's <em>attitude</em> per condition, which
-     * is a coarser thing than a gaze and is what is available.
+     * <p>{@code PoseChange} carries a stance, a gaze, a duration and a settle. All
+     * three channels are honoured now: the stance and duration as before, and —
+     * since System 3b — <b>the gaze</b>, which this method resolves through the
+     * same lane stretch every other anchor gets and hands to the figure's
+     * {@link dev.starfall.rig.FaceRig}. For four systems this javadoc recorded the
+     * gaze as "a gap worth naming rather than papering over"; the face sub-rig is
+     * the mechanism it was waiting for, and the schedule needed no change at all,
+     * because the {@code Scheduler} has authored a gaze anchor on every pose
+     * change since System 4 (STYLE.md 4b.6: "intent — who this character is about
+     * to act on").
      */
     private void poseChannel(Figure f) {
         Directive.PoseChange active = null;
@@ -367,6 +369,9 @@ public final class Director {
         double span = Math.max(1e-6, active.duration() + active.settle());
         double u = (t - active.at()) / span;
         f.stance(active.stance(), (float) smooth(u));
+        if (active.gaze() != null) {
+            f.gazeAt(stretch(active.gaze()), active.gaze().y());
+        }
     }
 
     /**

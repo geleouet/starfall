@@ -393,6 +393,31 @@ are pale, cool and papery, with warmth reserved for small areas.
 
 Ochre stain and vermillion from §2.1 carry over unchanged for skin marks.
 
+**This whole table is a *portrait* palette, and the duel is not a portrait. Read the next
+paragraph before using any hex above.** These values were sampled from `inspirations/faces/`
+— close studies on pale ground — and the combat stage is family B, a figure against a dusk
+sky. Used literally there, `SKIN_DEEP` is luminance 94, **3.7× the ink floor**, and System 3b
+delivered a face reading **1.36× its local sky** where the corpus's two duellists read
+**0.25× and 0.31×**. In family B the face is one of the *darkest* things on the figure. The
+first delivery made it one of the *brightest things in the frame*, while obeying this table
+exactly.
+
+**So the binding value is a ratio, and here it is, measured on all three family B images,
+both duellists: the face plane sits at 0.25–0.31 of its own local sky luminance.** Author to
+that fraction and let the hexes above govern only *relative* structure within the face —
+which plane is cooler than which, where the one warm note goes. A face lit like a portrait,
+dropped onto a dusk stage, reads as a decal pasted on a silhouette, and no amount of
+softening the edges will fix a value that is inverted.
+
+**And the general fault, which is the rubric's and not any pass's.** §2.2 was caught this
+morning stating the ink floor as an absolute hex chosen while looking at figures on cream
+paper. §4b.2 is the *same defect, one section later, and it went unnoticed in the same
+document on the same day.* Every colour value written in this file predates the dusk stage.
+**Treat each of them as a paper-ground measurement until someone has re-derived it as a
+fraction of the ground it will actually be seen against**, and when you do, record the
+fraction here with its region. The failure mode is not a wrong colour; it is a document that
+silently assumes a background it no longer has.
+
 ### 4b.3 Profile construction
 
 At profile, only five things read. Build these and nothing else:
@@ -976,6 +1001,15 @@ machine they pass, and on a clean clone they **silently skip** and the results t
 do not exist for anyone else. One of them was a pass's headline value result. This survived
 a review that checked the guard's *logic*, because the logic was fine.
 
+**And a guard whose exit code the pipeline discards has not run.** Recorded because the
+author of this section then did it: `check-progress.mjs` was invoked as
+`node tools/check-progress.mjs | tail -3 && git commit && git push`, and a pipe takes the
+exit status of its *last* command. The checker printed two FAILs in red, `tail` returned 0,
+and the commit and push proceeded over the top of them. Nothing was damaged, and nothing
+would have warned anybody if it had been. **Run a guard as itself, never through a pipe,
+and never as anything but the first link of a `&&` chain** — every convenience that
+reformats its output also throws away its verdict.
+
 Two things follow. **Never let a guard depend on an artefact the repository does not
 publish** — if an assertion needs a frame, that frame is source and must be force-added,
 whatever the ignore rules say about its neighbours. And **`skipped="0"` on the machine that
@@ -1017,6 +1051,28 @@ skips. Green build, green checker, six tests never run. The fix is a second clau
 report older than its inputs is not a report — and both routes are now exhibited: staleness
 refused by name, and a genuine skip caught with its count. **Had the guard merely been
 observed red, it would have shipped with the hole in it.**
+
+**And a guard that does not run in every configuration the product ships is not a guard for
+the ones it skips.** This is the fourth distinct failure and the least like the others,
+because nothing is wrong with the assertion at all.
+
+System 5's rasteriser guard is correct, was observed red, and survived an adversarial
+attempt. It also reads `SHIPPED_HEIGHTS[0]`. Pointed at the second entry — **540 rows, a
+resolution that same pass added** — it goes red immediately: 0.3563 against a ceiling of
+0.34. And its failure message prints `960x720` whatever it actually measured, so even a
+reader watching it fail would have been told the wrong thing.
+
+The first three rules all ask *is this assertion any good?*. This one asks a question none
+of them reach: **where does it run?** A guard is a claim about the product, and the product
+is every configuration it ships in — every resolution, every scene, every lane length, every
+figure. Testing one and naming the file after the claim is a sampling decision disguised as
+a proof.
+
+So: **enumerate the axis, do not index it.** If a constant lists the shipped configurations,
+the guard iterates the list; if it cannot, it names in its own message the single case it
+checked, so nobody mistakes a sample for the set. And a failure message must report the
+parameters it actually ran with rather than the ones it was written against — a message that
+lies about its own inputs turns a red run into a wrong diagnosis.
 
 **So a guard that carries a broad claim owes a second exhibit: the adversarial instance.**
 Try to build the thing the guard forbids *while satisfying it*. If you succeed, the guard's

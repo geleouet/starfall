@@ -25,6 +25,47 @@ public final class InkMaterial {
     /** Ochre-rust underpainting showing through, gated by the stainMask channel. */
     public Color stain = Palette.OCHRE;
 
+    /**
+     * What a saturated stain's thinned rim pushes toward. {@code OCHRE_PALE} for
+     * every garment — the value the resolve had hard-coded until System 3b — and
+     * the lip tone for skin, where a rust rim would read as a wound. Resolve-stage,
+     * so a material changing it ends the merge group like {@link #base} does.
+     */
+    public Color stainPale = Palette.OCHRE_PALE;
+
+    /**
+     * Multiplies the coverage this material's fragments write, 0..1. 1 is every
+     * capture shot before System 3b, bit-for-bit (the shader takes the multiply
+     * only under a branch on the uniform).
+     *
+     * <p>This is STYLE.md 3b.1's "detail resolves on push-in" for <em>authored
+     * marks</em> rather than noise octaves: an octave fades itself out via
+     * {@code octaveFade} as its period approaches the pixel grid, but a brow
+     * stroke or an eye is geometry and cannot — so the scene fades it, continuously,
+     * from the same camera width that drives everything else. At the planning
+     * framing a face is a suggestion (the skin field's value structure), not a set
+     * of 2 px marks shimmering on a 20 px head.
+     */
+    public float covScale = 1f;
+
+    /**
+     * Minimum feathered rim, in pixels, on every boundary this material prints.
+     * 0 for every garment — cloth edges are shaped by the fray band and must stay
+     * torn, not soft — and every capture shot before System 3b pass 2 is
+     * bit-identical at 0 (the shader takes the multiply only under a branch).
+     *
+     * <p>This exists for the face. STYLE.md 4b.1 exempts skin from the <em>ink
+     * dissolve</em>; the pass-1 review's finding is that it grants no licence to
+     * alias: at dissolve 0 the fray threshold sweeps its whole range in well
+     * under a pixel of a small mark, so the mouth quad and the profile facets
+     * printed as hard-edged objects — §3 violated at exactly the place 4b.1
+     * removed the dissolve that would have hidden it. A feather is the soft
+     * alpha rim {@code lightSpeck} already gives the specular, applied to
+     * geometry: coverage ramps over this many pixels of the strip's own
+     * material-space boundary distance, independent of the noise field.
+     */
+    public float feather = 0f;
+
     /** Positive dissolves more. Reserved for hit reactions shedding flecks (STYLE.md 7.3). */
     public float dissolveBias = 0f;
 
@@ -81,6 +122,24 @@ public final class InkMaterial {
      * the real channel.
      */
     public float sashHeight = 0f;
+
+    /**
+     * Where the sash lift's licence ENDS: above this bind-space height the
+     * pooling multiplier returns to 1. Defaults far above any figure, so every
+     * capture shot before System 3b pass 2 is bit-identical.
+     *
+     * <p>System 3b pass 2, closing the rest of debt §5.2. The lift exists to
+     * keep the pale <em>kimono</em> pale, and "everything above the sash line"
+     * included the skull: the head lobe, the topknot lobe and the jaw wedge all
+     * print in the cloth material, so the pale duellist wore its haori colour
+     * as a skull (§5.2), a white crescent for a topknot (found at the planning
+     * framing, s3b-p2-wide-try frame 0) and a washed-out jaw shadow (review
+     * §9's "weak (foe)" row). A garment compensation has no business on a
+     * head: the licence now stops at the collar line, and the skull's own
+     * pooling — authored wet, toward {@code deep = INK_BLACK} — prints the
+     * near-black head every family-B reference paints.
+     */
+    public float sashTop = 99f;
 
     /**
      * What the pooling above {@link #sashHeight} is multiplied by. 1.0 changes nothing.

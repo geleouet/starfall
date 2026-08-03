@@ -58,6 +58,28 @@ uniform float u_time;
 uniform float u_dissolveBias;
 uniform float u_paperGrain;
 
+// System 3b: STYLE.md 3b.1's push-in fade for AUTHORED marks. A noise octave
+// gates itself with octaveFade as its period nears the pixel grid; a brow
+// stroke or an eye is geometry and cannot, so the scene fades the whole
+// material's coverage with the camera width instead. Behind a branch on the
+// uniform for the same reason the haze term is (see ink_resolve.frag): written
+// straight through it is the IEEE identity at 1.0 and the driver still
+// recompiles the expression tree around it, and behind the branch every capture
+// shot at 1.0 is bit-identical modulo that recompile.
+uniform float u_covScale;
+
+// System 3b pass 2: a minimum feathered rim, in pixels, for materials whose
+// authored dissolve is 0 by rule (the face, STYLE.md 4b.1). At dissolve 0 the
+// fray threshold `thr` sweeps 1.16 -> 0.16 across frayPx, so a small mark's
+// coverage flips across well under one pixel and prints an aliased edge -- the
+// pass-1 review's mouth-quad and profile-facet finding, a straight #3
+// violation. This multiplies coverage by a smoothstep of the fragment's own
+// material-space boundary distance, which is exactly the zero-alpha rim
+// lightSpeck gives the specular, for geometry. Branch-gated at 0 like
+// u_covScale, and for the same recorded reason: every pre-3b-p2 capture is
+// shot with it at 0 and stays bit-identical modulo the recompile.
+uniform float u_feather;
+
 // A constant offset added to the material-space sampling point, per figure.
 //
 // Everything below is sampled at v_matPos so the pattern stays nailed to the
@@ -89,6 +111,14 @@ uniform vec2 u_inkSeed;
 // wrap and a value step at a hard line is a polygon edge by another name
 // (STYLE.md 10).
 uniform vec2 u_sash;
+
+// Where the sash lift's licence ends (bind-space height). The lift is a GARMENT
+// compensation; "above the sash" used to include the whole skull, which is how
+// the pale duellist wore its haori colour as a head (debt 5.2) and a white
+// crescent for a topknot. Above this line the multiplier returns to 1 and the
+// skull's own authored pooling prints. Defaults far above any figure, so every
+// pre-3b-p2 capture is bit-identical.
+uniform float u_sashTop;
 
 // -- noise ------------------------------------------------------------------
 // Value noise, not gradient noise: value noise has broad flat plateaus separated
@@ -635,7 +665,8 @@ void main() {
     // dry brush's lift and the reserves, and scaling those would bleach the tooth
     // out of the shoulder -- the "washed out is a coverage fault" warning three
     // sections of this file already carry.
-    float aboveSash = smoothstep(u_sash.x - 0.10, u_sash.x + 0.10, v_matPos.y);
+    float aboveSash = smoothstep(u_sash.x - 0.10, u_sash.x + 0.10, v_matPos.y)
+                    * (1.0 - smoothstep(u_sashTop - 0.06, u_sashTop + 0.06, v_matPos.y));
     dark *= mix(1.0, u_sash.y, aboveSash);
 
     // -- cream reserves (STYLE.md 3b.0, debt D3) ------------------------------
@@ -775,6 +806,17 @@ void main() {
     float bleedInside = smoothstep(7.0, 24.0, edgePx);
     float bleed = (0.52 + 0.48 * dissolve)
                 * (1.0 - 1.0 * dryPatch * openWet * u_paperGrain * bleedInside);
+
+    // System 3b's push-in fade. See the uniform's note for why it is branched.
+    if (u_covScale < 0.999) {
+        cov *= clamp(u_covScale, 0.0, 1.0);
+    }
+
+    // System 3b pass 2's feathered rim. See the uniform's note. Applied after
+    // every cut so nothing downstream can re-harden the boundary.
+    if (u_feather > 0.001) {
+        cov *= smoothstep(0.0, u_feather, edgePx);
+    }
 
     // Premultiplied. See the header: this is ordinary "over" compositing, which
     // averages overlapping ribbons instead of letting the topmost replace them.

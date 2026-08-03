@@ -14,7 +14,12 @@ attribute vec2 a_boneWeight1;
 attribute vec2 a_boneWeight2;
 attribute vec2 a_boneWeight3;
 
-const int MAX_BONES = 32;       // hard cap: 32 mat4 = 128 vec4, inside the GLES 3.0 minimum
+// System 3b raised this from 32: the skeleton was already at 31 bones (21 body
+// + 10 cloth — the "28" in SamuraiRig's own javadoc was stale), and the three
+// face bones took it to 34. 36 mat4 = 144 vec4, still comfortably inside the
+// GLES 3.0 guaranteed minimum of 256 vertex uniform vectors the original cap
+// was derived from; two slots remain for 3c's far sleeve / far hakama.
+const int MAX_BONES = 36;
 
 uniform mat4 u_projTrans;
 uniform mat4 u_bones[MAX_BONES];

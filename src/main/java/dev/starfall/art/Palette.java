@@ -35,6 +35,20 @@ public final class Palette {
     public static final Color INDIGO_DEEP = rgb(0x1F2A3D);
     public static final Color INDIGO_MID = rgb(0x3E5470);
 
+    // -- Skin (STYLE.md 4b.2, System 3b) ------------------------------------
+    // Family D's faces are pale, cool and papery, warmth reserved for small
+    // areas. The shadow is cool grey-violet, NEVER brown — 4b.7 fails brown
+    // shadows on sight, and this pair is what makes the skin read as
+    // watercolour rather than plastic.
+    public static final Color SKIN_BASE = rgb(0xE3D2BB);
+    public static final Color SKIN_MID = rgb(0xC9BCAC);
+    public static final Color SKIN_SHADOW = rgb(0x8E8C99);
+    public static final Color SKIN_DEEP = rgb(0x5E5C68);
+    public static final Color BLUSH = rgb(0xC98878);
+    public static final Color LIP = rgb(0xB5636B);
+    public static final Color SCLERA = rgb(0xD8D5CE);
+    public static final Color IRIS = rgb(0x2A2620);
+
     // -- Accents ----------------------------------------------------------
     public static final Color OCHRE = rgb(0xB5793A);
     public static final Color OCHRE_PALE = rgb(0xD8A86A);

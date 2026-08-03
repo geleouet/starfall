@@ -576,15 +576,17 @@ class SimTimingTest {
     @Test
     void boneBudgetHoldsUnderTheGlesCap() {
         Skeleton skeleton = SamuraiRig.buildSkeletonOnly();
-        // docs/system1-contract.md section B: 32 mat4 is 128 vec4, inside the
-        // GLES 3.0 guaranteed minimum of 256 vertex uniform vectors. Hard cap.
-        assertTrue(skeleton.boneCount() <= 32,
-                "skeleton has " + skeleton.boneCount() + " bones against a hard cap of 32");
-        // Pass 2 spends three of the four spare bones on the hem, which the
-        // review found producing no readable mark at four particles. One spare
-        // is left, deliberately: the far sleeve is the obvious next candidate
-        // and there has to be room for it without another audit.
-        assertEquals(31, skeleton.boneCount(), "21 body bones plus 10 cloth bones");
+        // docs/system1-contract.md section B, amended by System 3b: the cap is
+        // now 36 (144 vec4 against the GLES 3.0 guaranteed minimum of 256 vertex
+        // uniform vectors — the same arithmetic the original 32 was derived
+        // from; ink_skin.vert documents the change). The old comment here said
+        // "21 body bones plus 10 cloth bones is 31, one spare" — one spare was
+        // not room for a face, and the face bones are three: brow, eye, jaw.
+        assertTrue(skeleton.boneCount() <= 36,
+                "skeleton has " + skeleton.boneCount() + " bones against a hard cap of 36");
+        // Two spare, deliberately: the far sleeve and far hakama are 3c's named
+        // candidates and there has to be room without another audit.
+        assertEquals(34, skeleton.boneCount(), "21 body + 10 cloth + 3 face bones");
     }
 
     /**

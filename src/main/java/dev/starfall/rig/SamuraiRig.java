@@ -36,11 +36,18 @@ public final class SamuraiRig {
     private final Skeleton skeleton;
     private final SkinnedMesh mesh;
     private final SkinnedMesh bladeMesh;
+    private final SkinnedMesh faceMesh;
+    private final SkinnedMesh faceInkMesh;
+    private final FaceParams face;
 
-    private SamuraiRig(Skeleton skeleton, SkinnedMesh mesh, SkinnedMesh bladeMesh) {
+    private SamuraiRig(Skeleton skeleton, SkinnedMesh mesh, SkinnedMesh bladeMesh,
+                       SkinnedMesh faceMesh, SkinnedMesh faceInkMesh, FaceParams face) {
         this.skeleton = skeleton;
         this.mesh = mesh;
         this.bladeMesh = bladeMesh;
+        this.faceMesh = faceMesh;
+        this.faceInkMesh = faceInkMesh;
+        this.face = face;
     }
 
     /** Heel to crown, in world units. The scale everything on a figure is quoted against. */
@@ -65,14 +72,25 @@ public final class SamuraiRig {
     public static final float BLADE_GRIP_OFFSET = 0.10f;
 
     public static SamuraiRig build() {
+        return build(FaceParams.hero());
+    }
+
+    /**
+     * The same rig with this face. System 3b: the hero and bosses hand in
+     * {@link FaceParams#hero()} (or their own authored constants); ordinary
+     * Charted Shadows hand in {@link FaceParams#generate(long)}.
+     */
+    public static SamuraiRig build(FaceParams face) {
         Skeleton skeleton = buildSkeleton();
         // Mesh authoring below reads bone world positions/rotations, so the
         // skeleton must have its bind-pose globals computed first.
         skeleton.updateWorldTransforms();
-        MeshAuthor author = new MeshAuthor(skeleton);
+        MeshAuthor author = new MeshAuthor(skeleton, face);
         SkinnedMesh mesh = author.buildBody();
         SkinnedMesh bladeMesh = author.buildBlade();
-        return new SamuraiRig(skeleton, mesh, bladeMesh);
+        SkinnedMesh faceMesh = author.buildFace(face);
+        SkinnedMesh faceInkMesh = author.buildFaceInk(face);
+        return new SamuraiRig(skeleton, mesh, bladeMesh, faceMesh, faceInkMesh, face);
     }
 
     /**
@@ -93,7 +111,7 @@ public final class SamuraiRig {
      * empty mesh draws nothing and reports success.
      */
     public static SamuraiRig headless() {
-        return new SamuraiRig(buildSkeletonOnly(), null, null);
+        return new SamuraiRig(buildSkeletonOnly(), null, null, null, null, FaceParams.hero());
     }
 
     /**
@@ -128,6 +146,32 @@ public final class SamuraiRig {
      */
     public SkinnedMesh bladeMesh() {
         return bladeMesh;
+    }
+
+    /**
+     * The skin of STYLE.md 4b: the value structure of a face — lit plane, socket
+     * shadow, jaw turn, blush and marks. Draw with a skin {@code InkMaterial}
+     * (base {@code SKIN_BASE}, deep {@code SKIN_DEEP}, stain {@code BLUSH}, pale
+     * stain {@code LIP}) after the cloth so it forms its own merge group. Null on
+     * a headless rig.
+     */
+    public SkinnedMesh faceMesh() {
+        return faceMesh;
+    }
+
+    /**
+     * The face's ink marks — brow stroke, lash and iris, nostril, lip parting,
+     * beard. Draw with an ink material AFTER {@link #faceMesh()}; fade both with
+     * {@code InkMaterial#covScale} on pull-out (STYLE.md 3b.1 for authored
+     * marks). Null on a headless rig.
+     */
+    public SkinnedMesh faceInkMesh() {
+        return faceInkMesh;
+    }
+
+    /** The parameters this rig's face was authored or generated from. */
+    public FaceParams face() {
+        return face;
     }
 
     /** Every bone back to bind, world transforms refreshed. Also what applyPose starts from. */
@@ -259,7 +303,44 @@ public final class SamuraiRig {
                 "clothFrontA", "clothFrontB", "clothFrontC");
         addSleeveChain(bones, handL);
 
+        // -- System 3b face bones ------------------------------------------
+        //
+        // Three, not four, and the budget is why. The class comment above says
+        // "21 body bones plus System 3's seven cloth bones is 28" — measured,
+        // that was stale before 3b touched anything: the cloth chains add TEN
+        // bones (five back, three front, two sleeve), so the skeleton stood at
+        // 31 against a cap of 32. These three take it to 34 and the cap moves
+        // to 36 (ink_skin.vert documents the uniform arithmetic), leaving two
+        // slots for 3c's far sleeve / far hakama.
+        // The eyelid is not its own bone — it is the eye bone's scaleY, which
+        // collapses the lash-and-iris cluster toward the upper lash line where
+        // the bone's origin deliberately sits. Gaze is the same bone's
+        // translation. STYLE.md 4b.6's four channels land on three bones: brow
+        // (translate+rotate), eyelid (eye scaleY), jaw (rotate), gaze (eye
+        // translate).
+        Bone headBone = bones.stream().filter(b -> "head".equals(b.name)).findFirst().orElseThrow();
+        addFaceBone(bones, headBone, "brow", 0.106f, 0.044f);
+        addFaceBone(bones, headBone, "eye", 0.098f, 0.036f);
+        addFaceBone(bones, headBone, "jaw", -0.010f, -0.062f);
+
         return new Skeleton(bones);
+    }
+
+    /**
+     * A face bone at a world-bind offset from the skull centre (head world
+     * position + {@code HEAD_LOBE_DX/DY}), expressed in the head's local frame so
+     * it inherits the head's lean and every stance the head takes.
+     */
+    private static void addFaceBone(List<Bone> bones, Bone head, String name, float dx, float dy) {
+        Vector2 headWorld = bindWorldPos(head, new Vector2());
+        float headRot = bindWorldRotDeg(head);
+        float wx = headWorld.x + HEAD_LOBE_DX + dx;
+        float wy = headWorld.y + HEAD_LOBE_DY + dy;
+        float c = MathUtils.cosDeg(-headRot);
+        float s = MathUtils.sinDeg(-headRot);
+        float lx = (wx - headWorld.x) * c - (wy - headWorld.y) * s;
+        float ly = (wx - headWorld.x) * s + (wy - headWorld.y) * c;
+        add(bones, new Bone(name, bones.size(), head).bindLocal(lx, ly, 0f));
     }
 
     private static Bone add(List<Bone> bones, Bone b) {
@@ -644,10 +725,43 @@ public final class SamuraiRig {
         // no-Math.random()-determinism rule -- this is construction time, not
         // render time, so a seeded Random is exactly what's allowed.
         private final Random rnd = new Random(0xA1C0FFEEL);
+        private final FaceParams face;
         private SkinnedMesh.Builder builder;
 
-        MeshAuthor(Skeleton skeleton) {
+        MeshAuthor(Skeleton skeleton, FaceParams face) {
             this.skeleton = skeleton;
+            this.face = face;
+        }
+
+        // -- the profile contour, shared by the silhouette and the skin --------
+        //
+        // STYLE.md 4b.3: "this single silhouette carries most of the character's
+        // identity" — so FaceParams moves the CONTOUR, not a texture. Deviations
+        // are scaled as a ratio to the hero's own parameters, which makes the
+        // hero's contour bit-identical to the table three rig passes tuned and a
+        // generated face a genuine reshaping of the same line.
+
+        /** The face-edge stations, 0 = +X, negative runs down the face. */
+        private static final float[] FACE_A = {42f, 25f, 10f, -2f, -12f, -22f, -34f, -50f, -66f};
+        private static final float[] FACE_R = {0.150f, 0.146f, 0.134f, 0.162f, 0.130f, 0.126f, 0.154f, 0.106f, 0.090f};
+        /** The neutral radius the notch/jut deviations are measured against. */
+        private static final float FACE_R0 = 0.146f;
+
+        /** Contour radius at station {@code i}, reshaped by this rig's face. */
+        private float contourR(int i) {
+            FaceParams hero = FaceParams.hero();
+            float base = FACE_R[i];
+            float dev = base - FACE_R0;
+            float amp = 1f;
+            float a = FACE_A[i];
+            if (a <= 14f && a >= -28f) {
+                // bridge notch, nose jut, lip setback: the nose group.
+                amp = (0.55f + 0.90f * face.noseDepth()) / (0.55f + 0.90f * hero.noseDepth());
+            } else if (a < -28f) {
+                // chin and under-jaw: the jaw group, softened by age.
+                amp = face.jawScale() / hero.jawScale();
+            }
+            return FACE_R0 + dev * amp;
         }
 
         /**
@@ -1892,8 +2006,11 @@ public final class SamuraiRig {
          * scale.
          */
         private void buildFaceEdge(Bone head, float cx, float cy) {
-            float[] a = { 42f,  25f,  10f,  -2f, -12f, -22f, -34f, -50f, -66f};
-            float[] r = {0.150f, 0.146f, 0.134f, 0.162f, 0.130f, 0.126f, 0.154f, 0.106f, 0.090f};
+            float[] a = FACE_A;
+            float[] r = new float[FACE_A.length];
+            for (int i = 0; i < r.length; i++) {
+                r[i] = contourR(i);   // the hero reproduces the authored table exactly
+            }
             int n = a.length;
             short[] outer = new short[n];
             short[] inner = new short[n];
@@ -1965,6 +2082,543 @@ public final class SamuraiRig {
             for (int i = 0; i < n - 1; i++) {
                 builder.quad(hi[i], hi[i + 1], lo[i + 1], lo[i]);
             }
+        }
+
+        // -- System 3b: the face (STYLE.md 4b) ---------------------------------
+
+        /**
+         * The skin field: the value structure of a face, which is what survives
+         * every framing. Family D finds a face with a handful of marks — "a
+         * shadow where the eye socket is, one stroke for the brow, a break of
+         * light along the nose and jaw" — and this mesh is those values with no
+         * line work at all: a three-rail strip inside the profile contour whose
+         * wetness carries lit plane, socket, under-nose, under-chin, and whose
+         * hairline rail darkens toward the hair it meets.
+         *
+         * <p>Drawn in its own merge group with the skin palette, so 4b.2's
+         * cool grey-violet shadow is structural: {@code deep} IS
+         * {@code SKIN_DEEP}, and a brown shadow is unreachable.
+         *
+         * <p>{@code dissolve} is 0 on every vertex — 4b.1, "a face may not fray
+         * the way a hem does" — so the only edges this mesh can print are its
+         * own soft coverage ramps.
+         */
+        SkinnedMesh buildFace(FaceParams p) {
+            builder = new SkinnedMesh.Builder();
+            Bone head = skeleton.bone("head");
+            Bone jaw = skeleton.bone("jaw");
+            Bone eye = skeleton.bone("eye");
+            Vector2 c = skeleton.worldPosition(head.index, new Vector2());
+            float cx = c.x + HEAD_LOBE_DX;
+            float cy = c.y + HEAD_LOBE_DY;
+            Random fr = new Random(p.seed());
+
+            // Stations run down the face. Contour stations reuse the face-edge
+            // table (via contourR) so skin and silhouette cannot disagree; the
+            // two above 42 degrees follow the skull lobe (forehead into hairline).
+            float[] ang = {74f, 58f, 42f, 25f, 10f, -2f, -12f, -22f, -34f, -50f, -64f};
+            float[] rOut = new float[ang.length];
+            rOut[0] = 0.158f;
+            rOut[1] = 0.153f;
+            for (int i = 2; i < ang.length; i++) {
+                // PROUD of the ink contour strip, not inside it. Pass 2: the skin
+                // group owns the head's silhouette in the duel scenes, so the
+                // visible edge is this mesh's feathered rim (InkMaterial#feather)
+                // and not the body mesh's contour strip beneath — which draws in
+                // the CLOTH material, and on the pale duellist printed CLOTH_PALE
+                // washed flat by its own sash lift: the pale rim of the shard the
+                // pass-1 review measured at 1.36x the sky. The body strip stays,
+                // for the Family A scenes that draw rig.mesh() alone.
+                rOut[i] = contourR(i - 2) * 1.05f;
+            }
+            // Value structure, from family B rather than family D, and pass 2
+            // re-derives it from the measured ratio (STYLE.md 4b.2 as amended):
+            // the face plane sits at 0.25–0.31 of its own local sky, so on the
+            // dusk stage a face is MOSTLY the deep tone — "just enough interior
+            // modelling to find the face" — and the light is one narrow break
+            // along brow, nose, lip and chin, 2–3 px at the intimate framing,
+            // peaking at 0.59–1.22x sky (ref3 measured band). Pass 1 authored
+            // an 11 px lit field with dark edges and delivered a plane at
+            // 0.56x/1.36x — the decal 4b.7 fails on sight. So the rails invert:
+            // wetness is HIGH (the plane pools onto `deep`) everywhere except
+            // the break rail, which stays dilute only where the corpus lights
+            // it — brow ridge, bridge, nose, lip, chin — never the forehead
+            // (hair shadow) and never under the jaw.
+            float socket = 0.90f + 6f * p.socketDepth();   // deepens with age
+            float[] wLight = {0.85f, 0.80f, 0.55f, 0.28f, 0.30f, 0.10f, 0.60f, 0.22f, 0.34f, 0.75f, 0.92f};
+            float[] wMid = new float[ang.length];
+            float[] wIn = new float[ang.length];
+            for (int i = 0; i < ang.length; i++) {
+                wMid[i] = 0.98f;
+                wIn[i] = 1f;
+            }
+            wMid[3] = Math.min(1f, socket);           // the socket shadow: the darkest plane
+            wMid[4] = Math.min(1f, socket * 0.99f);
+            wMid[6] = 0.94f;                          // the cheek keeps a shade of turn
+            wMid[8] = 0.97f;
+
+            // Blush and marks: asymmetric by construction (4b.7) — everything is
+            // placed off the generator's own noise, nothing mirrored.
+            float blushA = p.stainAmount() * (0.55f + 0.5f * fr.nextFloat());
+            float blushB = p.stainAmount() * (0.30f + 0.5f * fr.nextFloat());
+            float[] sLight = new float[ang.length];
+            float[] sMid = new float[ang.length];
+            sMid[6] = blushA;                    // cheek
+            sMid[7] = blushB * 0.7f;
+            sLight[5] = blushB * 0.5f;           // nose tip warmth
+            sLight[7] = 0.85f;                   // the lip: pushes toward stainPale = LIP
+            sLight[2] = 0.30f;                   // the corpus's coral rim on the lit
+            sLight[3] = 0.55f;                   // brow ridge (review 11.0 part list)
+
+            // The rails are sampled through a Catmull-Rom spline of the stations,
+            // three points per span. Pass 2, from the review's 4b.3 row: "the
+            // profile is a chain of straight facets on both duellists; the foe's
+            // contour stair-steps". Eleven stations at 220 px per world unit is a
+            // vertex every 5-8 px, and a polyline at that pitch IS a chain of
+            // facets, feathered or not; the corpus's contour is "one continuous
+            // flowing line". The spline passes through every authored station —
+            // identity still lives in the station table and FaceParams still
+            // reshapes it — the flats between them just stop being flat.
+            int n0 = ang.length;
+            int sub = 3;
+            int n = (n0 - 1) * sub + 1;
+            float[] angS = new float[n];
+            float[] rS = new float[n];
+            float[] wLightS = new float[n];
+            float[] wMidS = new float[n];
+            float[] wInS = new float[n];
+            float[] sLightS = new float[n];
+            float[] sMidS = new float[n];
+            for (int k = 0; k < n; k++) {
+                int i = Math.min(k / sub, n0 - 2);
+                float u = (k - i * sub) / (float) sub;
+                angS[k] = catmullRom(ang, i, u);
+                rS[k] = catmullRom(rOut, i, u);
+                wLightS[k] = MathUtils.clamp(catmullRom(wLight, i, u), 0f, 1f);
+                wMidS[k] = MathUtils.clamp(catmullRom(wMid, i, u), 0f, 1f);
+                wInS[k] = MathUtils.clamp(catmullRom(wIn, i, u), 0f, 1f);
+                sLightS[k] = MathUtils.clamp(catmullRom(sLight, i, u), 0f, 1f);
+                sMidS[k] = MathUtils.clamp(catmullRom(sMid, i, u), 0f, 1f);
+            }
+            short[] vo = new short[n];
+            short[] vl = new short[n];
+            short[] vm = new short[n];
+            short[] vi = new short[n];
+            for (int i = 0; i < n; i++) {
+                float ca = MathUtils.cosDeg(angS[i]);
+                float sa = MathUtils.sinDeg(angS[i]);
+                float t = i / (float) (n - 1);
+                // ONE flow direction for the whole face, down it. This shader's
+                // header warns what radial flow does on a head ("the black
+                // dandelion"), and the subdivided rails made it measurable
+                // again: with per-station flow the dry-brush smear direction
+                // rotates wedge to wedge and the face prints as a fan of
+                // radial pleats at exactly the station pitch (measured on
+                // s3b-p2-try4 frame 22, foe head — and the same mechanism at
+                // pass 1's coarser pitch is the review's "flat polygon wedges
+                // whose facet boundaries change frame to frame"). A brush
+                // models a cheek in one stroke.
+                float flow = angleToU(-72f);
+                float flowDown = flow;
+                // Chin and below ride the jaw bone so the jaw channel reads.
+                float jawW = angS[i] < -30f ? 0.55f : (angS[i] < -18f ? 0.25f : 0f);
+                int bA = head.index;
+                int bB = jaw.index;
+                float wA = 1f - jawW;
+                // Outer rail: the break of light peaks ON the contour, which is
+                // what the corpus paints — the lit profile rim against the sky,
+                // then the fall to the deep plane inside it. (Pass 1 had the
+                // break a rail inside a darker rim, one more inversion of the
+                // same value structure.) The feather takes the outermost ~1.5 px
+                // to zero coverage, so the rim blends to sky, not to a step.
+                vo[i] = builder.vertex(cx + rS[i] * ca, cy + rS[i] * sa, 1f, t,
+                        0f, Math.max(0.04f, wLightS[i] - 0.06f), sLightS[i] * 0.5f, flow, bA, wA, bB, jawW);
+                vl[i] = builder.vertex(cx + rS[i] * 0.945f * ca, cy + rS[i] * 0.945f * sa, 0.8f, t,
+                        0f, wLightS[i], sLightS[i], flow, bA, wA, bB, jawW);
+                vm[i] = builder.vertex(cx + rS[i] * 0.84f * ca, cy + rS[i] * 0.84f * sa, 0.45f, t,
+                        0f, wMidS[i], sMidS[i], flowDown, bA, wA, bB, jawW);
+                // u = 0.5 so the inner rail never feathers: the fan's core is
+                // FILLED (below), and a rail that fed the fray band there would
+                // print a pale seam ring through the middle of the face — the
+                // first capture of this mesh had exactly that hole, and the old
+                // cloth-coloured skull showed through it as a jagged pale patch.
+                vi[i] = builder.vertex(cx + rS[i] * 0.34f * ca, cy + rS[i] * 0.34f * sa, 0.5f, t,
+                        0f, wInS[i], 0f, flowDown, bA, wA, bB, jawW);
+            }
+            for (int i = 0; i < n - 1; i++) {
+                builder.quad(vo[i], vo[i + 1], vl[i + 1], vl[i]);
+                builder.quad(vl[i], vl[i + 1], vm[i + 1], vm[i]);
+                builder.quad(vm[i], vm[i + 1], vi[i + 1], vi[i]);
+            }
+            // The core fill behind the inner rail, at the same u so no fray band
+            // can open between the two.
+            short core = builder.vertex(cx + 0.010f, cy + 0.004f, 0.5f, 0.5f, 0f, 0.95f, 0f,
+                    angleToU(-72f), head.index, 1f, head.index, 0f);
+            for (int i = 0; i < n - 1; i++) {
+                builder.triangle(core, vi[i], vi[i + 1]);
+            }
+
+            // The scalp: the rest of the skull, so the visible head is skin and
+            // hair rather than garment. Without this the head keeps printing the
+            // CLOTH material — which on the pale duellist is CLOTH_PALE washed
+            // flat by its own sash lift: debt item 4's "pale face patch", the
+            // amoeba, was never a face at all, it was the pale figure's HAORI
+            // COLOUR on its skull. Dark and quiet: this is the ground the hair
+            // mass roots into, and HairRenderer's own doc wants the topknot and
+            // the hair "the same value and the same object".
+            // Subdivided like the face rails, and for the cap it was measured
+            // first: 13 stations on a 33-px-radius disc is a 12-px straight
+            // chord per span, and once the sash-lift fix darkened the skull the
+            // cap's own silhouette became the head's front boundary — two
+            // near-collinear chords printed the 28-px vertical run of
+            // s3b-p2-try10 (V x=601 y283..311), the exact class the facet
+            // instrument polices. A skull is round.
+            float[] ba2c = {58f, 78f, 100f, 122f, 145f, 168f, 190f, 212f, 232f, 252f, 272f, 284f, 296f};
+            float[] br2c = {0.152f, 0.158f, 0.164f, 0.170f, 0.172f, 0.166f, 0.152f, 0.134f, 0.112f, 0.094f, 0.088f, 0.094f, 0.090f};
+            int capN = (ba2c.length - 1) * sub + 1;
+            float[] ba2 = new float[capN];
+            float[] br2 = new float[capN];
+            for (int k = 0; k < capN; k++) {
+                int i = Math.min(k / sub, ba2c.length - 2);
+                float u = (k - i * sub) / (float) sub;
+                ba2[k] = catmullRom(ba2c, i, u);
+                br2[k] = catmullRom(br2c, i, u);
+            }
+            float flowUp = angleToU(90f);
+            short ctr = builder.vertex(cx, cy, 0.5f, 0.5f, 0f, 0.94f, 0f, flowUp,
+                    head.index, 1f, head.index, 0f);
+            short[] capIn = new short[ba2.length];
+            short[] capOut = new short[ba2.length];
+            for (int i = 0; i < ba2.length; i++) {
+                float caB = MathUtils.cosDeg(ba2[i]);
+                float saB = MathUtils.sinDeg(ba2[i]);
+                // Out to the lobe's own radius: the cap must COVER the body
+                // mesh's cloth-material lobe, which on the pale figure prints
+                // the haori colour (debt 5.2's mechanism, half-fixed in pass 1
+                // by a cap that stopped 1.5% short and printed a pale ring at
+                // the wide framing — the 1.20x-sky blob of review 6.3).
+                float rr2 = br2[i] * 1.005f;
+                // Constant flow here too — the cap fanned the same way.
+                float fl = flowUp;
+                capIn[i] = builder.vertex(cx + rr2 * 0.45f * caB, cy + rr2 * 0.45f * saB,
+                        0.5f + 0.225f * caB, 0.5f + 0.225f * saB, 0f, 0.95f, 0f, fl,
+                        head.index, 1f, head.index, 0f);
+                capOut[i] = builder.vertex(cx + rr2 * caB, cy + rr2 * saB,
+                        0.5f + 0.5f * caB, 0.5f + 0.5f * saB, 0.02f, 0.90f, 0f, fl,
+                        head.index, 1f, head.index, 0f);
+            }
+            for (int i = 0; i < ba2.length - 1; i++) {
+                builder.triangle(ctr, capIn[i], capIn[i + 1]);
+                builder.quad(capIn[i], capIn[i + 1], capOut[i + 1], capOut[i]);
+            }
+
+            // The topknot, capped the same way and for the same reason as the
+            // scalp: it is a SECOND lobe the body mesh draws in the cloth
+            // material, so on the pale duellist it printed CLOTH_PALE — §5.2's
+            // "garment colour on the skull", one lobe over. Nobody saw it at
+            // the intimate framing because the hair strands cover it there; at
+            // the planning framing the strands thin and the pale figure wore a
+            // white crescent for a topknot (s3b-p2-wide-try frame 0, the
+            // brightest thing on the head). A topknot is hair and prints dark.
+            float kx = cx + MathUtils.cosDeg(TOPKNOT_ANGLE_DEG) * TOPKNOT_DIST;
+            float ky = cy + MathUtils.sinDeg(TOPKNOT_ANGLE_DEG) * TOPKNOT_DIST;
+            float[] knotAngle = {0f, 45f, 90f, 135f, 180f, 225f, 270f, 315f};
+            float[] knotRadius = {0.070f, 0.078f, 0.076f, 0.082f, 0.074f, 0.064f, 0.062f, 0.066f};
+            short kc = builder.vertex(kx, ky, 0.5f, 0.5f, 0f, 0.97f, 0f, flowUp,
+                    head.index, 1f, head.index, 0f);
+            int knotN = knotAngle.length * sub;   // closed ring, subdivided
+            short[] kOut = new short[knotN + 1];
+            for (int i = 0; i <= knotN; i++) {
+                int k2 = i % knotN;
+                int j = k2 / sub;
+                float u = (k2 - j * sub) / (float) sub;
+                int j0 = (j + knotAngle.length - 1) % knotAngle.length;
+                int j2 = (j + 1) % knotAngle.length;
+                int j3 = (j + 2) % knotAngle.length;
+                float aK = crWrap(knotAngle[j0] - (j == 0 ? 360f : 0f), knotAngle[j],
+                        knotAngle[j2] + (j2 == 0 ? 360f : 0f),
+                        knotAngle[j3] + (j3 <= 1 ? 360f : 0f), u);
+                float rK = crWrap(knotRadius[j0], knotRadius[j], knotRadius[j2], knotRadius[j3], u);
+                float caK = MathUtils.cosDeg(aK);
+                float saK = MathUtils.sinDeg(aK);
+                float rr3 = rK * 1.005f;
+                kOut[i] = builder.vertex(kx + rr3 * caK, ky + rr3 * saK,
+                        0.5f + 0.5f * caK, 0.5f + 0.5f * saK, 0.02f, 0.93f, 0f, flowUp,
+                        head.index, 1f, head.index, 0f);
+            }
+            for (int i = 0; i < knotN; i++) {
+                builder.triangle(kc, kOut[i], kOut[i + 1]);
+            }
+
+            // The jaw/neck wedge, restated in the SKIN group. The body mesh's
+            // wedge draws with the CLOTH material, and on the pale duellist the
+            // sash lift washes it flat — the review's "jaw/neck wedge: weak
+            // (foe)" row. Same polygon, same skinning, skin values: wetness at
+            // the ceiling prints `deep`, which pass 2 anchors to the corpus's
+            // own under-jaw register on both colourways.
+            Bone neckBone = skeleton.bone("neck");
+            // Subdivided through the same spline as the face rails, with a
+            // slight bow on the resampled points. The first version kept the
+            // body wedge's four straight chords, and its nape chord printed as
+            // a dead-straight 2-px-soft vertical — invisible at base 1, a
+            // 40-px run at base 2 (s3b-p2-try5, V x=621 y332..351): exactly
+            // the between-the-bases signature the review's 5.4 convicted. A
+            // shadow's edge wanders; a chord cannot.
+            // The nape end stops short of the neck column on purpose: the
+            // wedge's back edge and the trunk's own neck rail are both near-
+            // vertical, and end to end they read as ONE long straight — the
+            // 40-px base-2 run of try5/try6. Two short offset edges, not one.
+            float[] wtx = {0.116f, 0.062f, 0.008f, -0.026f};
+            float[] wty = {-0.046f, -0.052f, -0.052f, -0.050f};
+            float[] wbx = {0.090f, 0.040f, -0.008f, -0.034f};
+            float[] wby = {-0.112f, -0.132f, -0.138f, -0.120f};
+            int wn = (wtx.length - 1) * sub + 1;
+            short[] whi = new short[wn];
+            short[] wlo = new short[wn];
+            for (int k = 0; k < wn; k++) {
+                int i = Math.min(k / sub, wtx.length - 2);
+                float u = (k - i * sub) / (float) sub;
+                float s = k / (float) (wn - 1);
+                float bowW = 0.010f * MathUtils.sin(s * MathUtils.PI);
+                float flowW = angleToU(200f - 30f * s);
+                whi[k] = builder.vertex(cx + catmullRom(wtx, i, u), cy + catmullRom(wty, i, u),
+                        s, 0f, 0f, 1f, 0f, flowW, head.index, 1f, head.index, 0f);
+                wlo[k] = builder.vertex(cx + catmullRom(wbx, i, u) - bowW,
+                        cy + catmullRom(wby, i, u) - bowW,
+                        s, 1f, 0f, 0.97f, 0f, flowW, head.index, 0.72f, neckBone.index, 0.28f);
+            }
+            for (int i = 0; i < wn - 1; i++) {
+                builder.quad(whi[i], whi[i + 1], wlo[i + 1], wlo[i]);
+            }
+
+            // The sclera: a sliver hanging off the eye bone so the lid (the
+            // bone's scaleY) closes over it. Pass 2 dims it: on a face plane at
+            // 0.25–0.31x sky, a near-dilute sliver was the second-brightest
+            // object on the head and read as the "white dot" of the review's
+            // eye finding. 4b.4 wants the sclera "usually partly shadowed by
+            // the upper lid" — so it sits a third of the way up the ramp, pale
+            // against the socket's ceiling-wetness shadow but never a highlight;
+            // the one highlight is the specular, which is authored LAST and
+            // dies first (4b.4's degradation order, restored).
+            Vector2 ec = skeleton.worldPosition(eye.index, new Vector2());
+            float el = 0.011f + 0.007f * p.eyeSize();
+            short s0 = builder.vertex(ec.x - el * 0.9f, ec.y, 0f, 0f, 0f, 0.58f, 0f, 0.25f,
+                    eye.index, 1f, eye.index, 0f);
+            short s1 = builder.vertex(ec.x + el, ec.y, 1f, 0f, 0f, 0.54f, 0f, 0.25f,
+                    eye.index, 1f, eye.index, 0f);
+            short s2 = builder.vertex(ec.x + el * 0.7f, ec.y - 0.0075f, 1f, 1f, 0f, 0.62f, 0f, 0.25f,
+                    eye.index, 1f, eye.index, 0f);
+            short s3 = builder.vertex(ec.x - el * 0.6f, ec.y - 0.0070f, 0f, 1f, 0f, 0.64f, 0f, 0.25f,
+                    eye.index, 1f, eye.index, 0f);
+            builder.quad(s0, s1, s2, s3);
+
+            // One scar at most, placed by the generator, warm-toned via the
+            // stain channel (4b.5: "history rather than damage").
+            if (p.scar() >= 0f) {
+                float sa2 = 30f - 55f * p.scar();      // brow to cheek
+                float rr = rOut[3] * (0.80f + 0.12f * fr.nextFloat());
+                float sx = cx + rr * MathUtils.cosDeg(sa2);
+                float sy = cy + rr * MathUtils.sinDeg(sa2);
+                float dx = 0.012f + 0.008f * fr.nextFloat();
+                float dy = -0.006f - 0.010f * fr.nextFloat();
+                short a0 = builder.vertex(sx, sy, 0f, 0f, 0f, 0.25f, 1f, 0.1f, head.index, 1f, head.index, 0f);
+                short a1 = builder.vertex(sx + dx, sy + dy, 1f, 0f, 0f, 0.30f, 1f, 0.1f, head.index, 1f, head.index, 0f);
+                short a2 = builder.vertex(sx + dx + 0.002f, sy + dy - 0.003f, 1f, 1f, 0f, 0.30f, 0.6f, 0.1f, head.index, 1f, head.index, 0f);
+                short a3 = builder.vertex(sx + 0.002f, sy - 0.003f, 0f, 1f, 0f, 0.25f, 0.6f, 0.1f, head.index, 1f, head.index, 0f);
+                builder.quad(a0, a1, a2, a3);
+            }
+            return builder.build();
+        }
+
+        /**
+         * The face's ink: brow, lash-and-iris, nostril, lip parting, and the
+         * beard mass when the generator grew one. Everything here is small, dark
+         * and meaningful, which is why it fades out with the camera
+         * ({@code InkMaterial#covScale}) instead of shimmering at the planning
+         * framing: STYLE.md 4b.0 — at 20-30 px of head, none of this survives,
+         * and the skin field alone is the "suggestion of a face".
+         */
+        SkinnedMesh buildFaceInk(FaceParams p) {
+            builder = new SkinnedMesh.Builder();
+            Bone head = skeleton.bone("head");
+            Bone brow = skeleton.bone("brow");
+            Bone eye = skeleton.bone("eye");
+            Bone jaw = skeleton.bone("jaw");
+            Vector2 c = skeleton.worldPosition(head.index, new Vector2());
+            float cx = c.x + HEAD_LOBE_DX;
+            float cy = c.y + HEAD_LOBE_DY;
+
+            // The brow: 4b.3's "heavy ink stroke", the primary expression carrier
+            // at distance. A four-station strip with a slight bow, tapered at
+            // both ends, its weight from the generator. Age drops its tail.
+            Vector2 bc = skeleton.worldPosition(brow.index, new Vector2());
+            // Pass 2: +0.0015 base width. The feather (InkMaterial#feather) costs
+            // every mark its outer ~1.4 px of full coverage, so the marks that
+            // must survive it are authored a shade wider, not printed harder.
+            float bw = 0.0060f + 0.0075f * p.browWeight();
+            float sag = 0.010f * p.age();
+            // Pass 2 lifts the stroke onto the LIT brow ridge — the corpus's
+            // "forehead + brow ridge with coral rim" puts the dark stroke on
+            // lit ground, which is what makes it a readable mark; pass 1 drew
+            // ink on the near-black socket plane, |dL| about 3, invisible to
+            // the eye and to the instrument alike.
+            float[] bu = {-0.003f, 0.013f, 0.031f, 0.047f};
+            float[] bv = {0.013f - sag, 0.018f, 0.017f, 0.007f};
+            float[] bt = {0.35f, 1f, 0.95f, 0.30f};
+            short[] hi2 = new short[4];
+            short[] lo2 = new short[4];
+            for (int i = 0; i < 4; i++) {
+                float t = i / 3f;
+                hi2[i] = builder.vertex(bc.x + bu[i], bc.y + bv[i] + bw * bt[i] * 0.5f, t, 0f,
+                        0f, 1f, 0f, 0.02f, brow.index, 1f, brow.index, 0f);
+                lo2[i] = builder.vertex(bc.x + bu[i], bc.y + bv[i] - bw * bt[i] * 0.5f, t, 1f,
+                        0f, 0.96f, 0f, 0.02f, brow.index, 1f, brow.index, 0f);
+            }
+            for (int i = 0; i < 3; i++) {
+                builder.quad(hi2[i], hi2[i + 1], lo2[i + 1], lo2[i]);
+            }
+
+            // The lash line and iris, on the eye bone: heavier above than below
+            // (there is no below), one dark mass the lid can close over. 4b.4's
+            // degradation rule is authored in: at two surviving pixels these are
+            // dark-iris-plus-specular, because the lash and iris are one dark
+            // cluster and the specular is the scene's light speck.
+            Vector2 ec = skeleton.worldPosition(eye.index, new Vector2());
+            float el = 0.016f + 0.010f * p.eyeSize();
+            short l0 = builder.vertex(ec.x - el, ec.y + 0.0035f, 0f, 0f, 0f, 1f, 0f, 0.5f,
+                    eye.index, 1f, eye.index, 0f);
+            short l1 = builder.vertex(ec.x + el * 1.05f, ec.y + 0.0045f, 1f, 0f, 0f, 1f, 0f, 0.5f,
+                    eye.index, 1f, eye.index, 0f);
+            short l2 = builder.vertex(ec.x + el * 0.9f, ec.y - 0.0015f, 1f, 1f, 0f, 0.92f, 0f, 0.5f,
+                    eye.index, 1f, eye.index, 0f);
+            short l3 = builder.vertex(ec.x - el * 0.85f, ec.y - 0.0005f, 0f, 1f, 0f, 0.92f, 0f, 0.5f,
+                    eye.index, 1f, eye.index, 0f);
+            builder.quad(l0, l1, l2, l3);
+            // Iris: a small fan hanging from the lash, off-centre toward the gaze.
+            // Pass 2 sizes it up: the review's eye finding is a specular with "no
+            // dark iris behind it" — the iris is the anchor and must survive both
+            // the feather and the 2-px degradation of 4b.4.
+            float ir = 0.0070f + 0.0040f * p.eyeSize();
+            float ix = ec.x + el * 0.18f;
+            float iy = ec.y - 0.0025f;
+            short icv = builder.vertex(ix, iy, 0.5f, 0.5f, 0f, 0.95f, 0f, 0.5f,
+                    eye.index, 1f, eye.index, 0f);
+            short[] ring = new short[7];
+            for (int i = 0; i < 7; i++) {
+                float a = (float) (Math.PI * 2.0 * i / 7.0);
+                ring[i] = builder.vertex(ix + ir * MathUtils.cos(a), iy + ir * MathUtils.sin(a) * 0.85f,
+                        0.5f + 0.5f * MathUtils.cos(a), 0.5f + 0.5f * MathUtils.sin(a),
+                        0f, 0.90f, 0f, 0.5f, eye.index, 1f, eye.index, 0f);
+            }
+            for (int i = 0; i < 7; i++) {
+                builder.triangle(icv, ring[i], ring[(i + 1) % 7]);
+            }
+
+            // Nostril and lip parting: two of 4b.3's "bonus" marks, cheap and
+            // gone below push-in framing with the rest of this mesh.
+            float nr = contourR(2) * 0.94f;
+            float nx2 = cx + nr * MathUtils.cosDeg(-6f);
+            float ny2 = cy + nr * MathUtils.sinDeg(-6f);
+            short n0 = builder.vertex(nx2 - 0.0026f, ny2 + 0.002f, 0f, 0f, 0f, 0.62f, 0f, 0.3f, head.index, 1f, head.index, 0f);
+            short n1 = builder.vertex(nx2 + 0.0026f, ny2 + 0.002f, 1f, 0f, 0f, 0.62f, 0f, 0.3f, head.index, 1f, head.index, 0f);
+            short n2 = builder.vertex(nx2 + 0.002f, ny2 - 0.0026f, 1f, 1f, 0f, 0.58f, 0f, 0.3f, head.index, 1f, head.index, 0f);
+            short n3 = builder.vertex(nx2 - 0.002f, ny2 - 0.0026f, 0f, 1f, 0f, 0.58f, 0f, 0.3f, head.index, 1f, head.index, 0f);
+            builder.quad(n0, n1, n2, n3);
+            // The lip parting. Two pass-2 changes, both from the review's mouth
+            // finding (its §0 second failure): the quad's skin weights now MATCH
+            // the skin field's own at this station (head 0.75 / jaw 0.25 — the
+            // -22 degree band), where pass 1 gave it 0.6/0.4 and the mismatch
+            // slid the mark off the chin as the jaw opened; and it sits at 0.90
+            // of the contour, well inside the skin field's 1.03 silhouette, so
+            // an open jaw can never carry it into open sky. Feathered like every
+            // other mark: a mouth is a soft dark parting, not a rectangle.
+            // 0.945: ON the lit lip band, not inside the dark plane — a dark
+            // parting against lit ground, the corpus's own "lip + moustache".
+            float lr = contourR(5) * 0.945f;
+            float lx2 = cx + lr * MathUtils.cosDeg(-22f);
+            float ly2 = cy + lr * MathUtils.sinDeg(-22f);
+            short p0 = builder.vertex(lx2 - 0.011f, ly2 + 0.0008f, 0f, 0f, 0f, 0.55f, 0f, 0.3f,
+                    head.index, 0.75f, jaw.index, 0.25f);
+            short p1 = builder.vertex(lx2 + 0.004f, ly2 + 0.002f, 1f, 0f, 0f, 0.62f, 0f, 0.3f,
+                    head.index, 0.75f, jaw.index, 0.25f);
+            short p2 = builder.vertex(lx2 + 0.0035f, ly2 - 0.0012f, 1f, 1f, 0f, 0.58f, 0f, 0.3f,
+                    head.index, 0.75f, jaw.index, 0.25f);
+            short p3 = builder.vertex(lx2 - 0.010f, ly2 - 0.002f, 0f, 1f, 0f, 0.5f, 0f, 0.3f,
+                    head.index, 0.75f, jaw.index, 0.25f);
+            builder.quad(p0, p1, p2, p3);
+
+            // The beard, when there is one: hair, not skin, so unlike everything
+            // above it carries dissolve on its free rim and may fray (4b.1 exempts
+            // the skin; a beard is the hairline's rule, not the face's).
+            if (p.facialHair() > 0.05f) {
+                float[] ba = {-14f, -32f, -50f, -68f, -84f};
+                short[] bin = new short[ba.length];
+                short[] bout = new short[ba.length];
+                for (int i = 0; i < ba.length; i++) {
+                    float t = i / (float) (ba.length - 1);
+                    // Base radius: hug the contour where the contour exists,
+                    // close over the under-jaw cutback below it.
+                    float baseR = ba[i] > -40f ? contourR(6) : 0.118f;
+                    float outR = baseR + 0.010f + 0.052f * p.facialHair() * (0.55f + 0.45f * MathUtils.sinDeg(-ba[i]));
+                    float caB = MathUtils.cosDeg(ba[i]);
+                    float saB = MathUtils.sinDeg(ba[i]);
+                    float flow = angleToU(ba[i] - 90f);
+                    bin[i] = builder.vertex(cx + baseR * 0.82f * caB, cy + baseR * 0.82f * saB, 0f, t,
+                            0f, 0.95f, 0f, flow, head.index, 0.45f, jaw.index, 0.55f);
+                    bout[i] = builder.vertex(cx + outR * caB, cy + outR * saB, 1f, t,
+                            0.35f, 0.90f, 0f, flow, head.index, 0.45f, jaw.index, 0.55f);
+                }
+                for (int i = 0; i < ba.length - 1; i++) {
+                    builder.quad(bin[i], bin[i + 1], bout[i + 1], bout[i]);
+                }
+            }
+
+            // Loose crown wisps — the second entry on the pass-1 review's
+            // corpus part list, and a mark family this head simply lacked: a
+            // few fine strands escaping the crown into open sky. Dark ink on
+            // sky is the one high-contrast mark the ink floor cannot compress
+            // (the review's finding that the delivered head under-marks the
+            // corpus band is, on a floor-bound figure, mostly a statement
+            // about marks that need a LIT ground — and the sky is one). Hair,
+            // not skin: they ride the covScale fade like every other authored
+            // mark, so nothing shimmers at the planning framing. Seeded and
+            // asymmetric (4b.7).
+            java.util.Random wr = new java.util.Random(p.seed() * 31L + 7L);
+            for (int w = 0; w < 3; w++) {
+                // 96+: clear of the face-front hair edge, whose own near-vertical
+                // boundary a 78-degree wisp extended into one compound 28-px
+                // straight (s3b-p2-try10, V x=599..601).
+                float a0 = 96f + 30f * w + 14f * (wr.nextFloat() - 0.5f);
+                float r0 = SKULL_RADIUS * 0.98f;
+                float len = 0.055f + 0.055f * wr.nextFloat();
+                // Enough turn that no chord of the stroke is straight: the
+                // first cut of this drooped only at the tip and printed a
+                // 28-px vertical run — the very defect class Facets polices.
+                float droop = 36f + 34f * wr.nextFloat();
+                float hw0 = 0.0035f + 0.0012f * wr.nextFloat();
+                int segs = 4;
+                short[] wa = new short[segs + 1];
+                short[] wb = new short[segs + 1];
+                for (int i = 0; i <= segs; i++) {
+                    float t = i / (float) segs;
+                    float ang2 = a0 + droop * (0.55f * t + t * t);   // continuous turn, tip drooping hardest
+                    float rr = r0 + len * t;
+                    float px2 = cx + rr * MathUtils.cosDeg(ang2);
+                    float py2 = cy + rr * MathUtils.sinDeg(ang2);
+                    float hw = hw0 * (1f - 0.75f * t);
+                    float nx3 = MathUtils.cosDeg(ang2 + 90f);
+                    float ny3 = MathUtils.sinDeg(ang2 + 90f);
+                    float fl = angleToU(ang2 + 90f);
+                    wa[i] = builder.vertex(px2 + hw * nx3, py2 + hw * ny3, 0f, t,
+                            0f, 0.97f, 0f, fl, head.index, 1f, head.index, 0f);
+                    wb[i] = builder.vertex(px2 - hw * nx3, py2 - hw * ny3, 1f, t,
+                            0f, 0.95f, 0f, fl, head.index, 1f, head.index, 0f);
+                }
+                for (int i = 0; i < segs; i++) {
+                    builder.quad(wa[i], wa[i + 1], wb[i + 1], wb[i]);
+                }
+            }
+            return builder.build();
         }
 
         // -- shared ribbon builder for anything that follows a bone chain -----
@@ -2054,6 +2708,37 @@ public final class SamuraiRig {
             float cos = MathUtils.cosDeg(rot);
             float sin = MathUtils.sinDeg(rot);
             return new Vector2(origin.x + d * cos - perp * sin, origin.y + d * sin + perp * cos);
+        }
+
+        /**
+         * Catmull-Rom through {@code arr} at parameter {@code u} of the span
+         * {@code i..i+1}, endpoints clamped. Used to subdivide the face rails:
+         * the spline passes through every authored station, so the authored
+         * table (and everything {@link FaceParams} does to it) is preserved
+         * exactly — only the straight flats between stations go.
+         */
+        /** Catmull-Rom on four explicit points (for closed rings). */
+        private static float crWrap(float p0, float p1, float p2, float p3, float u) {
+            float u2 = u * u;
+            float u3 = u2 * u;
+            return 0.5f * ((2f * p1)
+                    + (p2 - p0) * u
+                    + (2f * p0 - 5f * p1 + 4f * p2 - p3) * u2
+                    + (3f * p1 - 3f * p2 + p0 - p3) * u3);
+        }
+
+        private static float catmullRom(float[] arr, int i, float u) {
+            int last = arr.length - 1;
+            float p0 = arr[Math.max(0, i - 1)];
+            float p1 = arr[i];
+            float p2 = arr[Math.min(last, i + 1)];
+            float p3 = arr[Math.min(last, i + 2)];
+            float u2 = u * u;
+            float u3 = u2 * u;
+            return 0.5f * ((2f * p1)
+                    + (p2 - p0) * u
+                    + (2f * p0 - 5f * p1 + 4f * p2 - p3) * u2
+                    + (3f * p1 - 3f * p2 + p0 - p3) * u3);
         }
 
         private static float angleToU(float deg) {
