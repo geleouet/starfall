@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — the interface has no text in it; system 4 on its last pass",
+  updated: "2026-08-03 — system 4 closed at its cap; the interface is in review",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "Two systems at once \u2014 System 4\u2019s last pass, and an interface with no text in it",
-    detail: "System 4 is spending its final pass on the two hard edges at the focal point and " +
-            "on a closing debt record that faces, textures and the combat UI will inherit. In " +
-            "parallel, in an isolated worktree, the <b>combat interface</b> was built: a vertical " +
-            "stanza of brushed marks with <b>no text anywhere in it</b> \u2014 every action drawn " +
-            "as the gesture it produces. Whether a player can actually read it is the question " +
-            "its own author says only a reviewer can answer, and one is answering it now."
+    title: "System 4 closed at its five-pass cap \u2014 and its record is being audited, not reviewed",
+    detail: "The last pass killed both hard edges at the focal point, finally lowered the lane " +
+            "spacing, and <b>found four claims in this project\u2019s own record that do not " +
+            "reproduce</b>. There is no pass 6, so <code>system4-debt.md</code> is now an " +
+            "<b>inheritance document</b>: faces, textures and the combat UI will each build " +
+            "against it without re-deriving its numbers. It is being audited for accuracy alone " +
+            "\u2014 an error in it costs three systems real work."
   },
 
   systems: [
@@ -184,7 +184,7 @@ const DATA = {
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
-    { n:"04", name:"Procedural interaction", status:"building", passes:5,
+    { n:"04", name:"Procedural interaction", status:"failed", passes:5,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
     { n:"05", name:"Combat + action queue", status:"building", passes:1,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
@@ -254,6 +254,62 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 4", kind:"build", pass:5,
+      title:"The last pass \u2014 and four claims in our own record that do not reproduce",
+      sheet:"out/captures/s4-p5-parry-contact/frame_010.png",
+      sheetNote:"System 4\u2019s final frame. Soft unequal rays instead of flat wedges, no " +
+                "square flecks, the false moon gone, and the duellists finally close enough to " +
+                "bind. Compare with the two frames below it.",
+      body:[
+        "<b>Both hard edges at the focal point are gone, and both were real.</b> The flecks were " +
+        "rotated quads with <i>uniform alpha on all four vertices</i> \u2014 a filled polygon by " +
+        "construction \u2014 and are now seven-point irregular fans whose entire rim sits at zero " +
+        "alpha. In the review\u2019s own box at matched scale, bbox-fill goes <b>0.78\u20130.98 " +
+        "\u2192 0.37\u20130.55</b> and no filled quadrilateral survives. The rays were single " +
+        "triangles with a hard tip; on the star\u2019s brightest frame the share of steps above " +
+        "100 goes <b>0.057% \u2192 zero</b>, against the reference at zero.",
+
+        "<b>The lane spacing is finally lowered</b>, and the refusal that carried it for two " +
+        "passes was void. Skirt separation goes from 1.7\u00d7 the corpus to <b>1.22\u00d7</b>, " +
+        "the blades meet at 0.0059, and <b>for the first time no frame in the contact window is " +
+        "scored as a merge</b>. The cost is measured rather than omitted: the figure is 15% " +
+        "larger, so the mesh facets that were already there are 15% steeper.",
+
+        "<b>And four claims in this project\u2019s own record do not reproduce</b> \u2014 " +
+        "finding them on the last pass is worth more than another tenth of a point on anything. " +
+        "The clash\u2019s <b>maximum single-pixel step of 134</b>, the headline number for the " +
+        "ray defect, is <i>the blade\u2019s own edge</i>: the rays were a real defect, but that " +
+        "statistic never measured them."
+      ],
+      notes:[
+        { kind:"crit", label:"A target that was unreachable under our own palette",
+          text:"The ground was to reach standard deviation 24.6. <b>41.6% of reference image " +
+               "3\u2019s lower third lies below STYLE.md\u2019s own ink floor</b>, and clamped " +
+               "at that floor the corpus reads <b>21.0</b>, not 24.6. The original comparison " +
+               "also crossed crops \u2014 the reference band is half the width of the " +
+               "capture\u2019s. The real deficit was 20.2 against 21.0: <b>4%, not 27%</b>. The " +
+               "pass paid every named defect, missed the target statistic, and the target was " +
+               "wrong. Likewise 60\u201380\u00b0 of trail sweep <b>was never available</b>: the " +
+               "stored poses are half a radian apart, so the constant picks a pose count rather " +
+               "than an angle." },
+        { kind:"crit", label:"Multiplying by zero is not the same as not compiling the term",
+          text:"Pass 4 proved Family A untouched by shooting it with <code>u_dusk = 0</code> and " +
+               "getting a bit-identical frame. It no longer is \u2014 <b>97,795 px, max delta " +
+               "6</b> \u2014 bisected to collapsing a <code>mix</code> with a zero coefficient " +
+               "into a branch with identical arms, which moves two pixels. <b>A control that " +
+               "shares a shader with the thing it controls for is weaker than it looks</b>, which " +
+               "is §11.2b(g) one level deeper than it was written." },
+        { kind:"fix", label:"Closed at the cap, with an inheritance document",
+          text:"<code>system4-debt.md</code> is rewritten as a closing record: <b>18 numbered " +
+               "items, each with its region and the system that inherits it</b>, and a section " +
+               "naming exactly what goes to <b>3b</b> (the 9-vs-25 part count and the flat-shaded " +
+               "head facets), to <b>3c</b> (trail shape, embers, the foe\u2019s stub blade, the " +
+               "pale duellist\u2019s wrong sign and hue) and to <b>System 5</b> (lane spacing as " +
+               "a staging decision, the missing hit resolution, the planning framing). It is now " +
+               "being audited for accuracy \u2014 three systems will build on it blind." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 5", kind:"build", pass:1,
       title:"An interface with no text in it, painted on the same paper as the duel",

@@ -977,6 +977,31 @@ outcomes, not two, and the third one is silent.** Any mechanism that can turn a 
 no-op — an assumption, a conditional skip, an empty parameter set, a tag filter, a `@Disabled`
 someone meant to remove — belongs in the review, because a suite reports it as success.
 
+**And observing a guard red proves a path to failure exists — not that the guard covers
+what it claims.** This is the version that survives the other two, and it was found the only
+way it could be: adversarially.
+
+System 5's interface guard asserts that every emitted triangle has a vertex at alpha zero,
+and its documentation says a panel, a bar or a border *"fails it on the first triangle"*. It
+was broken by hand and it went red, so it had been observed red. A reviewer then wrote a
+triangle of the form `(0, α, α)` — which satisfies the assertion and **prints a hard edge
+along the α–α side** — and with it drew **a filled, bordered HUD panel that passes the guard
+and all 401 tests.** The assertion was true, the break was genuine, and the claim was still
+false, because the claim was about *every* way to print an edge and the assertion covered
+one.
+
+Being red once tells you the assertion is reachable. It tells you nothing about the gap
+between what the assertion tests and what its name promises, and that gap is where defects
+live — the guard is written from the same mental model as the code, so it inherits exactly
+the blind spots that produced the bug.
+
+**So a guard that carries a broad claim owes a second exhibit: the adversarial instance.**
+Try to build the thing the guard forbids *while satisfying it*. If you succeed, the guard's
+scope is the finding and the name is a lie; narrow the name or widen the test. If you
+genuinely cannot, say what you tried — that attempt is the evidence, and it is worth more
+than the red run. Three rules deep, the pattern is one thing: **every claim about a guard
+must itself be tested, and each level of that has cost a system a pass.**
+
 **(g) The control must exercise the property it certifies.** Every review since the harness
 bug has opened by proving its apparatus in scope against `rig-bindpose`, a static null, and
 reporting *0 of 691,200 pixels differ*. That sentence was read as "captures are
