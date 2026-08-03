@@ -36,6 +36,35 @@ shape, not as a requirement for the object.
 If a reviewer cannot answer *yes*, the pass fails. Everything below exists to make that
 answer yes.
 
+### 0.1 What every brief must open with — and why this rule exists
+
+**A brief that does not open with these three lines is malformed, and the reviewer should
+say so before grading anything:**
+
+1. **The current §0 answer**, in one sentence, for the frame this pass will change.
+2. **The part-count target** (§11.0), as *from N to M*, with the fittings to be added named
+   one by one — not "improve readability".
+3. **The one change this pass will make that is visible at 1×**, named in advance.
+
+This exists because an audit of seven systems found the failure mode, and it is not a
+failure of any pass — it is a failure of the *briefs*, which this document shapes. The
+rubric's falsifiable clauses — edge steps, value floors, lag bands, corridors — decide
+PASS/FAIL mechanically, so they become work orders. The two things that actually decide
+whether a frame is a picture — **how much figure resolves**, and **what the composition is
+when nobody is striking** — are not falsifiable at authoring time, so they headed no brief
+in seven systems.
+
+The evidence is exact. System 1's debt item D1 records that hands, grips, guards and folds
+have *never appeared on any pass's work order*; every review since has named them as the
+largest gap; **it is still true today.** Meanwhile four passes went to a corridor statistic
+that never discriminated between two settings of this project, and five to a cloth scalar
+whose closing verdict was that no scalar grades this cloth. The measurable crowded out the
+decisive, one honest brief at a time.
+
+So the ordering above is deliberate: **the unfalsifiable goals go first, where they cannot
+be crowded out, and the measurable ones support them.** A statistic earns its place in a
+brief by serving a named part count or a named composition — not by being available.
+
 ---
 
 ## 1. Reference corpus
