@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=duel-phrase-bareface -Pout=out/captures/s3b-p2-wide-bareface -Pframes=6 -Pcols=3 -Pstep=0.3 -Pw=960 -Ph=720
+
+scene=duel-phrase-bareface
+description=five-tile stanza against a rooted body: one phrase, five clauses
+frames=6
+start=0.0
+step=0.3
+window=1.5
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=78151df-dirty
+harness=f0ad18994eec

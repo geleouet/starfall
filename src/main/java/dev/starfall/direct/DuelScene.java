@@ -71,6 +71,19 @@ public class DuelScene implements Scene, SceneProbe {
     private final Duel.Kind kind;
     private final String name;
 
+    /**
+     * True for the {@code -bareface} control: the identical score with the face
+     * system not drawn. STYLE.md 11.2b(g) — "say what a number would read if the
+     * thing being measured were absent, and then produce that case" — and the same
+     * arrangement System 5's {@code -bare} lanes use: a separate scene rather than
+     * a flag on a capture, so {@code capture.txt} names the control and it can
+     * never be mistaken for a live shot.
+     */
+    private final boolean bareFace;
+
+    /** How resolved the face's ink marks are at the current framing, 0..1. */
+    private float faceDetail = 1f;
+
     private Duel.Staged staged;
     private Director director;
     private InkSkinnedRenderer renderer;
@@ -82,8 +95,13 @@ public class DuelScene implements Scene, SceneProbe {
     private int height = 720;
 
     public DuelScene(Duel.Kind kind, String name) {
+        this(kind, name, false);
+    }
+
+    public DuelScene(Duel.Kind kind, String name, boolean bareFace) {
         this.kind = kind;
         this.name = name;
+        this.bareFace = bareFace;
     }
 
     @Override
@@ -163,6 +181,50 @@ public class DuelScene implements Scene, SceneProbe {
         camera.setToOrtho(false, w, h);
         camera.position.set((float) Director.stretch(f.centreTile() * Stage.TILE_WIDTH), h * EYE, 0f);
         camera.update();
+
+        // STYLE.md 4b.0 / 3b.1: detail resolves on push-in. The face's ink marks
+        // fade with the head's own delivered size — full above a 44 px head,
+        // gone below 26, where a 2 px eye would be shimmer on a suggestion-of-a-
+        // face. Continuous in the camera width, so it inherits the schedule's
+        // no-cut guarantee: a glide cannot pop the face on.
+        float headPx = 2f * dev.starfall.rig.SamuraiRig.SKULL_RADIUS * width / w;
+        faceDetail = detailFade(headPx);
+    }
+
+    /**
+     * How resolved the face's authored marks are for a head delivered at
+     * {@code headPx} pixels: 0 at or below 36 px (a 2 px eye there is shimmer, and
+     * 4b.0 wants a wide figure to have the SUGGESTION of a face, not a face), 1 at
+     * or above 54 px, smoothstep between. Static and pure so the LOD claim is
+     * testable without a GL context.
+     *
+     * <p><b>The knee moved 26/44 &rarr; 36/54 when System 5's framing law landed, and the
+     * reason is worth keeping.</b> These numbers were never about faces in the abstract —
+     * they were calibrated against a planning framing that pulled back far enough to make
+     * a head negligible. That framing is gone: the planning shot is now cut to the
+     * exchange, and it delivers a <b>32.8 px</b> head where it used to deliver a speck. At
+     * the old knee the face was 32% resolved on the frame &sect;4b.0 says must carry a
+     * suggestion, which is how a merge of two green systems produces a red suite.
+     *
+     * <p>So this is maintenance of a rubric property under a changed premise, not a
+     * loosened threshold: &sect;4b.0 still wants a suggestion at planning framing and a face
+     * on push-in, and the knee is what ties those two to the pixels a camera actually
+     * delivers. <b>Any future change to the framing law owes this constant a re-derivation
+     * — it is a dependent variable, and nothing in the build says so except this
+     * paragraph and the test that caught it.</b>
+     */
+    static float detailFade(float headPx) {
+        float u = Math.max(0f, Math.min(1f, (headPx - 36f) / 18f));
+        return u * u * (3f - 2f * u);
+    }
+
+    /**
+     * The specular's alpha: 4b.4's one bright dot, killed by the closing lid and
+     * by the pull-out fade. Pure, for the same reason as {@link #detailFade}.
+     */
+    static float specularAlpha(float detail, float lid) {
+        float open = Math.max(0f, Math.min(1f, (lid - 0.30f) / 0.40f));
+        return 0.55f * detail * open;
     }
 
     @Override
@@ -173,10 +235,33 @@ public class DuelScene implements Scene, SceneProbe {
         renderer.begin(camera.combined, t);
         for (Figure f : director.figures()) {
             renderer.draw(f.rig().mesh(), f.skeleton(), f.clothMaterial());
+            // System 3b: the face, in two merge groups over the figure's own
+            // cloth — skin (always; at the wide framing it is the "suggestion
+            // of a face" 4b.0 asks for), then the ink marks, whose coverage
+            // fades with the camera so a 2 px eye cannot shimmer at the
+            // planning framing. The -bareface control skips exactly these.
+            if (!bareFace) {
+                f.faceInkMaterial().covScale = faceDetail;
+                renderer.draw(f.rig().faceMesh(), f.skeleton(), f.skinMaterial());
+                renderer.draw(f.rig().faceInkMesh(), f.skeleton(), f.faceInkMaterial());
+            }
             // The blade flushes the cloth group before it draws, so each figure's
             // garment resolves with its own colour and its own halo, and steel
             // lands over the ink it belongs to rather than over both figures'.
             renderer.draw(f.rig().bladeMesh(), f.skeleton(), f.bladeMaterial());
+        }
+        if (!bareFace) {
+            // 4b.4's one specular per eye: a soft screen-blended speck, offset
+            // toward the light (up-forward), killed when the lid closes and
+            // faded with the same push-in ramp as the rest of the face's detail.
+            Vector2 e = new Vector2();
+            for (Figure f : director.figures()) {
+                float alpha = specularAlpha(faceDetail, f.face().lid());
+                if (alpha > 0.004f) {
+                    f.where("eye", e);
+                    renderer.lightSpeck(e.x + 0.004f * f.facing(), e.y + 0.0015f, 0.0075f, alpha);
+                }
+            }
         }
         renderer.end();
 
@@ -286,6 +371,12 @@ public class DuelScene implements Scene, SceneProbe {
             for (Figure f : director.figures()) {
                 f.rig().mesh().dispose();
                 f.rig().bladeMesh().dispose();
+                if (f.rig().faceMesh() != null) {
+                    f.rig().faceMesh().dispose();
+                }
+                if (f.rig().faceInkMesh() != null) {
+                    f.rig().faceInkMesh().dispose();
+                }
             }
         }
         if (renderer != null) {

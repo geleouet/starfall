@@ -66,7 +66,15 @@ public final class SceneRegistry {
             String name = kind.sceneName();
             register(name, () -> new DuelScene(kind, name));
             register(name + "-debug", () -> new DuelDebugScene(kind, name + "-debug"));
+            // System 3b's control: the identical score with the face system not
+            // drawn (STYLE.md 11.2b(g)), same arrangement as the lanes' -bare.
+            register(name + "-bareface", () -> new DuelScene(kind, name + "-bareface", true));
         }
+
+        // System 3b pass 2: six generated faces at push-in scale in one frame,
+        // so 4b.6's variety claim is a picture rather than a parameter table
+        // (the pass-1 review's ranked item 8).
+        register("face-gallery", () -> new dev.starfall.direct.FaceGalleryScene("face-gallery"));
 
         // System 5. The same world, with an interface on it: the Ink Stanza written
         // up the margin, the Fold of the World drawn as ground, and the camera of

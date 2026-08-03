@@ -58,8 +58,14 @@ import java.util.Map;
  */
 public final class InkSkinnedRenderer {
 
-    /** Contract section B. Matches MAX_BONES in ink_skin.vert. */
-    private static final int MAX_BONES = 32;
+    /**
+     * Contract section B, amended by System 3b. Matches MAX_BONES in
+     * ink_skin.vert: the skeleton was already at 31 bones when 3b arrived (the
+     * contract-era count of 28 was stale), the three face bones took it to 34,
+     * and 36 mat4 is 144 vec4 against the GLES 3.0 guaranteed 256 the original
+     * 32 was derived from. Two slots remain for 3c.
+     */
+    private static final int MAX_BONES = 36;
 
     /** GLES 3.0 blend equations. Not in libGDX's GL20 interface, which predates them. */
     private static final int GL_FUNC_ADD = 0x8006;
@@ -180,6 +186,7 @@ public final class InkSkinnedRenderer {
     private final Color clothBase = new Color(Palette.INK_INDIGO);
     private final Color clothDeep = new Color(Palette.INK_BLACK);
     private final Color clothStain = new Color(Palette.OCHRE);
+    private final Color clothStainPale = new Color(Palette.OCHRE_PALE);
     private float clothBleed = 1f;
 
     /**
@@ -298,6 +305,7 @@ public final class InkSkinnedRenderer {
         clothBase.set(material.base);
         clothDeep.set(material.deep);
         clothStain.set(material.stain);
+        clothStainPale.set(material.stainPale);
         clothBleed = material.bleedRadius;
 
         if (!materialBound) {
@@ -313,6 +321,9 @@ public final class InkSkinnedRenderer {
         matShader.setUniformf("u_paperGrain", material.paperGrain);
         matShader.setUniformf("u_inkSeed", material.seedX, material.seedY);
         matShader.setUniformf("u_sash", material.sashHeight, material.sashLift);
+        matShader.setUniformf("u_sashTop", material.sashTop);
+        matShader.setUniformf("u_covScale", material.covScale);
+        matShader.setUniformf("u_feather", material.feather);
         mesh.mesh().render(matShader, GL20.GL_TRIANGLES);
         anyCloth = true;
     }
@@ -345,6 +356,7 @@ public final class InkSkinnedRenderer {
         return clothBase.equals(material.base)
                 && clothDeep.equals(material.deep)
                 && clothStain.equals(material.stain)
+                && clothStainPale.equals(material.stainPale)
                 && clothBleed == material.bleedRadius;
     }
 
@@ -553,7 +565,7 @@ public final class InkSkinnedRenderer {
         setColor(resolveShader, "u_base", clothBase);
         setColor(resolveShader, "u_deep", clothDeep);
         setColor(resolveShader, "u_stain", clothStain);
-        setColor(resolveShader, "u_stainPale", Palette.OCHRE_PALE);
+        setColor(resolveShader, "u_stainPale", clothStainPale);
         setColor(resolveShader, "u_paperLo", backdrop[0]);
         setColor(resolveShader, "u_paperMid", backdrop[1]);
         setColor(resolveShader, "u_paperHi", backdrop[2]);
@@ -821,12 +833,64 @@ public final class InkSkinnedRenderer {
         }
     }
 
+    /**
+     * STYLE.md 4b.4's specular: "exactly one specular dot, and it must not be
+     * centred". A dot this small — a couple of pixels — cannot carry a soft edge
+     * as geometry-with-alpha through the cloth buffer, and an emissive quad would
+     * be a hard-edged sprite, §10's first fail-on-sight row. So it goes through
+     * the same screen-blended glow mesh the blade's light uses: an eight-point
+     * fan whose rim sits on zero alpha, which is the one drawing operator in this
+     * renderer that can only ever read as light.
+     *
+     * <p>Call between merge groups (after the face's ink has resolved), with
+     * {@code alpha} already scaled by the scene's push-in fade so the dot cannot
+     * shimmer at the planning framing.
+     */
+    public void lightSpeck(float x, float y, float worldRadius, float alpha) {
+        if (alpha <= 0.004f) {
+            return;
+        }
+        flushCloth();
+        beginRibbon();
+        // 4b.2's specular #FFF6E2: the one warm-white note on a face.
+        glowR = 1.0f;
+        glowG = 0.965f;
+        glowB = 0.886f;
+        pushGlowVertex(x, y, alpha);
+        int points = 8;
+        for (int i = 0; i <= points; i++) {
+            float a = (float) (i * Math.PI * 2.0 / points);
+            pushGlowVertex(x + worldRadius * MathUtils.cos(a), y + worldRadius * MathUtils.sin(a), 0f);
+        }
+        glowIndexCount = 0;
+        for (int i = 1; i <= points; i++) {
+            glowIndices[glowIndexCount++] = 0;
+            glowIndices[glowIndexCount++] = (short) i;
+            glowIndices[glowIndexCount++] = (short) (i + 1);
+        }
+        renderRibbon();
+        glowR = 0.855f;
+        glowG = 0.900f;
+        glowB = 0.955f;
+    }
+
     // -- ribbon plumbing -----------------------------------------------------
 
     private void beginRibbon() {
         glowVertCount = 0;
         glowIndexCount = 0;
     }
+
+    // Pale and distinctly cool, and never white. On the warm Family A paper
+    // a near-white glow is invisible -- it differs from the ground by three
+    // levels -- so what makes the sheath and the trail read is the warm/cool
+    // opposition of STYLE.md 2.2 rather than brightness. Against the ink it
+    // still lifts, which is what a luminous edge should do.
+    // The eye's speck overrides these with 4b.2's warm specular for one fan
+    // and puts them back.
+    private float glowR = 0.855f;
+    private float glowG = 0.900f;
+    private float glowB = 0.955f;
 
     private void pushGlowVertex(float x, float y, float alpha) {
         if (glowVertCount >= GLOW_MAX_VERTS) {
@@ -835,14 +899,9 @@ public final class InkSkinnedRenderer {
         int o = glowVertCount * 6;
         glowVerts[o] = x;
         glowVerts[o + 1] = y;
-        // Pale and distinctly cool, and never white. On the warm Family A paper
-        // a near-white glow is invisible -- it differs from the ground by three
-        // levels -- so what makes the sheath and the trail read is the warm/cool
-        // opposition of STYLE.md 2.2 rather than brightness. Against the ink it
-        // still lifts, which is what a luminous edge should do.
-        glowVerts[o + 2] = 0.855f;
-        glowVerts[o + 3] = 0.900f;
-        glowVerts[o + 4] = 0.955f;
+        glowVerts[o + 2] = glowR;
+        glowVerts[o + 3] = glowG;
+        glowVerts[o + 4] = glowB;
         glowVerts[o + 5] = alpha;
         glowVertCount++;
     }

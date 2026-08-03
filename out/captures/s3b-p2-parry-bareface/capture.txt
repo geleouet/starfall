@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=duel-parry-bareface -Pout=out/captures/s3b-p2-parry-bareface -Pframes=24 -Pcols=6 -Pstart=1.42 -Pstep=0.0167 -Pw=960 -Ph=720
+
+scene=duel-parry-bareface
+description=blade meets blade: one contact instant, two skeletons, a deflection
+frames=24
+start=1.42
+step=0.0167
+window=0.3841
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=78151df-dirty
+harness=f0ad18994eec

@@ -142,7 +142,12 @@ public final class Rehearsal {
                        Vector2 bladeRoot, Vector2 bladeCross, Vector2 bladeTip,
                        Vector2 armTarget, double armWeight, double armResidual, double bladeWeight,
                        double bladeLocalDeg, double bladeWorldDeg, double handWorldDeg,
-                       Vector2 shoulder, Vector2 elbow, Vector2 pole) {
+                       Vector2 shoulder, Vector2 elbow, Vector2 pole,
+                       /* System 3b pass 2: the eye bone's world position. The pass-1 gaze
+                          guard was vacuous partly because nothing headless could say where
+                          the EYE is, only where the head is — and the face-value guard
+                          needs the same point to place its boxes on a bowed head. */
+                       Vector2 eye) {
     }
 
     private final Duel.Kind kind;
@@ -279,7 +284,8 @@ public final class Rehearsal {
                 f.skeleton().worldRotationDeg(f.skeleton().bone("handL").index),
                 f.where("upperArmL", new Vector2()).cpy(),
                 f.where("forearmL", new Vector2()).cpy(),
-                new Vector2(arm.poleX(), arm.poleY()));
+                new Vector2(arm.poleX(), arm.poleY()),
+                f.where("eye", new Vector2()).cpy());
     }
 
     // -- geometry --------------------------------------------------------------

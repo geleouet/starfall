@@ -76,6 +76,7 @@ public final class AnalysisCli {
             case "autocorr" -> autocorr(a);
             case "edge" -> edge(a);
             case "marks" -> marks(a);
+            case "facets" -> facets(a);
             case "values" -> values(a);
             case "diff" -> diff(a);
             case "timing" -> timing(a);
@@ -124,6 +125,13 @@ public final class AnalysisCli {
                                                         paper-to-core distance and wet-bleed halo width
                   analyse marks    <dir|png> --region <spec> [--cuts 3] [--horizontal]
                                                         mark-width runs and whether they are bimodal
+                  analyse facets   <dir|png> --rect x,y,w,h [--frame N] [--min 8] [--run 6] [--mask-blade]
+                                                        straight axis-aligned luminance edges per 1000 px
+                                                        (system4-audit.md C2's instrument, checked in).
+                                                        Reports 1-px and 2-px bases; --rect is REQUIRED
+                                                        (11.3). --mask-blade excludes the one licensed
+                                                        hard edge, and prints the unmasked base-1 line
+                                                        too so audit numbers stay comparable.
                   analyse values   <dir|png>            floor against #161A22, ceiling against paper
                   analyse blades   <dir|png> [--max 0.02] [--span x,y,w,h]
                                                         STYLE.md 7.2's parry: minimum blade-to-blade
@@ -1083,6 +1091,75 @@ public final class AnalysisCli {
             out().println();
             out().println("region " + e.getKey());
             out().print(MarkWidths.measure(c.frame, c.paper, e.getValue(), vertical, cuts, c.factor).describe());
+        }
+        return 0;
+    }
+
+    /**
+     * {@code analyse facets}: straight axis-aligned edge density. See {@link Facets}.
+     *
+     * <p>Refuses without {@code --rect} — STYLE.md 11.3 by construction, and this
+     * command in particular must not improvise a box: the number it exists to take
+     * (the face region) sits beside the one licensed hard edge in the frame, and a
+     * detected box would swallow the blade on half the frames of any parry window.
+     */
+    private static int facets(Args a) throws IOException {
+        String path = a.requirePositional(0, "a capture directory or a PNG file");
+        File f = new File(path);
+        Frame frame;
+        if (f.isDirectory()) {
+            CaptureDir dir = CaptureDir.of(f);
+            frame = dir.frame(Math.max(0, Math.min(dir.size() - 1, a.getInt("frame", 0))));
+        } else {
+            frame = Frame.load(f);
+        }
+        if (!a.has("rect")) {
+            throw new IllegalArgumentException("facets requires --rect x,y,w,h. A straight-edge "
+                    + "density without its rectangle is an anecdote (STYLE.md 11.3), and this "
+                    + "command refuses to produce one.");
+        }
+        Rect rect = Rect.parse(a.get("rect", null));
+        double min = a.getDouble("min", 8);
+        int run = a.getInt("run", 6);
+        boolean mask = a.flag("mask-blade");
+
+        Facets.Reading b1 = Facets.measure(frame, rect, min, run, 1, mask);
+        Facets.Reading b2 = Facets.measure(frame, rect, min, run, 2, mask);
+        Facets.Reading raw = mask ? Facets.measure(frame, rect, min, run, 1, false) : b1;
+
+        if (a.flag("json")) {
+            Json.Writer w = new Json.Writer().beginObject()
+                    .prop("source", frame.name())
+                    .prop("rect", b1.rect())
+                    .prop("minStep", min).prop("minRun", run).prop("bladeMasked", mask);
+            w.name("base1").beginObject()
+                    .prop("v", b1.vCount()).prop("vLongest", b1.vLongest())
+                    .prop("h", b1.hCount()).prop("hLongest", b1.hLongest())
+                    .prop("per1000", b1.per1000()).endObject();
+            w.name("base2").beginObject()
+                    .prop("v", b2.vCount()).prop("vLongest", b2.vLongest())
+                    .prop("h", b2.hCount()).prop("hLongest", b2.hLongest())
+                    .prop("per1000", b2.per1000()).endObject();
+            if (mask) {
+                w.name("base1Unmasked").beginObject()
+                        .prop("v", raw.vCount()).prop("h", raw.hCount())
+                        .prop("per1000", raw.per1000()).endObject();
+            }
+            out().println(w.endObject());
+            return 0;
+        }
+        out().println("facets  " + frame.name() + "  rect " + b1.rect().describe()
+                + "  |dL| > " + min + ", run >= " + run + (mask ? ", blade-masked" : ""));
+        out().printf("  base 1px: V %d (longest %d)  H %d (longest %d)  ->  %.1f / 1000 px%n",
+                b1.vCount(), b1.vLongest(), b1.hCount(), b1.hLongest(), b1.per1000());
+        out().printf("  base 2px: V %d (longest %d)  H %d (longest %d)  ->  %.1f / 1000 px%n",
+                b2.vCount(), b2.vLongest(), b2.hCount(), b2.hLongest(), b2.per1000());
+        if (mask) {
+            out().printf("  base 1px unmasked (audit-comparable): V %d  H %d  ->  %.1f / 1000 px%n",
+                    raw.vCount(), raw.hCount(), raw.per1000());
+        }
+        for (Facets.Run r : b1.topRuns()) {
+            out().println("    " + r.describe());
         }
         return 0;
     }

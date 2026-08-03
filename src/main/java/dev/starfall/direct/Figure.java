@@ -68,6 +68,21 @@ public final class Figure {
     private final InkMaterial cloth = new InkMaterial();
     private final InkMaterial blade = new InkMaterial().asBlade();
 
+    /**
+     * System 3b. The skin group (STYLE.md 4b.2): base is the lit plane, deep the
+     * cool grey-violet shadow — brown shadows are unreachable by construction —
+     * stain the blush, its pale rim the lip tone. One group per figure, so the
+     * hairline where hair (which frays) meets skin (which may not) is two merge
+     * groups compositing, a wet edge rather than a blend.
+     */
+    private final InkMaterial skin = new InkMaterial();
+
+    /** The face's ink marks: brow, lash+iris, nostril, lip, beard. Fades on pull-out. */
+    private final InkMaterial faceInk = new InkMaterial();
+
+    /** STYLE.md 4b.6's four channels, damped. See {@link FaceRig}. */
+    private final dev.starfall.rig.FaceRig face = new dev.starfall.rig.FaceRig();
+
     private final Pose pose = new Pose();
 
     private double standX;
@@ -86,6 +101,22 @@ public final class Figure {
         this.skeleton = rig.skeleton();
         this.ik = RigIk.of(rig);
         this.sim = new RigSim(skeleton);
+        skin.base = copyOf(Palette.SKIN_BASE);
+        skin.deep = copyOf(Palette.SKIN_DEEP);
+        skin.stain = copyOf(Palette.BLUSH);
+        skin.stainPale = copyOf(Palette.LIP);
+        skin.bleedRadius = 0.6f;
+        skin.paperGrain = 0.8f;
+        // STYLE.md 3 via the pass-1 review: 4b.1 exempts skin from the ink
+        // dissolve and grants no licence to alias. The face's edges get the
+        // soft rim lightSpeck already gives the specular.
+        skin.feather = 1.6f;
+        faceInk.base = Palette.INK_BLACK;
+        faceInk.deep = Palette.INK_BLACK;
+        faceInk.stain = Palette.IRIS;
+        faceInk.stainPale = Palette.IRIS;
+        faceInk.bleedRadius = 0.45f;
+        faceInk.feather = 1.4f;
         // The pose-derived elbow pole is decided by float rounding when the bind
         // arm is straight, which it very nearly is -- RigIk#armPoleFromChest says
         // so and SimSceneDriver uses these exact numbers. Below and behind the
@@ -176,6 +207,44 @@ public final class Figure {
         f.cloth.base = Palette.INK_BLACK;
         f.cloth.deep = Palette.INK_BLACK;
         f.cloth.stain = Palette.OCHRE;
+        // System 3b pass 2. STYLE.md 4b.2 as amended: the binding value is a
+        // RATIO — the corpus paints the face plane at 0.25–0.31 of its own
+        // local sky luminance, on all six family-B heads — and the hexes govern
+        // only relative structure within the face. Pass 1 scaled the portrait
+        // palette "toward the figure's register" by eye and delivered a hero
+        // face at 0.56x its sky (bareface 0.35x): the face made the head
+        // LIGHTER, away from the corpus's 0.25x. So the plane now sits on
+        // `deep`, scaled to land the delivered plane in the corpus band
+        // (measured on s3b-p2-parry-contact frame 11, regions in
+        // FaceValueTest), and `base` carries only the narrow break of light,
+        // which the corpus peaks at 0.59–1.22x sky over a 2–3 px band.
+        // +10% over the second iteration: the run-to-run head noise (max
+        // channel delta 88 on this window) flips wash boundaries whose step
+        // sits at 8-9 levels, and the acceptance's own margin was smaller
+        // than the noise — the delivered frame read 5.00 straight edges per
+        // 1000 px where its bit-identical rerun read 4.60 (s3b-p2-parry-
+        // contact vs -repro, frame 11, hero head box). A brighter break
+        // moves every break-adjacent boundary to 11+ levels, which no
+        // one-LSB dither can flip.
+        f.skin.base.mul(0.505f, 0.462f, 0.44f, 1f); // the break of light, ~1.05x sky, clash-lit warm
+        // 0.25, not iteration one's 0.28: the resolve's noise lift prints the
+        // w=1 plane ~3.5 levels over `deep`, so a deep at L26.5 delivered a
+        // plane at L30 = 0.34x sky. Measured s3b-p2-try14 frame 11, plane box
+        // x427..435 y297..308 vs sky x469..491 y274..295.
+        //
+        // Third iteration: deep is no longer the PLANE, it is the register
+        // BELOW the plane — socket, contour line, under-jaw — because a
+        // socket can only be a shadow if the material has somewhere darker
+        // than the plane to go. The plane moved onto the wetness ramp
+        // (buildFace, ~0.86) and deep dropped to the corpus's own deep-stroke
+        // register, 0.17-0.19x sky (ref3 dark socket 18-25 on sky 103.6).
+        // The face's ink strokes sit lower still, on INK_BLACK_DUSK's
+        // measured 0.12-0.14x floor — see Palette.
+        f.skin.deep.mul(0.145f, 0.145f, 0.16f, 1f);
+        f.faceInk.base = copyOf(Palette.INK_BLACK_DUSK);
+        f.faceInk.deep = copyOf(Palette.INK_BLACK_DUSK);
+        f.skin.stain.mul(0.30f, 0.28f, 0.28f, 1f);  // warm notes must not glow on a near-black plane
+        f.skin.stainPale.mul(0.32f, 0.30f, 0.30f, 1f);
         // The other half of the Family B separation, and the half the review did not
         // ask for because nobody had measured it. Lifting the pale duellist alone gets
         // the torso ratio from 1.54 to 1.99 against the corpus's 3.27; the rest of the
@@ -206,7 +275,11 @@ public final class Figure {
      * The ink seed is offset so the two are not photocopies of one another.
      */
     public static Figure pale(int body) {
-        return pale(body, SamuraiRig.build());
+        // System 3b: the foe's face comes from the seeded generator — every
+        // Charted Shadow is a different face, deterministically, keyed on the
+        // body it belongs to so a capture reproduces (STYLE.md 4b.6). The hero
+        // stays authored: dark() builds with FaceParams.hero().
+        return pale(body, SamuraiRig.build(dev.starfall.rig.FaceParams.generate(0xFACE0000L + body)));
     }
 
     /** The same figure with no GPU meshes. See {@link SamuraiRig#headless()} and {@link Rehearsal}. */
@@ -245,6 +318,29 @@ public final class Figure {
         f.cloth.stain = Palette.OCHRE;
         f.cloth.seedX = 3.70f;
         f.cloth.seedY = -2.30f;
+        // System 3b pass 2, and the pass-1 review's first finding. Pass 1 kept
+        // the pale duellist's face "far above the hero's" on the argument that
+        // the pair keeps Family B's dark-against-pale opposition ON THE FACES —
+        // and the corpus refutes that in one measurement: the opposition is in
+        // the GARMENTS. Reference image 3's pale-clad duellist paints its face
+        // at 0.31x its own local sky (x296..310 y200..220 against x270..288
+        // y170..190 on ref3-matched-378.png), images 4 and 5 read 0.29–0.31 on
+        // both duellists, and in every family-B image the face is one of the
+        // darkest things on the figure. Pass 1 delivered 1.36x — one of the
+        // brightest things in the frame, a decal — while obeying 4b.2's hex
+        // table exactly, which is why 4b.2 now binds the ratio and not the hex.
+        // The pale figure's face sits at the TOP of the corpus band (0.31)
+        // where the hero sits at the bottom (0.25): that is all that remains,
+        // on the faces, of the dark-against-pale pairing.
+        f.skin.base.mul(0.54f, 0.517f, 0.528f, 1f); // the break of light, a shade over the hero's
+        // Deep is the below-the-plane register, a shade lighter than the
+        // hero's — the pale duellist's face sits at the TOP of the corpus
+        // band. See dark() for the full derivation.
+        f.skin.deep.mul(0.165f, 0.165f, 0.18f, 1f);
+        f.faceInk.base = copyOf(Palette.INK_BLACK_DUSK);
+        f.faceInk.deep = copyOf(Palette.INK_BLACK_DUSK);
+        f.skin.stain.mul(0.36f, 0.34f, 0.34f, 1f);
+        f.skin.stainPale.mul(0.36f, 0.34f, 0.34f, 1f);
         // <b>And this is the compensation pass 2 named as missing and did not build.</b>
         // Pooling the pale figure to the floor is right below the sash and wrong above
         // it: reference image 3's white-clad duellist reads at 0.56 of the sky's value
@@ -259,6 +355,11 @@ public final class Figure {
         // the haori rails' hip row at 0.96.
         f.cloth.sashHeight = 0.95f;
         f.cloth.sashLift = PALE_SASH_LIFT;
+        // The lift's licence ends at the collar: 1.50 sits between the haori
+        // rails' collar row (1.46) and the skull's lowest point (1.52), so the
+        // kimono keeps its compensation and the head does not. See
+        // InkMaterial#sashTop for the finding.
+        f.cloth.sashTop = 1.50f;
         return f;
     }
 
@@ -289,6 +390,34 @@ public final class Figure {
 
     public InkMaterial bladeMaterial() {
         return blade;
+    }
+
+    /** The skin group's material. See the field note. */
+    public InkMaterial skinMaterial() {
+        return skin;
+    }
+
+    /** The face-ink group's material. Scenes drive its {@code covScale} with the camera. */
+    public InkMaterial faceInkMaterial() {
+        return faceInk;
+    }
+
+    /** The expression channels. The director hands this its gaze. */
+    public dev.starfall.rig.FaceRig face() {
+        return face;
+    }
+
+    /**
+     * Points the gaze at a world point — STYLE.md 4b.6's fourth channel,
+     * "intent: who this character is about to act on". Converted to the
+     * figure's own frame here so the {@link FaceRig} never needs to know which
+     * way the body faces.
+     */
+    public void gazeAt(double worldX, double worldY) {
+        com.badlogic.gdx.math.Vector2 h = where("head", new com.badlogic.gdx.math.Vector2());
+        float dirX = (float) ((worldX - h.x) / 0.9) * (facing >= 0 ? 1f : -1f);
+        float dirY = (float) ((worldY - h.y) / 0.9);
+        face.gazeToward(dirX, dirY);
     }
 
     public double standX() {
@@ -357,6 +486,11 @@ public final class Figure {
      */
     public void writePose() {
         Stances.blend(pose, previousStance, stance, stanceBlend);
+        // The face expresses the same blended condition the trunk holds, then
+        // its own damped channels (updated in solve, with real dt) write the
+        // three face bones. Combat state in, settled expression out — 4b.6.
+        face.express(previousStance, stance, stanceBlend);
+        face.write(pose);
         pose.set("root", (float) standX, 0f, 0f, facing, 1f);
         rig.applyPose(pose);
         pinElbow();
@@ -398,6 +532,10 @@ public final class Figure {
 
     /** Second step: solve every chain, trunk first. */
     public void solve(float dt) {
+        // The face's channels settle here, where real dt lives. Their values are
+        // read by NEXT frame's writePose — one frame of latency against settles
+        // of 0.3-0.6 s, which is under 6% of the fastest channel's own tau.
+        face.update(dt);
         ik.update(dt);
     }
 
@@ -408,6 +546,7 @@ public final class Figure {
 
     /** Lays the whole figure out with no velocity and no settle. Scene setup only. */
     public void snap(float timeSeconds) {
+        face.snap();
         writePose();
         ik.snap();
         sim.snap(timeSeconds);
