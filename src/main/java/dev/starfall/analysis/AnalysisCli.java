@@ -125,10 +125,13 @@ public final class AnalysisCli {
                   analyse marks    <dir|png> --region <spec> [--cuts 3] [--horizontal]
                                                         mark-width runs and whether they are bimodal
                   analyse values   <dir|png>            floor against #161A22, ceiling against paper
-                  analyse blades   <dir|png> [--max 0.02]
+                  analyse blades   <dir|png> [--max 0.02] [--span x,y,w,h]
                                                         STYLE.md 7.2's parry: minimum blade-to-blade
                                                         separation as a fraction of figure height, from
                                                         cool-bright components. Exits 1 past --max.
+                                                        GIVE --span on a Family B capture: the ground is
+                                                        a dark ink smear there, so the detected figure
+                                                        box spans the whole sheet (11.3).
   analyse corridor <dir|png> [--min 0.06]
                                                         clear paper between two bodies, normalised by
                                                         figure height. Exits 1 below --min.
@@ -136,10 +139,14 @@ public final class AnalysisCli {
                                                         scalar reads 0.015 on reference image 3 and
                                                         0.000 over its full figure height (11.0).
   analyse corridor <dir|png> --profile [--span x,y,w,h]
-                                                        the per-band corridor of 11.0, with the floors
-                                                        reference image 3 sets. Runs the criterion on
-                                                        the reference FIRST and fails if the corpus
-                                                        does not pass its own floors.
+                                                        the per-band corridor of 11.0, as a BAND with
+                                                        both edges taken from the spread of Family B
+                                                        images 3, 4 and 5. Runs the criterion on all
+                                                        three FIRST and fails if any of them misses.
+                                                        Every reading carries a second one at a fixed
+                                                        ink threshold, so a corridor bought by
+                                                        lightening a figure is visible as a divergence
+                                                        between the pair.
   analyse timing   <series.json> --anchor <name>
                                                         read a headless timing series (./gw timing) and
                                                         report arrivals in samples and in seconds. 7.1:
@@ -340,16 +347,29 @@ public final class AnalysisCli {
     private static int blades(Args a) throws IOException {
         Ctx c = load(a, 0, false);
         double max = a.getDouble("max", Double.NaN);
+        // STYLE.md §11.3: the normaliser is part of the measurement, so it gets to be
+        // stated rather than detected. The pass-3 review found seven pixels of
+        // auto-detected span moving a band reading by 67% of itself between two
+        // readers, and on the Family B dusk stage the automatic figure box is worse
+        // than unstable -- it is wrong, because the ground is now a dark ink smear
+        // (STYLE.md §1) and the largest ink component runs from the head into it and
+        // out to both frame edges. Exactly the reason the corpus's span has always
+        // been given by hand.
+        Rect span = a.has("span") ? Rect.parse(a.get("span", null)) : null;
         List<Frame> frames = c.capture == null ? List.of(c.frame) : c.capture.loadAll();
         double best = Double.MAX_VALUE;
         int bestIndex = -1;
         out().printf("blade separation, cool-bright components (b-r > %.0f, lum > %.0f)%n",
                 Duellists.COOL_BR, Duellists.BRIGHT);
+        if (span != null) {
+            out().printf("  figure height given: %s, %d px%n", span.describe(), span.h);
+        }
         out().println("  frame  separation");
         for (int i = 0; i < frames.size(); i++) {
             Frame f = frames.get(i);
             Paper p = a.has("paper") ? c.paper : Paper.estimate(f);
-            Duellists.Blades b = Duellists.blades(f, p, c.factor);
+            Duellists.Blades b = span == null ? Duellists.blades(f, p, c.factor)
+                    : Duellists.blades(f, span.h);
             out().printf("  %3d    %s%n", i, b.describe());
             if (!Double.isNaN(b.fraction()) && b.fraction() < best) {
                 best = b.fraction();
@@ -434,24 +454,34 @@ public final class AnalysisCli {
         out().printf("  ink factor %.2f, background = median of the outer %d columns of each row%n",
                 c.factor, strip);
         out().println();
-        out().println("-- the criterion, run on the corpus first (11.0) --");
+        out().println("-- the criterion, run on the WHOLE of Family B first (11.0) --");
         boolean referenceOk = true;
-        File ref = a.has("reference") ? a.getFile("reference", null) : CORPUS_DUEL;
-        if (!ref.isFile()) {
-            out().printf("  %s is not on disk; the floors below are UNVERIFIED against the corpus%n", ref);
-            referenceOk = false;
-        } else {
-            Frame rf = Frame.load(ref);
-            Rect rspan = a.has("reference-span") ? Rect.parse(a.get("reference-span", null))
-                    : CORPUS_DUEL_SPAN;
-            CorridorProfile.Profile rp = CorridorProfile.measure(rf, c.factor, strip, rspan);
-            out().printf("  %s%n", ref);
+        List<CorridorProfile.Reference> corpus = a.has("reference")
+                ? List.of(new CorridorProfile.Reference("given", a.getFile("reference", null),
+                        a.has("reference-span") ? Rect.parse(a.get("reference-span", null))
+                                : CorridorProfile.FAMILY_B.get(0).span(), true, ""))
+                : CorridorProfile.FAMILY_B;
+        for (CorridorProfile.Reference r : corpus) {
+            if (!r.file().isFile()) {
+                out().printf("  %s is not on disk; the band below is UNVERIFIED against the corpus%n",
+                        r.file());
+                referenceOk = false;
+                continue;
+            }
+            Frame rf = Frame.load(r.file());
+            CorridorProfile.Profile rp = CorridorProfile.measure(rf, c.factor, strip, r.span());
+            out().printf("  %s -- %s%n", r.name(), r.file());
             out().print(rp.describe());
-            referenceOk = rp.pass();
-            out().printf("  reference passes its own floors: %s%n", referenceOk ? "yes" : "NO");
+            boolean ok = rp.pass();
+            if (!r.measurable()) {
+                out().printf("  %s: %s%n", r.name(), r.note());
+            } else {
+                referenceOk &= ok;
+                out().printf("  %s passes the band the corpus set: %s%n", r.name(), ok ? "yes" : "NO");
+            }
             out().printf("  and the whole-column scalar the first two passes chased: %.4f "
-                            + "against the 0.06 they were failed on%n",
-                    CorridorProfile.wholeColumn(rf, c.factor, strip, rspan));
+                            + "against the 0.06 they were failed on%n%n",
+                    CorridorProfile.wholeColumn(rf, c.factor, strip, r.span()));
         }
         out().println();
         out().println("-- the capture --");
@@ -491,22 +521,6 @@ public final class AnalysisCli {
         out().printf("acceptance: %s%n", ok ? "PASS" : "FAIL");
         return ok ? 0 : 1;
     }
-
-    /** Reference image 3 — Family B, the primary template for the game screen (STYLE.md §1). */
-    private static final File CORPUS_DUEL =
-            new File("inspirations/image - 2026-08-02T101033.164.png");
-
-    /**
-     * Its figure box, given rather than detected.
-     *
-     * <p>The left duellist's garment dissolves into the ground smear exactly as
-     * STYLE.md §3 requires ("the bottom third of nearly every figure is not a figure at
-     * all — it is ink smoke"), so its largest ink component runs from the head to the
-     * bottom of the frame and an automatic figure height reads 800 px rather than 673.
-     * The head is at y283 and the feet at y955; the readings move by under 4% of
-     * themselves over every span from y275..945 to y290..975.
-     */
-    private static final Rect CORPUS_DUEL_SPAN = Rect.ofCorners(0, 283, 831, 955);
 
     private static int regions(Args a) throws IOException {
         Ctx c = load(a, 0, false);

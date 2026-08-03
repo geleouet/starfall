@@ -2,6 +2,7 @@ package dev.starfall.render;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes;
@@ -65,7 +66,36 @@ public final class PaperBackground {
     private static final float MIST_G = 241f / 255f;
     private static final float MIST_B = 208f / 255f;
 
+    /**
+     * The same mist at dusk. STYLE.md 6 makes the fog bands non-negotiable and they
+     * are still the lightest thing on the sheet, but a cream mist (250,241,208) laid
+     * over a sky whose own luminance is 95-100 is a white-out rather than a haze.
+     * Read off reference image 3's pale smoke around the duellists' legs, which sits
+     * about 40% above its own local sky rather than 150% above it.
+     */
+    private static final float DUSK_MIST_R = 146f / 255f;
+    private static final float DUSK_MIST_G = 135f / 255f;
+    private static final float DUSK_MIST_B = 153f / 255f;
+
     private static final float[] NO_BANDS = new float[9];
+
+    /**
+     * Family B's stage, off by default.
+     *
+     * <h2>Why this is not "cosmetic", which two passes recorded it as</h2>
+     *
+     * <p>{@code Palette.SKY_ZENITH / SKY_MID / SKY_HORIZON / SKY_HORIZON_HOT} have
+     * existed and been calibrated from the corpus since before pass 1, and until this
+     * pass the only scene that referenced any of them was {@code SmokeScene}. Every
+     * graded duel this project has shot was fought on Family A cream paper, which
+     * inverts STYLE.md 2.2's warm/cool opposition across the whole frame -- warm
+     * ground, warm blades, warm bloom -- while STYLE.md 1 makes Family B "the primary
+     * template for the game screen". It is a background rather than a rig, and it is
+     * the largest change in what the frame looks like per unit of work available.
+     *
+     * @see #dusk(boolean)
+     */
+    private boolean dusk;
 
     private final ShaderProgram shader;
     private final ShaderProgram mistShader;
@@ -87,6 +117,48 @@ public final class PaperBackground {
         this.quad.setIndices(new short[] {0, 1, 2, 2, 3, 0});
     }
 
+    /**
+     * Draws the Family B dusk stage instead of the Family A sheet.
+     *
+     * <p>Everything else -- the ground smear, the contact pool, the grass, the fog
+     * bands, the motes, the vignette and the paper tooth -- stays exactly where it is
+     * and is only re-aimed at the tone that plays its role against a sky. The band
+     * geometry in {@link Atmosphere} is untouched, so the mist the figure fades into
+     * inside {@code ink_resolve.frag} is still the mist the ground shows.
+     */
+    public PaperBackground dusk(boolean on) {
+        this.dusk = on;
+        return this;
+    }
+
+    public boolean isDusk() {
+        return dusk;
+    }
+
+    /**
+     * The three stops {@code ink_resolve.frag} reads for the tone a wet bleed wicks
+     * into, low to high in world y.
+     *
+     * <p>The halo of STYLE.md 3.2 is pigment leaving ink and entering the ground, so
+     * its colour is the ground's. Against cream that is one constant and always has
+     * been; against a graded sky a constant is a visible aura -- a cream halo on an
+     * indigo zenith, or an indigo halo on a coral horizon. These are the same three
+     * anchors {@code duskSky} is built from, sampled at world y 0.30, 0.95 and 2.30.
+     */
+    public static Color[] backdropStops(boolean dusk) {
+        if (!dusk) {
+            return new Color[] {Palette.PAPER_WARM, Palette.PAPER_WARM, Palette.PAPER_WARM};
+        }
+        return new Color[] {
+                new Color(Palette.SKY_ZENITH).lerp(Palette.INK_BLACK, 0.42f),
+                new Color(Palette.SKY_HORIZON).lerp(Palette.SKY_ZENITH, 0.45f),
+                new Color(Palette.SKY_ZENITH),
+        };
+    }
+
+    /** World y of {@link #backdropStops}. */
+    public static final float[] BACKDROP_STOP_Y = {0.30f, 0.95f, 2.30f};
+
     public void render(Matrix4 projTrans, float timeSeconds) {
         buildQuad(projTrans);
 
@@ -103,6 +175,13 @@ public final class PaperBackground {
         shader.setUniformf("u_moteCyan", Palette.MOTE_CYAN.r, Palette.MOTE_CYAN.g, Palette.MOTE_CYAN.b);
         shader.setUniformf("u_moteMagenta", Palette.MOTE_MAGENTA.r, Palette.MOTE_MAGENTA.g, Palette.MOTE_MAGENTA.b);
         shader.setUniformf("u_ember", Palette.EMBER.r, Palette.EMBER.g, Palette.EMBER.b);
+        shader.setUniformf("u_dusk", dusk ? 1f : 0f);
+        shader.setUniformf("u_skyZenith", Palette.SKY_ZENITH.r, Palette.SKY_ZENITH.g, Palette.SKY_ZENITH.b);
+        shader.setUniformf("u_skyMid", Palette.SKY_MID.r, Palette.SKY_MID.g, Palette.SKY_MID.b);
+        shader.setUniformf("u_skyHorizon", Palette.SKY_HORIZON.r, Palette.SKY_HORIZON.g, Palette.SKY_HORIZON.b);
+        shader.setUniformf("u_skyHot", Palette.SKY_HORIZON_HOT.r, Palette.SKY_HORIZON_HOT.g,
+                Palette.SKY_HORIZON_HOT.b);
+        shader.setUniformf("u_inkBlack", Palette.INK_BLACK.r, Palette.INK_BLACK.g, Palette.INK_BLACK.b);
         // The ground pass draws no mist of its own. Its band term is a
         // subtractive grey mix, and this revision needs the mist emissive; the
         // shared band geometry is still what the pass below uses, and still what
@@ -141,7 +220,12 @@ public final class PaperBackground {
         mistShader.setUniformf("u_time", timeSeconds);
         mistShader.setUniformf("u_frameMin", minX, minY);
         mistShader.setUniformf("u_frameSize", maxX - minX, maxY - minY);
-        mistShader.setUniformf("u_mist", MIST_R, MIST_G, MIST_B);
+        boolean d = dusk;
+        mistShader.setUniformf("u_mist", d ? DUSK_MIST_R : MIST_R, d ? DUSK_MIST_G : MIST_G,
+                d ? DUSK_MIST_B : MIST_B);
+        mistShader.setUniformf("u_dusk", d ? 1f : 0f);
+        mistShader.setUniformf("u_inkBlack", Palette.INK_BLACK.r, Palette.INK_BLACK.g,
+                Palette.INK_BLACK.b);
         mistShader.setUniformf("u_inkIndigo", Palette.INK_INDIGO.r, Palette.INK_INDIGO.g, Palette.INK_INDIGO.b);
         mistShader.setUniformf("u_moteCyan", Palette.MOTE_CYAN.r, Palette.MOTE_CYAN.g, Palette.MOTE_CYAN.b);
         mistShader.setUniformf("u_moteMagenta", Palette.MOTE_MAGENTA.r, Palette.MOTE_MAGENTA.g, Palette.MOTE_MAGENTA.b);
@@ -205,6 +289,8 @@ public final class PaperBackground {
             + "uniform vec3  u_ember;\n"
             + "uniform vec3  u_fogBands[3];\n"
             + "uniform float u_mode;\n"
+            + "uniform float u_dusk;\n"
+            + "uniform vec3  u_inkBlack;\n"
             + "\n"
             + "float hash2(vec2 p) {\n"
             + "    vec3 q = fract(vec3(p.xyx) * 0.1031);\n"
@@ -243,11 +329,25 @@ public final class PaperBackground {
             + "                             + 0.11 * sin(w.x * 5.11 + d * 1.6 - fi * 1.7));\n"
             + "            float dist = abs(w.y - (b.x + wob)) / b.y;\n"
             + "            float f = b.z * (1.0 - smoothstep(0.0, 1.0, dist));\n"
-            + "            float lobe = 0.52 + 0.48 * fbm(vec2(w.x * 0.50 + fi * 17.0 - d * 0.9,\n"
-            + "                                                w.y * 1.35 + fi * 5.0));\n"
+            + "            float lb = fbm(vec2(w.x * 0.50 + fi * 17.0 - d * 0.9,\n"
+            + "                                w.y * 1.35 + fi * 5.0));\n"
+            // On cream the lobe never falls below 0.52, so the three bands are a
+            // continuous veil with structure in it. At dusk that veil is what
+            // stands between the ground and the corpus: measured, it lifts the
+            // row background below world y 0.3 from 30 to 60 where reference
+            // image 3 reads 27-39. In image 3 the mist low down is *wisps* with
+            // dark sky between them, not a bank -- so the lobe is allowed to
+            // reach zero and the same fbm decides where.
+            + "            float lobe = mix(0.52 + 0.48 * lb, smoothstep(0.34, 0.76, lb), u_dusk);\n"
             + "            a += f * lobe;\n"
             + "        }\n"
             + "        a = clamp(a, 0.0, 1.0);\n"
+            // At dusk the bands sit on a ground that is a *dark ink smear*
+            // (STYLE.md 1, Family B) rather than on cream, and a mist authored to
+            // be the brightest thing on a cream sheet turns that smear into snow.
+            // Reference image 3 keeps its lower third at luminance 29-55 with pale
+            // smoke *wisps* through it, not a bank; this is the wisp strength.
+            + "        a *= mix(1.0, 0.42, u_dusk);\n"
             // A faint high, wide veil across the top so the sky end of the sheet
             // is not perfectly clean either -- references 6-8 have light
             // everywhere, just less of it up high.
@@ -317,7 +417,8 @@ public final class PaperBackground {
             // figure, so they read against both without erasing either. At 0.70
             // they are luminance 112: still clearly visible on the mist, no
             // longer able to bleach a leg.
-            + "        col = mix(u_mist, u_inkIndigo, 0.70);\n"
+            + "        col = mix(mix(u_mist, u_inkIndigo, 0.70),\n"
+            + "                  mix(u_mist, u_inkBlack, 0.78), u_dusk);\n"
             + "    }\n"
             + "\n"
             + "    gl_FragColor = vec4(clamp(col, vec3(0.06), vec3(0.965)), clamp(a, 0.0, 1.0));\n"

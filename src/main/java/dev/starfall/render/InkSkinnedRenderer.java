@@ -132,6 +132,50 @@ public final class InkSkinnedRenderer {
     private final Color clothStain = new Color(Palette.OCHRE);
     private float clothBleed = 1f;
 
+    /**
+     * What the wet bleed of STYLE.md 3.2 wicks into, low to high in world y.
+     *
+     * <p>Defaults to three copies of the Family A paper level, which is what every
+     * scene before System 4 pass 4 drew and is bit-identical to the single constant it
+     * replaces -- {@code mix(c, c, t)} is exactly {@code c}. A Family B scene hands it
+     * {@link PaperBackground#backdropStops} so a figure's halo is the colour of the sky
+     * it is standing against rather than a cream aura on an indigo zenith.
+     */
+    private Color[] backdrop = PaperBackground.backdropStops(false);
+
+    /** @see #backdrop */
+    public void backdrop(Color[] stops) {
+        this.backdrop = stops;
+    }
+
+    /** The arc-trail's peak alpha on cream, which is what it was tuned at. */
+    private static final float TRAIL_PEAK = 0.24f;
+
+    /**
+     * The same trail, graded against the ground it is screened onto rather than
+     * against a constant.
+     *
+     * <p>The ribbon is composited with {@code ONE, ONE_MINUS_SRC_COLOR} -- screen --
+     * which adds {@code src * (1 - dst)}. On Family A cream ({@code dst} luminance
+     * 0.86) that is 0.14 of the source and three reviews in a row recorded the trail
+     * as invisible, 2.7% above paper, as a fault. On the Family B dusk sky
+     * ({@code dst} 0.30-0.40 through the whole upper frame) the identical ribbon is
+     * five times further above its ground, and the first dusk capture printed it as a
+     * near-closed pale crescent -- a moon, not a smear.
+     *
+     * <p>So the peak is scaled to hold a fixed multiple of the contrast it had on
+     * cream: <b>1.6x</b>, chosen so the trail is finally legible where the debt says
+     * it never was without becoming the brightest object in the frame. Cream itself
+     * clamps at 1.0, so every Family A capture is bit-identical.
+     */
+    private float trailPeak() {
+        Color mid = backdrop[1];
+        float lum = 0.2126f * mid.r + 0.7152f * mid.g + 0.0722f * mid.b;
+        float onCream = 1f - 0.86f;
+        float here = Math.max(1e-3f, 1f - lum);
+        return TRAIL_PEAK * Math.min(1f, Math.max(0.25f, onCream / here * 1.6f));
+    }
+
     private final Map<SkinnedMesh, Blade> blades = new IdentityHashMap<>();
     private final Vector2 tmpA = new Vector2();
     private final Vector2 tmpB = new Vector2();
@@ -438,7 +482,13 @@ public final class InkSkinnedRenderer {
         setColor(resolveShader, "u_deep", clothDeep);
         setColor(resolveShader, "u_stain", clothStain);
         setColor(resolveShader, "u_stainPale", Palette.OCHRE_PALE);
-        setColor(resolveShader, "u_paper", Palette.PAPER_WARM);
+        setColor(resolveShader, "u_paperLo", backdrop[0]);
+        setColor(resolveShader, "u_paperMid", backdrop[1]);
+        setColor(resolveShader, "u_paperHi", backdrop[2]);
+        resolveShader.setUniformf("u_paperStops",
+                PaperBackground.BACKDROP_STOP_Y[0],
+                PaperBackground.BACKDROP_STOP_Y[1],
+                PaperBackground.BACKDROP_STOP_Y[2]);
         setColor(resolveShader, "u_fogColor", Palette.FOG);
         resolveShader.setUniformf("u_bleedRadius", clothBleed);
         Atmosphere.setFogUniforms(resolveShader);
@@ -574,9 +624,25 @@ public final class InkSkinnedRenderer {
         // wider than this because the ribbon is screened onto warm paper: a cool
         // pale wash reads as light over ink but as a grey veil over open ground,
         // so its area has to stay near the blade's path.
+        //
+        // <b>System 4 pass 4: the taper, and why the dusk sky forced it.</b> Both
+        // numbers above were tuned against Family A cream, and the tuning is
+        // recorded in the paragraph above in exactly those terms -- "screened onto
+        // warm paper". Screen adds {@code src * (1 - dst)}, so the same ribbon that
+        // sat 2.7% above a 0.86 paper (which three reviews recorded as *invisible*,
+        // as a fault) sits five times further above a 0.30 dusk sky. The first
+        // Family B capture shot in this project printed it as a near-closed pale
+        // dome a figure height across, and it read as a moon rather than as a smear.
+        //
+        // The fix is the taper the debt has recorded as missing for three passes,
+        // not a dimmer: {@code rail} is scaled by the row's own age so the ribbon
+        // narrows to a point behind the blade, which is what a brush lifting off
+        // the paper does and what stops a swept arc closing into a shape. STYLE.md
+        // 5's "brightest at the leading edge" is then carried by the width as well
+        // as by the alpha.
         final float[] rail = {-0.28f, -0.20f, -0.12f, -0.05f, 0f, 0.04f};
         final float[] railA = {0f, 0.30f, 0.62f, 0.92f, 1f, 0f};
-        final float peak = 0.24f;
+        final float peak = trailPeak();
         int rows = 0;
 
         // Catmull-Rom through the stored poses rather than a chord per segment.
@@ -664,8 +730,14 @@ public final class InkSkinnedRenderer {
         // as a faint straight line well clear of the figure. Cubed it is 0.5%.
         float f = 1f - age;
         float fade = f * f * f;
+        // The taper. Nonlinear, and fast in the last third, for the same reason
+        // STYLE.md 4 gives for a hair strand: "so tips look like a brush lifting
+        // off the paper". At the freshest row the ribbon keeps its full width; by
+        // the oldest stored pose it is a fifth of it, so the tail converges instead
+        // of ending on a rail of constant width.
+        float width = 0.18f + 0.82f * f * f;
         for (int j = 0; j < rail.length; j++) {
-            float d = len + rail[j];
+            float d = len + rail[j] * width;
             float px = bx + dx * d;
             float py = by + dy * d;
             // Same mist as the blade and its sheath -- a trail that stays bright

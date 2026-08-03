@@ -151,7 +151,29 @@ public final class Figure {
 
     private static Figure dark(int body, SamuraiRig rig) {
         Figure f = new Figure(body, rig);
-        f.cloth.base = Palette.INK_INDIGO;
+        // <b>INK_BLACK, not INK_INDIGO, and this is a measurement rather than a
+        // preference.</b> Pass 3 measured that the whole remaining Family B value gap
+        // is the dark duellist -- 0.245 of the frame's own ground against reference
+        // image 3's 0.133 -- and concluded that closing it "wants the mesh's authored
+        // wetness above the sash raised, which is a System 1 change... that is the
+        // concrete next step". The review refuted that with one line: shot with this
+        // field set to INK_BLACK and nothing else changed
+        // (out/captures/rev-p3-darkbase, frame 11, rects x300..470 y300..420 and
+        // x600..760 y340..460) the torso ratio moves <b>2.12x -> 2.58x</b> -- four
+        // times what DARK_SASH_POOL bought -- with the interior interquartile spread
+        // unchanged, 0.277 -> 0.284.
+        //
+        // The counter-argument pass 3 gave, that reaching the corpus's value would
+        // "print the flat fill 3b.5's first row fails on sight", is refuted by the
+        // corpus's own pixels: reference image 3's dark torso (x190..300 y400..540)
+        // has an interquartile spread of <b>0.063</b> against this capture's 0.277.
+        // STYLE.md 1's "near-black ink silhouettes with just enough interior modelling
+        // to find the face and hands" is a description of a tight, nearly flat dark
+        // mass with a thin bright tail, and darkening moves toward it.
+        //
+        // Nothing here breaches 2.2's floor: INK_BLACK *is* the floor, and the pooling
+        // rail of 3.4 sits on it while everything else lifts off it.
+        f.cloth.base = Palette.INK_BLACK;
         f.cloth.deep = Palette.INK_BLACK;
         f.cloth.stain = Palette.OCHRE;
         // The other half of the Family B separation, and the half the review did not

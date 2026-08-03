@@ -716,14 +716,41 @@ public final class SamuraiRig {
 
         /**
          * The nagasa (edge length) as a fraction of the figure's own height,
-         * heel to crown. <strong>This number is the correction of a specification
-         * error.</strong> docs/system1-rig-fixes.md section 3 asked for 0.75 and
-         * that was simply wrong: measured in the bind pose the blade rendered at
-         * roughly 90% of body height and never terminated inside the frame. A
-         * katana's nagasa is about 70 cm on a 170 cm swordsman, so the number is
-         * 0.40, and rig-fixes section 3 is superseded on this point.
+         * heel to crown.
+         *
+         * <h2>0.40 was anatomy; 0.55 is the corpus, and STYLE.md says the corpus wins</h2>
+         *
+         * <p>docs/system1-rig-fixes.md section 3 asked for 0.75, which rendered at
+         * roughly 90% of body height and never terminated inside the frame, and it was
+         * corrected to <b>0.40</b> on the argument that "a katana's nagasa is about
+         * 70 cm on a 170 cm swordsman". That argument is sound about swords and wrong
+         * about these paintings, and nobody had measured the paintings.
+         *
+         * <p>Measured, on all three Family B images, with an independently written
+         * reader: the crossed pair of blades is one cool-bright component
+         * ({@code L > 1.30 x} the row's own background, 2x2 opening, 8-connected) whose
+         * bounding diagonal is
+         *
+         * <pre>
+         *   image 3  14,778 px  x272..568 y317..456  diag 327 px = 0.487 figure heights
+         *   image 4  19,414 px  x348..581 y117..444  diag 402 px = 0.595
+         *   image 5  16,992 px  x342..627 y122..460  diag 442 px = 0.655
+         * </pre>
+         *
+         * <p>and image 3's left blade runs tsuba (390,465) to kissaki (560,135), which
+         * is 379 px on a 672 px figure -- <b>0.56 of a figure height of steel per
+         * duellist</b>. The review of pass 3 measured the same thing from the other end
+         * and asked for "about 0.50 of a figure height of blade per duellist and a
+         * crossed figure spanning >= 0.49", against a delivered 0.286 (hero) and 0.154
+         * (foe).
+         *
+         * <p>STYLE.md's preamble decides it: "when this document and the reference
+         * images disagree, <b>the reference images win</b>". The blade stays exactly as
+         * thin as it was -- {@code halfWidth} is in absolute world units and is not
+         * scaled with the length, so STYLE.md 5's "sliver" is unchanged and the blade
+         * gets longer rather than bigger.
          */
-        static final float BLADE_NAGASA_FRACTION = 0.40f;
+        static final float BLADE_NAGASA_FRACTION = 0.55f;
 
         /** Heel (y=0.13) to crown (y=1.83) in the world-bind-space units of this file. */
         private static final float FIGURE_HEIGHT = SamuraiRig.FIGURE_HEIGHT;

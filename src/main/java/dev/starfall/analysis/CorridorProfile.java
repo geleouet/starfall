@@ -86,42 +86,150 @@ public final class CorridorProfile {
             new Band("feet", 0.89, 1.00));
 
     /**
-     * The acceptance floor per band, as a fraction of figure height.
+     * One image of the corpus that depicts the situation this criterion measures.
      *
-     * <h2>Every one of these is reference image 3's own reading, rounded down</h2>
+     * <p>STYLE.md §11.0, added after pass 3 built the criterion and calibrated it on
+     * one painting: <i>"show it on <b>every image in the family</b> that depicts the
+     * situation being measured, and name the ones you excluded and why."</i> Family B
+     * is images 3, 4 and 5 and all three are two duellists with crossed blades, so all
+     * three are here. Images 1 and 2 are Family A (one figure, no corridor to measure)
+     * and 6, 7 and 8 are Family C. One of the three, image 5, is excluded from setting
+     * the band and {@link #note} says exactly why in the words of its own content;
+     * {@code CorridorProfileTest} asserts the reason still holds rather than trusting it.
      *
-     * <p>Measured with this class, {@code inkFactor} 0.85, span y283..955, window
-     * x283..629 (the two bodies' ink centroids):
+     * <p>Each carries its own span because each image frames its figures differently,
+     * and §11.3's rule that the number is printed beside its rectangle applies to the
+     * normaliser as much as to the count.
+     */
+    public record Reference(String name, java.io.File file, Rect span, boolean measurable, String note) {
+    }
+
+    /** Family B, all of it, with the one exclusion named per STYLE.md §11.0. */
+    public static final List<Reference> FAMILY_B = List.of(
+            new Reference("image 3", new java.io.File("inspirations/image - 2026-08-02T101033.164.png"),
+                    Rect.ofCorners(0, 283, 831, 955), true, ""),
+            new Reference("image 4", new java.io.File("inspirations/image - 2026-08-02T101128.842.png"),
+                    Rect.ofCorners(0, 255, 831, 930), true, ""),
+            new Reference("image 5", new java.io.File("inspirations/image - 2026-08-02T101232.595.png"),
+                    Rect.ofCorners(0, 255, 831, 930), false,
+                    "EXCLUDED, and named rather than dropped (STYLE.md 11.0). Its two duellists "
+                            + "are one connected ink component inside their own figure span, at "
+                            + "every threshold tried: each carries a second sheathed blade whose "
+                            + "scabbard crosses the gap at hip height, and their hilts touch. That "
+                            + "is a correct reading of the painting and not a reader defect -- an "
+                            + "independently written NumPy reader found the same in all 264 "
+                            + "span/factor combinations the pass-3 review swept. An image with no "
+                            + "corridor cannot set a corridor floor.\n"
+                            + "  It DID appear to set one. Before the component analysis was "
+                            + "cropped to the figure span, image 5 resolved 'two bodies' whose "
+                            + "second component was the ground smear below the feet, and the "
+                            + "readings taken through that window -- head 0.0799, torso 0.0000, "
+                            + "sash 0.0488, skirt 0.0725, feet 0.0814 -- are the numbers the "
+                            + "pass-3 review used to argue the criterion was fitted to one image. "
+                            + "They were measured between a duellist and the ground. STYLE.md "
+                            + "11.3's silent wrong answer, one level up."));
+
+    /**
+     * The acceptance <b>band</b> per band, as a fraction of figure height: the corpus's
+     * own spread, both edges.
+     *
+     * <h2>What was wrong with the floors this replaces, in two separate ways</h2>
+     *
+     * <p><b>(1) They were one image's readings.</b> Pass 3 set them from reference image
+     * 3 alone, and the tool's headline — "the criterion, run on the corpus first" — was
+     * true of a single hard-coded file. Run on the rest of the family, with this class,
+     * ink factor 0.85, each image on its own span:
      *
      * <pre>
-     *   head 0.0936   torso 0.0149   sash 0.0921   skirt 0.1010   feet 0.1129
+     *   band    image 3   image 4   image 5     old floor
+     *   head    0.0847    0.1612    0.0799      0.080   image 5 MISSES
+     *   torso   0.0149    0.0118    0.0000      0.014   images 4 and 5 MISS
+     *   sash    0.0921    0.0976    0.0488      0.085   image 5 MISSES
+     *   skirt   0.1010    0.0858    0.0725      0.095   images 4 and 5 MISS
+     *   feet    0.1129    0.0444    0.0814      0.065   image 4 MISSES
      * </pre>
      *
-     * <p>and swept for stability. Across ink factors 0.60 to 0.90 and across six
-     * plausible figure spans, {@code torso} moves 0.0146-0.0178, {@code sash}
-     * 0.0894-0.0998 and {@code skirt} 0.0991-0.1070 — those three are the load-bearing
-     * numbers. {@code head} is stable at 0.085-0.094 from factor 0.85 up and runs to
-     * 0.284 at 0.60, and {@code feet} runs 0.070-0.394; both are reported and both get
-     * a floor set at the <em>bottom</em> of their own sweep rather than at the central
-     * reading, because a threshold justified by a number that moves 4× under its own
-     * nuisance parameters cannot be allowed to fail anything at its central value.
+     * <p>(That table is the state of the world before this pass corrected two things in
+     * the reader: image 5's row is measured between a duellist and the ground smear and
+     * is void — see {@link #FAMILY_B} — and image 4's is now taken through a
+     * span-cropped window. The band below is set from images 3 and 4 alone and image 5
+     * is excluded by name.)
      *
-     * <p>STYLE.md §11.2b's generalised control — "before a number is allowed to decide
-     * anything, someone must say what it would read if the thing being measured were
-     * absent" — is discharged twice in {@code CorridorProfileTest}: on a synthetic
-     * frame whose gap is known analytically, and on the reference itself.
+     * <p><b>(2) They were floors only, and a one-sided criterion rewards running away.</b>
+     * STYLE.md §11.0: <i>"the highest score in the sweep — 21 of 24 bands passing —
+     * belongs to the setting that pushes the skirt gap to 4.19× the corpus and destroys
+     * the parry entirely... State the target as a band with both edges, taken from the
+     * corpus's own spread."</i> That is what these are. The floor is the corpus minimum
+     * rounded down and the ceiling is the corpus maximum rounded up, both to three
+     * decimals, with no margin added in either direction — a margin would be a number
+     * nobody measured.
+     *
+     * <p>Measured with this class at ink factor 0.85, each image on its own span, the
+     * component analysis cropped to that span:
+     *
+     * <pre>
+     *   band    image 3   image 4   band adopted
+     *   head    0.0847    0.1612    0.084 .. 0.162
+     *   torso   0.0149    0.0118    0.011 .. 0.015
+     *   sash    0.0921    0.0976    0.092 .. 0.098
+     *   skirt   0.1010    0.0858    0.085 .. 0.102
+     *   feet    0.1129    0.0444    0.044 .. 0.113
+     * </pre>
+     *
+     * <p><b>Two samples is a thin corpus and the {@code sash} band shows it</b>: 0.092
+     * to 0.098 is a 6% window and nothing but two paintings stands behind it. That is
+     * stated rather than padded, because a margin added here would be a number nobody
+     * measured — which is the failure this whole class is a correction of. What makes
+     * it usable is that the capture misses these bands by factors of three to four, not
+     * by percent.
+     *
+     * <p>The {@code torso} <em>ceiling</em> of 0.015 is the binding constraint on that
+     * band, and it is the right way round: two duellists in a bind have their hands
+     * nearly touching, so a wide gap at the hands is the defect and a narrow one is the
+     * beat.
      */
-    public static final Map<String, Double> FLOORS = floors();
+    public static final Map<String, double[]> ACCEPT = accept();
 
-    private static Map<String, Double> floors() {
-        Map<String, Double> m = new LinkedHashMap<>();
-        m.put("head", 0.080);
-        m.put("torso", 0.014);
-        m.put("sash", 0.085);
-        m.put("skirt", 0.095);
-        m.put("feet", 0.065);
+    private static Map<String, double[]> accept() {
+        Map<String, double[]> m = new LinkedHashMap<>();
+        m.put("head", new double[] {0.084, 0.162});
+        m.put("torso", new double[] {0.011, 0.015});
+        m.put("sash", new double[] {0.092, 0.098});
+        m.put("skirt", new double[] {0.085, 0.102});
+        m.put("feet", new double[] {0.044, 0.113});
         return java.util.Collections.unmodifiableMap(m);
     }
+
+    /** The lower edge of {@link #ACCEPT}. */
+    public static final Map<String, Double> FLOORS = edge(0);
+
+    /** The upper edge of {@link #ACCEPT}. */
+    public static final Map<String, Double> CEILINGS = edge(1);
+
+    private static Map<String, Double> edge(int i) {
+        Map<String, Double> m = new LinkedHashMap<>();
+        ACCEPT.forEach((k, v) -> m.put(k, v[i]));
+        return java.util.Collections.unmodifiableMap(m);
+    }
+
+    /**
+     * A second ink threshold, held fixed, quoted beside every reading.
+     *
+     * <p>The pass-3 review's finding, and the reason this exists: pass 3 reported the
+     * corridor improving from 8 to 11 frames, and <b>none of it was geometry</b> — the
+     * {@code skirt} and {@code feet} bands were bit-identical to pass 2 on all 24
+     * frames, and the three frames that flipped flipped on {@code torso} alone, at
+     * columns inside the pale duellist's own silhouette, on pixels that did not move
+     * but got brighter. A threshold-based corridor widens when a figure is lightened.
+     *
+     * <p>0.60 of the row's own background counts only ink that is <em>strongly</em>
+     * dark, so a passage lifted from 0.80 to 0.90 of background changes the 0.85
+     * reading and not this one. It is a diagnostic and not a second acceptance: the two
+     * numbers moving together is geometry, one moving without the other is photometry,
+     * and the pair is printed so the next reader can tell which happened without
+     * re-shooting the previous pass.
+     */
+    public static final double FIXED_FACTOR = 0.60;
 
     /** One band of a figure: a name and where it starts and ends, top-down. */
     public record Band(String name, double from, double to) {
@@ -135,17 +243,26 @@ public final class CorridorProfile {
      * @param fraction {@code columns} over the figure height
      * @param floor    the acceptance this band is held to
      */
-    public record Reading(String band, Rect rect, int columns, int at, double fraction, double floor) {
+    public record Reading(String band, Rect rect, int columns, int at, double fraction,
+                          double floor, double ceiling, int fixedColumns, double fixedFraction) {
 
+        /**
+         * STYLE.md §11.0: the acceptance is a band with both edges, taken from the
+         * corpus's own spread. A capture can now fail for being too <em>wide</em>,
+         * which is what the pass-3 review measured as the real error and what a
+         * floors-only criterion could not express.
+         */
         public boolean pass() {
-            return fraction >= floor;
+            return fraction >= floor && fraction <= ceiling;
         }
 
         public String describe() {
+            String verdict = pass() ? "pass" : fraction < floor ? "MISS low" : "MISS high";
             return String.format(java.util.Locale.ROOT,
-                    "  %-6s %-26s %4d px = %.4f  (floor %.3f)  %s%s",
-                    band, rect.describe(), columns, fraction, floor, pass() ? "pass" : "MISS",
-                    at < 0 ? "" : String.format(java.util.Locale.ROOT, "   run starts x=%d", at));
+                    "  %-6s %-26s %4d px = %.4f  (%.3f..%.3f)  %-9s  [fixed %.2f: %4d px = %.4f]%s",
+                    band, rect.describe(), columns, fraction, floor, ceiling, verdict,
+                    FIXED_FACTOR, fixedColumns, fixedFraction,
+                    at < 0 ? "" : String.format(java.util.Locale.ROOT, "  run starts x=%d", at));
         }
     }
 
@@ -337,6 +454,25 @@ public final class CorridorProfile {
      */
     public static Profile measure(Frame f, double inkFactor, int strip, Rect span) {
         boolean[] ink = inkMask(f, inkFactor, strip);
+        boolean[] fixedInk = inkMask(f, FIXED_FACTOR, strip);
+        // <b>Ink below the figure's own feet is ground, not a duellist.</b> When a span
+        // is given, the component analysis is cropped to it -- which is what decides
+        // both the "one mass" verdict and the two centroids the window is drawn
+        // between. Without the crop, the Family B ground of STYLE.md 1 ("a dark ink
+        // smear") is itself ink, it runs the full width of the sheet, and both figures
+        // stand in it: measured on {@code s4-p4-parry-contact}, the largest component
+        // spans x0..678 y320..719 and the profile calls 17 of 24 frames one connected
+        // mass while the two duellists are plainly separate above the ground.
+        //
+        // The corpus has always been read this way without anyone saying so: reference
+        // image 3's span ends at the feet (y955) with its own smear below it, which is
+        // why the same defect never showed there. Cropping makes the two agree by
+        // construction rather than by luck. Nothing else about the rule changes -- all
+        // ink inside the span still counts, hair and smoke included, per the note above.
+        if (span != null) {
+            ink = cropToRows(ink, f.width, f.height, span);
+            fixedInk = cropToRows(fixedInk, f.width, f.height, span);
+        }
         List<Blob> parts = blobs(ink, f.width, f.height);
         long total = 0;
         for (Blob b : parts) {
@@ -367,33 +503,52 @@ public final class CorridorProfile {
             int by0 = (int) Math.round(y0 + band.from() * height);
             int by1 = Math.min(box.y1(), (int) Math.round(y0 + band.to() * height) - 1);
             Rect rect = Rect.ofCorners(left, Math.max(0, by0), right, Math.min(f.height - 1, by1));
-            int best = 0;
-            int run = 0;
-            int cur = -1;
-            int at = -1;
-            for (int x = left; x <= right && x < f.width; x++) {
-                boolean clear = true;
-                for (int y = rect.y; y <= rect.y1() && clear; y++) {
-                    clear = !ink[y * f.width + x];
-                }
-                if (clear) {
-                    if (run == 0) {
-                        cur = x;
-                    }
-                    run++;
-                    if (run > best) {
-                        best = run;
-                        at = cur;
-                    }
-                } else {
-                    run = 0;
-                }
-            }
-            readings.add(new Reading(band.name(), rect, best, at,
-                    height <= 0 ? Double.NaN : best / (double) height,
-                    FLOORS.getOrDefault(band.name(), 0.0)));
+            int[] run = widestClearRun(ink, f, rect, left, right);
+            int[] fixedRun = widestClearRun(fixedInk, f, rect, left, right);
+            double[] accept = ACCEPT.getOrDefault(band.name(), new double[] {0.0, 1.0});
+            readings.add(new Reading(band.name(), rect, run[0], run[1],
+                    height <= 0 ? Double.NaN : run[0] / (double) height,
+                    accept[0], accept[1], fixedRun[0],
+                    height <= 0 ? Double.NaN : fixedRun[0] / (double) height));
         }
         return new Profile(box, left, right, List.copyOf(readings), false);
+    }
+
+    private static boolean[] cropToRows(boolean[] mask, int w, int h, Rect span) {
+        boolean[] out = new boolean[mask.length];
+        int y0 = Math.max(0, span.y);
+        int y1 = Math.min(h - 1, span.y1());
+        for (int y = y0; y <= y1; y++) {
+            System.arraycopy(mask, y * w, out, y * w, w);
+        }
+        return out;
+    }
+
+    /** {@code {widest run of fully clear columns, where it starts}} inside {@code rect}. */
+    private static int[] widestClearRun(boolean[] ink, Frame f, Rect rect, int left, int right) {
+        int best = 0;
+        int run = 0;
+        int cur = -1;
+        int at = -1;
+        for (int x = left; x <= right && x < f.width; x++) {
+            boolean clear = true;
+            for (int y = rect.y; y <= rect.y1() && clear; y++) {
+                clear = !ink[y * f.width + x];
+            }
+            if (clear) {
+                if (run == 0) {
+                    cur = x;
+                }
+                run++;
+                if (run > best) {
+                    best = run;
+                    at = cur;
+                }
+            } else {
+                run = 0;
+            }
+        }
+        return new int[] {best, at};
     }
 
     /**
@@ -434,6 +589,52 @@ public final class CorridorProfile {
         }
         java.util.Collections.sort(ink);
         return ink.get(ink.size() / 2) / (groundSum / rows);
+    }
+
+    /**
+     * Median luminance of <b>every</b> pixel in {@code rect}, as a fraction of the
+     * background at those rows.
+     *
+     * <h2>Why {@link #medianInkOverGround} had to be joined by a threshold-free one</h2>
+     *
+     * <p>That statistic takes the median of the pixels <em>darker than
+     * {@code inkFactor} x</em> the row background. It is exactly right for a figure
+     * that is darker than its ground, which every Family A capture and the corpus's
+     * dark duellist are. It is <b>ill-posed for a figure that is brighter than its
+     * ground</b> — and on the Family B dusk stage the pale duellist is: measured on
+     * {@code s4-p4-parry-contact} frame 11, only 3,671 px of the pale torso box fall
+     * below the threshold against 6,884 on the cream-paper capture, so the statistic
+     * silently switches from "how pale is this figure" to "how dark is the darkest
+     * quarter of it". The delivered ratio it reports drops from 2.12x to 1.20x on a
+     * frame where the two duellists are more separated than they have ever been.
+     *
+     * <p>This one has no threshold, so it cannot change meaning when the figure
+     * crosses its ground. Run on the corpus first, per STYLE.md 11.0, through boxes
+     * inside each duellist's torso: image 3 reads <b>3.28x</b>, image 4 <b>3.22x</b>,
+     * image 5 <b>9.32x</b> — image 5's pale duellist is itself brighter than its sky,
+     * at 1.245 of it, which is the case the thresholded statistic cannot express and
+     * the corpus contains.
+     *
+     * @return NaN when the rectangle is empty
+     */
+    public static double medianOverGround(Frame f, Rect rect, int strip) {
+        double[] bg = rowBackground(f, strip);
+        Rect r = rect.clamp(f);
+        java.util.List<Double> all = new ArrayList<>();
+        double groundSum = 0;
+        int rows = 0;
+        for (int y = r.y; y <= r.y1(); y++) {
+            groundSum += bg[y];
+            rows++;
+            for (int x = r.x; x <= r.x1(); x++) {
+                all.add(f.lum[y * f.width + x]);
+            }
+        }
+        if (all.isEmpty() || rows == 0) {
+            return Double.NaN;
+        }
+        java.util.Collections.sort(all);
+        return all.get(all.size() / 2) / (groundSum / rows);
     }
 
     /** The whole-figure scalar the first two passes were graded on, for comparison. */

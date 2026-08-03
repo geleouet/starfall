@@ -224,6 +224,28 @@ public final class InkFxRenderer {
             irregularDisc(lightVerts, lightIndices, x, y, (0.045f + 0.075f * mag) * (1f + 1.6f * u),
                     core, Palette.CLASH_CORE, seed, 0.30f);
 
+            // <b>The hot core, and the dusk sky is what exposed the need for it.</b>
+            // Screen adds {@code src * (1 - dst)}, so the level this mark reaches is
+            // a function of what it is drawn over. Over Family A cream (dst 0.86) the
+            // amplitude above takes the centre past luminance 240 and the pass-2 and
+            // pass-3 reviews both graded the bloom through a {@code L >= 240} mask.
+            // Over the Family B sky (dst 0.35 at the crossing's own height) the
+            // identical mark peaks at 213: measured on the first dusk capture, the
+            // warm-bright core fell from 152/276/111 px on frames 9/10/11 to 55 px on
+            // frame 9 and nothing at all on the rest. The light did not get weaker --
+            // the ground got darker and a mark that only lifts the ground by a
+            // proportion cannot reach white on a dark one.
+            //
+            // STYLE.md 2.2 is explicit that this is the one mark allowed to: "only
+            // the clash bloom and blade specular may approach white". So the innermost
+            // third of the disc is drawn again at a saturating amplitude, which makes
+            // the core's own value a property of the light rather than of the sky
+            // behind it. The soft halo above is untouched, so nothing acquires an
+            // edge, and on cream the extra disc is inside a region that was already
+            // near the ceiling -- screen cannot clip.
+            irregularDisc(lightVerts, lightIndices, x, y, (0.045f + 0.075f * mag) * (1f + 1.6f * u) * 0.34f,
+                    Math.min(1f, core * 2.6f), Palette.CLASH_CORE, seed + 5.5f, 0.22f);
+
             int rays = 5;
             for (int i = 0; i < rays; i++) {
                 float h = hash(seed, i, 5);

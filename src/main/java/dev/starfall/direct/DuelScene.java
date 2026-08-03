@@ -103,7 +103,20 @@ public class DuelScene implements Scene, SceneProbe {
         this.renderer = new InkSkinnedRenderer();
         this.hair = new HairRenderer();
         this.fx = new InkFxRenderer();
-        this.paper = new PaperBackground();
+        // STYLE.md 1, Family B: "two swordsmen in profile, blades crossed, against a
+        // sky grading from deep indigo at the top through violet to coral/salmon at
+        // the horizon", and 1's own note that this family is "the primary template
+        // for the game screen". Every graded duel before this pass was fought on
+        // Family A cream paper, which inverts 2.2's warm/cool opposition across the
+        // whole frame -- warm ground, warm blades, warm bloom -- and the review of
+        // pass 3 measured the consequence: "until a duel is fought against a dusk
+        // sky, 0 cannot be answered yes for a Family B frame however good the
+        // figures get".
+        //
+        // The renderer is told about it too, because a halo is the ground's colour
+        // wicking out of the ink and a constant one would print an aura.
+        this.paper = new PaperBackground().dusk(true);
+        this.renderer.backdrop(PaperBackground.backdropStops(true));
         this.camera = new OrthographicCamera();
         resize(ctx.width, ctx.height);
 

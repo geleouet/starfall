@@ -171,10 +171,30 @@ public final class Scheduler {
      * the work: raise it toward 1.0 and {@code RehearsalTest} prints exactly how far
      * short the bind falls, on which frame, in figure heights.
      *
+     * <h2>System 4 pass 4: 0.27 -&gt; 0.42, bought by the blade and not by the constant</h2>
+     *
+     * <p>Lengthening the nagasa from 0.40 to 0.55 of a figure height ({@code SamuraiRig})
+     * lengthened the bind with it. Measured headless on the same {@code Rehearsal} the
+     * capture's director runs, the two blade segments are now within 2% of a figure
+     * height from <b>t = 1.5500 to t = 1.6316 — 0.0816 s of the 0.168 s contact span,
+     * 49%</b>, against 0.066 s and 39% at the short blade. So the largest multiple that
+     * keeps every drawn frame honest moved with it, and the guard was used to find the
+     * edge rather than an argument: {@code RehearsalTest} is green at <b>0.46</b> and
+     * red at <b>0.50</b>, printing
+     *
+     * <blockquote>"PARRY: the clash that starts at t=1.568 is still drawn at t=1.6468
+     * with the two blades 6.2% of a figure height apart."</blockquote>
+     *
+     * <p>0.42 ships, with margin. That is 0.0706 s — <b>4.2 frames at 60 Hz against
+     * 2.7</b>, a 1.56x improvement and still well short of the ten frames §7.1's
+     * meet-at-40 / part-at-55 implies. The remaining shortfall is the bind, not this
+     * number, and the bind is the arms: both are still driven at targets outside their
+     * own reach.
+     *
      * <p>A lever that lengthens the bind was found and rejected on the pixels; see
      * {@code Director.FIST_DROP}.
      */
-    public static final double CLASH_SPAN = 0.27;
+    public static final double CLASH_SPAN = 0.42;
 
     // -- state -----------------------------------------------------------------
 

@@ -112,6 +112,21 @@ material should drift within a few degrees of hue, the way real pigment does.
   figure against hot horizon. Never cool-on-cool or warm-on-warm across a whole frame.
 - **No pure black, no pure white, ever.** Darkest is `#161A22`; brightest non-emissive is the
   paper ground. Only the clash bloom and blade specular may approach white.
+
+  **But the floor is a ratio to the ground, not a constant, and this line had it wrong for
+  four systems.** `#161A22` is luminance 25.7, and it was chosen looking at figures on cream
+  paper — where it is genuinely deep. Against the dusk sky of §2.2's own warm/cool rule, the
+  corpus's dark duellist prints at **12.2**, and a figure authored at the floor sits at 27.9:
+  *more than twice the reference's value, while obeying the rule.* System 4 pass 4 hit this
+  and could not reach the corpus's contrast without breaking the palette — correctly reporting
+  it upward instead of quietly violating it.
+
+  This is §11.2b(d) — prefer differences to absolutes — never applied to §2, because §2 was
+  written first. **So: derive the floor as a fraction of the frame's own ground luminance,
+  measured on the Family B images, and let `#161A22` stand only as its value on paper.** The
+  next pass to touch the palette owes that fraction, measured, with the region recorded. Until
+  then, a figure that reads too pale against a dark ground is a fault of this line and not of
+  the pass reporting it.
 - **Vermillion is a budget.** At most a few small marks per frame. It is the only genuinely
   loud colour and it must always mean something (danger, intent, blood, a seal).
 

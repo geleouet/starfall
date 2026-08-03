@@ -133,15 +133,84 @@ class CorridorProfileTest {
     // -- the criterion, on the corpus ------------------------------------------
 
     @Test
-    void referenceImageThreePassesEveryFloorTheProjectFailsCapturesOn() throws IOException {
-        assertTrue(REFERENCE.isFile(), REFERENCE + " is part of the repository and must be readable");
-        CorridorProfile.Profile p = CorridorProfile.measure(Frame.load(REFERENCE), FACTOR, STRIP, SPAN);
-        assertFalse(p.merged(), p.describe());
-        for (CorridorProfile.Reading r : p.readings()) {
-            assertTrue(r.pass(), "STYLE.md 11.0: the corpus must pass the criterion the corpus set. "
-                    + "Reference image 3's " + r.band() + " band reads " + r.fraction()
-                    + " against a floor of " + r.floor() + ".\n" + p.describe());
+    void everyFamilyBImagePassesTheBandTheProjectFailsCapturesOn() throws IOException {
+        for (CorridorProfile.Reference ref : CorridorProfile.FAMILY_B) {
+            assertTrue(ref.file().isFile(), ref.file() + " is part of the repository");
+            CorridorProfile.Profile p =
+                    CorridorProfile.measure(Frame.load(ref.file()), FACTOR, STRIP, ref.span());
+            if (!ref.measurable()) {
+                // The exclusion is asserted, not assumed. If a reader change ever makes
+                // image 5 resolve into two bodies, this fails and the band has to be
+                // re-derived with it in -- which is the only honest way to hold an
+                // exclusion, per STYLE.md 11.0's "name the ones you excluded and why".
+                assertTrue(p.merged(), ref.name() + " is excluded from the band because it is one "
+                        + "connected ink component, and it no longer is. Re-derive ACCEPT.\n"
+                        + ref.note() + "\n" + p.describe());
+                continue;
+            }
+            assertFalse(p.merged(), ref.name() + "\n" + p.describe());
+            for (CorridorProfile.Reading r : p.readings()) {
+                assertTrue(r.pass(), "STYLE.md 11.0: the corpus must pass the criterion the corpus "
+                        + "set, and the corpus is the whole family that depicts the situation. "
+                        + ref.name() + "'s " + r.band() + " band reads " + r.fraction()
+                        + " against a band of " + r.floor() + ".." + r.ceiling() + ".\n"
+                        + p.describe());
+            }
         }
+    }
+
+    /**
+     * The other edge, which is the half a floors-only criterion could not express.
+     *
+     * <p>STYLE.md 11.0: <i>"a criterion of floors alone rewards the defect it was
+     * written to catch... the highest score in the sweep belongs to the setting that
+     * pushes the skirt gap to 4.19x the corpus and destroys the parry entirely."</i>
+     * Two bodies four times too far apart must fail, and under the criterion pass 3
+     * shipped they scored a clean pass on every band.
+     */
+    @Test
+    void aPairOfBodiesFourTimesTooFarApartFailsTheCeiling() {
+        Frame f = twoBodies(82, 20);
+        CorridorProfile.Profile p = CorridorProfile.measure(f, FACTOR, STRIP,
+                Rect.ofCorners(0, 60, W - 1, 259));
+        assertFalse(p.merged(), p.describe());
+        CorridorProfile.Reading skirt = p.band("skirt");
+        assertNotNull(skirt);
+        assertTrue(skirt.fraction() > skirt.floor(),
+                "the fixture is only interesting if it clears the floor: " + p.describe());
+        assertFalse(skirt.pass(),
+                "a corridor of " + skirt.fraction() + " of a figure height is four times the "
+                        + "corpus's own ceiling of " + skirt.ceiling() + " and must fail. Under a "
+                        + "floors-only criterion it scored a pass.\n" + p.describe());
+    }
+
+    /**
+     * The second reading, held at a fixed ink threshold.
+     *
+     * <p>The pass-3 review's finding: the corridor gain pass 3 reported was
+     * <em>entirely</em> photometric — the bands that moved moved because a figure got
+     * paler, not because anything moved. So every reading now carries a second one at a
+     * fixed, much darker threshold, and this asserts it is genuinely a second opinion
+     * rather than a copy of the first.
+     */
+    @Test
+    void everyReadingCarriesASecondOneAtAFixedThreshold() throws IOException {
+        CorridorProfile.Reference ref = CorridorProfile.FAMILY_B.get(0);
+        assertTrue(ref.file().isFile(), ref.file() + " is part of the repository");
+        CorridorProfile.Profile p =
+                CorridorProfile.measure(Frame.load(ref.file()), FACTOR, STRIP, ref.span());
+        int differing = 0;
+        for (CorridorProfile.Reading r : p.readings()) {
+            // A darker threshold calls strictly less ink, so the corridor can only widen.
+            assertTrue(r.fixedColumns() >= r.columns(),
+                    "the fixed reading counts strictly less ink, so its corridor cannot be "
+                            + "narrower: " + r.describe());
+            if (r.fixedColumns() != r.columns()) {
+                differing++;
+            }
+        }
+        assertTrue(differing >= 3, "the fixed reading is supposed to be a second opinion and it "
+                + "agrees with the first on every band; that makes it decorative.\n" + p.describe());
     }
 
     @Test
@@ -169,6 +238,18 @@ class CorridorProfileTest {
         // over the figure span. A threshold taken from a number that moves under its
         // own nuisance parameters is the failure this whole file exists to stop, so
         // the stability is asserted rather than asserted-in-a-comment.
+        //
+        // <b>The ceiling is deliberately not swept, and saying why is the point.</b>
+        // The floors are the property this file was written to protect: a floor taken
+        // from a number that moves under its own nuisance parameters cannot be allowed
+        // to fail anything. A *ceiling* is not symmetric with a floor here, because a
+        // darker ink threshold necessarily calls less ink and therefore necessarily
+        // widens every corridor -- the reference's `sash` runs 0.0921 at factor 0.85 and
+        // 0.0996 at 0.60 for that reason alone, and asserting a ceiling across the sweep
+        // would be asserting that a threshold change has no effect, which is false by
+        // construction. The criterion is defined at factor 0.85 and the second reading
+        // at the fixed 0.60 is printed beside it so nobody has to guess which happened.
+        CorridorProfile.Profile base = CorridorProfile.measure(f, FACTOR, STRIP, SPAN);
         for (double factor : new double[] {0.75, 0.85, 0.90}) {
             for (Rect span : new Rect[] {SPAN, Rect.ofCorners(0, 275, 831, 945),
                     Rect.ofCorners(0, 290, 831, 975)}) {
@@ -176,9 +257,13 @@ class CorridorProfileTest {
                 for (String band : new String[] {"torso", "sash", "skirt"}) {
                     CorridorProfile.Reading r = p.band(band);
                     assertNotNull(r);
-                    assertTrue(r.pass(), "reference band " + band + " at factor " + factor
-                            + " span " + span.describe() + " reads " + r.fraction()
-                            + " against floor " + r.floor());
+                    double ref = base.band(band).fraction();
+                    assertTrue(r.fraction() >= 0.70 * ref && r.fraction() <= 1.40 * ref,
+                            "reference band " + band + " at factor " + factor + " span "
+                                    + span.describe() + " reads " + r.fraction() + " against "
+                                    + ref + " at the criterion's own factor " + FACTOR
+                                    + "; a band taken from a number that moves this far under its "
+                                    + "own nuisance parameters cannot be allowed to fail anything");
                 }
             }
         }

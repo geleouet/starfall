@@ -94,17 +94,29 @@ public final class Duellists {
     }
 
     public static Blades blades(Frame f, Paper paper, double inkFactor) {
+        return blades(f, Figure.detect(f, paper, inkFactor).height());
+    }
+
+    /**
+     * The same, with the figure height <em>given</em>.
+     *
+     * <p>STYLE.md §11.3 makes every pixel number on a moving-camera scene "a ratio to
+     * the figure's own span", which makes the span a load-bearing part of the
+     * measurement rather than a convenience. Detecting it is only safe while the
+     * darkest thing in the frame is the figure; on a Family B dusk stage the ground is
+     * itself a dark ink smear and the detected box spans the whole sheet.
+     */
+    public static Blades blades(Frame f, int figureHeight) {
         List<Cloud> clouds = coolBrightClouds(f);
-        Figure figure = Figure.detect(f, paper, inkFactor);
         if (clouds.isEmpty()) {
-            return new Blades(null, null, Double.NaN, figure.height(), 0);
+            return new Blades(null, null, Double.NaN, figureHeight, 0);
         }
         Cloud a = clouds.get(0);
         if (clouds.size() < 2) {
-            return new Blades(a, null, 0.0, figure.height(), 1);
+            return new Blades(a, null, 0.0, figureHeight, 1);
         }
         Cloud b = clouds.get(1);
-        return new Blades(a, b, minDistance(a, b), figure.height(), clouds.size());
+        return new Blades(a, b, minDistance(a, b), figureHeight, clouds.size());
     }
 
     /** Every cool-bright component above {@link #MIN_BLADE_PIXELS}, largest first. */

@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=rig-bindpose -Pout=out/captures/rev-p4-familyA-control -Pframes=24 -Pcols=6 -Pstep=0.0167 -Pw=960 -Ph=720
+
+scene=rig-bindpose
+description=Samurai in bind pose, full figure, paper background
+frames=24
+start=0.0
+step=0.0167
+window=0.3841
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=3b120ea-dirty
+harness=f0ad18994eec

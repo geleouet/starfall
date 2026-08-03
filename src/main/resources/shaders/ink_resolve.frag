@@ -49,7 +49,22 @@ uniform vec3  u_base;
 uniform vec3  u_deep;
 uniform vec3  u_stain;
 uniform vec3  u_stainPale;
-uniform vec3  u_paper;
+// The tone a wet bleed wicks into, as three stops in world y rather than one
+// constant.
+//
+// STYLE.md 3.2 makes the halo "pigment wicking into damp paper", so its colour is
+// the ground's colour -- and from System 4 pass 4 the ground is a graded dusk sky
+// on the Family B scenes rather than one cream level. Held as a constant, the halo
+// around a figure standing against that sky is an aura: too warm against the
+// indigo zenith and too cold against the coral horizon, at every edge of every
+// figure, which is exactly the "neon glow / bloom on everything" row of STYLE.md
+// 10. u_paperLo/Mid/Hi are the same three anchors the sky ramp is built from and
+// u_paperStops are their world heights; setting all three equal reproduces the old
+// single-colour behaviour bit for bit, which is what every Family A scene does.
+uniform vec3  u_paperLo;
+uniform vec3  u_paperMid;
+uniform vec3  u_paperHi;
+uniform vec3  u_paperStops;
 uniform vec3  u_fogColor;
 uniform float u_bleedRadius;
 uniform vec3  u_fogBands[3];
@@ -63,7 +78,14 @@ float hash2(vec2 p) {
     return fract((q.x + q.y) * q.z);
 }
 
+vec3 paperAt(float y) {
+    return y < u_paperStops.y
+            ? mix(u_paperLo, u_paperMid, smoothstep(u_paperStops.x, u_paperStops.y, y))
+            : mix(u_paperMid, u_paperHi, smoothstep(u_paperStops.y, u_paperStops.z, y));
+}
+
 void main() {
+    vec3 paper = paperAt(v_worldPos.y);
     vec4 m = texture2D(u_mat, v_uv);
     float cov = m.a;
 
@@ -194,7 +216,7 @@ void main() {
     // -- value (contract F4) --------------------------------------------------
     // pool is signed around 0.5: below it the wash is dilute (where the brush
     // skipped), above it pigment has pooled toward the deep tone.
-    vec3 dilute = mix(u_base, u_paper, 0.42);
+    vec3 dilute = mix(u_base, paper, 0.42);
     vec3 ink = mix(mix(dilute, u_base, clamp(pool * 2.0, 0.0, 1.0)),
                    mix(u_base, u_deep, clamp(pool * 2.0 - 1.0, 0.0, 1.0)),
                    step(0.5, pool));
@@ -215,8 +237,8 @@ void main() {
     // ends up greyer and warmer than where it came from. Reading the same tint
     // all the way out is what makes a bleed look like a gaussian blur.
     float nearness = smoothstep(0.010, 0.45, cM);
-    vec3 haloNear = mix(u_base, u_paper, 0.24);
-    vec3 haloFar = mix(mix(u_base, u_paper, 0.74), u_stain, 0.16);
+    vec3 haloNear = mix(u_base, paper, 0.24);
+    vec3 haloFar = mix(mix(u_base, paper, 0.74), u_stain, 0.16);
     vec3 haloInk = mix(haloFar, haloNear, nearness);
     float bodyFrac = clamp(cov / max(alpha, 1e-4), 0.0, 1.0);
     ink = mix(haloInk, ink, bodyFrac);

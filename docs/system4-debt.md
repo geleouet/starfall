@@ -1,458 +1,587 @@
 # System 4 — standing debt
 
-**Status: pass 3 shipped, self-graded, and NOT self-declared a pass.** System 4 is at
-**pass 3 of 5**. The two charges the pass-2 review put first — a corridor acceptance
-its own ground truth fails by 4×, and a clash guard that cannot fail — are both
-closed, with the criterion asserted on the corpus and the guard observed red. The
-things they were guarding are **not** closed: the capture misses the corridor profile
-on 13 of 24 frames and the clash light is three frames long because the bind is.
+**Status: pass 4 shipped, self-graded, and NOT self-declared a pass.** System 4 is at
+**pass 4 of 5**. The pass-3 review's brief had five ranked items; items **1, 2, 3 and 4**
+are paid, item **5 is not** and is decomposed below with both numbers. Two of the
+review's own claims did not reproduce and are corrected here with captures.
 
-Every capture quoted here is `s4-p3-*`. `s4-p3-null-static` is **bit-identical** to
-`rev-p2-null-static` (24 of 24 frames, 0 of 691,200 pixels differ) and both carry
-`harness=f0ad18994eec`, the hash that produced every `s4-p2-*` and `rev-p2-*` capture —
-so comparisons with pass 2 are in scope per §11.2b(d). Nothing from `s4-p1-*` is quoted.
-Every pixel number is a ratio to the frame's own figure height or to its own ground
-level, per §11.3, and every one is printed beside its rectangle.
+Every capture quoted is `s4-p4-*` unless named otherwise. All of them carry
+`harness=f0ad18994eec`, the hash that produced every `s4-p2-*`, `s4-p3-*` and `rev-p*`
+capture, so comparisons back to pass 2 are in scope per §11.2b(d). Every pixel number is
+a ratio to a **given** figure span or to the frame's own row background, and every one is
+printed beside its rectangle (§11.3).
 
 ---
 
-## 0. What the pass-2 review got right that this pass had to correct in itself
+## 0. The span, which is new and is load-bearing for every number below
 
-The review found three things nobody had measured. All three reproduce here, on
-independently written readers:
+**`--span 0,348,960,329`.** Every parry measurement in this document normalises by a
+329-row figure whose crown is at row 348 and whose feet are at row 676.
 
-- **Reference image 3 fails the 0.06 whole-column corridor acceptance.** Measured with
-  the checked-in `CorridorProfile`: **0.0149** of a figure height through
-  `x288..629 y283..955`. Two passes chased 0.06.
-- **The held breath is at spec, on all three scenes.** 0.850× over ~0.25 s per ramp,
-  parry, knockback and phrase. §5 of the pass-2 debt said otherwise and was wrong; that
-  paragraph is deleted and replaced by an assertion (see §4 below).
-- **`everyClashIsDrawnWhereTwoBladesActuallyAre` could not fail.** Confirmed by
-  rebuilding it so it can, and watching it go red on the code it was written against.
+It is computed rather than detected, and `ParryWindowTest` asserts it against
+`Schedule.framingAt` and `Stage.FIGURE_HEIGHT` through the same camera arithmetic
+`DuelScene.aim` runs, so it cannot rot when a framing constant moves. Two reasons:
+
+- **Detection is now wrong, not merely unstable.** On the Family B stage the ground is
+  itself a dark ink smear (STYLE.md §1), so the largest ink component runs from the head
+  down into it and out to both frame edges: on `s4-p4-parry-contact` frame 11 it spans
+  `x17..699 y320..719`. `Figure.detect` returns figure heights of 219–226 px across the
+  graded window against a true 329.
+- **The pass-3 review's span was 23% too tall.** It used `y314..719`, h 406 — the ink
+  top to the *frame bottom*. Row 719 is world y −0.22; the feet are at row 677. So every
+  band fraction in the pass-3 record is about 0.81× what the same pixels read here, and
+  **the comparisons in this document re-measure pass 2 and pass 3 through the corrected
+  span rather than quoting their published numbers**. Where a published number is
+  quoted, it is labelled with the span it was taken through.
 
 ---
 
-## 1. The corridor criterion — CLOSED. The corridor itself — MISSED, with numbers.
+## 1. Item 1 — the dusk sky. PAID.
 
-### 1.1 The criterion, and it is asserted on the corpus in the same command
+`Palette.SKY_ZENITH / SKY_MID / SKY_HORIZON / SKY_HORIZON_HOT` were referenced by
+exactly one scene and it was `SmokeScene`. Every graded duel this project has shot was
+fought on Family A cream paper. `DuelScene` now draws the Family B stage:
+`PaperBackground.dusk(true)`, a new `u_dusk` branch in `paper.frag`, and a three-stop
+backdrop gradient in `ink_resolve.frag` so a figure's wet bleed wicks into the colour of
+the sky it stands against rather than into a cream constant.
 
-`dev.starfall.analysis.CorridorProfile` + `analyse corridor --profile`. Five bands of a
-figure, each a fraction of its own height, each with a floor taken from reference image
-3's own reading. The command measures **the reference first, every time**, and returns
-non-zero if the corpus does not pass its own floors. STYLE.md §11.0, put in the tool.
+**The ramp is measured, not eyeballed.** Median of the outer 70 columns of each row on
+all three Family B images, converted to world y through each image's own figure span.
+Delivered against reference image 3, both read the same way:
 
-Reference image 3, ink factor 0.85, row-local background, span `x0..831 y283..955`
-(673 px), window between the two bodies' ink centroids `x288..x629`:
+| world y | image 3 | `s4-p4` frame 11 |
+|---|---|---|
+| +2.40 | `#2E3957` L 57.2 | `#2F3B58` L 58.5 |
+| +2.00 | `#424660` L 71.5 | `#3F3F5C` L 65.1 |
+| +1.70 | `#5C5268` L 85.7 | `#614A64` L 80.8 |
+| +1.10 | `#7C5761` L 95.6 | `#78525D` L 90.9 |
+| +0.90 | `#96505A` L 96.0 | `#79525B` L 90.9 |
+| +0.70 | `#8E4D53` L 91.4 | `#77505A` L 89.0 |
+| +0.50 | `#413B48` L 61.6 | `#4B3C4B` L 64.3 |
+| +0.30 | `#383540` L 54.4 | `#2A2F40` L 47.5 |
+| +0.15 | `#2D252F` L 39.4 | `#353745` L 56.0 |
+| +0.00 | `#27222D` L 35.9 | `#3A3B49` L 60.2 |
 
-| band | rect | clear | / figure height | floor adopted |
+The sky matches the corpus to within a few levels from world y +0.5 upward. **Below
++0.3 it is 15–25 levels too light and that is a miss**: the corpus's ground band runs
+27–39 and this runs 56–60, because the fog bands of STYLE.md §6 sit on top of it. It was
+attacked twice (the smear anchored to world y instead of uv, the mist lobes allowed to
+reach zero at dusk) and both moved it by less than half of what is needed. The remaining
+term is the mist's own strength low down, and touching it further starts trading against
+§6's "non-negotiable".
+
+**Two things in the palette table disagree with the corpus and the corpus wins**
+(STYLE.md's own preamble): `SKY_HORIZON` `#D9736B` is luminance 136 and the corpus's
+horizon band reads 95–100 at the frame edges and 108 at its hottest between the
+duellists; and the sky does not run to the bottom of the frame — all three images turn to
+a dark blue-grey ground haze below world y ≈ 0.6. Both are expressed as mixes toward
+`SKY_ZENITH` so no colour is invented.
+
+**Saturation, against STYLE.md §10's "saturated colour across large areas":** frame-wide
+share above HSV saturation 0.40 is 39.1% for the capture and 27.0% for reference image 3,
+but above 0.55 it is **0.01% against the corpus's 4.36%**, and the 99th percentile is
+0.485 against 0.608. The capture is broader and flatter in chroma than the corpus and
+does not reach it anywhere. Not a §10 hit.
+
+**Every Family A scene is untouched — measured, not argued.** `u_dusk = 0` takes the same
+branch the shader always took and `backdropStops(false)` is three copies of `PAPER_WARM`,
+for which `mix(c, c, t)` is exactly `c` — but "by construction" is the phrase STYLE.md
+§11.2b(g) says to read as *nobody has measured this*, so it was measured. With **only**
+`BLADE_NAGASA_FRACTION` reverted to 0.40 and every other change of this pass in place,
+`rig-bindpose` is **bit-identical to `s4-p3-null-static`: 24 of 24 frames, 0 of
+16,588,800 pixels differ.** That covers the sky branch, the backdrop gradient in
+`ink_resolve.frag`, the trail taper and its contrast scaling, and the clash's hot core in
+one control. Kept as `out/captures/rev-p4-familyA-control`.
+
+### 1.1 What the sky exposed, which is the interesting part
+
+Three defects were invisible on cream and are structural, not cosmetic:
+
+- **The blade trail.** Screen adds `src × (1 − dst)`, so the identical ribbon that sat
+  2.7% above a 0.86 paper — recorded as *invisible*, as a fault, by three reviews — sits
+  five times further above a 0.35 dusk sky. The first dusk capture printed it as a
+  near-closed pale dome a figure height across: a moon, not a smear. Fixed two ways:
+  the ribbon now **tapers** with age (`0.18 + 0.82·(1−age)²` of its width, nonlinear and
+  fast in the last third, the same law STYLE.md §4 gives a hair tip), and its peak is
+  scaled to hold a fixed multiple of the contrast it had on cream. It reads **1.050–1.070×
+  its own row background** on frame 6 at `(450,215)`, `(400,230)`, `(500,212)`,
+  `(560,230)`, `(620,265)` against 1.027× on paper.
+- **The clash bloom stopped reaching white.** Same mechanism: `L ≥ 240` is a
+  background-dependent test and the mark peaked at 213 over a dark sky. Warm-bright core
+  pixels fell from 152/276/111 on frames 9/10/11 to **55 / 0 / 0**. STYLE.md §2.2 makes
+  the clash bloom one of only two things allowed to approach white, so the innermost
+  third of the disc is now drawn again at a saturating amplitude. Restored: see §4.
+- **The two-figure value statistic changed meaning.** See §3.
+
+---
+
+## 2. Item 2 — the tall X. PAID, and the review's reasoning for it is HALF WRONG.
+
+`MeshAuthor.BLADE_NAGASA_FRACTION` **0.40 → 0.55** of a figure height. The old number was
+anatomy ("a katana's nagasa is about 70 cm on a 170 cm swordsman") and nobody had measured
+the paintings. Measured, independently, on all three Family B images — crossed blades as
+one cool-bright component, `L > 1.30 ×` the row's own background, 2×2 opening:
+
+| | pixels | box | diagonal |
+|---|---|---|---|
+| image 3 | 14,778 | `x272..568 y317..456` | 327 px = **0.487** figure heights |
+| image 4 | 19,414 | `x348..581 y117..444` | 402 px = **0.595** |
+| image 5 | 16,992 | `x342..627 y122..460` | 442 px = **0.655** |
+
+and image 3's left blade runs tsuba (390,465) to kissaki (560,135) = 379 px on a 672 px
+figure = **0.56 of a figure height of steel per duellist**.
+
+Delivered, same instrument, both captures normalised by the corrected 329-row span:
+
+| | hero cloud | foe cloud | union |
+|---|---|---|---|
+| `s4-p3` frame 11 | 419 px, diag **0.353** | 196 px, diag **0.190** | **0.369** |
+| `s4-p4` frame 11 | 655 px, diag **0.420** | 235 px, diag **0.211** | **0.526** |
+| `s4-p4` frame 9 | one merged cloud of 522 px `x580..642 y294..444` | — | **0.493** |
+| `s4-p4` frame 10 | 691 px + 261 px | | **0.492** |
+
+**The crossed figure now spans 0.49–0.53 against the corpus's 0.487–0.655.** That is the
+first time this project has hit a Family B composition statistic. The foe's blade is
+still a stub relative to the hero's (0.211 against 0.420) and that is unpaid.
+
+### 2.1 The review's argument for item 2 does not fully reproduce
+
+The review's claim: *"this single change discharges the torso corridor, the bind span and
+the bloom's three-frame limit at once."* Measured:
+
+- **The bind span: TRUE.** Headless on the same `Rehearsal` the capture's director runs,
+  the two blade segments are within 2% of a figure height from **t = 1.5500 to 1.6316 =
+  0.0816 s**, against pass 3's 0.066 s — 49% of the 0.168 s contact span against 39%.
+- **The bloom's three-frame limit: TRUE, and it was cashed.** `Scheduler.CLASH_SPAN`
+  0.27 → **0.42**, found by moving the guard rather than by argument:
+  `RehearsalTest.everyClashIsDrawnWhereTwoBladesActuallyAre` is green at 0.46 and red at
+  0.50. 0.42 × 0.168 s = **4.2 frames at 60 Hz against 2.7**. Still far short of the ten
+  §7.1 implies.
+- **The torso corridor: FALSE, and it went the other way.** Longer blades mean a longer
+  `REACH_TO_CROSSING` (0.263 → 0.324 world units), so the fist target is placed further
+  back and lower from the crossing, the arms saturate harder, and the hands sit further
+  apart. Median `torso` band over the contact window, corrected span: pass 3 **0.0198**,
+  pass 4 **0.2173** — 1.33× the corpus's own reading to **14.58×**. At the graded frame 11
+  it is fine (0.0122, inside the band), but across frames 16–23 the two bodies open to
+  0.24–0.39 where the corpus holds 0.0149. **Item 2 bought the X at the cost of the
+  pinch**, and the lever that would buy both back is `Director.FIST_DROP`, untouched at
+  1.0 this pass.
+
+---
+
+## 3. Item 3 — `Figure.dark` base `INK_INDIGO` → `INK_BLACK`. PAID. And the statistic
+that graded it had to be replaced.
+
+One line, exactly as the review measured it. But the statistic every previous pass used —
+`CorridorProfile.medianInkOverGround`, the median of pixels *darker than 0.85 ×* the row
+background — is **ill-posed on the Family B stage**, and reports the change as a
+catastrophe:
+
+| through `x300..470 y300..420` / `x600..760 y340..460` | dark | pale | ratio |
+|---|---|---|---|
+| reference image 3, `x190..300` / `x540..650, y400..540` | 0.133 | 0.436 | **3.27×** |
+| `s4-p3` frame 11 (cream) | 0.245 | 0.521 | 2.12× |
+| `s4-p4` frame 11 (dusk) | 0.434 | 0.520 | **1.20×** |
+
+The cause: the pale duellist is now **brighter than its own ground**, so only 3,671 px of
+its torso box fall below the threshold against 6,884 on cream, and the statistic silently
+changes subject to "the darkest quarter of the pale figure". Reference image 5's pale
+duellist has the same property (it reads 1.245 of its sky), so this is a case the corpus
+contains and the instrument could not express.
+
+**Replacement: `CorridorProfile.medianOverGround`, threshold-free**, run on the corpus
+first (§11.0) through boxes placed *inside* each torso — the review's wide boxes are
+three-quarters sky and read 0.95 on every capture:
+
+| | dark | pale | ratio | dark, absolute L |
 |---|---|---|---|---|
-| head | `x288..629 y283..403` | 57 px | 0.0847 | 0.080 |
-| torso | `x288..629 y404..558` | 10 px | **0.0149** | 0.014 |
-| sash | `x288..629 y559..699` | 62 px | 0.0921 | 0.085 |
-| skirt | `x288..629 y700..881` | 68 px | 0.1010 | 0.095 |
-| feet | `x288..629 y882..955` | 76 px | 0.1129 | 0.065 |
-| **whole column** | same span | 10 px | **0.0149** | — (the criterion two passes chased was 0.06) |
+| reference image 3 `x205..285 y415..520` / `x555..635` | 0.128 | 0.419 | **3.28×** | 12.2 |
+| reference image 4 `x215..285 y395..505` / `x535..605` | 0.115 | 0.372 | **3.22×** | 11.2 |
+| reference image 5 `x165..235 y395..505` / `x445..515` | 0.134 | 1.245 | **9.32×** | 13.2 |
+| `s4-p2` frame 11 `x385..465 y415..478` / `x645..720 y425..488` | 0.249 | 0.749 | 3.00× | 53.0 |
+| `s4-p3` frame 11, same | 0.229 | 0.808 | 3.53× | 48.7 |
+| **`s4-p4` frame 11, same** | **0.314** | **1.304** | **4.15×** | **27.9** |
 
-Swept for stability across ink factor 0.60–0.90 and six figure spans: `torso`
-0.0146–0.0178, `sash` 0.0894–0.0998, `skirt` 0.0991–0.1070 — those three carry the
-acceptance. `head` runs 0.085–0.284 and `feet` 0.070–0.394 across the same sweep; both
-floors are set at the **bottom** of their own sweep and both are reported as weak.
-`CorridorProfileTest.theReferenceProfileIsStableUnderItsOwnNuisanceParameters` asserts
-the sweep rather than describing it.
+**The delivered ratio is inside the corpus's own spread for the first time (4.15 against
+3.22–9.32)**, and interior spread is unchanged (dark IQR 0.150 on both p3 and p4).
+`DuellistValueTest.DELIVERED_FLOOR` is a ratchet at 4.00.
 
-Two independent readers agree: a NumPy/SciPy implementation written first, and the
-checked-in Java one, return the same integer pixel counts for `torso`, `sash`, `skirt`
-and `feet` on the reference and differ by 6 px on `head` (§11.2b(c)).
+**But the ratio is carried by the pale figure, and the dark one still misses.** It reads
+0.314 of its own sky against the corpus's 0.115–0.134 — 2.5× too light. And here is why
+that cannot be closed the way pass 3 assumed:
 
-### 1.2 The capture: 11 of 24 frames pass, against pass 2's 8
+> **The corpus's dark duellist prints at luminance 12.2, and STYLE.md §2.2's own floor
+> `#161A22` is luminance 25.7.** The delivered figure is at **27.9** — it is *on the
+> floor*. The corpus breaks §2.2 by a factor of two to get its silhouette.
 
-`./gw analyse -Pargs="corridor out/captures/s4-p3-parry-contact --profile"`
+So the 3.27× target is unreachable while §2.2 stands, and it is *harder* on a dusk sky
+than on cream: `INK_BLACK` over a 213-luminance paper is 0.12 of the ground, and over an
+89-luminance sky it is 0.29. Pass 3's "the ceiling reachable by pooling alone is
+`INK_BLACK`" was right about the ceiling and wrong about what that ceiling is worth. This
+is a **STYLE.md question, not a shader question**, and it is handed on as one.
 
-| | pass 2 | pass 3 |
+---
+
+## 4. The bloom and the blades, re-measured. Both protected results HOLD.
+
+### 4.1 The bloom — improved
+
+Core = `L ≥ 246.5` inside `x520..700 y260..470` (the blade's own steel is luminance
+240.7, so 240 is not a clean core threshold on this stage), centroid, minimum distance to
+each of the two largest cool-bright clouds; figure height 329 px given.
+
+| frame | `s4-p3` core / to nearer blade | `s4-p4` core / to nearer blade |
 |---|---|---|
-| frames passing every band | 8 / 24 | **11 / 24** |
-| frames that are one connected mass | 2 | **2** |
-| frames whose `torso` band misses | 13 | **8** |
-| `torso` worst | 0.0000 | **0.0000** |
+| 9 | 162 px, 2.7 px = **0.008** | 81 px, **0.4 px = 0.001** |
+| 10 | 104 px, 0.4 px = 0.001 | 149 px, **0.5 px = 0.001** |
+| 11 | 8 px, 2.4 px = 0.007 | 91 px, **0.7 px = 0.002** |
+| 12 | 0 px | 4 px |
 
-**It is a miss and it is reported as one.** The reference's `torso` is 0.0149 and this
-capture reads 0.0000 on six frames of the contact window. On a 400 px figure the whole
-of the reference's pinch is **10 px of sky between two tsuba**, and the capture has
-none.
+Peak luminance 254 / 255 / 253. On frames 9 and 10 there is **only one** cool-bright
+cloud — the two blades' lit steel is one connected component — which is the strongest
+available form of "the star is in the fork". At frame 11 the second cloud is 37.6 px =
+0.114 away against pass 3's 0.034, on a frame where the foe's blade cloud is an 8×88 px
+sliver.
 
-### 1.3 The profile, which is the finding, and it contradicts the brief
+**Embers: 5 / 3 / 2 / 2 / 2 strongly-warm blobs ≥ 4 px on frames 9/11/13/15/17**
+(`r − b ≥ 40`, `L ≥ 150`) against §5's 8–20. Unpaid, unchanged from pass 3.
 
-Same instrument, `s4-p3-parry-contact` frame 11, against the reference:
+### 4.2 The blades meet — and the tool's `0.0000` is a merge, not a measurement
 
-| band | reference | capture frame 11 | capture, contact window |
+`./gw analyse -Pargs="blades out/captures/s4-p4-parry-contact --span 0,348,960,329 --max 0.02"`
+
+- **Frames 9 and 10 are a single cool-bright component** (731 px `x559..650 y262..446`;
+  1,046 px `x561..666 y281..444`). The tool scores that 0.0000 by convention and prints
+  PASS. The union of pass 3's two clouds at frame 9 was `x551..644 y273..447`, so this is
+  a genuine merge of the same two objects and not a blade disappearing.
+- **Among frames where two clouds resolve, the minimum is 6.0 px = 0.0182 at frame 11**,
+  against pass 3's 11.3 px = 0.0344 through the same span. That is the first time the
+  delivered acceptance of ≤ 0.02 has been met by a two-cloud reading.
+
+Pass 3's published `0.0264` and this document's `0.0344` are the same 11.3 px through a
+406-row and a 329-row span.
+
+---
+
+## 5. Item 4 — the criterion. PAID, and it found three defects, one of them in the
+review's own numbers.
+
+`analyse corridor --profile` now runs on **all three** Family B images, states the
+acceptance as a **band with both edges**, takes an explicit `--span`, and prints a
+**second reading at a fixed ink threshold** beside every number.
+
+### 5.1 The corpus, all of it
+
+Measured at ink factor 0.85, each image on its own span, component analysis cropped to
+that span:
+
+| band | image 3 | image 4 | band adopted |
 |---|---|---|---|
-| head | 0.0847 | 0.3498 | 0.037 – 0.392 |
-| torso | **0.0149** | **0.0000** | 0.000 – 0.038 |
-| sash | 0.0921 | 0.3645 | 0.064 – 0.368 |
-| skirt | 0.1010 | 0.3276 | 0.316 – 0.342 |
-| feet | 0.1129 | 0.1773 | 0.155 – 0.183 |
+| head | 0.0847 | 0.1612 | 0.084 .. 0.162 |
+| torso | 0.0149 | 0.0118 | 0.011 .. 0.015 |
+| sash | 0.0921 | 0.0976 | 0.092 .. 0.098 |
+| skirt | 0.1010 | 0.0858 | 0.085 .. 0.102 |
+| feet | 0.1129 | 0.0444 | 0.044 .. 0.113 |
 
-**The capture is 3.2× wider than the corpus at the skirt and 1.6× wider at the feet,
-and zero at the pinch.** The pass-2 review's brief said to *"bring `LANE_SPREAD` back
-down toward 1.35 and make the bodies narrow at the pinch — `SamuraiRig`'s haori rails at
-0.64 against `Stage.BODY_HALF` 0.56 is the number to attack"*. Measured with the
-criterion the same review asked for, **both halves of that prescription move the picture
-away from the corpus:**
+Floors are the corpus minimum rounded down and ceilings the maximum rounded up, both at
+three decimals, **with no margin added in either direction** — a margin would be a number
+nobody measured. `sash` is a 6% window on two samples and that is stated rather than
+padded; what makes it usable is that the capture misses by factors of three to four.
 
-- Lowering `LANE_SPREAD` scales every band by roughly the same factor. `skirt` needs
-  ×0.31 and `torso` needs ×∞ — no scalar exists that fixes both, and pass 1 shot 1.35
-  and merged the bodies on 25% of frames against pass 2's 12.5%. `LANE_SPREAD` is
-  **unchanged at 1.55** and the brief's instruction is refused with this table as the
-  reason.
-- Narrowing the garment widens `skirt` and `feet`, the two bands that are already 3×
-  and 1.6× too wide. The bodies are not too wide; they are too far apart at the base
-  and the arms meet in the middle at chest height.
+### 5.2 Reference image 5 is EXCLUDED, and the reason corrects the review
 
-The move the profile actually asks for is the opposite: **widen the lower garment and
-shorten the reach.** Not done, and the reason is budget rather than doubt — it is a
-`SamuraiRig` rail edit and a `Stage` change, and this pass spent its budget on the two
-central charges.
+The pass-3 review's central charge was that **image 5 reads `torso = 0.0000`, the
+identical number the capture was failed for**. That reading reproduces exactly through
+the pass-3 reader — and it is measured **between a duellist and the ground smear**.
 
-### 1.4 A weakness in this pass's own criterion, named rather than left to be found
+Image 5's two duellists are *one connected ink component inside their own figure span*:
+each carries a second sheathed blade whose scabbard crosses the gap at hip height, and
+their hilts touch. Before the component analysis was cropped to the span, the two
+"bodies" the tool found were one duellist and the ground band below the feet, and the
+window was drawn between them. That is STYLE.md §11.3's silent wrong answer one level up,
+and the checked-in reader and the review's independent NumPy reader now agree — the
+review's own reader called image 5 one mass in all 264 combinations it swept, which is
+what it is.
 
-Part of the 8→11 improvement is **not** geometry. The pale duellist's value lift (§2)
-raised the darkest pixel in the `torso` band's clear run at frame 10 from luminance
-**34.9 to 137.4**, so ink that used to be below `0.85 × background` now survives the 3×3
-opening as background. A threshold-based corridor gets wider when a figure gets paler,
-whether or not anything moved. For a viewer that is a real improvement in separation —
-which is what the statistic is a proxy for — but the number is not purely a distance,
-and quoting it as one would be the mistake §11.2b keeps recording. **A pass that wants
-to grade staging alone should re-run this against a fixed value.**
+So image 5 sets no floor. The exclusion is named in `CorridorProfile.FAMILY_B`, printed
+by the command, and **asserted** in `CorridorProfileTest`: if a reader change ever makes
+image 5 resolve into two bodies, the test fails and the band has to be re-derived with it
+in. §11.0's *"name the ones you excluded and why"*, held as a test rather than as a
+sentence.
+
+**Consequence for the record: the `torso` floor is 0.011, not 0.000.** The review's
+argument that the capture could not be failed for `torso = 0.0000` because the corpus
+does it too does not survive the corrected reader.
+
+### 5.3 The delivered profile, and the ceiling doing its job
+
+`0 of 24 frames pass every band` on **passes 2, 3 and 4 alike** through the corrected
+span and the two-sided band. Pass 3's headline "8 / 24 → 11 / 24" was measured against a
+floors-only criterion that the pass-3 review then showed prefers a staging in which the
+blades never meet; against a criterion the corpus passes, none of the three passes has
+ever put a frame inside the corpus's profile.
+
+Merged frames: pass 2 **2**, pass 3 **2**, pass 4 **1**.
+
+Band medians over the contact window (frames 6–23), as a multiple of image 3's own
+reading, and **beside them the same median at the fixed 0.60 threshold**:
+
+| band | p3 @0.85 | p4 @0.85 | p3 @0.60 | p4 @0.60 |
+|---|---|---|---|---|
+| head | 0.0836 (0.99×) | 0.1474 (1.74×) | 0.1292 | 0.2264 |
+| torso | 0.0198 (1.33×) | 0.2173 (**14.58×**) | 0.2417 | 0.2523 |
+| sash | 0.3905 (4.24×) | 0.3282 (3.56×) | 0.4498 | 0.4453 |
+| skirt | 0.4058 (4.02×) | 0.1398 (**1.38×**) | 0.4103 | **0.3191** |
+| feet | 0.5258 (4.66×) | 0.0760 (**0.67×**) | 0.5760 | **0.2188** |
+
+**Read the last two columns before believing the third.** The headline collapse of
+`skirt` from 4.02× to 1.38× and `feet` from 4.66× to 0.67× is **mostly photometric**: at
+the fixed threshold `skirt` only improves 0.4103 → 0.3191 (22%) and `feet` 0.5760 →
+0.2188 (62%). The dusk ground band and the low mist put marks into those bands that are
+barely dark enough to count at 0.85 and not at 0.60. The second reading is the instrument
+the review asked for, and the first thing it caught was this pass. **The skirt is still
+about 3.2× the corpus as geometry.**
+
+### 5.4 The whole-column scalar, for the record
+
+Image 3 0.0149, image 4 0.0074, image 5 0.0000, against the 0.06 two passes chased.
 
 ---
 
-## 2. The pale duellist has its value back above the sash — improved 1.54× → 2.09×, misses 3.27×
+## 6. Item 5 — the base separation. **NOT PAID**, and the review's decomposition of it
+does not survive arithmetic.
 
-**Acceptance: reference image 3's torso separation, 3.27×. Not met.**
+The review: *"the bodies stand 0.793 figure heights apart at the skirt against the
+corpus's 0.649 … the figures lean into each other. That is a stance/pitch problem, not a
+lane-spacing one, which is why `LANE_SPREAD` cannot fix it."*
 
-The per-region colour channel two debt documents have asked for, built in the cheapest
-form that is still one: `InkMaterial.sashHeight` / `sashLift`, a **bind-space** height
-above which the pooled value is scaled, applied per figure as one more per-draw uniform
-in `ink_skin.frag`. In bind space with the noise it modulates, so it deforms with the
-skin and nothing swims (§3.5); `(0, 1)` is the default and every single-figure capture
-in the corpus is bit-identical through it (`s4-p3-null-static`).
+Measured on the corpus with an independently written reader (widest clear column run
+splits the two bodies; centroid and extent per side, per band, as fractions of that
+image's own figure height):
 
-Median ink luminance over the frame's own ground, `CorridorProfile.medianInkOverGround`:
+| | separation | left width | right width | gap |
+|---|---|---|---|---|
+| image 3, sash `y559..700` | 0.635 | 0.554 | 0.592 | 0.092 |
+| image 3, skirt `y700..881` | 0.616 | 0.594 | 0.500 | 0.101 |
+| image 4, sash `y532..674` | 0.596 | 0.495 | 0.582 | 0.098 |
+| image 4, skirt `y674..856` | 0.583 | 0.572 | 0.575 | 0.086 |
 
-| | dark duellist | pale duellist | ratio |
+**The corpus stands its duellists 0.58–0.64 figure heights apart. This lane stands them
+`LANE_SPREAD × TILE_WIDTH / FIGURE_HEIGHT` = 1.55 / 1.70 = 0.912 apart, before any
+stance.** The measured skirt separation of 0.79 is *already less* than the stand
+separation, because the garments lean inward — so standing the figures up would move it
+the wrong way, toward 0.91. No stance change can reach 0.62 from a stand separation of
+0.91. To match the corpus, `LANE_SPREAD` would have to be about **1.05**, not 1.35.
+
+That is a `Stage` finding, exactly as `Director.LANE_SPREAD`'s own note has said since
+pass 2: *"either `TILE_WIDTH` rises against `FIGURE_HEIGHT`, or `BODY_HALF` grows to the
+width the rig actually has and the lane spacing follows it."* It is the last untouched
+structural cause of the corridor miss and it is handed to pass 5 as one.
+
+**The half of item 5 that is real and unpaid: the foe's lower garment.** The review
+measured 0.300 of a figure height against the corpus's 0.495 and the hero's 0.581. That
+needs a per-figure rig parameter (`SamuraiRig.build(skirtWidth)` plus the matching cloth
+rails, which are shared with the simulation) and it was not attempted — the budget went
+to items 1–4. Worth roughly 0.10 of the 0.32 excess.
+
+### 6.1 The review's `LANE_SPREAD` sweep does not reproduce with the long blade
+
+The review shot 1.35 and reported *"the blades never come closer than 0.0903 of a figure
+height — the signature beat is destroyed"*, and the brief formally withdrew pass 2's
+instruction on that basis. Re-shot at this commit (`out/captures/rev-p4-spread135`, same
+window, same harness, `LANE_SPREAD = 1.35`, everything else shipped):
+
+| | min blade separation | merged frames | corridor |
 |---|---|---|---|
-| **reference image 3**, `x190..300 / x540..650, y400..540` | 0.127 | 0.415 | **3.27×** |
-| capture, pass 2, `x300..470 y300..420 / x600..760 y340..460` | 0.260 | 0.399 | 1.54× |
-| **capture, pass 3**, same rectangles | 0.245 | **0.513** | **2.09×** |
-| reference, skirt `x150..330 / x520..700, y660..820` | — | — | 1.16× (review's number) |
-| capture, pass 3, skirt `x330..470 / x620..760, y500..620` | 0.162 | 0.265 | 1.63× |
+| review's 1.35 (blade 0.40) | 0.0903 | 10 of 24 | 4 of 24 pass |
+| **this 1.35 (blade 0.55)** | **0.0068** @ f9 | **8 of 24** | 0 of 24 pass |
+| shipped 1.55 (blade 0.55) | 0.0182 @ f11, merged f9/f10 | **1 of 24** | 0 of 24 pass |
 
-**Where the remaining gap is, and it is not where the review said.** The pale figure now
-reads **0.513** of ground against the corpus's 0.415 — it is, if anything, paler than the
-corpus. The whole of the remaining shortfall is that **the dark duellist is not dark**:
-0.245 against the reference's 0.127. Its torso median is 53–56, which is *exactly*
-`INK_INDIGO`'s own luminance — the garment above the sash is sitting on its base tone
-with nothing pooled into it, because the mesh authors wetness 0.03–0.20 there and every
-value term in `ink_skin.frag` is gated on wetness.
-
-Pushing the dark figure's pooling (`DARK_SASH_POOL = 1.70`) bought **3 luminance levels**
-— 0.260 → 0.245, ratio 1.99 → 2.09 — and the ceiling reachable by pooling alone is
-`INK_BLACK` at 0.12, which needs `dark` to saturate, which would print the flat fill
-§3b.5's first row fails on sight. **Closing this wants the mesh's authored wetness above
-the sash raised on the dark figure, which is a System 1 change.** That is the concrete
-next step and it is not a guess: the number that has to move is `HAORI`'s wetness rows,
-not a colour.
-
-The guard is `DuellistValueTest`, on **delivered pixels** — the review's own
-prescription. `DirectorTest.bothFiguresAreVisuallyDistinguishable` still asserts on
-`InkMaterial`'s base colour and is still not load-bearing; it was not deleted because it
-is a cheap regression trap on a different thing, but **it must not be quoted as evidence
-about the picture.**
+**A 0.55 nagasa reaches across a 1.35 lane and the parry survives it.** The half of the
+refusal that still holds is the other one: 8 of 24 frames are one connected ink mass
+against 1. The instruction not to lower `LANE_SPREAD` stands — for the merge, not for the
+blades — and half the argument behind it is now void.
 
 ---
 
-## 3. The clash guard can fail, and the bloom is honest — but it is three frames long
+## 7. Protected results, re-measured
 
-### 3.1 The guard
+### 7.1 Phrase continuity — HOLDS, 192× the control
 
-`RehearsalTest.everyClashIsDrawnWhereTwoBladesActuallyAre`, rebuilt. Three holes closed:
-
-1. The mark is **`Director.lastCrossing`**, recorded per frame by `Rehearsal.Frame.mark`
-   — the coordinate `Director.renderInk` substitutes for a `CROSSING` origin — not a
-   point recomputed from the blade it is being measured against.
-2. **Every frame the mark is drawn on** is checked, not the one frame nearest the
-   directive's instant.
-3. The mark must be **between** the two blades, not merely near both.
-
-**Observed red**, per §11.2b(f). Reverting `lastCrossing` and `renderInk` to the
-aim-point construction and running `./gw test --tests '*RehearsalTest*'`:
-
-```
-PARRY: at t=1.5833 the drawn clash mark (1.305,1.839) is 12.6% from the hero's blade
-and 18.3% from the foe's. It is sitting on a grip.
-```
-
-That is the message it was written to print, on the code it was written against, and it
-also confirms in world units what the pass-2 review measured in pixels.
-
-### 3.2 What the guard found, which was worse than "two frames early"
-
-The `CLASH` directive ran `BLOOM_SECONDS * 0.7` = **0.63 s** against a GUARD beat whose
-whole contact span is **0.168 s**, and against a bind that measured **0.066 s**. The
-light asserted a meeting for **9.5× as long as the meeting lasted**.
-
-And the mark was drawn at the point the two blades are *aimed* at — the apex built from
-the two fists — which sits **0.10 to 0.27 world units** from either blade through the
-whole bind, i.e. above both of them and above the figures' heads (`y = 1.84` on a 1.70
-figure). `Director` now keeps that construction for the **aim** (built from the blades it
-is a fixed point of its own output, and the pass-2 debt records that it chattered) and
-resolves a separate `drawnCrossing` from the two blade *segments* for the **light**.
-
-**One line of that fix shipped wrong for twenty minutes and the pixels caught it**:
-`lastCrossing` returned the new point while `renderInk` still drew the old one, so the
-guard and the renderer disagreed — §11.2b(f)'s failure mode in reverse. It was found by
-cropping the capture at 3× and looking, not by any test. Recorded because it is the
-argument for §11.2's "a reviewer must look at the actual captured pixels".
-
-### 3.3 Delivered, and the miss
-
-Warm-bright mask `luminance ≥ 248 and r − b ≥ 8`, whole frame, centroid, minimum
-distance to each of the two largest cool-bright blade clouds (the pass-2 review's
-instrument, re-implemented):
-
-| frame | pass 2, px / dist to blade A / to blade B | pass 3, same |
-|---|---|---|
-| 9 | 185 px, 44.8 px = 0.113, 74.4 px = 0.188 | **152 px, 2.5 px = 0.006, 62.4 px = 0.158** |
-| 10 | 228 px, 31.6 px = 0.080, 51.9 px = 0.131 | **276 px, 2.6 px = 0.007, 35.7 px = 0.090** |
-| 11 | 394 px, 10.8 px = 0.027, 15.5 px = 0.039 | **111 px, 3.1 px = 0.008, 12.9 px = 0.033** |
-| 12–21 | 358–513 px, welded to one blade, 0.11–0.19 from the other on 8 frames | **49, 11, 9 … px — embers, not a core** |
-
-(threshold ≥240; at the review's ≥248 the star is one frame in pass 3 and eleven in
-pass 2. Figure height 394–403 px.)
-
-**The placement is fixed and the duration is a miss.** The core is now 2.5–3.1 px from
-the nearer blade on every frame it is drawn, against 10.8–44.8 px; it is still **0.158 of
-a figure height from the *second* blade on frame 9**, because the drawn steel tapers and
-stops short of the geometric segment end, so "in the fork" in world units is not yet "in
-the fork" in lit pixels. That is the same taper/glow disagreement the pass-2 debt records
-between `analyse blades` and `Rehearsal`, and it is the reason the placement half of the
-guard must not be quoted as evidence. `Scheduler.CLASH_SPAN = 0.27`
-is the largest multiple of the contact span that keeps every drawn frame honest, and
-0.27 × 0.168 s is **three frames at 60 Hz**, which is too short for §5's "soft star bloom
-with 4–6 long soft rays". `InkFxRenderer.clash` was given a rise-and-fall envelope so it
-ignites rather than appearing at full brightness — a pure decay is a snap-on, invisible
-while the directive ran 0.63 s because every legible frame sat inside the first 6% of the
-age curve — and it still peaks lower than pass 2's did.
-
-The light cannot be longer than the meeting. **The meeting is 0.066 s of a 0.168 s
-contact span, 39%.** That is item 4 below and the two are one defect.
-
----
-
-## 4. The held breath — at spec, and now asserted rather than described
-
-**Closed.** `RehearsalTest.theHeldBreathIsAtSpecOnEveryScene`, sampled at 120 Hz of wall
-time over the whole score of every `Duel.Kind`:
-
-| scene | ramps | floor | span per ramp |
-|---|---|---|---|
-| `duel-parry` | 1 | 0.850× | 0.25 s |
-| `duel-knockback` | 1 | 0.850× | 0.25 s |
-| `duel-phrase` | 5 | 0.850× | 0.25 s each |
-
-**The pass-2 debt's §5 said "the held breath is still 0.857× for ~0.12 s… and there is
-still none on the knockback". Both halves were false** and the review proved it; the
-0.12 s was the plateau below 0.90×, which is what an eased ramp reaching its floor
-necessarily looks like. The paragraph is deleted. Reported against §7.3 it would have
-sent this pass to lengthen a constant that has been at spec since before pass 1.
-
-Observed red: `Timing.HELD_BREATH_SECONDS = 0.12` gives
-*"PHRASE: the held breath runs 0.125 s per ramp over 5 ramp(s)… asks for ~0.25 s"*.
-
-The reviewer's temporary instrument `src/test/java/dev/starfall/direct/RevTimingDumpTest.java`
-is **deleted**, its measurement folded into the assertion above.
-
----
-
-## 5. Protected results, re-measured
-
-Pass 2's failure to re-measure what it changed was itself a review finding. All three
-results the pass-2 review verified are re-measured here on `s4-p3-*` captures.
-
-### 5.1 Phrase continuity — HOLDS, 43× the control
-
-Instrument re-implemented: hero = largest 8-connected component with luminance < 95
-after a 3×3 opening; silhouette resampled by area-average into a 64×64 grid spanning
-**its own bounding box**; mean absolute difference of consecutive grids.
+**The instrument had to change and both readers are reported.** Pass 3's reader took "the
+largest 8-connected component with luminance < 95". On a dusk sky the whole upper frame is
+below 95, and the largest dark component is the ground band. The replacement is row-local:
+ink at **0.60 × the row's own background**, 3×3 opening, largest component **taller than
+it is wide** (which is what separates a figure from the ground smear), silhouette
+resampled by area-average into a 64×64 grid over its own bounding box, mean absolute
+difference of consecutive grids.
 
 | capture | steps | min | p05 | median | max |
 |---|---|---|---|---|---|
-| `s4-p3-null-static` (static control) | 23 | 0.00000 | 0.00000 | 0.00002 | **0.00005** |
-| `s4-p3-phrase-60hz` | 417 | **0.00217** | 0.01025 | 0.04787 | 0.39392 |
+| `s4-p4-null-static` (static control) | 23 | 0.00000 | 0.00000 | 0.00002 | **0.00005** |
+| `s4-p3-phrase-60hz`, new reader | 417 | 0.00466 | 0.01055 | 0.06395 | 0.34135 |
+| `s4-p4-phrase-60hz` | 417 | **0.01056** | 0.01879 | 0.07269 | 0.38999 |
 
-The hero's silhouette never comes to rest at any of 417 consecutive 1/60 s steps across
-6.95 s, at **43×** the control's noise ceiling (the review read 44×). Tracked component
-boxes: frame 0 `x119..168 y562..660` (50×99), frame 150 `x209..393 y339..676` (185×338),
-frame 300 `x358..530 y330..675` (173×346), frame 390 `x140..208 y494..658` (69×165).
+The hero's silhouette never comes to rest at any of 417 consecutive 1/60 s steps, at
+**192×** the control's noise ceiling (pass 3 on the same reader: 85×; pass 3's own debt
+reported 43× on its absolute-threshold reader). Tracked boxes: frame 0 `x120..168
+y562..645`, frame 150 `x237..393 y339..488`, frame 300 `x385..530 y330..482`, frame 390
+`x140..208 y494..573`. Global minimum at step 256, t = 4.28 s. Longest run below 0.02:
+**5 steps = 0.083 s** against pass 3's 14 steps = 0.234 s.
 
-The quiet hole is still the quietest moment and is still in the same place — global
-minimum at **step 328, t = 5.48 s** — but the longest run below 0.02 is now **14 steps =
-0.234 s** against the review's 26 steps = 0.434 s.
+### 7.2 The held breath — HOLDS, at spec on all three scenes
 
-### 5.2 The held breath — HOLDS. See §4.
+`RehearsalTest.theHeldBreathIsAtSpecOnEveryScene`, unchanged, green: 0.850× over 0.25 s
+per ramp on `duel-parry`, `duel-knockback` and `duel-phrase`. Observed red at
+`Timing.HELD_BREATH_SECONDS = 0.12` — see §9.
 
-### 5.3 The blade trail — HOLDS, no kink, and unchanged in every way the review complained about
+### 7.3 The blade trail — HOLDS, no kink, and it is finally visible
 
-Local-background residual `L − uniform_filter(L, 61)` on `s4-p3-parry-contact` frames
-2/6/10/14, crop `x250..760 y150..470`, amplified ×18. **A single continuous smooth arc on
-every frame.** No polyline kink, no strobing, no discrete blade poses; §5's "must curve"
-and §7.2's "smear, not strobe" both still pass.
+Local-background residual `L − uniform_filter(L, 61)` on frames 2/6/10/14, crop
+`x250..760 y150..470`, amplified ×18: **a single continuous smooth arc on every frame.**
+No polyline kink, no strobing, no discrete blade poses. §5's "must curve" and §7.2's
+"smear, not strobe" both still pass.
 
-And nothing else about it has moved, because item 6 was dropped:
-
-- still a near-closed dome roughly a figure height across;
-- still does not taper;
-- still invisible. Frame 6 apex `(450,215)` reads **225.3** against a paper of **219.3** —
-  2.7% above paper. Points at `(400,230)`, `(500,212)`, `(560,230)`, `(620,265)` read
-  223.2, 224.3, 221.5, 221.8. Identical to the review's readings.
-
----
-
-## 6. The parry: the blades still meet, marginally better, and the meeting is still an instant
-
-| instrument | pass 1 | pass 2 | pass 3 | acceptance |
-|---|---|---|---|---|
-| pixel, `analyse blades` | 0.213 | 0.0287 | **0.0264** | ≤ 0.02 |
-| geometry, `RehearsalTest` | 0.2105 | 0.0000 | 0.0000 | ≤ 0.02 |
-
-`./gw analyse -Pargs="blades out/captures/s4-p3-parry-contact --max 0.02"` — minimum
-**0.0264 of a 395 px figure at frame 9**, clouds `x551..594 y273..380` (389 px) and
-`x570..644 y360..447` (386 px). Frame 11 reads 0.0287 with clouds of 422 px and 201 px,
-bit-for-bit the pass-2 result on a 394 px figure. **A miss, by 0.6 percentage points.**
-
-The defender's blade is present on every frame of the contact window and its cool-bright
-cloud is 201 px at frame 11 against pass 2's 177 px. It is still a stub against the
-hero's 422 px, and §4.3 of the review is not answered.
-
-**The meeting is still an instant.** The two blade segments are within 2% of a figure
-height from t = 1.550 to t = 1.616 — **0.066 s of a 0.168 s contact span, 39%.** §7.1
-wants meet-at-40, slide, part-at-55, i.e. the whole span.
-
-**A lever that lengthens it was found, measured and rejected** — recorded at
-`Director.FIST_DROP` so the next pass does not spend the budget again. Placing the fist
-target at the crossing's own height instead of a blade-length below it brings both hand
-targets inside the arm's reach (the current target is 0.74 world units from a shoulder
-whose arm reaches 0.56, so **both arms saturate and the bind is held by the blade aim
-rather than by the hands**) and takes the bind from 0.066 s to **0.118 s, 1.8×**. It also
-takes the delivered blade separation from 0.0287 to **0.0388** and makes the defender's
-blade **disappear entirely on frames 11, 14, 15, 18 and 19**. The geometry preferred it
-and the picture did not, and `Rehearsal` "is not a substitute for pixels".
-
-The saturation is the real finding: **both arms are about 0.6–0.75 world units from the
-targets they are given, on a 0.56-unit arm.** Any pass that wants the parry to have a
-span has to fix that first, and the two candidate levers are the contact height
-`Stage.Y_MIDDLE` (1.00, which puts the hands at 0.77 — below the hips) and
-`Figure.BLADE_CROSSING`.
+What changed: it now reads **1.050–1.070× its own row background** (frame 6 apex
+`(450,215)` 62.6 against 58.6) where three passes recorded 1.027× above paper and called
+it invisible. And it has a taper for the first time. It is **still a near-closed dome a
+figure height across** — the shape is unfixed and is recorded as debt in §8.
 
 ---
 
-## 7. Not touched, and named so the next pass does not have to discover it
+## 8. What this pass did not do, with the number beside it
 
-The pass-2 review's brief had eight items. Items **6** (the trail, the flecks, the quad
-edge, the embers) and **7** (the dusk sky) were dropped deliberately and before anything
-else, as the brief instructed. Item **5** (give the motion a source) was dropped for
-budget.
+Named rather than dropped, per the standard the pass-2 review set.
 
-- **§7.0.1 — the pelvis has no horizontal motion relative to its own stance, in both
-  scenes.** The review measured exactly 0.0000 figure heights and a local hip/hand median
-  of 1.8% (parry) and 0.5% (phrase); **System 2 was failed at 1.5%.** Nothing in this
-  pass touched it. The fix the review names is a directive that translates and rotates a
-  body, and the debt has listed that seam since pass 1.
-- **The chain still arrives together.** Hips, shoulder and elbow peak on one 1/120 s
-  sample; shoulder, elbow and wrist arrive 0.025 s apart. §10's last row is a
-  fail-on-sight row.
-- **The blade trail** is unchanged in extent, taper and value. §5.3 above has the numbers.
-- **The shed flecks are still axis-aligned rectangles** and the straight quad boundary
-  beside the bloom is still there. Both are visible at 3× on
-  `s4-p3-parry-contact` frame 9, crop `x500..720 y260..440`. §3's first line and §10's
-  polygon-silhouette row both apply on sight.
-- **The embers are still 3–5 warm blobs** against §5's 8–20.
-- **`Palette.SKY_ZENITH / SKY_MID / SKY_HORIZON / SKY_HORIZON_HOT` are still referenced
-  by exactly one scene and it is `SmokeScene`.** Family B's colour script has never been
-  drawn in a graded capture, and §2.2's warm/cool opposition is still inverted across the
-  whole frame: warm ground, warm blades, warm bloom.
+- **§7.0.1 — the pelvis has exactly 0.0000 figure heights of horizontal motion relative
+  to its own stance**, in all three scenes, for a fourth pass. Hip path / hand path 1.1%
+  (parry), 0.6% (phrase); System 2 was failed at 1.5%. Not re-measured this pass; nothing
+  touched the mechanism. The fix is a directive that translates and rotates a body, which
+  is architecture. **Permanent System 4 debt**, handed to whoever owns the directive
+  vocabulary.
+- **The chain still arrives together.** Hips and shoulder peak on one 1/120 s sample,
+  elbow/hand/tip on another. §10's last row. Not touched.
+- **The blade trail's shape.** Still a near-closed dome roughly a figure height across.
+  It is now tapered and visible; the *extent* is unfixed. The mechanism is that
+  `TRAIL_SECONDS = 0.48` of history at a tip speed of 18 units/s is a very large arc, and
+  a fix is a cap on accumulated angular sweep rather than on time.
+- **The embers: 2–5 blobs ≥ 4 px against §5's 8–20.** Unchanged.
+- **§10's fail-on-sight rows.** The flat-shaded polygon facets on the foe's head and
+  shoulder and the hard-edged quadrilateral flecks are still there and still visible at
+  5× on frame 9, crop `x500..720 y260..440`. Not touched.
+- **The planning framing's composition.** `s4-p4-phrase-60hz` frame 0 is still two ~85 px
+  figures in the bottom-left of an 85%-empty frame. It is now an 85%-empty *dusk sky*
+  rather than an 85%-empty cream sheet, which is not the same as fixed.
+- **The ground band is 15–25 luminance levels too light** below world y +0.3 (56–60
+  against the corpus's 27–39). §1.
+- **The foe's blade is a stub**: 0.211 of a figure height against the hero's 0.420.
+- **The dark duellist is on STYLE.md's own value floor and still 2.5× too light against
+  its sky.** §3. This needs §2.2 revisited, not a shader.
+- **`Director.FIST_DROP` is untouched at 1.0** and is now the named lever for the torso
+  regression of §2.1.
+- **The knockback was not re-shot.** `Duel.Kind.KNOCKBACK` goes through the same dusk
+  stage, the same blade and the same base colour, and none of it was measured.
 - **§7.3's ink bloom still does not appear in a delivered frame.** `Duel.Kind` needs a
-  fourth entry resolving a `Hit`; `ContactTest` has the fixtures.
-- **The knockback's figures still converge**, 169 px in 0.535 s with a static camera.
-  Not re-measured this pass — the `Shoved`/`Moved` interaction is untouched.
-- **The four seams pass 1 named** are all still open.
+  fourth entry resolving a `Hit`.
 
-### What this pass did not measure
+### What was not measured at all
 
-Stated plainly, per the standard the pass-2 review set:
-
-- The **knockback and the phrase were not re-shot for the clash or the value change**
-  beyond `s4-p3-phrase-60hz`. The phrase carries no `CLASH` directive, and the sash split
-  applies to both figures in every scene, so `s4-p3-phrase-60hz` is the only evidence
-  that the value change did not damage the planning framing — and it was measured for
-  **continuity only**, not for value.
-- **No matched-scale part count was run this pass.** §11.0's first act is the reviewer's
-  and this pass did not pre-empt it, but that means the claim "the pale duellist now
-  reads as a figure" rests on one 3× crop and a value ratio, not on a part count.
+- The **matched-scale part count of §11.0** was not re-run this pass. The composition
+  statistics (blade span, value ratio, corridor profile) all moved into the corpus's
+  range, and a part count is the reviewer's first act; this pass did not pre-empt it.
 - **The corridor profile was not run on the phrase**, only on the parry window.
-- **`analyse` has no command for the two-figure value ratio.** It exists only as
-  `CorridorProfile.medianInkOverGround` and `DuellistValueTest`. A reviewer wanting it on
-  another frame has to write a test.
+- The **`head` and `feet` bands remain reader-unstable** and neither decides the picture.
+- Nothing was measured about the **knockback**.
 
 ---
 
-## 8. Every guard this pass wrote, and the proof it was observed red
+## 9. Every guard, and the proof it was observed red
 
-§11.2b(f): *no assertion counts as a guard until it has been observed red.*
+§11.2b(f): *no assertion counts as a guard until it has been observed red.* Six, each
+broken at the thing it watches, each message read out of the JUnit report, suite restored
+green afterwards.
 
-| guard | broken by | message it printed |
-|---|---|---|
-| `RehearsalTest.everyClashIsDrawnWhereTwoBladesActuallyAre` | reverting `lastCrossing`/`renderInk` to the aim point | *"PARRY: at t=1.5833 the drawn clash mark (1.305,1.839) is 12.6% from the hero's blade and 18.3% from the foe's. It is sitting on a grip."* |
-| `RehearsalTest.theHeldBreathIsAtSpecOnEveryScene` | `Timing.HELD_BREATH_SECONDS` 0.25 → 0.12 | *"PHRASE: the held breath runs 0.125 s per ramp over 5 ramp(s). STYLE.md 7.3 asks for ~0.25 s"* |
-| `CorridorProfileTest.referenceImageThreePassesEveryFloor…` | `torso` floor 0.014 → 0.06 (the criterion two passes chased) | *"STYLE.md 11.0: the corpus must pass the criterion the corpus set. Reference image 3's torso band reads 0.0148… against a floor of 0.06."* |
-| `CorridorProfileTest.theReferenceProfileIsStable…` | the same | *"reference band torso at factor 0.75 span x0..831 y283..955 reads 0.0148… against floor 0.06"* |
-| `DuellistValueTest.theTwoDuellistsAreTellableApartInDeliveredPixels` | pointing it at `s4-p2-parry-contact/frame_011.png` | *"…The corpus reads 3.27x; this reads capture: dark 0.269 …, ratio 1.54x"* |
-| `analyse corridor --profile` (exit code) | run on `s4-p2-parry-contact` and on `s4-p3-parry-contact` | both **FAIL**; 8 of 24 and 11 of 24 frames pass every band |
+| # | guard | broken by | printed |
+|---|---|---|---|
+| A | `RehearsalTest.everyClashIsDrawnWhereTwoBladesActuallyAre` | `Scheduler.CLASH_SPAN` 0.42 → 0.90 | *"PARRY: the clash that starts at t=1.568 is still drawn at t=1.6468 with the two blades 6.2% of a figure height apart. A bloom is an assertion that they are meeting; on this frame it is false."* |
+| B | `RehearsalTest.theHeldBreathIsAtSpecOnEveryScene` | `Timing.HELD_BREATH_SECONDS` 0.25 → 0.12 | *"PHRASE: the held breath runs 0.125 s per ramp over 5 ramp(s). STYLE.md 7.3 asks for ~0.25 s and Timing.HELD_BREATH_SECONDS is 0.12. (Span per ramp measured end to end: 1.040 s.)"* |
+| C | `CorridorProfileTest.everyFamilyBImagePassesTheBandTheProjectFailsCapturesOn` | `torso` floor 0.011 → 0.014, the floor pass 3 shipped | *"STYLE.md 11.0: the corpus must pass the criterion the corpus set, and the corpus is the whole family that depicts the situation. image 4's torso band reads 0.011834319526627219 against a band of 0.014..0.015."* |
+| D | `CorridorProfileTest.aPairOfBodiesFourTimesTooFarApartFailsTheCeiling` | `skirt` ceiling 0.102 → 1.000, i.e. floors only | *"a corridor of 0.405 of a figure height is four times the corpus's own ceiling of 1.0 and must fail. Under a floors-only criterion it scored a pass."* |
+| E | `DuellistValueTest.theTwoDuellistsAreTellableApartInDeliveredPixels` | pointed at `s4-p3-parry-contact/frame_011.png`, the last cream capture | *"…The corpus reads 3.2x to 9.32x; this reads capture: dark 0.228 through x385..465 y415..478 (81x64), pale 0.806 through x645..720 y425..488 (76x64), ratio 3.53x"* |
+| F | `CorridorProfileTest.everyReadingCarriesASecondOneAtAFixedThreshold` | `CorridorProfile.FIXED_FACTOR` 0.60 → 0.85 | *"the fixed reading is supposed to be a second opinion and it agrees with the first on every band; that makes it decorative."* |
 
-Two guards are known-answer rather than red-observed and are labelled as such:
-`theProfileReturnsTheGapItIsToldToMeasure` (analytic gap, 119 px and 19 px on a 200 px
-figure) and `theProfileSaysOneMassRatherThanZeroWhenTheBodiesTouch` (the null case).
+The clash guard's **placement** half is still two theorems given the gap assertion —
+`drawnCrossing` is the midpoint of the closest approach between the two blade segments,
+so `markToBlade` is exactly half the gap by construction. Pass 3's caveat is kept
+verbatim: **treat the placement half as a regression trap for a desynchronisation, never
+as evidence about placement.** The load-bearing assertion is `bladeGapFraction() <= MET`
+on every drawn frame, and spot-check A is what set `CLASH_SPAN` this pass.
 
-**One honest caveat on the clash guard.** Now that `drawnCrossing` is built from the two
-blade segments, the two *placement* assertions (`markToBlade`, `markIsBetweenTheBlades`)
-are close to tautological — they are kept as regression traps and because they were
-observed red on the pre-fix code, but **the load-bearing half is
-`bladeGapFraction() <= MET` on every drawn frame**, which reads the two blades against
-each other and has nothing to do with the mark. A reviewer should treat the placement
-half as a trap, not as evidence, and should grade placement from the pixel table in §3.3.
+Known-answer rather than red-observed, and labelled as such:
+`theProfileReturnsTheGapItIsToldToMeasure`, `theProfileSaysOneMassRatherThanZeroWhenTheBodiesTouch`,
+`theRowBackgroundFollowsAGradedSkyWhereAPaperLevelCannot`,
+`ParryWindowTest.theGradedParryWindowPutsAFigureHeightAt329Rows`.
+
+---
+
+## 10. The apparatus (§11.2b)
+
+### 10.1 The dynamic control, which is what §11.2b(g) asks for
+
+Shot `duel-parry` twice at this commit, same harness, same arguments:
+
+| pair | differing px of 16,588,800 | max channel delta | frames |
+|---|---|---|---|
+| `s4-p4-null-static` / `s4-p4-null-static-repro` (static) | **0** | 0 | none |
+| `s4-p4-parry-contact` / `s4-p4-parry-repro` (**the graded scene**) | **983** (0.14% of one frame) | **19** | 1 (frame 18, box `x445..556 y373..487`) |
+
+The non-determinism the pass-3 review discovered **reproduces and is not zero**, and it is
+much smaller here: 983 px on one frame against 13,545 px on four frames with a peak delta
+of 122, and **the graded frame 11 is bit-identical between the two runs this time**. The
+differing pixels sit in the shed flecks and smoke around the contact, as before.
+
+It is still not characterised as a *distribution* — two runs is two runs — and any
+absolute pixel claim about an individual fleck near a clash remains unreproducible. The
+static null control provably cannot witness it and is kept only for what it does
+establish: that the readback path renders the same twice.
+
+### 10.2 Cross-reader
+
+Every number in §1, §2, §3, §6 and §7 was taken with an independently written
+NumPy/SciPy/PIL reader — 8-connected labelling, row-local background as the median of the
+outer 70 columns, 3×3 opening, Rec. 709 weights as `Frame.java` declares them. Where the
+checked-in tool is used it is named and the command is given. The two agree on the corpus
+readings to the integer pixel and disagree on nothing quoted here.
 
 ---
 
 ## Commands, so the next pass does not have to reconstruct them
 
 ```
-./gw capture  -Pscene=duel-parry       -Pout=out/captures/s4-p3-parry-contact \
+./gw capture  -Pscene=duel-parry       -Pout=out/captures/s4-p4-parry-contact \
               -Pframes=24 -Pcols=6 -Pstart=1.42 -Pstep=0.0167 -Pw=960 -Ph=720
-./gw capture  -Pscene=duel-parry-debug -Pout=out/captures/s4-p3-parry-contact-debug \
-              -Pframes=24 -Pcols=6 -Pstart=1.42 -Pstep=0.0167 -Pw=960 -Ph=720
-./gw capture  -Pscene=rig-bindpose     -Pout=out/captures/s4-p3-null-static \
+./gw capture  -Pscene=duel-parry       -Pout=out/captures/s4-p4-parry-repro   (identical: the dynamic control)
+./gw capture  -Pscene=duel-parry-debug -Pout=out/captures/s4-p4-parry-contact-debug   (same window)
+./gw capture  -Pscene=rig-bindpose     -Pout=out/captures/s4-p4-null-static \
               -Pframes=24 -Pcols=6 -Pstart=0.0 -Pstep=0.0167 -Pw=960 -Ph=720
-./gw capture  -Pscene=duel-phrase      -Pout=out/captures/s4-p3-phrase-60hz \
+./gw capture  -Pscene=rig-bindpose     -Pout=out/captures/s4-p4-null-static-repro     (identical)
+./gw capture  -Pscene=duel-phrase      -Pout=out/captures/s4-p4-phrase-60hz \
               -Pframes=418 -Pcols=22 -Pstart=0.0 -Pstep=0.0167 -Pw=960 -Ph=720
 
-./gw analyse  -Pargs="blades   out/captures/s4-p3-parry-contact --max 0.02"
-./gw analyse  -Pargs="corridor out/captures/s4-p3-parry-contact --profile"
-./gw analyse  -Pargs="diff     out/captures/s4-p3-null-static out/captures/rev-p2-null-static"
+./gw analyse  -Pargs="blades   out/captures/s4-p4-parry-contact --span 0,348,960,329 --max 0.02"
+./gw analyse  -Pargs="corridor out/captures/s4-p4-parry-contact --profile --span 0,348,960,329"
+./gw analyse  -Pargs="diff     out/captures/s4-p4-parry-contact out/captures/s4-p4-parry-repro"
 ./gw test --tests '*RehearsalTest*'
 ./gw test --tests '*CorridorProfileTest*'
 ./gw test --tests '*DuellistValueTest*'
+./gw test --tests '*ParryWindowTest*'
 ```
 
-`analyse corridor --min 0.06` — the whole-column form — is **deprecated as an
-acceptance** and says so in its own help text. It still runs, because the two previous
-passes' numbers are quoted against it.
+**Give `--span` on every Family B capture.** Without it the detected figure box spans the
+ground smear and both frame edges, and every ratio in this document is wrong by 30–50%.
+
+`analyse corridor --min 0.06` — the whole-column form — remains **deprecated as an
+acceptance** and says so in its own help text.
+
+`out/captures/rev-p4-spread135` is kept: it is the `LANE_SPREAD = 1.35` probe of §6.1 and
+it is the evidence that half of the review's refusal argument no longer holds.
