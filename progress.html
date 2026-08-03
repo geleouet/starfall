@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — system 4 closed at its cap; the interface is in review",
+  updated: "2026-08-03 — a HUD panel that passes every test; interface at pass 2",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 4 closed at its five-pass cap \u2014 and its record is being audited, not reviewed",
-    detail: "The last pass killed both hard edges at the focal point, finally lowered the lane " +
-            "spacing, and <b>found four claims in this project\u2019s own record that do not " +
-            "reproduce</b>. There is no pass 6, so <code>system4-debt.md</code> is now an " +
-            "<b>inheritance document</b>: faces, textures and the combat UI will each build " +
-            "against it without re-deriving its numbers. It is being audited for accuracy alone " +
-            "\u2014 an error in it costs three systems real work."
+    title: "The interface reads \u2014 and its hard-edge guard does not hold",
+    detail: "The no-text design <b>survives</b>: a reviewer read all five glyphs cold and got " +
+            "five of five, and read the resolution order too. It failed on something sharper. " +
+            "The guard that forbids hard edges was used to draw <b>a filled, bordered HUD panel " +
+            "that passes it and all 401 tests</b> \u2014 the exact object its own documentation " +
+            "says fails on the first triangle. Pass 2 is fixing that, the glyph collision, and a " +
+            "composition the review calls <i>a diagram on a nice background</i>."
   },
 
   systems: [
@@ -254,6 +254,68 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 5", kind:"review", pass:1, verdict:"FAIL",
+      title:"Five glyphs out of five, read cold \u2014 and a HUD panel that passes every test",
+      body:[
+        "<b>The no-text design survives, and that was the whole bet.</b> The reviewer read all " +
+        "five marks cold and got <b>five of five</b> \u2014 chevron\u2192parry, broken " +
+        "line\u2192thrust, near-circle\u2192sweep, rising stroke with a foot mark\u2192step, " +
+        "falling diagonal\u2192cut \u2014 and read the resolution order as well. It deliberately " +
+        "used the one capture whose contents the debt document never states, so it could not " +
+        "cheat, and it declared which two of its readings its own brief had partly given away.",
+
+        "<b>It failed on something sharper.</b> The guard that forbids hard edges asserts that " +
+        "every emitted triangle has a vertex at alpha zero. A triangle of the form " +
+        "<code>(0, \u03b1, \u03b1)</code> satisfies it <i>and prints a hard edge along the " +
+        "\u03b1\u2013\u03b1 side</i>. The reviewer used that to draw <b>a filled, bordered HUD " +
+        "panel which passes the guard and all 401 tests</b> \u2014 precisely the object the " +
+        "guard\u2019s own javadoc says <i>\u201cfails it on the first triangle\u201d</i>. The " +
+        "assertion was true, it <i>had</i> been observed red, and its claim was still false.",
+
+        "Two more real defects. <code>Glyph.of(STEP, -1)</code> is <b>vertex-identical</b> to " +
+        "<code>Glyph.of(BACK_STEP, +1)</code> \u2014 16 distinct shapes for 18 pairs, and forward " +
+        "versus back is the sharpest choice on a lane. And <b>the Parry glyph draws what the " +
+        "rubric forbids</b>: §2.2 demands <i>a deflection curve rather than a collision</i>, and " +
+        "the mark is two straight lines meeting at a sharp apex. A corner is what a collision " +
+        "looks like \u2014 on the signature beat of the whole game.",
+
+        "And the composition verdict, which is blunt: <b>a diagram on a nice background</b>. At " +
+        "matched scale the reference resolves ~16 readable parts against ~8; the bare planning " +
+        "frame is <b>95.2% featureless</b>, and the interface contributes <b>43% as much content " +
+        "as the entire rest of the world</b>. There is also <b>no paper</b> \u2014 sky high-pass " +
+        "sd 0.813 against reference image 1\u2019s 12.853."
+      ],
+      notes:[
+        { kind:"crit", label:"The third version of the guard rule in one day, and the one that survives",
+          text:"§11.2b(f) began as <i>a guard must be observed red</i>, gained <i>a guard that " +
+               "skips fails open</i>, and now gains the form that outranks both: <b>observing a " +
+               "guard red proves a path to failure exists \u2014 not that the guard covers what " +
+               "it claims.</b> The gap between what an assertion tests and what its name promises " +
+               "is where defects live, because the guard is written from the same mental model as " +
+               "the code and inherits its blind spots. A guard carrying a broad claim now owes a " +
+               "second exhibit: <b>an attempt to build the forbidden thing while satisfying " +
+               "it</b>. Failing that attempt honestly is worth more than the red run." },
+        { kind:"fix", label:"What the review confirmed, and would not let be lost",
+          text:"The hard-edge result <b>holds in delivered pixels</b>: steepest one-pixel step " +
+               "0.242\u20130.249 of amplitude across all 66 controlled frames, against blades and " +
+               "figures in the same pixels at 81.6\u2013130.6. <b>The first pass in this project " +
+               "to demonstrate §3\u2019s first rule on its own output.</b> Draw order verified " +
+               "too \u2014 under 7,694 px of body ink the interface\u2019s delta is <b>mean " +
+               "0.00</b>, against 4.09 on open ground beside it. It really is behind the fight, " +
+               "not over it." },
+        { kind:"crit", label:"All three design challenges upheld \u2014 one prescription refused",
+          text:"The §3-versus-§8 contradiction is real and the base-anchored column that grows " +
+               "upward resolves it while preserving the vertical, new-at-top orientation chosen " +
+               "here. Health as a row is upheld <i>with a correction</i>: at +99.6 it is the " +
+               "loudest mark in the margin, above the stanza\u2019s +94.8 \u2014 <b>the thing " +
+               "you compose with should out-read the thing you check</b>. On cooldowns the " +
+               "evidence is accepted and the prescription <b>refused</b>: a rendering constraint " +
+               "at one resolution cannot decide a mechanic. The defect is also worse than " +
+               "reported \u2014 a cooldown-4 Parry at 2 charges reads <i>two of three</i>, a " +
+               "<b>wrong number</b> rather than a missing tick." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 4", kind:"build", pass:5,
       title:"The last pass \u2014 and four claims in our own record that do not reproduce",
