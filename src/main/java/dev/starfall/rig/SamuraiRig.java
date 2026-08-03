@@ -38,16 +38,36 @@ public final class SamuraiRig {
     private final SkinnedMesh bladeMesh;
     private final SkinnedMesh faceMesh;
     private final SkinnedMesh faceInkMesh;
+    private final SkinnedMesh fittingsMesh;
     private final FaceParams face;
 
     private SamuraiRig(Skeleton skeleton, SkinnedMesh mesh, SkinnedMesh bladeMesh,
-                       SkinnedMesh faceMesh, SkinnedMesh faceInkMesh, FaceParams face) {
+                       SkinnedMesh faceMesh, SkinnedMesh faceInkMesh, SkinnedMesh fittingsMesh,
+                       FaceParams face) {
         this.skeleton = skeleton;
         this.mesh = mesh;
         this.bladeMesh = bladeMesh;
         this.faceMesh = faceMesh;
         this.faceInkMesh = faceInkMesh;
+        this.fittingsMesh = fittingsMesh;
         this.face = face;
+    }
+
+    /**
+     * The fittings pass's own null control (MEASUREMENT.md 11.2b(g)): {@code
+     * -Pfittings=off} on the capture task sets {@code starfall.fittings=off} and
+     * this rig authors no fittings-pass geometry at all — no fittings mesh, no
+     * sash knot, no fold clefts. A {@code -bare} capture shot that way is the
+     * "what would the count read if the thing being measured were absent" case.
+     *
+     * <p>A system property rather than a {@code CaptureSpec} field for the reason
+     * docs/ink-hypothesis.md section 2 records: {@code CaptureSpec} is in the
+     * {@code HarnessId} apparatus digest and this switch is subject, not
+     * apparatus. Read per build, not cached in a static, so one JVM can build
+     * both variants (the tests do).
+     */
+    public static boolean fittingsEnabled() {
+        return !"off".equals(System.getProperty("starfall.fittings", "on"));
     }
 
     /** Heel to crown, in world units. The scale everything on a figure is quoted against. */
@@ -90,7 +110,8 @@ public final class SamuraiRig {
         SkinnedMesh bladeMesh = author.buildBlade();
         SkinnedMesh faceMesh = author.buildFace(face);
         SkinnedMesh faceInkMesh = author.buildFaceInk(face);
-        return new SamuraiRig(skeleton, mesh, bladeMesh, faceMesh, faceInkMesh, face);
+        SkinnedMesh fittingsMesh = fittingsEnabled() ? author.buildFittings() : null;
+        return new SamuraiRig(skeleton, mesh, bladeMesh, faceMesh, faceInkMesh, fittingsMesh, face);
     }
 
     /**
@@ -111,7 +132,7 @@ public final class SamuraiRig {
      * empty mesh draws nothing and reports success.
      */
     public static SamuraiRig headless() {
-        return new SamuraiRig(buildSkeletonOnly(), null, null, null, null, FaceParams.hero());
+        return new SamuraiRig(buildSkeletonOnly(), null, null, null, null, null, FaceParams.hero());
     }
 
     /**
@@ -167,6 +188,31 @@ public final class SamuraiRig {
      */
     public SkinnedMesh faceInkMesh() {
         return faceInkMesh;
+    }
+
+    /**
+     * The fittings pass (STYLE.md 11.4, System 1 debt D1): the hand-grip-guard
+     * cluster and the feet, as their own merge group so they can be drawn with a
+     * material anchored to the corpus's own fitting register — the sub-floor
+     * {@code INK_BLACK_DUSK} strokes of 2.2's measured 0.12-0.14x-sky band —
+     * rather than the garment's. The cloth path bottoms out at the paper-ground
+     * floor (L ~25 on the dusk stage), and the reference's grips and guards sit
+     * at 0.13-0.18x their local sky (ref3-matched-378.png, right duellist:
+     * tsuba x243..265 y263..272 p2 18.5, grip-below-fist x270..286 y313..328
+     * p2 16.4, against local sky x220..240 y280..300 median 109.9) — darker
+     * than anything the cloth material can print, which is why the delivered
+     * grip read as more sleeve. Fists ride the stain channel's fitting regime
+     * instead, so they print the material's leather tone: the corpus fist plane
+     * is 0.26-0.28x sky with lit knuckles at 0.4-0.7x (fist boxes x248..268
+     * y274..290 and x256..276 y296..312, medians 30.2/28.6 on the same sky).
+     *
+     * <p>Draw with {@link dev.starfall.direct.Figure#fittingsMaterial()} AFTER
+     * the cloth and BEFORE the blade, so nothing composites over the cluster
+     * except the steel it explains. Null on a headless rig and null when
+     * {@link #fittingsEnabled()} is off (the {@code -bare} control).
+     */
+    public SkinnedMesh fittingsMesh() {
+        return fittingsMesh;
     }
 
     /** The parameters this rig's face was authored or generated from. */
@@ -1424,16 +1470,27 @@ public final class SamuraiRig {
          * <p>{@code lateral} hangs the mass below the bone axis: the foot bone
          * sits at the ankle, and the sole is a few centimetres under it.
          */
+        /**
+         * The foot's authored rows, shared with the fittings overlay of
+         * {@link #buildFittings()} so the dark wedge drawn over each foot on the
+         * dusk stage is the same wedge, not a transcription that can drift.
+         */
+        private static final float[] FOOT_D = {-0.052f, -0.012f, 0.048f, 0.104f, 0.152f};
+        private static final float[] FOOT_HW = {0.046f, 0.052f, 0.045f, 0.034f, 0.019f};
+        private static final float[] FOOT_LATERAL = {-0.010f, -0.018f, -0.028f, -0.036f, -0.042f};
+
+        private RibbonPoint[] footPoints(Bone foot) {
+            RibbonPoint[] pts = new RibbonPoint[FOOT_D.length];
+            for (int i = 0; i < FOOT_D.length; i++) {
+                pts[i] = RibbonPoint.of(foot, FOOT_D[i]);
+            }
+            return pts;
+        }
+
         private void buildFoot(Bone foot, float scale) {
-            RibbonPoint[] pts = {
-                    RibbonPoint.of(foot, -0.052f),   // heel
-                    RibbonPoint.of(foot, -0.012f),
-                    RibbonPoint.of(foot, 0.048f),
-                    RibbonPoint.of(foot, 0.104f),
-                    RibbonPoint.of(foot, 0.152f),    // toe
-            };
-            float[] halfWidth = scaled(scale, 0.046f, 0.052f, 0.045f, 0.034f, 0.019f);
-            float[] lateral = scaled(scale, -0.010f, -0.018f, -0.028f, -0.036f, -0.042f);
+            RibbonPoint[] pts = footPoints(foot);
+            float[] halfWidth = scaled(scale, FOOT_HW);
+            float[] lateral = scaled(scale, FOOT_LATERAL);
             // Flat zero on both legs, and the first attempt at this got it
             // wrong. frayPx is mix(0.22 * halfPx + 1.5, 34, dissolve^0.75) -- an
             // absolute width in pixels -- and a foot is about 20 px across, so
@@ -1739,6 +1796,113 @@ public final class SamuraiRig {
             float[] stn = {0f, 0f, 0f, 0f};
             float[] dis = {0f, 0f, 0f, 0f};
             gripPiece(blade, blade, d, hw, dis, wet, stn);
+        }
+
+        // -- the fittings pass: STYLE.md 11.4, the parts D1 has owed since System 1
+
+        /**
+         * The fittings mesh: the two-fisted grip cluster and the feet, re-anchored
+         * to the corpus's fitting register. See {@link SamuraiRig#fittingsMesh()}
+         * for the measured registers this is built against.
+         *
+         * <p>Everything here is authored at dissolve 0 — these are exactly the
+         * "small hard marks" the fray band deletes (the sheathedSword and
+         * buildFoot findings) — and the softness STYLE.md 3 requires comes from
+         * the material's feather, the way the face's does: soft-but-whole, the
+         * leading-edge instrument, never the broken one. A hand is a leading
+         * edge.
+         *
+         * <p>The corpus's grip cluster is two fists stacked on a grip with the
+         * grip's two ends visible past them — kashira below the lower fist,
+         * fuchi plus guard above the upper — and the fists read as *warm
+         * mid-value lumps between dark bars*, not as drawn fingers
+         * (ref3-matched-378.png right duellist, regions in
+         * {@code SamuraiRig#fittingsMesh()}). So: two lumpy strips on the stain
+         * channel's fitting regime over a sub-floor grip bar, with a 3 px gap
+         * between the fists where the grip shows through.
+         */
+        SkinnedMesh buildFittings() {
+            builder = new SkinnedMesh.Builder();
+            Bone hand = skeleton.bone("handL");
+            Bone blade = skeleton.bone("blade");
+
+            // The grip bar, kashira to fuchi. Slightly longer below than the old
+            // body-mesh tsuka (-0.265 against -0.232): the reference's kashira
+            // runs a readable ~18 px past the lower fist, and the old stub was
+            // 9. Skinned to the blade bone like the strip it underlies.
+            fittingPiece(blade, blade,
+                    new float[] {-0.265f, -0.235f, -0.150f, -0.060f, -0.030f},
+                    new float[] {0.019f, 0.026f, 0.028f, 0.026f, 0.023f},
+                    null,
+                    new float[] {1f, 1f, 1f, 1f, 1f},
+                    new float[] {0f, 0f, 0f, 0f, 0f});
+
+            // The guard: the widest dark mark in the cluster, right where the
+            // steel starts. The corpus's is about 22 x 7 px at matched scale.
+            fittingPiece(blade, blade,
+                    new float[] {-0.032f, -0.016f, 0.004f, 0.022f},
+                    new float[] {0.026f, 0.056f, 0.052f, 0.024f},
+                    null,
+                    new float[] {1f, 1f, 1f, 1f},
+                    new float[] {0f, 0f, 0f, 0f});
+
+            // The two fists. Sized to cover the old body-mesh hand (half-width
+            // 0.060 at its widest) so the pale kote it prints on the dusk stage
+            // cannot fringe the new cluster; the 0.013-unit gap between them is
+            // the lit sliver the corpus keeps between the two hands. Lumpy on
+            // purpose — the corpus does not draw fingers, it draws knuckle
+            // bulges. Skinned to the hand so a wrist solve carries them.
+            fittingPiece(blade, hand,
+                    new float[] {-0.190f, -0.174f, -0.148f, -0.135f},
+                    new float[] {0.034f, 0.058f, 0.062f, 0.042f},
+                    new float[] {0.004f, 0.007f, 0.006f, 0.004f},
+                    new float[] {0.42f, 0.38f, 0.40f, 0.46f},
+                    new float[] {0.62f, 0.74f, 0.72f, 0.58f});
+            fittingPiece(blade, hand,
+                    new float[] {-0.122f, -0.106f, -0.076f, -0.058f},
+                    new float[] {0.040f, 0.060f, 0.056f, 0.032f},
+                    new float[] {0.004f, 0.007f, 0.006f, 0.003f},
+                    new float[] {0.44f, 0.38f, 0.40f, 0.46f},
+                    new float[] {0.60f, 0.74f, 0.70f, 0.56f});
+
+            // The feet, restated in the fitting register. The body mesh's own
+            // wedges stay (family A draws only the body mesh, and there they
+            // read); on the dusk stage the ground band sits at L 34-51 where the
+            // cloth path's darkest is 25.7 (fit-p1-parry-before frame_011,
+            // hero feet x260..460 y600..700) — a Delta-L of 8-15, which is why
+            // the hero has no feet at the duel framing. The same wedge at the
+            // fitting floor is the corpus's own answer: dark marks standing on
+            // the smear (ref3 feet), not attenuation.
+            float[] footDis = {0f, 0f, 0f, 0f, 0f};
+            float[] footStain = {0f, 0f, 0f, 0f, 0f};
+            ribbon(footPoints(skeleton.bone("footR")),
+                    scaled(0.86f, FOOT_HW), scaled(0.86f, FOOT_LATERAL),
+                    footDis, new float[] {0.78f, 0.84f, 0.84f, 0.84f, 0.76f}, footStain);
+            ribbon(footPoints(skeleton.bone("footL")),
+                    scaled(1f, FOOT_HW), scaled(1f, FOOT_LATERAL),
+                    footDis, new float[] {0.94f, 1f, 1f, 1f, 0.92f}, footStain);
+
+            return builder.build();
+        }
+
+        /** {@link #gripPiece} with a per-row lateral offset, for the fists' knuckle bulge. */
+        private void fittingPiece(Bone axis, Bone skin, float[] d, float[] hw, float[] lateral,
+                                   float[] wetness, float[] stain) {
+            int n = d.length;
+            short[] left = new short[n];
+            short[] right = new short[n];
+            float flow = angleToU(skeleton.worldRotationDeg(axis.index));
+            for (int i = 0; i < n; i++) {
+                float t = i / (float) (n - 1);
+                float lat = lateral == null ? 0f : lateral[i];
+                Vector2 pl = alongBone(axis, d[i], lat + hw[i]);
+                Vector2 pr = alongBone(axis, d[i], lat - hw[i]);
+                left[i] = builder.vertex(pl.x, pl.y, 0f, t, 0f, wetness[i], stain[i], flow, skin.index);
+                right[i] = builder.vertex(pr.x, pr.y, 1f, t, 0f, wetness[i], stain[i], flow, skin.index);
+            }
+            for (int i = 0; i < n - 1; i++) {
+                builder.quad(left[i], left[i + 1], right[i + 1], right[i]);
+            }
         }
 
         /** A short strip laid on the blade's own axis, skinned to whichever bone should carry it. */
