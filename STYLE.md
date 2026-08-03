@@ -810,6 +810,23 @@ Four passes of material analysis never surfaced that. One matched-scale comparis
 **Corollary:** a material can only ever be as good as the subject it is painting. If the
 count is short, fixing the material is refinement of the wrong thing.
 
+**And run the criterion on the reference, not only the capture.** A threshold justified by
+the corpus must be *shown to pass on the corpus*, in the same command, before it is allowed
+to fail anything. System 4 set "the corridor between two bodies is never below 0.06 of a
+figure height" from an eyeballed reading of reference image 3, and two passes then chased
+it. Measured, that image's clear whole-frame column is **0.015** — and, like the capture,
+**0.000** over the full figure height, because the duellists' hands nearly touch. The
+acceptance the project was failing against was one its own ground truth fails by 4×.
+
+The failure is not the wrong number, it is the wrong *shape* of number. A single scalar
+across the whole figure is decided by the tightest band, which for two duellists is always
+the hands — the one place they are supposed to be close. What separates the reference from
+the capture is the **profile**: reference image 3 pinches at the hands and opens at sash,
+skirt and feet, while the capture does the opposite, standing too far apart at the base and
+leaning in at the top. So state such criteria **per band, with the reference's own profile
+as the target**, and let the assertion that the reference passes live in the test suite
+beside the one that the capture must.
+
 ### 11.2 Capture cadence — anything about timing must be captured at a true frame rate
 
 A review once could not grade a pass's central claim at all, because the capture sampled
@@ -879,11 +896,38 @@ one shot through a different `harness`, where a manifest with no `harness=` line
 harness version of its own rather than as a wildcard. Each refusal is asserted in a test, not
 described in a comment, because that is the difference this paragraph is about.
 
+**(f) A guard must be shown to fail.** System 4 pass 2 shipped
+`everyClashIsDrawnWhereTwoBladesActuallyAre`, whose failure message names precisely the
+defect the previous review found — *a light asserting an event the picture does not
+contain* — and which **cannot fail**. Its helper takes the mark from `bladeCross()`, a
+point on a blade, and measures it against **that same blade's own segment**: three
+collinear points, distance identically `0.0`, asserted against a `0.10` ceiling. Two
+reviews and a commit message cited it as proof.
+
+The mechanism is worth naming because it is not carelessness. A guard is written by the
+person who just fixed the bug, from *inside* the fixed model of the world, and reaches for
+the value nearest to hand — which is, of course, the one the fix just made correct. A
+test that consumes the fix's own output cannot witness the fix.
+
+So: **no assertion counts as a guard until it has been observed red.** Break the thing it
+watches — invert a sign, offset a target, revert the fix — and see the test fail with the
+message it was written to print. If that is impractical, the assertion must at minimum
+cross an *independent path* to its subject: the guard for a **drawn** mark reads the
+coordinate the renderer was handed (`director.lastCrossing`), not a coordinate recomputed
+from the geometry the renderer was supposed to have used. §11.2b(c) applied one level in:
+**a test that shares its input with the code under test is a bit-identity check wearing an
+assertion's clothes.**
+
+And the corollary that costs the most to learn late: a checked-in test is the strongest
+evidence this project produces, so a **vacuous** one is worse than none. It does not merely
+fail to catch the defect — it certifies it, and it persuades the next reviewer to stop
+looking.
+
 **And generalise the control from the subject to the instrument.** §7.1 learned "run the
 control" about cloth. Stated generally: **before a number is allowed to decide anything,
 someone must say what it would read if the thing being measured were absent — and then
 produce that case.** The phrase *"by construction"* has now destroyed two acceptance
-criteria and one bug diagnosis. Read it, always, as **nobody has measured this**.
+criteria, one bug diagnosis and one test. Read it, always, as **nobody has measured this**.
 
 ### 11.3 Record the region, or the measurement is unfalsifiable
 
