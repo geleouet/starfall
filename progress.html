@@ -159,18 +159,17 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — a HUD panel that passes every test; interface at pass 2",
+  updated: "2026-08-03 — the closing record audited; fourteen corrections",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "The interface reads \u2014 and its hard-edge guard does not hold",
-    detail: "The no-text design <b>survives</b>: a reviewer read all five glyphs cold and got " +
-            "five of five, and read the resolution order too. It failed on something sharper. " +
-            "The guard that forbids hard edges was used to draw <b>a filled, bordered HUD panel " +
-            "that passes it and all 401 tests</b> \u2014 the exact object its own documentation " +
-            "says fails on the first triangle. Pass 2 is fixing that, the glyph collision, and a " +
-            "composition the review calls <i>a diagram on a nice background</i>."
+    title: "The interface at pass 2 \u2014 and System 4\u2019s record corrected before anyone inherits it",
+    detail: "System 4 is closed, so its debt document is now an <b>inheritance document</b>: " +
+            "faces, textures and the combat UI each build against it without re-deriving its " +
+            "numbers. It was audited for accuracy alone and <b>fourteen statements did not " +
+            "reproduce</b> \u2014 including one that reverses a prescription and one that " +
+            "discredits a good result without cause. Meanwhile the combat interface is at pass 2."
   },
 
   systems: [
@@ -254,6 +253,61 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 4", kind:"review", pass:5, verdict:"FAIL",
+      title:"Auditing the record three systems will inherit \u2014 fourteen corrections",
+      body:[
+        "System 4 is closed at its cap, so its debt document stops being a pass report and " +
+        "becomes an <b>inheritance document</b>: faces, textures and the combat UI will each " +
+        "build against it <i>without re-deriving its numbers</i>. An error in it propagates into " +
+        "three systems that can no longer see the evidence. So it was audited for accuracy " +
+        "alone \u2014 no verdict, no prescription \u2014 and <b>fourteen statements did not " +
+        "reproduce</b>.",
+
+        "<b>The trail is 0.69 figure heights, not 0.82.</b> The raw widths reproduce exactly; " +
+        "the record divided a <i>moving-camera</i> capture by the <i>parry</i> scene\u2019s span " +
+        "constants \u2014 which §11.3 forbids by name. That puts the delivered arc <b>already " +
+        "below the floor the record says it cannot reach</b>, and the floor\u2019s derivation is " +
+        "wrong on the source too: the prescribed fix is already implemented.",
+
+        "<b>The foe\u2019s face is not mesh facets.</b> At 8\u00d7 it is a grid of " +
+        "axis-aligned filled rectangles on a 4-px lattice \u2014 <b>11.5 straight axis-aligned " +
+        "edges per 1000 px against 1.0</b> in the box §2.1 certifies clean, with a longest " +
+        "straight run of 62 px. It got <i>worse</i> than the previous pass, and the metric that " +
+        "certified the flecks is <b>structurally blind</b> to it, because the blocks merge into " +
+        "one component.",
+
+        "<b>And one prescription is reversed.</b> Measured through the corrected span the hero " +
+        "is <b>31% wider than the corpus</b>, so widening the foe\u2019s garment alone \u2014 " +
+        "the standing instruction \u2014 moves <i>away</i> from the reference. The record also " +
+        "discredits a predecessor\u2019s protected result without cause: the bloom distances it " +
+        "flags as unreliable reproduce under four thresholds and both boxes."
+      ],
+      notes:[
+        { kind:"crit", label:"The skip hole was still open \u2014 in the check written to close it",
+          text:"This morning\u2019s checker <b>regex-matches literal frame paths</b>. " +
+               "<code>CorpusTest</code> composes its paths from two arguments, so it walked " +
+               "straight past: <b>six tests skipping, BUILD SUCCESSFUL, checker printing OK.</b> " +
+               "The replacement does not look at paths at all \u2014 it asks the suite <i>how " +
+               "many tests it declined to run</i>, which covers composed paths, assumptions, " +
+               "empty parameter sets and a forgotten <code>@Disabled</code> alike." },
+        { kind:"fix", label:"Then it was attacked, as §11.2b(f) now requires \u2014 and the first attempt won",
+          text:"<b>Capture frames are not declared gradle inputs</b>, so hiding one leaves " +
+               "<code>./gw test</code> reporting UP-TO-DATE and the checker reading a <i>stale</i> " +
+               "report that still says zero skips. <b>Green build, green checker, six tests never " +
+               "run.</b> The fix is a second clause \u2014 a report older than its inputs is not " +
+               "a report \u2014 and both routes are now exhibited: staleness refused by name, a " +
+               "genuine skip caught with its count. <b>Had the guard merely been observed red, it " +
+               "would have shipped with the hole in it.</b>" },
+        { kind:"fix", label:"And what the audit confirmed",
+          text:"The <b>9-vs-25 part count re-taken at the corrected 378 rows: unchanged</b>, so " +
+               "3b inherits a checked number. The rays are paid \u2014 the reference row is exact " +
+               "on all four statistics. The sky ramp and ground band are <b>exact on all 14 " +
+               "readings</b>. Also listed: everything now <i>unverifiable</i> \u2014 deleted " +
+               "instruments, lost probe builds, non-deterministic frames \u2014 flagged so no " +
+               "system builds on it." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 5", kind:"review", pass:1, verdict:"FAIL",
       title:"Five glyphs out of five, read cold \u2014 and a HUD panel that passes every test",
