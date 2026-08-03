@@ -132,6 +132,14 @@ public final class AnalysisCli {
   analyse corridor <dir|png> [--min 0.06]
                                                         clear paper between two bodies, normalised by
                                                         figure height. Exits 1 below --min.
+                                                        DEPRECATED as an acceptance: this whole-column
+                                                        scalar reads 0.015 on reference image 3 and
+                                                        0.000 over its full figure height (11.0).
+  analyse corridor <dir|png> --profile [--span x,y,w,h]
+                                                        the per-band corridor of 11.0, with the floors
+                                                        reference image 3 sets. Runs the criterion on
+                                                        the reference FIRST and fails if the corpus
+                                                        does not pass its own floors.
   analyse timing   <series.json> --anchor <name>
                                                         read a headless timing series (./gw timing) and
                                                         report arrivals in samples and in seconds. 7.1:
@@ -369,6 +377,9 @@ public final class AnalysisCli {
      */
     private static int corridor(Args a) throws IOException {
         Ctx c = load(a, 0, false);
+        if (a.flag("profile")) {
+            return corridorProfile(c, a);
+        }
         double min = a.getDouble("min", Double.NaN);
         List<Frame> frames = c.capture == null ? List.of(c.frame) : c.capture.loadAll();
         double worst = Double.MAX_VALUE;
@@ -399,6 +410,103 @@ public final class AnalysisCli {
         }
         return 0;
     }
+
+    /**
+     * STYLE.md §11.0's per-band corridor, with the floors reference image 3 sets.
+     *
+     * <p>Prints the reference's own row first, every time, and refuses to report a
+     * verdict on the capture unless the reference passes the same floors in the same
+     * run. That is §11.0 taken literally:
+     *
+     * <blockquote>A threshold justified by the corpus must be <em>shown to pass on the
+     * corpus</em>, in the same command, before it is allowed to fail anything.</blockquote>
+     *
+     * <p>Two passes were spent chasing a floor of 0.06 that the corpus fails by 4×.
+     * Nothing but running the criterion on the corpus catches that, so the command
+     * does it rather than the reviewer remembering to.
+     */
+    private static int corridorProfile(Ctx c, Args a) throws IOException {
+        Rect span = a.has("span") ? Rect.parse(a.get("span", null)) : null;
+        int strip = a.getInt("bg-strip", CorridorProfile.BACKGROUND_STRIP);
+        List<Frame> frames = c.capture == null ? List.of(c.frame) : c.capture.loadAll();
+
+        out().println("per-band corridor (STYLE.md 11.0), ink < factor x the row's own background");
+        out().printf("  ink factor %.2f, background = median of the outer %d columns of each row%n",
+                c.factor, strip);
+        out().println();
+        out().println("-- the criterion, run on the corpus first (11.0) --");
+        boolean referenceOk = true;
+        File ref = a.has("reference") ? a.getFile("reference", null) : CORPUS_DUEL;
+        if (!ref.isFile()) {
+            out().printf("  %s is not on disk; the floors below are UNVERIFIED against the corpus%n", ref);
+            referenceOk = false;
+        } else {
+            Frame rf = Frame.load(ref);
+            Rect rspan = a.has("reference-span") ? Rect.parse(a.get("reference-span", null))
+                    : CORPUS_DUEL_SPAN;
+            CorridorProfile.Profile rp = CorridorProfile.measure(rf, c.factor, strip, rspan);
+            out().printf("  %s%n", ref);
+            out().print(rp.describe());
+            referenceOk = rp.pass();
+            out().printf("  reference passes its own floors: %s%n", referenceOk ? "yes" : "NO");
+            out().printf("  and the whole-column scalar the first two passes chased: %.4f "
+                            + "against the 0.06 they were failed on%n",
+                    CorridorProfile.wholeColumn(rf, c.factor, strip, rspan));
+        }
+        out().println();
+        out().println("-- the capture --");
+        int worstFrame = -1;
+        String worstBand = null;
+        double worstShortfall = 0;
+        int passed = 0;
+        int merged = 0;
+        for (int i = 0; i < frames.size(); i++) {
+            CorridorProfile.Profile p = CorridorProfile.measure(frames.get(i), c.factor, strip, span);
+            out().printf("frame %3d%n", i);
+            out().print(p.describe());
+            if (p.merged()) {
+                merged++;
+                continue;
+            }
+            if (p.pass()) {
+                passed++;
+            }
+            for (CorridorProfile.Reading r : p.readings()) {
+                double shortfall = r.floor() - r.fraction();
+                if (shortfall > worstShortfall) {
+                    worstShortfall = shortfall;
+                    worstFrame = i;
+                    worstBand = r.band();
+                }
+            }
+        }
+        out().println();
+        out().printf("%d of %d frames pass every band; %d are one mass%n",
+                passed, frames.size(), merged);
+        if (worstBand != null) {
+            out().printf("worst miss: %s on frame %d, %.4f below its floor%n",
+                    worstBand, worstFrame, worstShortfall);
+        }
+        boolean ok = referenceOk && passed == frames.size();
+        out().printf("acceptance: %s%n", ok ? "PASS" : "FAIL");
+        return ok ? 0 : 1;
+    }
+
+    /** Reference image 3 — Family B, the primary template for the game screen (STYLE.md §1). */
+    private static final File CORPUS_DUEL =
+            new File("inspirations/image - 2026-08-02T101033.164.png");
+
+    /**
+     * Its figure box, given rather than detected.
+     *
+     * <p>The left duellist's garment dissolves into the ground smear exactly as
+     * STYLE.md §3 requires ("the bottom third of nearly every figure is not a figure at
+     * all — it is ink smoke"), so its largest ink component runs from the head to the
+     * bottom of the frame and an automatic figure height reads 800 px rather than 673.
+     * The head is at y283 and the feet at y955; the readings move by under 4% of
+     * themselves over every span from y275..945 to y290..975.
+     */
+    private static final Rect CORPUS_DUEL_SPAN = Rect.ofCorners(0, 283, 831, 955);
 
     private static int regions(Args a) throws IOException {
         Ctx c = load(a, 0, false);

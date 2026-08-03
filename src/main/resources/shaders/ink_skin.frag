@@ -73,6 +73,23 @@ uniform float u_paperGrain;
 // (STYLE.md 10's "screen-space noise that swims over moving surfaces").
 uniform vec2 u_inkSeed;
 
+// The garment's colourway change at the sash: x is the bind-space height of the
+// line, y is what the pooling above it is multiplied by. (0, 1) changes nothing
+// and is what every single-figure capture in the corpus is shot with, so those
+// captures stay bit-identical.
+//
+// Family B is a *dark* duellist against a *pale* one and the separation in
+// reference image 3 is 3.3x in median ink value; System 4 pass 2 pooled the pale
+// figure's garment to the ink floor -- right for the skirt, where the corpus reads
+// 1.16x and the capture 1.29x -- and did not compensate above the sash, landing at
+// 1.51x, where the two figures are not tellable apart. See InkMaterial#sashLift.
+//
+// In bind space, with the noise it modulates, so it deforms with the skin and
+// nothing swims (STYLE.md 3.5). The band is deliberately soft: an obi is a wide
+// wrap and a value step at a hard line is a polygon edge by another name
+// (STYLE.md 10).
+uniform vec2 u_sash;
+
 // -- noise ------------------------------------------------------------------
 // Value noise, not gradient noise: value noise has broad flat plateaus separated
 // by fast transitions, which is much closer to how a wash breaks up than
@@ -610,6 +627,16 @@ void main() {
                      + blot * 0.16
                      + hang * 0.10
                      + dryVar, 0.0, 1.0);
+
+    // The sash split. Above u_sash.x the pooled value lifts toward the dilute half
+    // of the resolve's ramp; below it nothing changes, so the hem, the hakama and
+    // the grip keep the density STYLE.md 3.4 and the corpus both want there.
+    // Multiplying `dark` rather than `pool` is deliberate: `pool` also carries the
+    // dry brush's lift and the reserves, and scaling those would bleach the tooth
+    // out of the shoulder -- the "washed out is a coverage fault" warning three
+    // sections of this file already carry.
+    float aboveSash = smoothstep(u_sash.x - 0.10, u_sash.x + 0.10, v_matPos.y);
+    dark *= mix(1.0, u_sash.y, aboveSash);
 
     // -- cream reserves (STYLE.md 3b.0, debt D3) ------------------------------
     // Pooling only ever darkens, and above the waist there is almost nothing to

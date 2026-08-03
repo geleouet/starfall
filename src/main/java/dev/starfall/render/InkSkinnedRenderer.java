@@ -218,6 +218,7 @@ public final class InkSkinnedRenderer {
         matShader.setUniformf("u_dissolveBias", material.dissolveBias);
         matShader.setUniformf("u_paperGrain", material.paperGrain);
         matShader.setUniformf("u_inkSeed", material.seedX, material.seedY);
+        matShader.setUniformf("u_sash", material.sashHeight, material.sashLift);
         mesh.mesh().render(matShader, GL20.GL_TRIANGLES);
         anyCloth = true;
     }

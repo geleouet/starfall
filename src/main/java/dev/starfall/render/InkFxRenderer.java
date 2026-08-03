@@ -180,6 +180,12 @@ public final class InkFxRenderer {
      * sliding past each other, which has a long axis along the blades and short
      * ones across.
      */
+    /** How much of a clash's own span the star takes to reach full brightness. */
+    private static final float CLASH_IGNITE = 0.30f;
+
+    /** The value of {@code ignite * fade} at the peak, so the peak stays at {@code mag}. */
+    private static final float CLASH_PEAK = (float) Math.pow(1f - CLASH_IGNITE, 1.5);
+
     public void clash(float x, float y, float dirX, float dirY, float mag, float age, float seed) {
         float u = MathUtils.clamp(age, 0f, 1f);
         if (u >= 1f) {
@@ -188,7 +194,22 @@ public final class InkFxRenderer {
         // A clash is over quickly and its embers outlive it. The core is cubed out
         // so it is gone well before the last ember, which is what stops the whole
         // thing reading as one fading sprite.
-        float core = mag * (1f - u) * (1f - u) * (1f - u);
+        //
+        // <b>And it ignites rather than appearing.</b> A pure decay is full amplitude
+        // on the first frame the mark exists, which is STYLE.md 7.1's first line
+        // ("nothing arrives at rest abruptly") read the other way round: the mark
+        // arrives at full brightness abruptly. That was invisible while the directive
+        // ran 0.63 s -- every frame the light was actually legible sat inside the first
+        // 6% of the age curve, so the whole visible bloom was one flat sample of it --
+        // and it became a one-frame pop the moment the directive was cut to the length
+        // of the contact it is asserting. Measured: with the pure decay and a 0.045 s
+        // directive, warm-bright pixels appear on exactly one frame of the capture.
+        // Rising over the first fifth and falling over the rest puts the peak two
+        // frames in and gives 7.1 an ignition it can be soft about.
+        float ignite = MathUtils.clamp(u / CLASH_IGNITE, 0f, 1f);
+        ignite = ignite * ignite * (3f - 2f * ignite);
+        float fade = (float) Math.pow(1f - u, 1.5);
+        float core = mag * ignite * fade / CLASH_PEAK;
         float along = MathUtils.atan2(dirY, dirX);
 
         if (core > 0.004f) {

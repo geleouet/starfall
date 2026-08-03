@@ -57,6 +57,52 @@ public final class InkMaterial {
     /** @see #seedX */
     public float seedY = 0f;
 
+    /**
+     * Bind-space height of the sash: where this garment's colourway changes.
+     *
+     * <h2>The per-region colour channel, in the cheapest form that is still one</h2>
+     *
+     * <p>{@code docs/system4-debt.md} has recorded for two passes that image 3 "has a
+     * colourway that <em>changes</em> at the sash, and {@code InkMaterial} has one base
+     * colour per draw call", and that the same missing channel blocks STYLE.md §7.3's
+     * "the dissolve threshold pushed <em>locally</em>". A full per-vertex colour channel
+     * is a second render target and a mesh format change. This is not that.
+     *
+     * <p>What it is: the material pass already varies value per fragment through
+     * {@code pool}, and it already samples everything at the vertex's <b>bind-space</b>
+     * position so nothing swims (§3.5). A bind-space height therefore names a band of
+     * the garment exactly as well as a per-vertex weight would, for the one split the
+     * corpus actually shows — pale kimono above, near-black hakama below. The line is
+     * in the same space as the noise it modulates, so it deforms with the skin and is
+     * invisible to every {@code fwidth} in the shader.
+     *
+     * <p>What it is not: it cannot make the hakama a <em>different hue</em> from the
+     * kimono, only a different value. That remains open and is still the argument for
+     * the real channel.
+     */
+    public float sashHeight = 0f;
+
+    /**
+     * What the pooling above {@link #sashHeight} is multiplied by. 1.0 changes nothing.
+     *
+     * <h2>Why this number exists and what it is measured against</h2>
+     *
+     * <p>Reference image 3 is a dark duellist against a pale one and the separation is
+     * enormous: median ink luminance as a fraction of the frame's own ground level is
+     * <b>0.17 for the dark figure's torso and 0.56 for the pale one's — 3.3x apart</b>,
+     * unmistakable at any scale. System 4 pass 2 pooled the pale figure to the ink floor
+     * (correctly, for the skirt: the corpus reads 1.16x there and the capture 1.29x) and
+     * did not compensate above the sash, and the capture landed at <b>1.51x</b>, where
+     * "you cannot tell which duellist is the pale one".
+     *
+     * <p>So the pale figure keeps {@code INK_BLACK} as its pooling colour below the sash
+     * and lifts above it. Graded on delivered pixels by {@code DuellistValueTest}, not
+     * on this field — a base colour is not a picture, and asserting on one is what let
+     * {@code DirectorTest.bothFiguresAreVisuallyDistinguishable} pass through the
+     * regression.
+     */
+    public float sashLift = 1f;
+
     /** Configures this material as the blade material of STYLE.md 5. */
     public InkMaterial asBlade() {
         base = Palette.BLADE;

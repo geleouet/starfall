@@ -269,6 +269,7 @@ public final class Director {
             f.snap(0f);
         }
         rememberHilts();
+        rememberCrossing();
     }
 
     /**
@@ -287,6 +288,7 @@ public final class Director {
             f.simulate(step, (float) t);
         }
         rememberHilts();
+        rememberCrossing();
     }
 
     /** Writes this frame's pose, placement and IK state for one figure. */
@@ -524,6 +526,7 @@ public final class Director {
     public static final double REACH_TO_CROSSING =
             SamuraiRig.BLADE_GRIP_OFFSET + Figure.BLADE_CROSSING * SamuraiRig.BLADE_LENGTH;
 
+
     /** Where the two blades are actually being made to meet this frame. */
     private final Vector2 crossing = new Vector2();
 
@@ -632,9 +635,107 @@ public final class Director {
                 (float) (0.5 * (a.y + b.y) + ny * h));
     }
 
-    /** Where the crossing was resolved to on the last frame, for the clash mark. */
+    /**
+     * Where the clash mark is drawn: the point at which the two blades actually
+     * cross, this frame.
+     *
+     * <h2>Why this is not {@link #crossing}, which is the whole of pass 3's item 3</h2>
+     *
+     * <p>{@link #crossing} is the point the two blades are <em>aimed</em> at, and it
+     * is built from the two fists rather than from the two blades on purpose: built
+     * from the blades it is a fixed point of the aim it drives, and it chattered.
+     * That construction is right for an aim and wrong for a light. Measured on the
+     * parry with the headless rehearsal, on the frame the bloom ignites the aim point
+     * sits <b>0.165 world units from the hero's blade and 0.266 from the foe's</b> —
+     * 9.7% and 15.7% of a figure height — while the two blade <em>segments</em>
+     * intersect. STYLE.md §5 puts the star at the point of contact; drawing it at the
+     * aim point draws it in open paper above both blades, which is what the pass-2
+     * review measured in delivered pixels frame by frame ("on its first two frames it
+     * is in open paper, 0.09-0.19 of a figure height from both").
+     *
+     * <p>So the light reads the blades. It is downstream of everything — nothing aims
+     * at it, nothing is filtered against it — so there is no loop to close.
+     */
     public Vector2 lastCrossing(Vector2 out) {
-        return out.set(crossing);
+        return out.set(drawnCrossing);
+    }
+
+    /** Where the two blades actually cross this frame. See {@link #lastCrossing}. */
+    private final Vector2 drawnCrossing = new Vector2();
+
+    private final Vector2 bladeA0 = new Vector2();
+    private final Vector2 bladeA1 = new Vector2();
+    private final Vector2 bladeB0 = new Vector2();
+    private final Vector2 bladeB1 = new Vector2();
+
+    /**
+     * Recomputes {@link #drawnCrossing} from the two blades' world segments.
+     *
+     * <p>The midpoint of the closest approach: the two points, one on each segment,
+     * that are nearest each other. When the segments genuinely cross this is the
+     * crossing; when they do not it is the middle of the gap, which is the honest
+     * place for a light that claims they are meeting and is <em>between</em> them
+     * rather than welded to one. With only one figure on stage there is nothing to
+     * cross, and the aim point stands.
+     */
+    private void rememberCrossing() {
+        if (figures.size() < 2) {
+            drawnCrossing.set(crossing);
+            return;
+        }
+        Figure a = figures.get(0);
+        Figure b = figures.get(1);
+        a.bladeAt(0f, bladeA0);
+        a.bladeAt(1f, bladeA1);
+        b.bladeAt(0f, bladeB0);
+        b.bladeAt(1f, bladeB1);
+        closestPoints(bladeA0, bladeA1, bladeB0, bladeB1, drawnCrossing);
+    }
+
+    /** Midpoint of the closest approach between two segments. */
+    static Vector2 closestPoints(Vector2 p1, Vector2 p2, Vector2 q1, Vector2 q2, Vector2 out) {
+        double best = Double.MAX_VALUE;
+        double bx = 0;
+        double by = 0;
+        // Four point-to-segment feet plus the proper intersection, which is the case
+        // that matters: when the segments cross, the crossing is the answer and the
+        // four feet are not.
+        double d1 = side(q1, q2, p1);
+        double d2 = side(q1, q2, p2);
+        double d3 = side(p1, p2, q1);
+        double d4 = side(p1, p2, q2);
+        if (((d1 > 0) != (d2 > 0)) && ((d3 > 0) != (d4 > 0))) {
+            double u = d1 / (d1 - d2);
+            return out.set((float) (p1.x + u * (p2.x - p1.x)), (float) (p1.y + u * (p2.y - p1.y)));
+        }
+        Vector2[][] pairs = {
+                {p1, q1, q2}, {p2, q1, q2}, {q1, p1, p2}, {q2, p1, p2},
+        };
+        for (Vector2[] trio : pairs) {
+            double[] foot = footOn(trio[1], trio[2], trio[0]);
+            double dx = trio[0].x - foot[0];
+            double dy = trio[0].y - foot[1];
+            double d = dx * dx + dy * dy;
+            if (d < best) {
+                best = d;
+                bx = 0.5 * (trio[0].x + foot[0]);
+                by = 0.5 * (trio[0].y + foot[1]);
+            }
+        }
+        return out.set((float) bx, (float) by);
+    }
+
+    private static double side(Vector2 a, Vector2 b, Vector2 c) {
+        return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+    }
+
+    private static double[] footOn(Vector2 a, Vector2 b, Vector2 p) {
+        double vx = b.x - a.x;
+        double vy = b.y - a.y;
+        double len2 = vx * vx + vy * vy;
+        double u = len2 < 1e-12 ? 0 : ((p.x - a.x) * vx + (p.y - a.y) * vy) / len2;
+        u = Math.max(0, Math.min(1, u));
+        return new double[] {a.x + u * vx, a.y + u * vy};
     }
 
     /**
@@ -677,6 +778,7 @@ public final class Director {
      */
     public static final double BLADE_ELEVATION_DEG = 62.0;
 
+
     /**
      * Where the fist has to be for the blade to cross at {@code anchor}.
      *
@@ -697,8 +799,44 @@ public final class Director {
         double rad = Math.toRadians(BLADE_ELEVATION_DEG);
         double dx = Math.signum(f.facing()) * Math.cos(rad);
         double dy = Math.sin(rad);
-        out.set((float) (cx - dx * REACH_TO_CROSSING), (float) (cy - dy * REACH_TO_CROSSING));
+        out.set((float) (cx - dx * REACH_TO_CROSSING),
+                (float) (cy - dy * REACH_TO_CROSSING * FIST_DROP));
     }
+
+    /**
+     * How far below the crossing the fist is placed, as a fraction of the full
+     * blade-length drop.
+     *
+     * <h2>Measured both ways, and 1.0 is right for the picture even though 0.0 is
+     * better for the geometry</h2>
+     *
+     * <p>At 1.0 -- the fist a whole {@link #REACH_TO_CROSSING} back down the blade,
+     * which is where the blade's own length puts it -- the hand target lands about
+     * 0.74 world units from a shoulder whose arm reaches 0.56, so both arms saturate
+     * and the bind is held by the blade aim rather than by the hands. Setting this to
+     * 0.0 puts the fists at the crossing's own height, brings both hand targets inside
+     * the arm's reach, and lengthens the bind measurably: the two blade <em>segments</em>
+     * intersect for <b>0.118 s against 0.066 s</b>, 1.8x.
+     *
+     * <p>It also makes the picture worse, which is why it is not the value here.
+     * Shot at 0.0 (this capture is not kept; the numbers are):
+     * <ul>
+     *   <li>minimum blade separation in delivered pixels <b>0.0287 -> 0.0388</b> of a
+     *       figure height, a 35% regression on the one number the pass-2 review named
+     *       as that pass's single biggest visual improvement;</li>
+     *   <li>the defender's blade <b>disappears entirely</b> on frames 11, 14, 15, 18 and
+     *       19 of the contact window -- {@code analyse blades} falls through to a
+     *       background mote as the second cool-bright cloud -- against a defender's
+     *       blade present on every frame at 1.0.</li>
+     * </ul>
+     *
+     * <p>STYLE.md's own rule decides it: {@code Rehearsal} "is not a substitute for
+     * pixels and must never be quoted as one". The geometry preferred 0.0 and the
+     * picture preferred 1.0, and the picture wins. Recorded here rather than in a
+     * commit message because the next pass that tries to give the parry a span will
+     * reach for exactly this lever.
+     */
+    public static final double FIST_DROP = 1.0;
 
     private final Vector2 fistScratch = new Vector2();
 
@@ -917,8 +1055,16 @@ public final class Director {
                 // event the picture does not contain". Reading the same resolved
                 // crossing the two aims used makes the assertion true by
                 // construction: the mark cannot land anywhere but on the meeting.
-                x = crossing.x;
-                y = crossing.y;
+                // <b>{@link #drawnCrossing}, not {@link #crossing}.</b> The first is
+                // where the two blades actually cross this frame; the second is the
+                // point they are aimed at, built from the two fists, which sits 0.10
+                // to 0.27 world units away from either blade through the whole bind.
+                // Getting this one line wrong is how System 4 pass 3 briefly shipped a
+                // guard reading `lastCrossing` while the renderer drew something else
+                // -- STYLE.md 11.2b(f)'s "a test that shares its input with the code
+                // under test" in reverse, and it was caught by looking at the pixels.
+                x = drawnCrossing.x;
+                y = drawnCrossing.y;
             }
             switch (d.kind()) {
                 case BLOOM -> fx.bloom(x, y, (float) d.dirX(), (float) d.dirY(),

@@ -1,3 +1,0 @@
-duration=3.04
-contacts=[0.504, 1.568]
-clash at=1.568 site=CROSSING bladeGapFraction=0.0

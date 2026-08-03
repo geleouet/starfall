@@ -44,9 +44,25 @@ import java.util.List;
  */
 public final class Rehearsal {
 
-    /** One frame of a rehearsal: the clock, and where the load-bearing geometry is. */
+    /**
+     * One frame of a rehearsal: the clock, where the load-bearing geometry is, and
+     * <b>the coordinate the renderer would be handed for a {@code CROSSING} mark.</b>
+     *
+     * <p>That last field exists because of STYLE.md 11.2b(f), which was written about
+     * this file's own test:
+     *
+     * <blockquote>A guard must be shown to fail… the guard for a <b>drawn</b> mark
+     * reads the coordinate the renderer was handed ({@code director.lastCrossing}),
+     * not a coordinate recomputed from the geometry the renderer was supposed to have
+     * used. 11.2b(c) applied one level in: a test that shares its input with the code
+     * under test is a bit-identity check wearing an assertion's clothes.</blockquote>
+     *
+     * <p>{@link #mark} is read straight off {@link Director#lastCrossing}, which is the
+     * same field {@code Director.renderInk} substitutes for the directive's own origin
+     * on a {@code CROSSING} anchor. Nothing recomputes it here.
+     */
     public record Frame(double t, double wall, double timeScale,
-                        Body hero, Body foe) {
+                        Body hero, Body foe, Vector2 mark) {
 
         /** The smaller of the two blade-to-blade distances that matter. */
         public double bladeGap() {
@@ -58,9 +74,57 @@ public final class Rehearsal {
             return bladeGap() / SamuraiRig.FIGURE_HEIGHT;
         }
 
+        /**
+         * How far the drawn mark is from one body's blade <em>segment</em>, as a
+         * fraction of figure height.
+         *
+         * <p>The point and the segment come from two different places on purpose:
+         * the point is what {@code Director} handed the renderer, the segment is
+         * where the skeleton put the blade. Pass 2's version took both from the same
+         * blade and returned 0.0 for every input.
+         */
+        public double markToBlade(boolean heroSide) {
+            Body b = heroSide ? hero : foe;
+            return segmentDistance(mark, mark, b.bladeRoot, b.bladeTip) / SamuraiRig.FIGURE_HEIGHT;
+        }
+
+        /**
+         * True when the mark lies between the two blades rather than beyond one of
+         * them: the closest point of each blade to the mark must be on the far side
+         * of the mark from the other blade's, to within a hair.
+         *
+         * <p>STYLE.md 5's clash is "at the point of contact", and a light welded to
+         * one blade with the other 0.11-0.19 of a figure height away is the defect the
+         * pass-2 review measured frame by frame. "Near both" does not say it; a bloom
+         * sitting on a crossing is <em>between</em> them.
+         */
+        public boolean markIsBetweenTheBlades() {
+            Vector2 h = nearestOn(hero.bladeRoot, hero.bladeTip, mark);
+            Vector2 f = nearestOn(foe.bladeRoot, foe.bladeTip, mark);
+            double ax = h.x - mark.x, ay = h.y - mark.y;
+            double bx = f.x - mark.x, by = f.y - mark.y;
+            double la = Math.sqrt(ax * ax + ay * ay);
+            double lb = Math.sqrt(bx * bx + by * by);
+            if (la < 1e-4 || lb < 1e-4) {
+                return true;
+            }
+            // Opposing directions: the dot product of the two unit vectors is negative
+            // when the mark is between, positive when both blades are the same way.
+            return (ax * bx + ay * by) / (la * lb) < 0.2;
+        }
+
         public Body body(int id) {
             return hero.id == id ? hero : foe.id == id ? foe : null;
         }
+    }
+
+    private static Vector2 nearestOn(Vector2 a, Vector2 b, Vector2 p) {
+        double vx = b.x - a.x;
+        double vy = b.y - a.y;
+        double len2 = vx * vx + vy * vy;
+        double u = len2 < 1e-12 ? 0 : ((p.x - a.x) * vx + (p.y - a.y) * vy) / len2;
+        u = Math.max(0, Math.min(1, u));
+        return new Vector2((float) (a.x + u * vx), (float) (a.y + u * vy));
     }
 
     /**
@@ -194,7 +258,8 @@ public final class Rehearsal {
                 foe = b;
             }
         }
-        frames.add(new Frame(director.time(), wall, director.timeScale(), hero, foe));
+        frames.add(new Frame(director.time(), wall, director.timeScale(), hero, foe,
+                director.lastCrossing(new Vector2())));
     }
 
     private static Body read(Figure f) {

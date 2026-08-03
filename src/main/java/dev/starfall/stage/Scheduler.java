@@ -141,6 +141,41 @@ public final class Scheduler {
     /** How long a bloom of ink keeps spreading. STYLE.md 7.3's drop on wet paper. */
     public static final double BLOOM_SECONDS = 0.90;
 
+    /**
+     * How much of the beat's contact span the clash star is drawn over.
+     *
+     * <h2>This number is a measurement of a shortfall, and it is here so the shortfall
+     * cannot be forgotten</h2>
+     *
+     * <p>It used to be {@code BLOOM_SECONDS * 0.7} = <b>0.63 s</b>, against a GUARD
+     * beat whose whole contact span is <b>0.168 s</b>. The star therefore asserted
+     * "these two blades are meeting" for <b>3.8x as long as the schedule itself says
+     * they are together</b>, and measured headless against the rig, for <b>9.5x as
+     * long as they actually were</b>. That is the pass-1 review's "a light that
+     * asserts an event the picture does not contain", spread over half a second
+     * instead of over two frames, and it survived two passes because the test that
+     * was supposed to catch it checked one frame — see {@code RehearsalTest}.
+     *
+     * <p>The right value is <b>1.0</b>: STYLE.md 7.1 is explicit that "the middle span
+     * <em>is</em> the contact", so the light and the contact span should be the same
+     * window. Measured headless on the parry, the two blade segments are within 2% of a
+     * figure height from t=1.550 to t=1.616 — <b>0.066 s of the 0.168 s contact span,
+     * 39%</b> — and the meeting instant the clash ignites at is 1.568, so 0.27 is the
+     * largest multiple of the contact span that keeps every drawn frame honest.
+     *
+     * <p><b>Three frames at 60 Hz is too short for STYLE.md §5's "soft star bloom with
+     * 4-6 long soft rays", and that is the point of writing the number here rather than
+     * tuning it away.</b> The light cannot be longer than the meeting, and the meeting
+     * is 39% of the span the schedule declares for it. Both are one defect — the review's
+     * item 4, "give the parry a span" — and this constant is how the next pass grades
+     * the work: raise it toward 1.0 and {@code RehearsalTest} prints exactly how far
+     * short the bind falls, on which frame, in figure heights.
+     *
+     * <p>A lever that lengthens the bind was found and rejected on the pixels; see
+     * {@code Director.FIST_DROP}.
+     */
+    public static final double CLASH_SPAN = 0.27;
+
     // -- state -----------------------------------------------------------------
 
     private final Stage stage;
@@ -509,7 +544,7 @@ public final class Scheduler {
                 stage.gaze(defender, standing.tile(attacker)),
                 t - beat.contactSpan(), beat.contactSpan() * 2, Timing.SETTLE_ROOT + 0.06));
         emit(new Directive.Ink(defender, Directive.InkKind.CLASH, met, dir, 0.1,
-                counter ? 0.9 : 0.6, t, BLOOM_SECONDS * 0.7));
+                counter ? 0.9 : 0.6, t, beat.contactSpan() * CLASH_SPAN));
         emit(sleeve(attacker, dir, Force.DRIVE, t, beat.contactSpan()));
         emit(sleeve(defender, -dir, Force.DRIFT, t, beat.contactSpan()));
     }

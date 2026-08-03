@@ -126,6 +126,19 @@ public final class Figure {
     public static final float REST_POLE_X = -0.16f;
     public static final float REST_POLE_Y = -0.22f;
 
+    /**
+     * How much of its pooling the pale duellist keeps above the sash.
+     *
+     * <p>Tuned against delivered pixels rather than chosen: the target is reference
+     * image 3's <b>3.3x</b> torso separation, measured as median ink luminance over the
+     * frame's own ground level, and {@code DuellistValueTest} is the gate. See
+     * {@code InkMaterial#sashLift}.
+     */
+    public static final float PALE_SASH_LIFT = 0.35f;
+
+    /** And how much more the dark duellist pools above its sash. @see #PALE_SASH_LIFT */
+    public static final float DARK_SASH_POOL = 1.70f;
+
     /** The dark duellist of reference images 3, 4 and 5. */
     public static Figure dark(int body) {
         return dark(body, SamuraiRig.build());
@@ -141,6 +154,20 @@ public final class Figure {
         f.cloth.base = Palette.INK_INDIGO;
         f.cloth.deep = Palette.INK_BLACK;
         f.cloth.stain = Palette.OCHRE;
+        // The other half of the Family B separation, and the half the review did not
+        // ask for because nobody had measured it. Lifting the pale duellist alone gets
+        // the torso ratio from 1.54 to 1.99 against the corpus's 3.27; the rest of the
+        // gap is that <b>the dark duellist is not dark</b>. Measured on
+        // s4-p3-parry-contact frame 11, rect x300..470 y300..420: median ink luminance
+        // 56.2, which is 0.26 of the frame's ground and is exactly INK_INDIGO's own
+        // luminance -- the torso is sitting on its base tone with nothing pooled into
+        // it. Reference image 3's dark duellist reads 0.127 over the same statistic.
+        // STYLE.md 1 calls Family B's bodies "near-black ink silhouettes with just
+        // enough interior modelling to find the face and hands"; this is what makes
+        // that true above the sash, and it cannot breach 2.2's floor because the value
+        // it pools toward *is* the floor (INK_BLACK).
+        f.cloth.sashHeight = 0.95f;
+        f.cloth.sashLift = DARK_SASH_POOL;
         return f;
     }
 
@@ -196,6 +223,20 @@ public final class Figure {
         f.cloth.stain = Palette.OCHRE;
         f.cloth.seedX = 3.70f;
         f.cloth.seedY = -2.30f;
+        // <b>And this is the compensation pass 2 named as missing and did not build.</b>
+        // Pooling the pale figure to the floor is right below the sash and wrong above
+        // it: reference image 3's white-clad duellist reads at 0.56 of the sky's value
+        // at the torso against 0.17 for the dark one -- 3.3x apart -- and the pass-2
+        // capture landed at 1.51x, where the review could not tell which duellist was
+        // the pale one on any of twelve frames. INK_BLACK stays as the pooling colour;
+        // what changes is that above the obi the pooling is scaled back so the garment
+        // sits in the upper half of the range, which is what makes it read as the other
+        // colour rather than as the same colour lit differently.
+        //
+        // Bind-space 0.95 is the obi line: Stage.Y_HIP is 0.98 and SamuraiRig authors
+        // the haori rails' hip row at 0.96.
+        f.cloth.sashHeight = 0.95f;
+        f.cloth.sashLift = PALE_SASH_LIFT;
         return f;
     }
 
