@@ -13,6 +13,12 @@ tools/gradle.zip
 # inspection during a single pass and lose their value once that pass is
 # judged -- and they are 55MB per ~100 frames, which would reach gigabytes
 # over the number of passes this project expects.
+#
+# The exception is the handful of frames progress.html *embeds*. Those are in the
+# same category as the contact sheets and must be force-added (`git add -f`), which
+# tools/check-progress.mjs now enforces -- it asks git what is published rather than
+# asking this disk what exists. Seven of them were broken images for every reader
+# but the author before that check existed.
 out/**/frame_*.png
 
 # Stray class files from ad-hoc javac runs
@@ -21,3 +27,10 @@ out/**/frame_*.png
 # Regenerable analysis output
 out/timing/
 out/tmp/
+
+# Python bytecode from the tile generators
+__pycache__/
+*.pyc
+
+# Local agent/session settings
+.claude/
