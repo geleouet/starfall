@@ -334,6 +334,10 @@ class StanzaColumnTest {
                 }
             }
         }
+        System.out.printf(java.util.Locale.ROOT,
+                "CONTROL closest cross-tile pair of %d at the shipped %d px cartouche: %s = "
+                        + "%.4f, against a floor of %.2f%n",
+                (pairs * (pairs - 1)) / 2 - types.length, CARTOUCHE_PX, where, closest, GLYPH_FLOOR);
         assertTrue(closest > GLYPH_FLOOR, String.format(
                 "%s are the same picture: they differ by %.4f of their own ink at the shipped "
                         + "%d px cartouche, against a floor of %.2f. Two tiles that draw one mark "
@@ -343,6 +347,56 @@ class StanzaColumnTest {
         assertTrue(closestMirror > 0.0,
                 mirror + " is bit-identical to its own mirror, which cannot happen and means "
                         + "the measurement is not reading the glyphs it thinks it is");
+        assertEquals(TileType.SWEEP.toString(), mirror,
+                "the closest same-tile mirror pair is " + mirror + " at " + closestMirror
+                        + "; the Sweep is supposed to be the symmetric one");
+    }
+
+    /**
+     * <b>Guard.</b> The Sweep is the <em>only</em> tile allowed below the distinctness
+     * floor under mirroring, and every other tile clears it.
+     *
+     * <p>{@link #noTwoTilesAreTheSamePicture()} narrows its assertion to the 144
+     * cross-tile pairs and {@code continue}s past every same-tile one, and the pass-2
+     * review upheld that narrowing as better reasoning than the instruction it
+     * replaced -- <i>"requiring 0.20 there would require the alphabet to lie about a
+     * symmetric gesture"</i> -- while naming what was still missing: <b>the exception
+     * lives in prose, and the guard is silent on the axis it excludes.</b> A future
+     * tile authored near-symmetric by accident would land in the same hole without a
+     * sound, which is STYLE.md 11.2b(e) exactly: <i>"a discipline written into a
+     * document but not into the tool that reads it is documentation, not a guard."</i>
+     * {@code TURN} is one keystroke away -- a spiral closed into a ring is symmetric
+     * -- and sits at 0.79 today.
+     *
+     * <p>So the exception is a claim the suite defends: Sweep is below the floor,
+     * everything else is above it, and both halves fail if the alphabet moves.
+     */
+    @Test
+    void sweepIsTheOnlyTilePermittedToBeItsOwnMirror() {
+        StringBuilder all = new StringBuilder();
+        for (TileType t : TileType.values()) {
+            double d = Raster.distance(Guards.glyphField(t, 1, CARTOUCHE_PX),
+                    Guards.glyphField(t, -1, CARTOUCHE_PX));
+            all.append(String.format(java.util.Locale.ROOT, "%s %.4f  ", t, d));
+            if (t == TileType.SWEEP) {
+                assertTrue(d < GLYPH_FLOOR, String.format(
+                        "the Sweep measures %.4f from its own mirror, which is above the %.2f "
+                                + "floor -- so it is no longer the symmetric gesture "
+                                + "combat-design.md 2.2 describes (\"one continuous arc through "
+                                + "two bodies\", front and behind), and the exception the "
+                                + "distinctness guard makes for it is no longer earned. All "
+                                + "mirrors: %s", d, GLYPH_FLOOR, all));
+            } else {
+                assertTrue(d > GLYPH_FLOOR, String.format(
+                        "%s measures %.4f from its own mirror at the shipped %d px cartouche, "
+                                + "below the %.2f floor. Only the Sweep is permitted there, "
+                                + "because only the Sweep hits the tile in front and the tile "
+                                + "behind; every other tile points, and a tile that points must "
+                                + "look different pointing the other way. All mirrors: %s",
+                        t, d, CARTOUCHE_PX, GLYPH_FLOOR, all));
+            }
+        }
+        System.out.println("CONTROL same-tile mirror distances at " + CARTOUCHE_PX + " px: " + all);
     }
 
     /** The side of a delivered cartouche in pixels: {@code STANZA_GLYPH} of 720 rows. */

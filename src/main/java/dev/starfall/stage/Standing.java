@@ -41,6 +41,7 @@ public final class Standing {
 
     private final TreeMap<Integer, Integer> tiles = new TreeMap<>();
     private final TreeMap<Integer, Facing> facings = new TreeMap<>();
+    private int hero = -1;
 
     private Standing() {
     }
@@ -62,7 +63,33 @@ public final class Standing {
         Standing s = new Standing();
         s.tiles.putAll(tiles);
         s.facings.putAll(facings);
+        s.hero = hero;
         return s;
+    }
+
+    /**
+     * Which of the bodies is the Night Pilgrim.
+     *
+     * <h2>Why this had to be here, and why it is read off the stream</h2>
+     *
+     * <p>{@link Stage#planning(Standing)} frames <em>the exchange</em> -- the hero
+     * and the Charted Shadow nearest it -- and that question cannot be asked of a
+     * board that is only a set of tiles. Two Shadows standing beside each other are
+     * the closest pair on the lane in the graded bout and framing them would leave
+     * the player out of the shot.
+     *
+     * <p>It is learned from {@link CombatEvent.EncounterBegan}, which already names
+     * {@code heroId}, so nothing new has to be handed in and the rule the class note
+     * states -- <i>the event stream is the interface</i> -- is not weakened. Until
+     * that event arrives the lowest id stands in, which {@code CombatEngine} makes
+     * the hero by construction ({@code Combatant.hero(0, ...)}); that is a fallback
+     * and not the claim, and it is why the event is preferred when there is one.
+     */
+    public int hero() {
+        if (hero >= 0) {
+            return hero;
+        }
+        return tiles.isEmpty() ? -1 : tiles.firstKey();
     }
 
     /** Every body known, in ascending id order. Never a hash order. */
@@ -101,7 +128,9 @@ public final class Standing {
 
     /** Applies whatever an event says about the board, and ignores everything else. */
     public void apply(CombatEvent event) {
-        if (event instanceof CombatEvent.Moved m) {
+        if (event instanceof CombatEvent.EncounterBegan b) {
+            hero = b.heroId();
+        } else if (event instanceof CombatEvent.Moved m) {
             tiles.putIfAbsent(m.entity(), m.fromTile());
             tiles.put(m.entity(), m.toTile());
         } else if (event instanceof CombatEvent.Turned t) {

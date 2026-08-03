@@ -68,8 +68,27 @@ public final class LaneInterface {
      * clear, which is where combat-design.md 3 requires the camera's horizontal
      * glide to happen and where the exchange itself lands. Neither column can be
      * confused with the lane, because both are orthogonal to it.
+     *
+     * <p><b>Moved outward from 0.135 after the pass-2 review read this column as the
+     * enemy's.</b> Cold, off the delivered pixels, the reviewer wrote of the hand's
+     * loudest mark: <i>"a strike, aimed leftward. This is the enemy's intent"</i>,
+     * and named three causes -- the column is inset from the edge, it stands among
+     * the Charted Shadows, and its charge run lies where an enemy health row would.
+     * Four things answer those and this constant is only one: the charge run is now
+     * drawn <b>under its own tile</b> rather than reaching from it toward the
+     * picture ({@link #held}), both margins carry the same seal at their head
+     * ({@link #seal}), and {@code Stage.planning(Standing)} no longer leaves the
+     * bodies against the right edge.
+     *
+     * <p>The number itself is set by the run rather than by taste: a centred run at
+     * the largest cooldown the engine can carry is {@code 8 * TICK_PITCH} wide, and
+     * the column has to sit far enough in that the run's outer end stays on the
+     * sheet at <em>both</em> shipped heights. 0.125 is the smallest inset that does,
+     * with about six pixels to spare at 720 rows and five at 540 -- and the run's
+     * inner end now stops at 0.84 of the frame's width, where pass 2's five-charge
+     * run reached 0.76 and touched the picture.
      */
-    public static final float HAND_INSET = 0.135f;
+    public static final float HAND_INSET = 0.125f;
 
     /** The foot of the column. Marks are written upward from here and never move. */
     public static final float STANZA_BASE_Y = 0.490f;
@@ -90,7 +109,7 @@ public final class LaneInterface {
      * rather than five -- see {@code Bout}, and the 1.016x the pass-1 review measured
      * through the right third of the graded frame.
      */
-    public static final float HAND_PITCH = 0.0950f;
+    public static final float HAND_PITCH = 0.0940f;
 
     /**
      * The side of a held tile's cartouche.
@@ -102,7 +121,7 @@ public final class LaneInterface {
      * step anywhere in the interface was in the hand column, not in the stanza. It
      * also gives the right third of the graded frame something to do.
      */
-    public static final float HAND_GLYPH = 0.082f;
+    public static final float HAND_GLYPH = 0.080f;
 
     /**
      * How wide one charge mark is drawn, as a share of the frame height.
@@ -134,12 +153,48 @@ public final class LaneInterface {
      * 0.90, a 2.6x difference -- and not by being broken, because a mark the noise
      * can eat cannot be part of a count.
      */
-    public static final float TICK_WIDTH = 0.0125f;
+    public static final float TICK_WIDTH = 0.0130f;
 
     /** Tick widths between two charge marks. */
     public static final float TICK_SPACING = 2.6f;
 
     public static final float TICK_PITCH = TICK_WIDTH * TICK_SPACING;
+
+    /**
+     * How far under its own cartouche a charge run is drawn, in frame heights.
+     *
+     * <p>In the paper between the tile it counts for and the next one down:
+     * {@link #HAND_PITCH} less {@link #HAND_GLYPH} leaves 0.014 of it, and the run
+     * lives there. That is the whole of "this count belongs to that mark".
+     */
+    public static final float TICK_ROW = 0.0470f;
+
+    /** Half the length of one charge mark. Bounded by the paper between two cartouches. */
+    public static final float TICK_HALF_LENGTH = 0.0060f;
+
+    /**
+     * How loud a live charge is, and how loud its ghost.
+     *
+     * <h2>Lowered from 0.74, and the reason is where the run now sits</h2>
+     *
+     * <p>{@code Stage.planning(Standing)} tightened the planning shot from 12.5 tiles
+     * to 6.5, which doubled the figures and moved the ground plane <em>up</em> the
+     * frame -- so the foot of the hand column, which was over the sky at pass 2's
+     * framing, is now over the near ground. Delivered luminance is coverage times the
+     * contrast between the pigment and whatever is under it, and ochre at 176 over a
+     * ground at 30 is half again the contrast the same mark had over a sky at 60. The
+     * mark did not get harder; it moved somewhere darker. Measured, the steepest
+     * delivered step on the graded frame went 0.244 to 0.286 with nothing about the
+     * run changed.
+     *
+     * <p>0.62 puts it back at 0.239. The pair keeps its ratio -- 2.48x, against 2.47x
+     * before -- because that ratio is what separates a live charge from a spent one
+     * and {@code everyCountedMarkIsCountableAtEveryShippedResolution} is asserted on
+     * it at both shipped heights.
+     */
+    public static final float CHARGE_ALPHA = 0.62f;
+
+    public static final float CHARGE_GHOST = 0.32f;
 
     /** The Night Pilgrim's remaining strokes, at the head of the stanza. */
     public static final float HEALTH_Y = 0.963f;
@@ -342,6 +397,8 @@ public final class LaneInterface {
         foxing(sink, hx, 0.100f, 0.965f, 0.300f, 60.1f, fade * 0.85f);
         runnel(sink, x, 0.975f, 0.240f, 0.108f, 3.1f, fade);
         runnel(sink, hx, 0.965f, 0.520f, 0.086f, 8.9f, fade * 0.72f);
+        seal(sink, SEAL_X, SEAL_Y, 5.9f, fade);
+        seal(sink, hx, SEAL_Y, 5.9f, fade);
         health(sink, look, fade);
 
         // Where the nib goes next: the impression left at every line of the column
@@ -448,6 +505,43 @@ public final class LaneInterface {
         }
     }
 
+    /** Where the author's chop sits: at the head of each margin, on both sides. */
+    public static final float SEAL_X = 0.030f;
+
+    public static final float SEAL_Y = 0.963f;
+
+    /**
+     * The chop at the head of a margin: <b>whose sheet this is</b>.
+     *
+     * <h2>What it is answering</h2>
+     *
+     * <p>The pass-2 review read the right-hand column cold as <i>"the enemy's
+     * intent"</i>, and was confident. That is a composition finding rather than a
+     * glyph one -- nothing in a mark says who owns it, and a column of marks
+     * standing beside two Charted Shadows is theirs by position. The device a
+     * hanging scroll uses for exactly this question is the seal: one chop, in one
+     * pigment, at the head of the writing. Here there are two margins, so the
+     * <em>same</em> chop is drawn at the head of both, at the same height and in the
+     * same ink -- one sheet, one hand, both columns the player's.
+     *
+     * <p>Ochre and not vermillion, deliberately. STYLE.md 2.1 lists seals under
+     * vermillion's own uses, but STYLE.md 8 spends vermillion on enemy intent
+     * telegraphs and the interface's guard asserts that every vermillion vertex
+     * lies over a threatened tile. A seal in the margin would either break that
+     * guard or dilute the one colour in the game that means danger; ochre is the
+     * palette's other warm note, is already the hand's own pigment for a live
+     * charge, and reads as a stamp rather than as a threat.
+     *
+     * <p>Two overlapping washes with torn rims rather than one, so the mark is a
+     * pressed blot and not a disc -- STYLE.md 10 fails a pass on sight of anything
+     * that reads as a shape primitive.
+     */
+    private static void seal(Brush.Sink sink, float x, float y, float seed, float fade) {
+        Brush.wash(sink, x, y, 0.0155f, 0.0170f, 0.46f * fade, Palette.OCHRE, seed, 0.80f);
+        Brush.wash(sink, x + 0.0022f, y - 0.0016f, 0.0098f, 0.0112f, 0.34f * fade,
+                Palette.OCHRE_PALE, seed + 1.4f, 0.90f);
+    }
+
     /**
      * STYLE.md 8's health: ink strokes that dry out and fade as it drops.
      *
@@ -477,7 +571,7 @@ public final class LaneInterface {
      */
     private static void tick(Brush.Sink sink, float x, float y, float halfLength, float lean,
                              float width, float alpha, Color ink, float seed, float dryness) {
-        int n = 5;
+        int n = 3;
         float[] xs = new float[n];
         float[] ys = new float[n];
         for (int i = 0; i < n; i++) {
@@ -530,7 +624,7 @@ public final class LaneInterface {
         }
 
         for (Glyph.Stroke s : Glyph.of(w.type(), look.heroStep())) {
-            place(sink, s, x, y, scale, alpha * s.weight(), ink, w.seed(), dryness + s.dryness());
+            place(sink, s, x, y, scale, alpha * s.weight(), ink, w.seed(), dryness);
         }
         if (w.enchantment() != null) {
             Brush.wash(sink, x - scale * 0.42f, y + scale * 0.42f, scale * 0.11f, scale * 0.090f,
@@ -563,11 +657,11 @@ public final class LaneInterface {
         float y = HAND_TOP_Y - index * HAND_PITCH;
         float seed = 53.1f + index * 6.7f;
         boolean ready = !h.banked() && h.charges() >= h.cooldown();
-        float alpha = (h.banked() ? 0.17f : ready ? 0.74f : 0.34f) * fade;
+        float alpha = (h.banked() ? 0.17f : ready ? 0.66f : 0.34f) * fade;
         Color ink = ready ? Palette.CLOTH_PALE : Palette.PAPER_COOL;
         float dryness = h.banked() ? 0.66f : ready ? 0.08f : 0.40f;
         for (Glyph.Stroke s : Glyph.of(h.type(), step)) {
-            place(sink, s, x, y, HAND_GLYPH, alpha * s.weight(), ink, seed, dryness + s.dryness());
+            place(sink, s, x, y, HAND_GLYPH, alpha * s.weight(), ink, seed, dryness);
         }
         if (h.banked()) {
             // No charge marks at all, and the absence is the rule: Loadout's own
@@ -576,24 +670,59 @@ public final class LaneInterface {
             // column would be drawing a recovery that is not happening.
             return;
         }
-        // The ticks run inward, toward the picture, so a long cooldown grows into
-        // the margin rather than off the sheet.
+        // <b>The run is drawn under its own tile, centred on it, and both halves of
+        // that are measured.</b>
+        //
+        // Pass 2 ran it sideways out of the cartouche and into the picture. The
+        // pass-2 review read the result as an enemy health row -- a long horizontal
+        // run of equal marks standing on its own beside two Charted Shadows is a
+        // bar, whatever it was drawn for -- and that alone would be a matter of
+        // taste. What settles it is a delivered-pixel measurement taken after
+        // {@code Stage.planning(Standing)} tightened the planning shot: with the run
+        // beside the tile, a Parry at four charges printed its two spent ghosts at
+        // {@code (794,340)} and {@code (770,340)} of {@code s5-p3-fold-replan}, and
+        // the live frame is <b>bit-identical to the bare control</b> at the first of
+        // them. The interface is drawn before the figures on purpose, so a run long
+        // enough to reach into the picture is a run a Charted Shadow stands on. A
+        // count that a body can erase is not a count.
+        //
+        // Centred under its own mark, the widest run the engine can produce --
+        // eight charges -- spans {@code 8 * TICK_PITCH} around the column and never
+        // leaves the margin at either shipped height. It also cannot detach from the
+        // tile it belongs to, which is the review's finding answered rather than
+        // argued with.
+        float runY = y - TICK_ROW;
+        float first = x - (h.cooldown() - 1) * TICK_PITCH * 0.5f;
         for (int c = 0; c < h.cooldown(); c++) {
             boolean got = c < h.charges();
-            tick(sink, x - HAND_GLYPH * 0.66f - c * TICK_PITCH, y, 0.0135f, 0.0022f, TICK_WIDTH,
-                    (got ? 0.74f : 0.30f) * fade,
+            tick(sink, first + c * TICK_PITCH, runY, TICK_HALF_LENGTH, 0.0018f, TICK_WIDTH,
+                    (got ? CHARGE_ALPHA : CHARGE_GHOST) * fade,
                     got ? Palette.OCHRE_PALE : Palette.PAPER_COOL, seed + c, 0f);
         }
     }
 
+    /**
+     * One stroke of a glyph, placed on the sheet.
+     *
+     * <p><b>The two drynesses are combined by taking the drier, not by adding.</b>
+     * A stroke's own {@code dryness} says what the gesture is -- only the Feint and
+     * the Back-step's scuff are anything but zero -- and the {@code state} dryness
+     * says how the sheet is holding it: fresh, waiting, or banked. They are two
+     * statements about one brush, and summing them saturates. Pass 2 summed them,
+     * and a Feint sitting in a hand at state dryness 0.40 came out at the 0.92 clamp
+     * and delivered a peak lift of 4.5 over bare -- a tile the sheet claims to hold
+     * and the eye cannot find. Taking the maximum changes nothing for the seven
+     * glyphs whose own dryness is zero.
+     */
     private static void place(Brush.Sink sink, Glyph.Stroke s, float cx, float cy, float scale,
-                              float alpha, Color ink, float seed, float dryness) {
+                              float alpha, Color ink, float seed, float state) {
         float[] xs = new float[s.xs().length];
         float[] ys = new float[s.ys().length];
         for (int i = 0; i < xs.length; i++) {
             xs[i] = cx + s.xs()[i] * scale;
             ys[i] = cy + s.ys()[i] * scale;
         }
+        float dryness = Math.max(state, s.dryness());
         Brush.stroke(sink, xs, ys, s.width() * scale, alpha, ink, seed,
                 Math.max(0f, Math.min(0.92f, dryness)));
     }

@@ -33,18 +33,69 @@ class InterfaceInkTest {
      */
     private static final double RASTER_STEP = 0.05;
 
+    /** And the rate the form guard sweeps at, coarser again -- see its own note. */
+    private static final double FLAT_STEP = 0.10;
+
     /** Pixels of frame border the raster guard ignores. */
     private static final int BORDER_MARGIN = 8;
 
     /**
-     * The share of its own amplitude the interface may deliver in one pixel.
+     * The share of its own amplitude the interface may deliver in one pixel --
+     * <b>a band with both edges, taken from the corpus rather than from the
+     * artefact.</b>
      *
-     * <p>Derived, not chosen: the bordered panel of {@code Guards.borderedPanel}
-     * reads 1.00 through the same raster, so this is <b>a third of what a hard edge
-     * prints</b> -- a mark that takes at least three pixels to arrive. Delivered, the
-     * worst over all three bouts is 0.299.
+     * <h2>Why the old ceiling had to go</h2>
+     *
+     * <p>It was 0.34, documented as <i>"a third of what a hard edge prints"</i>,
+     * where a hard edge is {@code Guards.borderedPanel} reading 1.000. The pass-2
+     * review convicted that on three counts and all three are right. It is a
+     * <b>ratio to an artefact</b>: 1.000 is what a step function reads, so dividing
+     * it by three answers "how much softer than infinitely sharp", a question no
+     * reference image can inform or fail. It is a <b>floor with no upper edge</b>,
+     * which STYLE.md 11.0 forbids by name -- <i>"a criterion of floors alone rewards
+     * the defect it was written to catch... state the target as a band with both
+     * edges, taken from the corpus's own spread."</i> And it was <b>fitted</b>: the
+     * delivered worst was 0.2660 and the pass's own successful attack landed at
+     * 0.333, so the boundary sat one part in a hundred on the permissive side of the
+     * only construction that beat it.
+     *
+     * <h2>Where these two numbers come from</h2>
+     *
+     * <p>Measured on the Family B reference images -- 3, 4 and 5, the ones STYLE.md
+     * 1 calls <i>"the primary template for the game screen"</i> -- with the same
+     * statistic this guard uses: the steepest single-pixel step anywhere in the
+     * picture, over the picture's own amplitude, on Rec. 709 luminance.
+     *
+     * <ul>
+     *   <li><b>Ceiling {@value #EDGE_CEILING}.</b> Reference image 3 downscaled so
+     *       its duellist is the height this capture delivers -- STYLE.md 11.0's
+     *       matched-scale rule -- reads <b>0.3542</b>, and the step is on a blade.
+     *       At native scale the three images read 0.3771, 0.3986 and 0.4352, all on
+     *       blades, so 0.354 is the <em>softest</em> blade edge the corpus contains.
+     *       STYLE.md 3 and 5 allow exactly one hard-edged object and this is it, so
+     *       the ceiling says: no mark in the interface may arrive as abruptly as the
+     *       softest blade in the corpus.</li>
+     *   <li><b>Floor {@value #EDGE_FLOOR}.</b> The same statistic through the
+     *       <em>softest</em> region the same three images contain -- their skies --
+     *       reads 0.1101, 0.1223 and <b>0.1075</b> (boxes {@code x40..790 y40..200}).
+     *       An interface below that is softer than the corpus's own sky, which is to
+     *       say it has stopped being marks and become weather. This is the edge the
+     *       old criterion did not have, and it is the one that stops "make it softer"
+     *       being a free move.</li>
+     * </ul>
+     *
+     * <p><b>What this ceiling does not do, stated plainly.</b> It does not catch a
+     * feathered rectangle: {@code system5-debt.md} 1.3's attempt 3c reads 0.333 and
+     * clears 0.354 comfortably, as does the {@code Brush}-only hatch at 0.0515. That
+     * is not a hole here; it is the wrong instrument for that defect, which is about
+     * <em>form</em>. {@link #noMarkHoldsAFlatRunAcrossTheSheet()} is the criterion
+     * for that, and both are pointed at both exhibits in
+     * {@link #theForbiddenThingIsCaughtByTheGuardsThatForbidIt()}.
      */
-    private static final float EDGE_CEILING = 0.34f;
+    private static final float EDGE_CEILING = 0.354f;
+
+    /** The other edge of the band. See {@link #EDGE_CEILING}. */
+    private static final float EDGE_FLOOR = 0.107f;
 
     private static Recorder draw(Bout.Staged staged, double t) {
         Recorder rec = new Recorder();
@@ -187,29 +238,161 @@ class InterfaceInkTest {
      */
     @Test
     void noMarkPrintsAnEdgeInTheRasterItWouldDraw() {
-        for (Bout.Kind kind : Bout.Kind.values()) {
-            Bout.Staged staged = Bout.of(kind);
-            double end = staged.schedule().duration();
-            List<double[]> samples = new ArrayList<>();
-            float amplitude = 0f;
-            for (double t = 0; t <= end; t += RASTER_STEP) {
-                Raster field = Guards.interfaceField(staged, t,
-                        Guards.SHIPPED_WIDTH, Guards.SHIPPED_HEIGHTS[0]);
-                amplitude = Math.max(amplitude, field.peak());
-                Raster.Step worst = field.steepestStep(BORDER_MARGIN);
-                samples.add(new double[] {t, worst.size(), worst.x(), worst.y()});
+        for (int h : Guards.SHIPPED_HEIGHTS) {
+            int w = Math.round(h * 4f / 3f);
+            for (Bout.Kind kind : Bout.Kind.values()) {
+                Bout.Staged staged = Bout.of(kind);
+                double end = staged.schedule().duration();
+                List<double[]> samples = new ArrayList<>();
+                float amplitude = 0f;
+                for (double t = 0; t <= end; t += RASTER_STEP) {
+                    Raster field = Guards.interfaceField(staged, t, w, h);
+                    amplitude = Math.max(amplitude, field.peak());
+                    Raster.Step worst = field.steepestStep(BORDER_MARGIN);
+                    samples.add(new double[] {t, worst.size(), worst.x(), worst.y()});
+                }
+                assertTrue(amplitude > 0.1f, kind + " draws no interface at all at " + w + "x" + h);
+                double worstShare = 0;
+                double[] at = samples.get(0);
+                for (double[] s : samples) {
+                    double share = s[1] / amplitude;
+                    if (share > worstShare) {
+                        worstShare = share;
+                        at = s;
+                    }
+                }
+                System.out.printf(Locale.ROOT,
+                        "CONTROL %s at %dx%d: worst 1-px step %.4f of amplitude %.4f = %.4f, "
+                                + "at (%d,%d), t=%.3f; band %.2f..%.2f%n",
+                        kind, w, h, at[1], amplitude, worstShare, (int) at[2], (int) at[3], at[0],
+                        EDGE_FLOOR, EDGE_CEILING);
+                for (double[] s : samples) {
+                    double share = s[1] / amplitude;
+                    assertTrue(share <= EDGE_CEILING, String.format(Locale.ROOT,
+                            "%s at t=%.3f: the interface's steepest one-pixel step is %.4f, which "
+                                    + "is %.4f of the %.4f amplitude the interface reaches at its "
+                                    + "strongest, at (%d,%d) of %dx%d, against a ceiling of %.4f "
+                                    + "taken from the corpus's own hardest ink edge. STYLE.md 3: "
+                                    + "nothing has a hard edge except the blades.",
+                            kind, s[0], s[1], share, amplitude, (int) s[2], (int) s[3],
+                            w, h, EDGE_CEILING));
+                }
+                assertTrue(worstShare >= EDGE_FLOOR, String.format(Locale.ROOT,
+                        "%s at %dx%d: the interface's steepest one-pixel step anywhere in the bout "
+                                + "is %.4f of amplitude, at (%d,%d) at t=%.3f, which is *below* the "
+                                + "floor of %.4f the corpus's own softest readable ink mark prints. "
+                                + "A criterion of ceilings alone rewards the defect it was written "
+                                + "to catch (STYLE.md 11.0): an interface soft enough to satisfy "
+                                + "any ceiling is a haze, and STYLE.md 8 asks for marks.",
+                        kind, w, h, worstShare, (int) at[2], (int) at[3], at[0], EDGE_FLOOR));
             }
-            assertTrue(amplitude > 0.1f, kind + " draws no interface at all");
-            for (double[] s : samples) {
-                double share = s[1] / amplitude;
-                assertTrue(share <= EDGE_CEILING, String.format(Locale.ROOT,
-                        "%s at t=%.3f: the interface's steepest one-pixel step is %.4f, which is "
-                                + "%.4f of the %.4f amplitude the interface reaches at its "
-                                + "strongest, at (%d,%d) of %dx%d, against a ceiling of %.2f -- "
-                                + "and a filled panel reads 1.00 through this same raster. "
-                                + "STYLE.md 3: nothing has a hard edge except the blades.",
-                        kind, s[0], s[1], share, amplitude, (int) s[2], (int) s[3],
-                        Guards.SHIPPED_WIDTH, Guards.SHIPPED_HEIGHTS[0], EDGE_CEILING));
+        }
+    }
+
+    /**
+     * How much of the field's amplitude a pixel has to carry to count as ink rather
+     * than as paper.
+     */
+    private static final float FLAT_INK = 0.25f;
+
+
+    /**
+     * The thickest block of solid ink the interface may hold, <b>in frame
+     * heights</b> rather than in pixels.
+     *
+     * <p>In frame heights because the guard runs at every entry of
+     * {@code Guards.SHIPPED_HEIGHTS}, and a criterion about the <em>shape</em> of a
+     * picture cannot be stated in a unit that changes with the sheet it is printed
+     * on.
+     *
+     * <p>Derived from the alphabet rather than from the attack: it is one whole
+     * cartouche. See {@link #noMarkHoldsAFlatRunAcrossTheSheet()}.
+     */
+    private static final float FLAT_RUN_CEILING = LaneInterface.STANZA_GLYPH;
+
+    /**
+     * <b>Guard.</b> STYLE.md 10's <i>"UI panels, bars, boxes, borders"</i>, as a
+     * property of the picture rather than of the mesh.
+     *
+     * <p>This is the criterion {@code system5-debt.md} 1.3 said nobody had -- <i>"a
+     * rectangular composition whose edges are feathered... is a ban on a shape, and
+     * nothing in this project tests for a shape"</i> -- and which the pass-2 review
+     * then defeated the whole suite with, by hatching a filled panel out of legal
+     * {@link Brush} strokes until it read 0.0515, seven times softer than the
+     * interface itself.
+     *
+     * <p>The property, from {@link Raster#inkBlock}: <b>no inked region of the
+     * interface is as thick, in both axes at once, as one whole cartouche.</b> A
+     * filled region of any softness has an interior; a stroke is a ridge and a wash
+     * is a lens, so neither has one.
+     *
+     * <p>The ceiling is the alphabet's own largest element,
+     * {@link LaneInterface#STANZA_GLYPH}: 71 px at 720 rows and 53 at 540. A
+     * cartouche is a <em>gesture drawn inside a square</em>, never a filled one, so a
+     * region of solid ink as thick as a whole cartouche in both directions is
+     * something that has been filled in. Delivered, the interface's own worst is
+     * printed by this test's control line and runs about a third of that.
+     *
+     * <p>Swept over every state of every bout at every shipped resolution, and
+     * pointed at both panels -- the pass-1 reviewer's hard one and the pass-2
+     * reviewer's soft one -- in
+     * {@link #theForbiddenThingIsCaughtByTheGuardsThatForbidIt()} and
+     * {@link #theBrushOnlyHatchIsCaughtByTheFormGuardAndByNothingElse()}.
+     *
+     * <p><b>What it does not claim.</b> It is not a general detector of rectangular
+     * composition; the pass-2 review is right that nobody has one and right to accept
+     * the general form as permanent debt. It catches a <em>filled region thicker
+     * than a mark</em>, which is the family both attacks came from and, on the
+     * evidence of two passes, the only family anyone has actually built. A filled
+     * rectangle smaller than one cartouche would pass it, and at the delivered size
+     * that is a thing the eye cannot tell from a mark anyway.
+     */
+    @Test
+    void noMarkHoldsAFlatRunAcrossTheSheet() {
+        for (int h : Guards.SHIPPED_HEIGHTS) {
+            int w = Math.round(h * 4f / 3f);
+            int ceiling = Math.round(FLAT_RUN_CEILING * h);
+            for (Bout.Kind kind : Bout.Kind.values()) {
+                Bout.Staged staged = Bout.of(kind);
+                double end = staged.schedule().duration();
+                // Two passes rather than one, because the run's own thresholds are
+                // shares of the bout's largest amplitude and that is not known until
+                // the sweep is over -- and holding four hundred 960x720 fields to
+                // avoid the second pass costs a gigabyte. The step is twice the
+                // edge guard's for the same reason, and it is stated rather than
+                // hidden: the shape of the interface is a slower quantity than its
+                // gradient, but a flat region confined to one 100 ms window could
+                // hide here.
+                float amplitude = 0f;
+                for (double t = 0; t <= end; t += FLAT_STEP) {
+                    amplitude = Math.max(amplitude,
+                            Guards.interfaceField(staged, t, w, h).peak());
+                }
+                Raster.Run worst = new Raster.Run(0, true, 0, 0);
+                double worstAt = 0;
+                for (double t = 0; t <= end; t += FLAT_STEP) {
+                    Raster.Run r = Guards.interfaceField(staged, t, w, h)
+                            .inkBlock(amplitude, FLAT_INK, BORDER_MARGIN);
+                    if (r.length() > worst.length()) {
+                        worst = r;
+                        worstAt = t;
+                    }
+                }
+                System.out.printf(Locale.ROOT,
+                        "CONTROL %s at %dx%d: largest inked block %d px (limited by its %s run) at "
+                                + "(%d,%d), t=%.3f, against a ceiling of %d px (%.3f of frame "
+                                + "height)%n",
+                        kind, w, h, worst.length(), worst.horizontal() ? "horizontal" : "vertical",
+                        worst.x(), worst.y(), worstAt, ceiling, FLAT_RUN_CEILING);
+                assertTrue(worst.length() <= ceiling, String.format(Locale.ROOT,
+                        "%s at %dx%d holds a block %d px across "
+                                + "of solid ink in both axes at once (%s run, at (%d,%d), "
+                                + "t=%.3f, ink floor %.2f of the %.4f amplitude), against a "
+                                + "ceiling of %d px -- one cartouche. A brush mark is a ridge and "
+                                + "a wash is a lens; neither has an interior, and STYLE.md 10 "
+                                + "fails a pass on sight of a panel.",
+                        kind, w, h, worst.length(), worst.horizontal() ? "horizontal" : "vertical",
+                        worst.x(), worst.y(), worstAt, FLAT_INK, amplitude, ceiling));
             }
         }
     }
@@ -285,6 +468,91 @@ class InterfaceInkTest {
         assertTrue(doubled.steepestStep(BORDER_MARGIN).size() / doubled.peak() > EDGE_CEILING,
                 "a panel drawn twice defeats the topology guard, so the raster guard is the "
                         + "only thing catching it and it must");
+
+        // And the panel is a filled region, which is what the form guard is for.
+        int ceiling = Math.round(FLAT_RUN_CEILING * Guards.SHIPPED_HEIGHTS[0]);
+        Raster.Run block = panel.inkBlock(panel.peak(), FLAT_INK, BORDER_MARGIN);
+        assertTrue(block.length() > ceiling, String.format(Locale.ROOT,
+                "the bordered panel's largest flat block is %d px against a ceiling of %d; a "
+                        + "filled rectangle must be caught by the form guard as well as by the "
+                        + "edge one, or the form guard is not about form",
+                block.length(), ceiling));
+    }
+
+    /**
+     * <b>The pass-2 reviewer's attack, checked in -- and it is the one that won.</b>
+     *
+     * <p>STYLE.md 11.2b(f): <i>"try to build the thing the guard forbids while
+     * satisfying it. If you succeed, the guard's scope is the finding and the name is
+     * a lie."</i> The pass-2 review succeeded. It built a filled rectangular HUD panel
+     * out of <b>nothing but legal {@code Brush.stroke} calls</b>, drew it into
+     * {@code LaneInterface.sheet} so that it appeared in every frame of every bout,
+     * and ran the suite: <i>"tests 410, failures 0, skipped 0"</i>. The delivered
+     * frame is on disk at {@code out/captures/rev-s5p2-hatchpanel2/frame_000.png} --
+     * an opaque rectangle with a visible boundary on all four sides, in the middle of
+     * the sky, with a green suite.
+     *
+     * <p>This test asserts the whole of that finding rather than only its fix, in the
+     * order it matters:
+     *
+     * <ol>
+     *   <li>the hatch <b>passes</b> the flat-fill invariant, because every triangle
+     *       {@link Brush} emits has a zero-alpha rim;</li>
+     *   <li>it <b>passes</b> the silhouette guard, because every inked edge it emits
+     *       is interior;</li>
+     *   <li>it <b>passes</b> the raster guard by a factor of about seven -- it is
+     *       <em>softer</em> than the interface itself, which is why no ceiling on
+     *       gradient could ever have caught it;</li>
+     *   <li>and it is <b>caught</b> by {@link #noMarkHoldsAFlatRunAcrossTheSheet()},
+     *       on the one property it cannot give up: it has an interior.</li>
+     * </ol>
+     *
+     * <p>Points 1 to 3 are the exhibit; deleting them would leave the fix without the
+     * defect it answers, which is the failure mode 11.2b(f)'s closing paragraph is
+     * about.
+     */
+    @Test
+    void theBrushOnlyHatchIsCaughtByTheFormGuardAndByNothingElse() {
+        Recorder rec = new Recorder();
+        Guards.hatchPanel(rec);
+
+        for (Recorder.Triangle tri : rec.triangles) {
+            float a = rec.vertices.get(tri.a()).alpha();
+            float b = rec.vertices.get(tri.b()).alpha();
+            float c = rec.vertices.get(tri.c()).alpha();
+            assertTrue(a == 0f || b == 0f || c == 0f,
+                    "the hatch is built out of Brush.stroke, so it satisfies the flat-fill "
+                            + "invariant by construction; if it no longer does, this exhibit is "
+                            + "not the one the pass-2 review built");
+        }
+        assertTrue(Guards.inkedSilhouetteEdges(rec).isEmpty(),
+                "every edge a stroke emits is interior, so a panel hatched out of strokes has "
+                        + "no inked silhouette at all -- that is the finding, not a bug");
+
+        int h = Guards.SHIPPED_HEIGHTS[0];
+        Raster hatch = new Raster(Guards.SHIPPED_WIDTH, h);
+        hatch.paint(rec, h, 0f, 0f);
+        float share = hatch.steepestStep(BORDER_MARGIN).size() / hatch.peak();
+        Raster.Run block = hatch.inkBlock(hatch.peak(), FLAT_INK, BORDER_MARGIN);
+        System.out.printf(Locale.ROOT,
+                "CONTROL Brush-only hatch (width %.3f, pitch %.3f, strokes x0.51..1.09, box "
+                        + "x0.60..1.00 y0.60..0.90 frame heights, %dx%d): steepest 1-px step "
+                        + "%.4f of amplitude against a band of %.3f..%.3f; largest flat block "
+                        + "%d px against a ceiling of %d%n",
+                Guards.HATCH_WIDTH, Guards.HATCH_PITCH, Guards.SHIPPED_WIDTH, h, share,
+                EDGE_FLOOR, EDGE_CEILING, block.length(),
+                Math.round(FLAT_RUN_CEILING * h));
+
+        assertTrue(share < EDGE_CEILING, String.format(Locale.ROOT,
+                "the hatch reads %.4f of its amplitude in one pixel, which is well inside the "
+                        + "hard-edge band of %.3f..%.3f. That is the finding: a rectangle can be "
+                        + "softer than the interface it is hiding in, so no ceiling on gradient "
+                        + "can be the guard against chrome.",
+                share, EDGE_FLOOR, EDGE_CEILING));
+        assertTrue(block.length() > Math.round(FLAT_RUN_CEILING * h), String.format(Locale.ROOT,
+                "the hatch's largest flat block is %d px against a ceiling of %d. If this stops "
+                        + "being caught, STYLE.md 10's ban on panels has nothing behind it again.",
+                block.length(), Math.round(FLAT_RUN_CEILING * h)));
     }
 
     /**
@@ -333,6 +601,49 @@ class InterfaceInkTest {
                                     + "there ever was, and a ghost the reader cannot separate "
                                     + "says a smaller number instead.",
                             w, h, hp, max, runs));
+                }
+            }
+        }
+    }
+
+    /**
+     * <b>Guard.</b> And countable on the sheet the bout actually draws, not only on a
+     * sheet holding one tile.
+     *
+     * <p>{@link #everyCountedMarkIsCountableAtEveryShippedResolution()} sweeps the
+     * whole state space with a synthetic hand of one tile. That is the right way to
+     * cover the space and the wrong way to cover the <em>picture</em>: a player reads
+     * a charge run with its own cartouche beside it and two more above and below,
+     * and STYLE.md 11.2b(f) is explicit that a guard has to run where the product
+     * ships. This one reads the delivered {@link Look} of every bout, at every hand
+     * position, at every shipped height.
+     *
+     * <p>Written because an independent delivered-pixel reading of
+     * {@code s5-p3-fold-replan} disagreed with the geometry guard, and the only way
+     * to tell a defect from a bad reader is to put the question inside the suite.
+     */
+    @Test
+    void everyChargeRunIsCountableOnTheSheetTheBoutDraws() {
+        for (int h : Guards.SHIPPED_HEIGHTS) {
+            int w = Math.round(h * 4f / 3f);
+            for (Bout.Kind kind : Bout.Kind.values()) {
+                Bout.Staged staged = Bout.of(kind);
+                double end = staged.schedule().duration();
+                for (double t = 0; t <= end; t += 0.5) {
+                    Look look = staged.readout().at(t);
+                    for (int i = 0; i < look.hand().size(); i++) {
+                        Look.Held held = look.hand().get(i);
+                        int expected = held.banked() ? 0 : held.cooldown();
+                        int runs = Guards.tickRunsInHand(look, i, w, h).size();
+                        assertEquals(expected, runs, String.format(Locale.ROOT,
+                                "%s at t=%.2f, %dx%d, hand position %d (%s, %d of %d charges, "
+                                        + "banked=%s): the sheet draws %d separable marks where "
+                                        + "the tile carries %d. A player counts what is separable, "
+                                        + "so this is a wrong number on the resource that decides "
+                                        + "whether a tile can be banked.",
+                                kind, t, w, h, i, held.type(), held.charges(), held.cooldown(),
+                                held.banked(), runs, expected));
+                    }
                 }
             }
         }
@@ -529,6 +840,45 @@ class InterfaceInkTest {
     }
 
     /**
+     * <b>Guard.</b> The shot the graded bouts plan in puts the hero at a size the
+     * corpus asks a figure to carry meaning at.
+     *
+     * <p>This is STYLE.md 11.0's matched-scale failure written as an assertion. The
+     * pass-2 review measured the graded planning frame's hero at <b>77 px</b> of 720
+     * -- 0.107 of the frame -- resolving six readable parts against reference image
+     * 3's sixteen, and called it <i>"still a diagram, and by this instrument it went
+     * backwards"</i>. Measured on the eight reference images, the smallest figure the
+     * corpus asks anything of is a Family C background figure at about 0.22 of the
+     * frame height; the Family B duellists run 0.55 to 0.65.
+     *
+     * <p>The share is arithmetic on the framing rather than on a capture, so it
+     * cannot go stale: at 4:3 a shot {@code w} tiles wide holds {@code w * 1.55 *
+     * 0.75} world units vertically and {@link Stage#FIGURE_HEIGHT} is 1.70 of them.
+     */
+    @Test
+    void theGradedBoutsPlanAtASizeTheCorpusAsksAFigureToCarry() {
+        for (Bout.Kind kind : Bout.Kind.values()) {
+            Bout.Staged staged = Bout.of(kind);
+            double w = staged.planning().widthTiles();
+            double share = Stage.FIGURE_HEIGHT / (w * 1.55 * 0.75);
+            System.out.printf(Locale.ROOT,
+                    "CONTROL %s plans at %.4f tiles centred on tile %.2f: a standing figure is "
+                            + "%.4f of the frame height, %.0f px of 720 (lane's own framing "
+                            + "%.4f tiles, which would give %.0f px)%n",
+                    kind, w, staged.planning().centreTile(), share, share * 720,
+                    new Stage(kind.laneLength()).planning().widthTiles(),
+                    Stage.FIGURE_HEIGHT / (new Stage(kind.laneLength()).planning().widthTiles()
+                            * 1.55 * 0.75) * 720);
+            assertTrue(share >= 0.20, String.format(Locale.ROOT,
+                    "%s plans at %.4f tiles, which puts the hero at %.4f of the frame height "
+                            + "(%.0f px of 720) against the corpus's own floor of 0.20. STYLE.md "
+                            + "11.0: if the count is short, fixing the material is refinement of "
+                            + "the wrong thing.",
+                    kind, w, share, share * 720));
+        }
+    }
+
+    /**
      * <b>Guard.</b> STYLE.md 9's "wide to plan" happens <em>before</em> the next
      * command, not after it.
      *
@@ -549,7 +899,10 @@ class InterfaceInkTest {
         for (Bout.Kind kind : Bout.Kind.values()) {
             Bout.Staged staged = Bout.of(kind);
             Stage stage = new Stage(kind.laneLength());
-            double plan = stage.planning().widthTiles();
+            // The score's own planning framing, not the lane's. Since
+            // Stage.planning(Standing) the two differ on purpose: the lane's width
+            // still sets how long a push-in takes, and the exchange sets the shot.
+            double plan = staged.planning().widthTiles();
             double room = stage.returnSeconds() + stage.pushInSeconds();
             var beats = staged.schedule().beats();
             for (int i = 1; i < beats.size(); i++) {

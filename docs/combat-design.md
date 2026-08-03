@@ -287,7 +287,29 @@ borders. Specifically here:
   compared the capture's sky against reference image **1** — a Family A *cream sheet* — and
   found 16× less surface; against the sky of the family this stage is actually quoting, the
   capture matches to 1% (3 px high-pass sd 0.476 against reference image 3's 0.481, boxes
-  `x300..699 y120..319` and `x80..699 y80..239`). §3b.3's aged paper is a Family A ground and
+  `x300..699 y120..319` and `x80..699 y80..239`).
+
+  ***"Matches to 1%" was a single-image result, and §11.0 forbids that by name.*** Measured
+  across the whole family through one reader, 3 px high-pass sd on the same boxes: **image 3
+  0.4924, image 4 0.7482, image 5 0.5657** — a spread of 1.5× within Family B alone — and
+  Family C's skies run 0.8059, 1.1453 and 5.5014. Pass 2's capture read **0.4743**, which is
+  0.96× the *smoothest* sky in the corpus and 0.63× the roughest: it sat at or below the floor
+  of the corpus's own spread and matched only one image in it. Pass 3's fog bands put surface
+  back into the sky and it now reads **0.5612**, which is inside Family B's band (1.14× image
+  3, 0.99× image 5, 0.75× image 4) rather than under it.
+
+  **And which family the planning framing belongs to is settled here rather than left implicit.**
+  Pass 2 calibrated its fog on image 6 (Family C) and its substrate on image 3 (Family B) for
+  the same shot, and the pass-2 review was right to call that an inconsistency — but the
+  resolution is not to pick one. `STYLE.md` §1 already divides the labour: Family B *"governs
+  the combat stage… the overall colour script of a fight. This is the primary template for the
+  game screen"*, and Family C *"governs atmosphere, depth/fog, background figures, the planning
+  phase"*. So the **surface** standard is Family B's, because the surface is the stage's, and
+  the **air** standard is Family C's, because §9's "heavy fog, Family C mood" is an instruction
+  about atmosphere. One shot, two families, one for each question — which is what §1 says and
+  what neither pass had written down.
+
+  §3b.3's aged paper is a Family A ground and
   cannot be given to a dusk sky without turning the stage into a different family. What the
   interface can sit on, and now does, is **its own margin**: the two margins carry foxing —
   irregular stains at a scale far above the pixel grid, so §3b.1's anti-shimmer rule is not

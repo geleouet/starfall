@@ -212,6 +212,18 @@ public final class Scheduler {
     private double lastRamp = Double.NEGATIVE_INFINITY;
 
     private Framing framing;
+    /**
+     * The shot this score plans in: {@link Stage#planning(Standing)} taken from the
+     * board as it opens, and <b>held</b> for the whole score.
+     *
+     * <p>Held rather than recomputed, and that is a rule rather than a saving.
+     * STYLE.md 9 asks for a <em>held</em> wide shot with a slight drift on it; a
+     * planning framing that followed the bodies would re-aim every time a Charted
+     * Shadow closed a tile, so "wide to plan" would mean a different shot on every
+     * turn and the drift would be swamped by the tracking. The exchange decides the
+     * shot once, at the moment the score is cut.
+     */
+    private Framing plan;
     private double framingAt;
     private int driftPhase;
     private double floor;
@@ -222,8 +234,14 @@ public final class Scheduler {
     public Scheduler(Stage stage, Standing opening) {
         this.stage = stage;
         this.standing = opening.copy();
-        this.framing = stage.planning();
+        this.plan = stage.planning(this.standing);
+        this.framing = this.plan;
         this.framingAt = 0.0;
+    }
+
+    /** The shot this score plans in. See {@link #plan}. */
+    public Framing planningFraming() {
+        return plan;
     }
 
     /** The board as the scheduler currently understands it. Read-only in practice. */
@@ -332,6 +350,14 @@ public final class Scheduler {
             wantWide = true;
         }
         standing.apply(e);
+        if (e instanceof CombatEvent.EncounterBegan && framingAt <= 0.0) {
+            // The stream has just named the hero, so the exchange is now known for
+            // certain rather than by Standing's lowest-id fallback. Re-aiming is
+            // free here and only here: no camera key has been emitted yet, so this
+            // cannot move a shot, only decide the one the score opens on.
+            this.plan = stage.planning(standing);
+            this.framing = this.plan;
+        }
     }
 
     private void began(CombatEvent.EncounterBegan e) {
@@ -889,7 +915,6 @@ public final class Scheduler {
      * {@code cursor()}, which is the same instant when there is nothing after it.
      */
     private void returnWide(double at) {
-        Framing plan = stage.planning();
         if (same(plan, framing)) {
             return;
         }

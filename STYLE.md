@@ -789,7 +789,10 @@ Poetic beats, not physical impacts. The vocabulary:
 
 - **No chrome.** No boxes, no bevels, no bars with borders, no drop shadows, no gradients that
   look like glass. Nothing that reads as "widget".
-- UI elements are **brush marks on the paper**: the action queue is three ink cartouches, the
+- UI elements are **brush marks on the paper**: the action queue is a column of ink cartouches
+  — five of them, per `combat-design.md` §1.1a; this line said "three" until System 5 pass 3,
+  which is the count the queue had before §1.1a settled it at five and is the number the
+  pass-2 review caught still standing here — the
   health is a **row of ink strokes at the head of the stanza**, drying and fading as it drops,
   and never a second column beside it; the tile grid is a row of faint wash marks that only
   intensify near relevant tiles.
@@ -872,7 +875,7 @@ A reviewer should fail a pass on sight of any of these:
 | Symmetric, uniform particle bursts | Reads as a particle system, not as ink |
 | Snappy springs, visible oscillation | Mechanical, not dreamlike |
 | Uniform hair motion | Reads as a flag, not as hair |
-| UI panels, bars, boxes, borders | Chrome; breaks the paper illusion |
+| UI panels, bars, boxes, borders | Chrome; breaks the paper illusion. **This is a ban on a *shape*, and for two passes nothing tested for one:** the hard-edge guards ask how fast ink arrives, and a rectangle answers by feathering its rim or by being hatched out of legal brush strokes until it is seven times softer than the interface it hides in (`system5-debt.md` §1.3, and the pass-2 review's own exhibit at 0.0515). The criterion that does bite is about form — **no inked region is thick, in both axes at once, as a whole cartouche** — because a filled region has an interior and a stroke is a ridge. Added in System 5 pass 3 with both panels checked in as fixtures. It does not catch a filled region *smaller* than a mark, and nobody has a general detector of rectangular composition; that remains open. |
 | Screen-space noise that swims over moving surfaces | Exposes the shader, breaks material illusion |
 | Straight-line slash VFX | Generic action game |
 | Cel-shaded / anime flat fills | Wrong medium entirely — this is wash, not cel |

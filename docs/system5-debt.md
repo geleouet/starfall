@@ -1,21 +1,28 @@
 # System 5 — standing debt
 
-**Status: pass 2 shipped, answering the pass-1 review's FAIL. Not self-declared a pass.**
+**Status: pass 3 shipped, answering the pass-2 review's FAIL. Not self-declared a pass.**
 A reviewer must never grade work it produced, and this document grades nothing; it records
-what was built, what was measured, what was corrected in pass 1's own account, and what is
+what was built, what was measured, what was corrected in pass 2's own account, and what is
 still owed.
 
-Every capture quoted is `s5-p2-*`, shot at `harness=f0ad18994eec` — the hash that produced
-every `s4-*`, `rev-p*` and `s5-p1-*` capture, so comparisons back to pass 1 and to System 4
-are in scope per §11.2b(d). Every number about the interface is a **difference against a
-`-bare` control shot at the same harness in the same window**, and is printed beside the
-rectangle it was taken through (§11.3). Every pixel number was taken with an independently
-written NumPy/PIL reader using the Rec. 709 weights `Frame.java` declares (§11.2b(c)); where
-a pass-1 figure is quoted for comparison it was **re-measured through that same reader on the
-pass-1 captures**, so the two columns are one instrument.
+Every capture quoted is `s5-p3-*`, shot at the harness the tree is at. Every number about the
+interface is a **difference against a `-bare` control shot in the same window at the same
+harness** (§11.2b(g)), and is printed beside the rectangle it was taken through (§11.3). Every
+pixel number was taken with an independently written NumPy/PIL reader using the Rec. 709
+weights `Frame.java` declares (§11.2b(c)); where a pass-2 figure is quoted for comparison it
+was **re-measured through that same reader on the pass-2 captures**, so the two columns are
+one instrument.
 
-Suite: **404 tests green, 2 skipped** — both `DuellistValueTest`'s, which are System 4's and
-are fixed upstream by `tools/check-progress.mjs`.
+Suite: **413 tests, 0 failures, 0 skipped**, verified by parsing
+`build/test-results/test/*.xml` after `./gw test --rerun-tasks`.
+
+**A framing decision arrived mid-pass and is recorded here because it changes how this work
+should be read.** The owner has ruled that the planning view is **a map, not a picture** —
+maximum tactical readability, deliberately soberer aesthetic — so the pass-2 review's verdict
+*"a diagram on a nice background"* is no longer a failure at that framing. What survives from
+its item 1, and is what this pass acted on, is the half about **legibility**: the fog was spent
+as alpha attenuation of the subject, which removed marks from the figure and added none. A map
+whose pieces are harder to read is a worse map.
 
 ---
 
@@ -23,643 +30,577 @@ are fixed upstream by `tools/check-progress.mjs`.
 
 | # | The review's finding | Status |
 |---|---|---|
-| 1 | Guard A's stated scope is false; a bordered HUD panel passes the whole suite | **Fixed, and the scope is now itself tested.** §1 |
-| 2 | `Glyph.of(STEP,-1)` is vertex-identical to `Glyph.of(BACK_STEP,+1)`; nothing watches distinctness | **Fixed.** 16 of 18 shapes → 18 of 18; closest cross-tile pair 0.000 → **0.733**. §2 |
-| 3 | The Parry glyph draws the collision its own rubric forbids | **Redrawn as a deflection over a span.** §3 |
-| 4 | The graded frame is a diagram on a nice background; no fog, no substrate | **Partly.** Fog delivered and calibrated on the corpus; substrate corrected rather than delivered; the framing law was not opened. §4 |
-| 5 | The health row is the loudest mark in the margin | **Fixed:** +99.6 → **+72.8**, against the stanza's +94.7. §5.1 |
-| 6 | Five claims in this document do not reproduce | **All five corrected, and a sixth of the review's own does not reproduce.** §6 |
-
-The three design challenges were upheld and are implemented: the base-anchored column is
-unchanged and its wording is now in `combat-design.md` §3; health is a row and `STYLE.md` §8
-says so; and the cooldown obligation — *countable at every shipped resolution or not a count*
-— is discharged in §5.2 and recorded in `combat-design.md` §3d.3.
+| 1 | The graded planning shot went backwards: ~8 readable parts → ~6, hero 87 px → 77 px, because the fog was spent attenuating the subject | **Answered.** Fog is bands and adds marks; the subject-attenuation term is halved; the framing law is open and the hero is **194 px**. §1 |
+| 2 | The raster guard hard-codes `SHIPPED_HEIGHTS[0]` and is red at 540 (0.3563 vs 0.34); its message prints `960x720` whatever it measured; the ceiling is fitted, not derived | **Fixed, all three.** It enumerates the axis, reports its own parameters, and the ceiling is a corpus-derived **band with both edges**. §2 |
+| 3 | A panel hatched from only legal `Brush.stroke`s reads 0.0515 and passes all 410 tests | **Closed by a criterion about form**, with the exhibit checked in. §3 |
+| 4 | `BACK_STEP` reads as an attack; `THRUST` reads as two footfalls; `FEINT` is invisible at peak lift 4.5; the `SWEEP` exception lives in prose | **All four addressed.** §4 |
+| 5 | Six claims in this document do not reproduce | **All six corrected or struck.** §5 |
+| 6 | The substrate was calibrated on one image; the fog on another family | **Re-run across the family, and the two families are now assigned by question.** §6 |
 
 ---
 
-## 1. The hard-edge guard, which was the FAIL
+## 1. The composition, which was the standing failure
 
-### 1.1 What pass 1 asserted, and what it claimed
+### 1.1 The framing law, opened
 
-```java
-assertTrue(a == 0f || b == 0f || c == 0f, …)
-```
+`Stage.planning(Standing)` is new and it is the item three reviews in a row have named and two
+have declined. The planning framing is now taken from **the exchange** — the hero and the
+Charted Shadow nearest it — with the same margin the lane law already spends, floored at
+`Stage.SHORTEST_PLANNING` (the five-tile lane's own planning framing, 6.5 tiles) and capped at
+the lane's own framing so it can only ever tighten a shot.
 
-> *"every triangle a brush emits has at least one vertex at exactly zero alpha… **A panel, a
-> bar, a border, a rounded rectangle or an icon in a frame all fail it on the first triangle,
-> whatever they are shaded with.**"*
-
-The sentence was false and the review proved it in the only way it could be proved: by
-building the forbidden thing. A triangle `(0, α, α)` satisfies the assertion and prints a hard
-edge along its `α–α` side.
-
-### 1.2 Three assertions now, and each says only what it tests
-
-**`noTriangleInTheInterfaceIsAFlatFill`** — pass 1's assertion, kept, renamed, and with the
-false sentence deleted. It is a true and useful invariant of `Brush` and it is **not** a
-hard-edge certificate.
-
-**`noMarkPutsInkOnASilhouetteEdge`** — the property the old name promised. *No edge of the
-emitted mesh that belongs to a single triangle carries ink at both of its ends.* Interior
-edges may be as dark as they like; it is the **outline** that must be on paper. That is what
-actually makes `Brush` edgeless: a stroke's two rims sit on zero either side of the spine, so
-every inked edge it emits is shared with the triangle beside it, and a wash is a fan whose rim
-is on zero. Swept over all three bouts at 60 Hz.
-
-**`noMarkPrintsAnEdgeInTheRasterItWouldDraw`** — the same rule measured where an edge exists.
-`Raster` (test scope) composites the emitted triangles at 960×720 with the renderer's own
-premultiplied over, and the statistic is the review's own: **the steepest single-pixel step as
-a fraction of the interface's own amplitude.** Ceiling **0.34**, derived rather than chosen —
-see §1.3. Delivered worst over all three bouts at 20 Hz: **0.266 / 0.225 / 0.244** (`KNIFE`, `FOLD`, `APPROACH`).
-
-Two things about the instrument, both found by it manufacturing the artefact it looks for:
-
-- **The fill rule matters.** Without the top-left rule a pixel exactly on a shared edge is
-  composited twice, and two coats of a 0.30 wash print a 0.51 line one pixel wide.
-- **The edge functions have to be in `double`.** A reach pool at the intimate framing is a fan
-  of 28 slivers 127 px long and 15 px tall; in `float` the tests on adjacent slivers disagree
-  by an ulp often enough to leave **single-pixel holes**, and one such hole read 0.15 between
-  neighbours at 0.39 and was the steepest "edge" in the interface.
-
-### 1.3 The adversarial instance, per §11.2b(f) — **and it partly succeeded**
-
-*"Try to build the thing the guard forbids while satisfying it. If you succeed, the guard's
-scope is the finding and the name is a lie."* Four attempts, all measured through the raster
-the guard uses, box `x0.60..1.00 y0.60..0.90` in frame heights:
-
-| attempt | inked silhouette edges | steepest 1-px step / peak | caught by |
-|---|---|---|---|
-| 1. the reviewer's panel, as written | **2** | **1.000** | both |
-| 2. the same panel, **every triangle drawn twice** | **0** | **1.000** | raster only |
-| 3a. filled panel, 1 px feather | 0 | 0.500 | raster |
-| 3b. filled panel, 2 px feather | 0 | 0.500 | raster |
-| 3c. filled panel, 3 px feather | 0 | 0.333 | **neither** (0.333 vs a 0.34 ceiling) |
-| 3d. filled panel, 5 px feather | 0 | **0.200** | **neither** |
-| 4. a panel hatched out of 90 legal `Brush` strokes | 0 | 0.360 | raster |
-
-**Attempt 2 defeats the topology guard outright** and is checked in inside
-`theForbiddenThingIsCaughtByTheGuardsThatForbidIt`, so that deleting the raster guard can never
-look safe. Drawing every triangle twice makes every boundary edge appear an even number of
-times; the mesh looks closed and the picture is unchanged.
-
-**Attempts 3c and 3d succeed against both guards, and that is the finding.** A filled
-rectangle whose four sides fade to zero over four or more pixels passes everything here. So
-the scope of these two guards, stated exactly:
-
-> They forbid a **printed boundary** — any construction, however meshed, that delivers more
-> than a third of its amplitude in a single pixel. They do **not** forbid a rectangular
-> *composition* whose edges are feathered. `STYLE.md` §10's "UI panels, bars, boxes, borders"
-> is a ban on a **shape**, and nothing in this project tests for a shape.
-
-Pass 1's device 3 conflated the two and that conflation is what made its sentence false.
-Catching a soft-edged panel needs a criterion about form, not about gradient, and **nobody has
-one. Unpaid, with the exhibit above written down so the next pass does not have to rediscover
-it.**
-
-The ceiling of 0.34 is a third of what a hard edge reads through the same instrument (1.000,
-measured, not assumed), which is the same as saying *a mark must take at least three pixels to
-arrive*. Attempt 3c lands at 0.333 — one part in a hundred inside the ceiling — so the guard's
-boundary is exactly where its statement puts it and not somewhere convenient.
-
-### 1.4 And in delivered pixels, which is where §3's rule lives
-
-`D = luminance(live) − luminance(bare)`, largest single-pixel `max|∂D|` in either axis, as a
-fraction of that capture's peak `|D|`, over **every frame of every capture that has a
-control**, ignoring an 8 px frame border for the reason the pass-1 review gave (a pool the
-viewport cuts is not a printed boundary).
-
-| capture | frames | worst step / amplitude | where |
-|---|---|---|---|
-| `s5-p2-fold-plan` | 6 | **0.244** | frame 0, step 22.9, amp 93.7 |
-| `s5-p2-fold-strike` | 12 | **0.223** | frame 0, step 20.7, amp 92.8 |
-| `s5-p2-fold-pushin` (@0.0167) | 48 | **0.263** | frame 32, step 15.8, amp 60.0 |
-| `s5-p2-fold-replan` | 5 | 0.250 | frame 3, step 23.8, amp 95.0 |
-| `s5-p2-fold-empty` | 4 | 0.286 | frame 0, step 23.6, amp 82.7 |
-| `s5-p2-knife-plan` | 4 | 0.277 | frame 0, step 26.7, amp 96.5 |
-| `s5-p2-approach-plan` | 4 | 0.250 | frame 2, step 23.8, amp 95.2 |
-| `s5-p2-fold-plan` **at 720×540** | 6 | 0.296 | frame 0, step 28.1, amp 94.9 |
-| `s5-p2-fold-replan` **at 720×540** | 5 | **0.334** | frame 4, step 30.7, amp 91.9 |
-| `s5-p2-fold-bleed` (@0.0167) | 36 | **0.432** | frame 35, step 15.4, amp **35.7** |
-
-Controls in the same pixels, on the **bare** frame (`fold-plan` frame 3):
-
-| control region | worst 1-px step |
-|---|---|
-| blades and figures, `x360..539 y470..519` | 68.4 / 70.5 |
-| left figure, `x220..289 y420..519` | **114.5 / 115.5** |
-
-**The pass-1 result is preserved and slightly improved on the graded captures** — 0.244 and
-0.223 against pass 1's 0.249 and 0.242, re-measured through my reader on the pass-1 captures
-as 0.249 and 0.242 exactly. The interface's steepest transition takes four pixels; the figure
-beside it steps five times harder.
-
-**Two rows are worse than pass 1's and both are new measurements rather than regressions.**
-
-- **720×540 costs softness.** Every mark is 25% narrower in pixels at 540 rows, so every rim is
-  25% steeper: 0.244 → 0.296 on the graded frame and 0.250 → 0.334 on the replan. That is the
-  price of a shipped second resolution and it is now on the record instead of unmeasured.
-- **`fold-bleed` at 0.432 is a normalisation artefact and the absolute number says so.** That
-  window sits at the intimate framing where the interface has given up most of its presence,
-  so the frame's own amplitude is 35.7 where the planning frame's is 93.7. The *absolute*
-  step, 15.4 luminance levels, is the **smallest** of any capture in the table. Against the
-  amplitude the interface reaches at its strongest it is **0.164**. The checked-in raster guard
-  normalises against the bout's strongest amplitude for exactly this reason and says so in its
-  own docstring; this table keeps the review's per-capture form so the two are comparable.
-
-**The blade controls fell** — 81.6/129.4 in pass 1 to 68.4/114.5 here — because the distance
-haze of §4.1 softens the figures at the planning framing, which is what it is for. The ratio
-that matters is unchanged in kind: the interface's steepest step is **5.0×** softer than the
-softest blade in the same frame (pass 1: 5.2×).
-
----
-
-## 2. Two tiles, two pictures
-
-`Glyph.of(STEP, -1)` was **vertex-identical** to `Glyph.of(BACK_STEP, +1)`: 16 distinct shapes
-for 18 `(tile, facing)` pairs, and the two that merged were forward and back on a lane.
-
-**`BACK_STEP` is re-authored** rather than mirrored. Pass 1's note — *"retreat has no verb, so
-the mark is the Step's own gesture read the other way"* — is the bug stated as a design
-principle. The retreat now has its own asymmetry, taken from what a retreating body does: the
-front foot does not lift and land, it **drags**. Three marks rather than two — the heel
-travelling back and settling, the weight still standing where it was, and a dry scuff under
-the travel. Nothing in the Step has a hook and nothing in it is dry.
-
-**`noTwoTilesAreTheSamePicture`** guards it. Each mark is rasterised alone at the shipped 71 px
-cartouche and compared as a *picture*: `Σ|a−b| / Σ max(a,b)`, which is 0 for identical marks and
-1 for marks sharing no paper. Floor 0.20.
-
-| | pass 1 | pass 2 |
-|---|---|---|
-| closest **cross-tile** pair, of 144 comparisons | **0.000** (`STEP-` vs `BACK_STEP+`) | **0.733** (`STEP+` vs `BACK_STEP+`) |
-
-**Where this is narrower than the review asked, and the measurement that made it narrower.**
-The review asked for distinctness across all 18 pairs. Measured, the same-tile mirror distances
-are `CUT 0.856, THRUST 0.792, PARRY 0.847, SWEEP 0.154, DRAW 0.906, STEP 0.943, BACK_STEP 0.890,
-TURN 0.793, FEINT 1.000`. **Sweep is the exception and it is correct**: *"one continuous arc
-through two bodies"* hits the tile in front and the tile behind, its mark is a near-symmetric
-230° arc, and requiring it to differ under mirroring would require the alphabet to lie about a
-symmetric gesture. So the assertion is on the property the collision actually broke — two
-*different* tiles never draw one picture, at any pair of facings — and the same-tile numbers
-are recorded here instead of asserted.
-
-A note the distinctness measurement produced on its own: mean absolute difference over the
-cartouche box, the obvious statistic, is useless here — a Feint and its own mirror, which are
-opposite diagonals, measured **0.0037** apart on it, because a sparse mark resembles every
-other sparse mark when the denominator is the box.
-
----
-
-## 3. The Parry, which is the signature beat
-
-`combat-design.md` §2.2 asks for *"a deflection curve rather than a collision"*, and §3d's
-closing note spends a paragraph on why reading the meeting as a point *"collapses the
-deflection to a point, which is the collision the whole document exists to forbid."* Pass 1
-drew two straight lines meeting at a sharp apex.
-
-The mark is now two Catmull-Rom curves, and what settles its shape is `STYLE.md` §7.1's own
-sentence about the beat: *"contact is a span rather than an instant."* So the meeting is a
-**span** and the redirection is a **curve** —
-
-- the defending blade is a long shallow arc that rolls as it takes the weight and never
-  changes direction;
-- the attack comes down steeply from above, runs alongside it across the middle third of the
-  mark at a small fixed gap, and leaves climbing.
-
-There is no vertex anywhere in it. Delivered at the shipped cartouche it reads as two blades
-sliding past each other and parting, which is the beat.
-
-**The cold read was protected by construction and then checked.** Of the five glyphs the
-pass-1 reviewer read correctly cold, only Parry changed; `CUT`, `THRUST`, `SWEEP` and `STEP`
-are untouched, and `BACK_STEP` — which did change — is not one of the five and appears in the
-graded stanza only in Act III. The new Parry was rendered at the shipped 71 px side and at the
-delivered planning framing and inspected before it was accepted. **Whether it still reads as
-*Parry* to someone who has not been told is a human judgement and only a reviewer can make
-it**; §11.2b(g)'s word for anything else here is "nobody has measured this".
-
-`DRAW` and `TURN` were also touched, for a measured reason rather than a design one: at their
-authored widths the stroke's own half-width was wider than the radius of its hook, so the
-ribbon folded across itself and the two coats printed a bright core with a step at its
-boundary — **0.528 of amplitude** through the raster, the steepest thing the layer drew. Both
-hooks are opened and both ribbons narrowed. A brush lifts as it turns.
-
----
-
-## 4. The composition
-
-### 4.1 Fog, and it is calibrated on the corpus rather than by eye
-
-`STYLE.md` §9 asks the planning framing for *"the full lane readable, figures small, heavy fog,
-Family C mood"*, and pass 1 delivered the first two only. A single dial now attenuates the
-figures with the **framing width** — `Readout.haze`, full at 12.5 tiles, so a five-tile knife
-fight lands at 0.35 of it and a fifteen-tile approach is saturated. It is a function of the
-framing width alone, so it inherits `Schedule.cameraIsContinuous` and cannot step; the
-recession guard now sweeps it at 60 Hz beside the interface's own recession.
-
-**It is an alpha term first and a tint second, and that ordering is a measurement.** Mixing a
-near-black figure toward `Fog #D6D2CE` on a *dusk* stage does not dissolve it, it **inverts**
-it: at a mix of 0.45 the ink passes through the sky's own value and comes out brighter than the
-sky. What dissolves a dark figure into a dark sky is letting the sky through it.
-
-**The strength was set by measuring the corpus, and the first setting was twice too strong.**
-Reference image 6, the Family C image the planning framing is quoting:
-
-| | contrast (sky − darkest 3%) | ratio |
-|---|---|---|
-| foreground figure, top panel `x420..660 y200..520` vs sky `x100..380 y30..150` | 180.2 | 23.62× |
-| background figure, top panel `x200..295 y180..395` vs local `x100..190 y200..320` | 166.0 | 5.69× |
-| foreground figure, bottom panel `x260..600 y700..1050` | 147.6 | 19.61× |
-| background figure, bottom panel `x95..190 y800..1010` | 97.7 | 3.29× |
-
-So a Family C background figure keeps **66–92% of the foreground's absolute contrast** while
-its value **ratio collapses to a fifth**. Those are compatible there because that ground is
-luminance 188: lifting the ink from 8 to 35 costs a fifth of the ratio and a twelfth of the
-contrast. **On a dusk stage the ground is luminance 59 and they are not compatible** — the
-ratio collapse the corpus shows would erase the figure. The absolute retention is what is
-matched; the ratio is recorded as a thing a dark ground cannot deliver, which is the same
-finding `STYLE.md` §2.2's own note about the value floor already carries in the other
-direction.
-
-Delivered, hero box `x225..270 y429..514` against local sky `x300..699 y380..420` on the bare
-control, and execution box `x340..470 y300..660` against `x700..940 y120..300`:
-
-| | contrast at the planning framing | at the execution framing | wide keeps |
-|---|---|---|---|
-| pass 1 | 33.4 (ratio 2.28×) | 33.8 (2.27×) | **99%** |
-| pass 2 | **21.0** (ratio 1.55×) | 31.9 (2.11×) | **66%** |
-
-66% is the bottom of the corpus's own band. Going wide now costs value the way distance does.
-
-### 4.1a A term that multiplies out to the identity is not free, and this cost a day to find
-
-`u_haze` is zero on every scene but the lane. Written straight through, the two lines it
-drives are the identity at zero — `mix(x, y, 0.0)` is `x` and `alpha * (1.0 - 0.0)` is `alpha`,
-exactly, in IEEE arithmetic. **They are still not free.** Shot against the same scene with the
-lines deleted, `duel-parry` differed by **1,180 pixels over six frames**; the null control for
-that comparison — the same scene shot twice at one commit, which §11.2b(g) requires and which
-this pass ran before believing anything — is **0**. The driver recompiles the expression tree
-around the dead code.
-
-Behind a branch on the uniform, the same comparison is **0 of 691,200 on every frame**. So
-System 4's captures are bit-identical across this change, and they would not have been if the
-obvious form of the code had shipped. The general shape of it is worth more than the instance:
-**"this term is the identity when the flag is off" is a claim about arithmetic and not about a
-compiler**, and on this project it is exactly the kind of sentence §11.2b(g) says to read as
-*nobody has measured this*.
-
-### 4.2 The substrate: corrected, not delivered — and the review's own number does not survive
-
-`combat-design.md` §3 requires the interface to sit on §3b.3's aged paper. The review measured
-the planning sky's 3 px high-pass sd against **reference image 1** — a Family A *cream sheet* —
-and reported 16× less surface.
-
-Re-measured through my own reader (absolute values differ from the review's because the kernels
-differ; the ratios are the claim):
-
-| region | high-pass sd |
-|---|---|
-| S5 planning sky (bare), `x300..699 y120..319` | **0.476** |
-| **reference image 3 sky**, `x80..699 y80..239` | **0.481** |
-| reference image 1 paper, `x60..699 y60..299` | 6.524 |
-
-**Against the sky of the family this stage is quoting, the capture matches to 1%.** The 13×
-gap is between a dusk sky and a Family A paper ground, which are different surfaces in
-different families. That correction is now in `combat-design.md` §3 as the fourth
-contradiction, filed rather than resolved quietly — which is the half of this the pass owed and
-did not file.
-
-The other half was real. The margin's marks read as *"pale scratches floating in the sky"*, so
-both margins now carry **foxing**: irregular stains, some cool and some ochre, at a scale far
-above the pixel grid so §3b.1's anti-shimmer rule is untouched. Measured through a mark-free
-band of the left margin, `x140..176 y60..400`, live over bare:
-
-| high-pass kernel | pass 2 live / bare | pass 1 live / bare |
-|---|---|---|
-| 3 px | 0.452 / 0.440 = **1.03×** | 0.440 / 0.440 = 1.00× |
-| 9 px | 0.531 / 0.475 = **1.12×** | 1.00× |
-| 17 px | 0.746 / 0.487 = **1.53×** | 1.00× |
-
-**It is stain structure and not tooth, and the numbers say so plainly.** A wash primitive can
-carry a stain; a 3 px tooth in the margin needs a noise field in the fragment shader, which is
-`PaperBackground`'s to give and is **unpaid**.
-
-### 4.3 The hand, and the right third of the graded frame
-
-Pass 1's bouts held exactly `InkStanza.CAPACITY` tiles, so filling the stanza emptied the hand
-and the review measured the graded shot's right third at **1.016×** its control. Every bout
-now holds **seven** tiles: the same five, banked, in the same order — because they are the
-stanza the reviewer read cold and nothing was allowed to disturb them — plus two that stay on
-the sheet with their charges on them.
-
-Box `x790..919 y30..359` (the review's own) and `x640..919 y28..500` (the whole hand, which the
-larger glyph and pitch now reach):
-
-| box | pass 1 | pass 2 |
-|---|---|---|
-| `x790..919 y30..359` mean ratio | 1.016× | 1.020× |
-| `x640..919 y28..500` mean ratio | 1.005× | 1.010× |
-| `x640..919 y28..500` **peak lift** | **+21.3** | **+77.8** at (865,404) |
-| `x640..919 y28..500` ink px (lift > 4) | 4764 | 6685 |
-
-**The mean ratio barely moves and that is the honest number**: the box is mostly sky and a
-ratio over it measures the sky. What changed is that the right third now carries a mark at
-**3.65× the strength** it did, because there is a live tile in it rather than five ghosts.
-
-The two extra tiles differ by lane and between the three bouts they cover **Back-step, Feint,
-Draw and Turn** — the four letters of the alphabet the review found had never been through the
-renderer — plus one enchanted tile in each of `FOLD` and `APPROACH`, so an enchantment mark is
-drawn for the first time as well.
-
-### 4.4 What the composition statistic says, including the part that got worse
-
-`>8` luminance from the pixel's own row median, the review's statistic:
-
-| | pass 1 | pass 2 |
-|---|---|---|
-| bare **planning** frame that is anything at all | 4.84% | **4.76%** |
-| bare **execution** frame | 16.61% | **14.71%** |
-| the interface | 2.09% | **2.16%** |
-| interface / world | 0.43 | **0.45** |
-
-**This got slightly worse and the reason is the fog.** Attenuating the figures is exactly what
-§9 asked for and it removes pixels from a statistic that counts *deviation*, so the two
-requirements pull against each other: the frame is more atmospheric and, by this measure, less
-featured. The interface's own share rose 0.07 points, from the foxing and the larger hand.
-
-**§11.0's matched-scale part count was not re-run, and the fog makes it worse rather than
-better.** The figures are System 4's, unchanged; the haze removes contrast from them at the
-planning framing by design. The review declined to fail System 5 for the count and this pass
-has no answer to it either. **Unpaid, and now with a term in it that this pass added.**
-
-### 4.5 The framing law was measured and deliberately not opened
-
-The review's second composition bullet asks for a framing law that keeps the figure near the
-~180 px it reaches on the five-tile lane, *"even at the cost of not showing the whole lane."*
-This pass did not do it, for two reasons and both are numbers rather than reluctance.
-
-- **Capping `Stage.planning()` drops a combatant out of the planning shot.** A cap wide enough
-  to leave System 4's 5- and 7-tile lanes untouched is 8.5 tiles; on the 11-tile lane the
-  bodies open at tiles 2, 6 and 10 and a shot 8.5 tiles wide centred on the lane's middle holds
-  0.75 to 9.25. The enemy at 10 is off-frame in the one shot the player plans in.
-- **Anything below that cap changes System 4's schedules**, and the pass-1 review's own
-  protected result is three byte-identical schedule fingerprints showing that System 5 did not
-  disturb them.
-
-The clean fix is the one `Director.LANE_SPREAD` already names in its own docstring — *"either
-`TILE_WIDTH` rises against `FIGURE_HEIGHT`, or `BODY_HALF` grows to the width the rig actually
-has and the lane spacing follows it"* — plus an **action-centred** planning framing, which
-needs `Standing` inside `Stage.planning()`. That is a `Stage` change and it is the third pass
-in a row to name it. **Unpaid, and it is the largest single thing between this frame and §0.**
-
----
-
-## 5. The two free items, and the counted marks
-
-### 5.1 The margin's loudest mark is now the one the player is composing with
-
-`health row x36..254 y10..44` against `stanza top x62..132 y53..123`, live over bare,
-`s5-p2-fold-plan` frame 3:
-
-| | pass 1 | pass 2 |
-|---|---|---|
-| health row, peak lift | **+99.6** | **+72.8** at (86,26) |
-| freshest mark in the stanza, peak lift | +94.8 | **+94.7** at (88,87) |
-
-Guarded, not asserted in prose: `theStanzaOutReadsTheHealthRow` measures both peaks on the
-sheet the renderer would draw.
-
-### 5.2 A counted mark is countable at every shipped resolution
-
-The review refused the debt's prescription — *"a rendering constraint at one resolution is not
-a reason to change a mechanic"* — and left a narrower obligation entirely inside this layer:
-**a mark that is counted must be countable at every resolution the game ships, or stop being a
-count.** Two runs are counts: a tile's charges, and the Night Pilgrim's health.
-
-Both were wrong. A charge run's pitch was 1.7 tick widths and its ghosts were drawn at
-`dryness` 0.48, so the dry-brush breakup ate whole marks. Measured over the whole state space
-before the fix, a cooldown of 3 at 1 charge read **2**, a cooldown of 4 at 2 charges read
-**3** — the misread the review names as worse than an omission.
-
-Now: pitch is **derived** from the mark's own width (2.6 widths, so there is more paper between
-two marks than either occupies), and a ghost is separated from a live charge by **value and
-hue** — pale paper at 0.30 against ochre at 0.74 — rather than by being broken, because a mark
-the noise can eat cannot be part of a count. Health is under the same rule.
-
-`everyCountedMarkIsCountableAtEveryShippedResolution` asserts it over every cooldown 0–8 at
-every charge count inside it, and every tally 0–max at three maxima, at **both** shipped
-heights.
-
-**And it is proved in delivered pixels at a second resolution**, which is what the review asked
-for. `s5-p2-fold-replan` frames 2 and 4, hand rows at `HAND_TOP_Y − i·HAND_PITCH`, runs read
-across the densest row of each band, live minus bare:
-
-| hand row | tile | cooldown | runs at 960×720 | runs at 720×540 |
+| bout | lane's own framing | the shot it now plans in | figure share | px of 720 |
 |---|---|---|---|---|
-| 0, 1 | CUT, STEP | 0 | none drawn | none drawn |
-| 2 | SWEEP | 3 | **3** | **3** |
-| 3 | THRUST | 3 | **3** | **3** |
-| 4 | **PARRY** | **4** | **4** | **4** |
-| 5 | BACK_STEP | 1 | **1** | **1** |
-| 6 | FEINT + MARKING | 5 | **5** | **5** |
+| `KNIFE` (5 tiles) | 6.50 | **6.50**, centred on tile 2.00 | 0.2250 | 162 |
+| `FOLD` (11 tiles) | 12.50 | **6.50**, centred on tile 3.00 | 0.2250 | 162 |
+| `APPROACH` (15 tiles) | 16.50 | **6.50**, centred on tile 4.00 | 0.2250 | 162 |
 
-The row the review convicted — a Parry at cooldown 4 reading "three" — now reads four, at both
-resolutions, on both frames.
+The floor is the one number in the law not forced by the board, and it is derived rather than
+chosen: it is `planning()` evaluated at `Lane.MIN_LENGTH`. Checked against the corpus — the
+smallest figure any reference image asks to carry meaning is a Family C background figure at
+about **0.22** of the frame height (image 7, top panel, ~120 px of a 544-px panel), and the
+Family B duellists run 0.55 to 0.65. At 12.5 tiles the hero was 0.107 of the frame, *outside*
+the corpus's own spread on the low side. `theGradedBoutsPlanAtASizeTheCorpusAsksAFigureToCarry`
+asserts it and prints the numbers above.
+
+**Delivered.** Hero detected against each row's own median inside `x290..380`, `y180..515`, ≥2 px
+per row, at an 8-level threshold: **`y322..515` = 194 px**. The same detector on
+`s5-p2-fold-plan` frame 3 through `x205..300` gives **87 px**. That is **2.23×**. (My reader
+reads pass 2 at 87 px where the pass-2 review's reader read 77; the two differ on how much of
+the dissolving hem they keep, and the ratio is quoted through one instrument on both.)
+
+**What it does not change, and this was the constraint.** `pushIn()`, `pushInSeconds()` and
+`returnSeconds()` still read `planning()` — the *lane's* framing — so the duration law of §9 is
+a property of the lane and every schedule the project has fingerprinted keeps its length.
+`systemFoursSchedulesKeepTheirDurationsAcrossTheFramingLaw` pins all three: `PHRASE` 6.9521 s,
+`PARRY` 3.0400 s, `KNOCKBACK` 3.1548 s. It was **observed red** during authoring by pointing
+`pushIn()` at the new framing, which takes `PHRASE` to 6.8410 and `KNOCKBACK` to 3.0932.
+
+**⚠ It does change two of System 4's *shots*, and this is the item to merge carefully.**
+`duel-parry` is on a five-tile lane and is **untouched** (6.50 tiles, centre 2.00, identical).
+`duel-phrase` and `duel-knockback` are on seven-tile lanes and their *wide* framing tightens
+from 8.50 tiles to 6.50 — the figures in those two scenes' planning shots are about 31% larger
+than in the archived `s4-*` captures. Nothing about their timing, their beats or their
+fingerprints moves. System 4 is closed at five passes and nothing re-grades those frames, but
+any comparison against an archived `s4-*` capture that includes a wide shot is now void by
+§11.2b(d) and should be re-shot.
+
+### 1.2 Fog as bands, not as attenuation of the subject
+
+§6's first bullet is the only line in the rubric marked *non-negotiable*, and pass 2 answered
+it with an alpha term on the **figures**. `Fog.java` delivers it as the section asks: two banks
+of drifting horizontal `#D6D2CE` bands, six per bank, stratified across the frame so none of it
+is empty, each band a string of eleven washes whose rims sit on zero alpha — so a bank of fog
+cannot print an edge at any alpha. `FAR` is drawn behind the bodies (depth separation);
+`NEAR` in front of them and below hem height (occlusion of the lower body), tapered to nothing
+over the outer 17% of the frame's width so it never veils either margin's readout.
+
+It is **world, not interface**: the `-bare` control carries it too, so every `live − bare`
+number in this document still measures the interface.
+
+The subject-attenuation term survives at half strength (`LaneScene.SUBJECT_HAZE = 0.5`) as §6's
+second bullet — depth desaturation on a body seen through fog — and the tighter framing lowers
+`Readout.haze` at the planning shot from 1.00 to 0.355 on its own, so the figure keeps far more
+of its contrast than it did.
+
+### 1.3 The composition statistic
+
+`>8` luminance from the pixel's own row median, whole frame, frame 3, live vs `-bare`:
+
+| | pass 1 | pass 2 | **pass 3** |
+|---|---|---|---|
+| bare **planning** frame that is anything at all | 4.84% | 4.76% | **11.79%** |
+| bare **execution** frame | 16.61% | 14.71% | **17.26%** |
+| the interface | 2.09% | 2.16% | **2.99%** |
+| interface / world, planning | 0.431 | 0.454 | **0.254** |
+
+The planning frame carries **2.48×** the deviation it did, and the interface's share of it fell
+by 44%. Two thirds of that world number is the fog bands and one third is the figures being
+twice the size.
+
+### 1.4 §11.0's matched-scale part count, re-run
+
+Reference image 3 downscaled by 194/665 so its dark duellist matches the delivered hero, both
+viewed at 5× nearest-neighbour.
+
+| | readable parts at ~194 px |
+|---|---|
+| **reference image 3** | topknot, hair mass, head **with a face** (brow, nose, chin), neck, collar, shoulder, upper arm, forearm, hand, grip, sash with its knot, second blade with red cord, skirt with fold structure, forward leg, dissolving hem, ground smear — **~16** |
+| capture, pass 1 | hair mass, head as a lump, torso, ochre sash band, a second ochre mark, blade, shed flecks, a lower mass tapering to a point — **~8** |
+| capture, pass 2 | hair mass, head as a lump, torso, ochre sash band (fainter), blade, shed flecks — **~6** |
+| **capture, pass 3** | hair mass, streaming hair wisps, head as a lump, shoulder, upper arm, forearm mass, torso, ochre sash band, second ochre mark below it, skirt mass, forward foot, blade, shed flecks — **~13** |
+
+**~6 → ~13 against the reference's ~16.** What is still missing is the *figure* half the
+pass-2 review assigned to System 4 as permanent debt — no face, no separated hands, no two
+legs — and this pass did not touch the rig. What System 5 owed was the framing half, and at
+194 px System 4's articulation now has room to show.
+
+### 1.5 The hand column, which the reviewer read as the enemy's
+
+Four changes, and one of them is a measurement rather than a composition argument.
+
+1. **The charge run is drawn under its own tile, centred on it** (`LaneInterface.held`). Pass 2
+   ran it sideways out of the cartouche and into the picture. Cold, the reviewer read the
+   result as an enemy health row. What settles it is a delivered-pixel measurement taken after
+   the framing tightened: with the run beside the tile, a Parry at four charges printed its two
+   spent ghosts at `(794,340)` and `(770,340)` of `s5-p3-fold-replan` frame 2 — and the live
+   frame is **bit-identical to the bare control at the first of them** (both `RGB(33,37,48)`,
+   luminance 36.9). The interface is drawn before the figures on purpose, so a run long enough
+   to reach into the picture is a run a Charted Shadow stands on. *A count a body can erase is
+   not a count.* Centred, the widest run the engine can make — eight charges — never leaves the
+   margin at either shipped height.
+2. **Both margins carry the same seal at their head** (`LaneInterface.seal`): one ochre chop,
+   same mark, same pigment, same height, one at each end of the sheet's head. One sheet, one
+   author, both columns the player's. Ochre and not vermillion, because guard B asserts every
+   vermillion vertex lies over a threatened tile and a seal in the margin would either break it
+   or dilute the one colour that means danger.
+3. **`HAND_INSET` 0.135 → 0.125**, set by the run rather than by taste: the smallest inset at
+   which a centred eight-charge run stays on the sheet at both shipped heights.
+4. **The framing law no longer leaves the bodies against the right edge.**
+
+**Whether it now reads as the hero's is a cold read and only a reviewer can make it.**
 
 ---
 
-## 6. Claims that do not reproduce
+## 2. The hard-edge guard: where it runs, what it says, and where its number comes from
 
-### 6.1 The five the review found in this document — all corrected
+### 2.1 It runs at every shipped height now
 
-1. **Guard A's stated scope.** False, as the review proved. §1.
-2. **§4.4's *"'wide to plan' never happened"*.** Overstated by half. Reverted, each bout has
-   **two** qualifying planning gaps and only the **first** is missed; the second reaches the
-   full planning framing in all three bouts. The defect costs one planning gap of two per
-   score, not all of them. It also moved `KNIFE`'s duration, 20.1462 → 21.3722 s.
-3. **§3.2's execution diff range.** The minimum reproduced; the maximum did not. The review's
-   reader gives **49,030 px (7.093%)** under "any channel differs" and 45,153 under "luminance
-   differs by ≥1"; no threshold yields 46,999. And this document contradicted itself on the
-   planning minimum — §1.6 said 33,998 and §3.2 said 34,128 for the same quantity. §1.6's low
-   end was right. **Both are superseded by §7 below, measured afresh on the pass-2 captures.**
-4. **§5's *"asserted to… survive mirroring"*.** `everyTileTypeHasAMark` asserts that mirroring
-   preserves the **stroke count**, and nothing asserted that a mark survives mirroring *as
-   itself*. For `STEP`/`BACK_STEP` it provably did not. §2.
-5. **§4.5's tick count quoted without a control**, against this document's own §7 instruction.
-   `s5-p1-fold-replan` had no `-bare` sibling. Every capture in §8 below has one, including
-   `s5-p2-fold-replan` and both 720×540 captures.
+`noMarkPrintsAnEdgeInTheRasterItWouldDraw` iterates `Guards.SHIPPED_HEIGHTS` instead of
+indexing `[0]`, and its failure message reports the width and height it actually measured
+through. §11.2b(f)'s fourth clause, applied: *enumerate the axis, do not index it*.
 
-### 6.2 And one of the review's own does not reproduce as framed
+Delivered through the guard's own raster, worst over the whole bout, printed by the test's own
+control line:
 
-**The paper-substrate finding.** *"Sky high-pass sd is 0.813 against reference image 1's
-12.853… 16× less surface than the corpus's paper ground."* The two regions are a **dusk sky**
-and a **Family A cream sheet**, in different families. Against the sky of reference image 3 —
-the image this stage's own template comes from, and which the review measured in the same table
-— the capture matches to **1%** (0.476 against 0.481 through my reader; 0.813 against 1.144
-through the review's, which is 1.4×, not 16×). The conclusion "there is no paper in the frame"
-is right; the multiplier is a family error, and the correct statement is that a Family B dusk
-stage cannot carry §3b.3's paper at all. §4.2.
+| bout | 960×720 | 720×540 |
+|---|---|---|
+| `KNIFE` | 0.2441 at (848,398) | **0.2825** at (641,357) |
+| `FOLD` | 0.2157 at (63,102) | 0.2603 at (267,393) |
+| `APPROACH` | 0.2158 at (63,102) | 0.2829 at (652,348) |
 
-**Claims of the review's that reproduce exactly**, recorded because a reply that only lists
-disagreements is not a measurement: the lane band 1.109× and +84.8 at (172,535) — mine 1.110×
-and +84.8 at (172,535); the whole §1.1 wetness table to the pixel; the health row's 2.79×; the
-bit-reproducibility at 0 differing pixels; the draw-order result at 0.00 under body ink; the
-hand column at 1.016×; and the 0.242/0.249 hard-edge figures, all re-measured on the pass-1
-captures through my own reader.
+Pointed at 540 with pass 2's geometry the guard read **0.3563**, which is the review's number
+reproduced. Three geometry changes brought it down and each was found by the guard going red:
+the charge tick is drawn with three points rather than five (a five-point stroke lands its
+pressure over a quarter of a very short mark, which at 540 rows is two pixels); it is wider
+(0.0105 → 0.0130 of the frame height) and quieter (0.74 → 0.62); and the `BACK_STEP` hook was
+opened and narrowed, because at a half-width wider than the radius of its own turn a ribbon
+folds across itself and the two coats print a bright core — measured at **0.5479** of amplitude
+in one pixel, the same failure the `DRAW` glyph's own note already records.
+
+### 2.2 The ceiling is a band with both edges, taken from the corpus
+
+The old ceiling was 0.34, *"a third of what a hard edge prints"*. The review convicted it on
+three counts and all three are right: it is a ratio to an **artefact** (1.000 is what a step
+function reads, a question no reference image can inform or fail); it is a **floor with no
+upper edge**, which §11.0 forbids by name; and it was **fitted**, sitting one part in a hundred
+on the permissive side of the only construction that beat it.
+
+Measured on the Family B reference images — 3, 4 and 5, which §1 calls *"the primary template
+for the game screen"* — with the same statistic the guard uses (steepest single-pixel step
+anywhere in the picture, over the picture's own amplitude, Rec. 709 luminance):
+
+| | region | steepest 1-px step / amplitude |
+|---|---|---|
+| image 3, matched to a 194 px figure | whole frame less 2 px | **0.3542** (on a blade) |
+| image 3, native 832×1088 | whole frame less 2 px | 0.3771 (on a blade, at (577,303)) |
+| image 4, native | same | 0.3986 (at (432,461)) |
+| image 5, native | same | 0.4352 (at (441,461)) |
+| image 3 sky | `x40..790 y40..200` | 0.1101 |
+| image 4 sky | same | 0.1223 |
+| image 5 sky | same | **0.1075** |
+| image 3 garment and ground, no blade | `x40..790 y740..1080` | 0.3743 |
+| image 4, same | same | 0.2581 |
+| image 5, same | same | 0.3579 |
+
+- **Ceiling 0.354** — the *softest blade edge the corpus contains*, at the matched scale §11.0
+  requires. §3 and §5 allow exactly one hard-edged object; the ceiling says no mark in the
+  interface may arrive as abruptly as that one.
+- **Floor 0.107** — the softest region the same three images contain, their skies. An interface
+  below that is softer than the corpus's own sky, which is to say it has stopped being marks
+  and become weather. This is the edge the old criterion did not have, and it is what stops
+  "make it softer" being a free move. The guard asserts it on the bout's own worst step.
+
+**What this ceiling does not do, stated plainly.** It does not catch a feathered rectangle
+(attempt 3c reads 0.333) or the `Brush`-only hatch (0.0518), and it never could: both are
+*softer* than the interface. That defect is about form and §3 is its guard.
+
+### 2.3 And in delivered pixels
+
+`D = luminance(live) − luminance(bare)`, largest single-pixel `max|∂D|` in either axis, over
+every frame of every capture with a control, ignoring an 8 px frame border.
+
+| capture | frames | worst / that capture's own amplitude | worst / the interface's strongest amplitude | where |
+|---|---|---|---|---|
+| `s5-p3-fold-plan` | 6 | **0.2380** (21.64 / 90.91) | 0.2380 | frame 5, (133,26) |
+| `s5-p3-fold-strike` | 12 | 0.3368 (22.04 / 65.44) | **0.2424** | frame 7, (648,681) |
+| `s5-p3-fold-replan` | 5 | 0.2591 (21.44 / 82.78) | 0.2359 | frame 1, (853,399) |
+| `s5-p3-fold-empty` | 4 | 0.3499 (25.09 / 71.70) | 0.2760 | frame 3, (857,388) |
+| `s5-p3-fold-pushin` (@0.0167) | 48 | 0.2910 (28.02 / 96.27) | 0.3082 | frame 13, (858,387) |
+| `s5-p3-fold-bleed` (@0.0167) | 36 | 0.3874 (14.94 / **38.56**) | **0.1643** | frame 35, (869,387) |
+| `s5-p3-knife-plan` | 4 | 0.2486 (22.71 / 91.34) | 0.2498 | frame 0, (855,476) |
+| `s5-p3-approach-plan` | 4 | 0.2378 (21.62 / 90.91) | 0.2378 | frame 3, (943,497) |
+| `s5-p3-fold-plan` **at 720×540** | 6 | 0.3108 (27.85 / 89.62) | 0.3108 | frame 1, (30,19) |
+| `s5-p3-fold-replan` **at 720×540** | 5 | 0.3460 (27.78 / 80.28) | 0.3100 | frame 1, (30,19) |
+| `s5-p3-knife-plan` **at 720×540** | 4 | 0.3198 (29.21 / 91.34) | 0.3260 | frame 0, (641,357) |
+
+The graded frame is **0.2380** against pass 2's 0.244 and pass 1's 0.249. Every capture is
+inside the corpus band on the right-hand column, which is the form the checked-in guard uses
+and the one `fold-bleed` exists to justify: that window sits at the intimate framing where the
+interface has given up most of its presence, so its own amplitude is 38.56 where the planning
+frame's is 90.91, and its *absolute* step, 14.94 levels, is the smallest in the table.
+
+**One honest complication, new this pass.** The guard measures **coverage** and this table
+measures **luminance**, and the two stopped being the same ordering when the framing tightened:
+a pale mark over the dark near-ground converts a given coverage step into a larger luminance
+step than the same mark over the sky. Pass 2's docstring claimed the coverage measurement was
+*"therefore stricter than the delivered measurement"*; that was true when every mark sat on the
+sky and it is no longer true in general. Both are published above.
+
+---
+
+## 3. The `Brush`-hatch hole, closed by a criterion about form
+
+`Guards.hatchPanel` is the pass-2 reviewer's construction checked in at its own parameters —
+strokes of width 0.080 at a pitch of 0.020, running `x0.51..1.09` across `x0.60..1.00
+y0.60..0.90` in frame heights. Reproduced: **0.0518** of its amplitude in one pixel (the review
+published 0.0515), zero flat-fill triangles, zero inked silhouette edges. It passes all three
+hard-edge guards, and `theBrushOnlyHatchIsCaughtByTheFormGuardAndByNothingElse` asserts that it
+does, because that is the finding and deleting it would leave the fix without its defect.
+
+The criterion that catches it is `Raster.inkBlock`: **the largest square of solid ink the
+picture contains**, computed as the largest `min(horizontal run, vertical run)` over every
+pixel. `noMarkHoldsAFlatRunAcrossTheSheet` caps it at one whole cartouche
+(`STANZA_GLYPH` = 0.098 of the frame height: 71 px at 720 rows, 53 at 540), swept over every
+state of every bout at both shipped heights.
+
+| | largest inked block |
+|---|---|
+| the interface, `KNIFE` / `FOLD` / `APPROACH` at 960×720 | 24 / 24 / 25 px |
+| the same at 720×540 | 19 / 19 / 19 px |
+| **ceiling** | **71 px / 53 px** |
+| the pass-1 bordered panel | 216 px |
+| **the pass-2 `Brush`-only hatch** | **247 px** |
+
+### 3.1 Two things the review got right about this, and one it did not
+
+The review named the criterion as *"no axis-aligned run of near-constant coverage longer than
+N px, on either axis"*. Built and measured, that literal form fails twice.
+
+- **On one axis it convicts the interface's own lane.** A wash lying on the ground is seen
+  edge-on: measured, `KNIFE` at t=8.100 holds **129 px** of near-constant coverage across
+  `(47,522)` and about thirty vertically. That is a wash, which §8 asks for by name.
+- **"Near-constant" is the wrong predicate**, because a hatch ripples at its stroke pitch. At a
+  band of 0.06 of amplitude the review's own exhibit measures **23 px against the interface's
+  13** — a margin of 1.8×, which a hatch tuned to ripple a little harder closes entirely.
+  Thickness has no such dial: the same hatch reads **247 px against the interface's 27**.
+
+So the criterion shipped is about **thickness in both axes at once**, which is the same idea
+one level firmer: a filled region has an interior, a stroke is a ridge and a wash is a lens.
+**What the review got right** is that the answer is about form and not about gradient, and that
+it costs an afternoon.
+
+**Scope, stated:** it catches a filled region *thicker than a mark*. A filled rectangle smaller
+than one cartouche passes it, and nobody has a general detector of rectangular composition.
+That remains permanent debt, as the review said it should be.
+
+---
+
+## 4. The alphabet
+
+**Three of nine marks changed, and a reviewer's cold read is the only instrument that can grade
+them. `CUT`, `PARRY`, `SWEEP`, `STEP`, `DRAW` and `TURN` are untouched.** `PARRY` in particular
+— the protected result — is byte-identical to the mark the pass-2 review read correctly and
+named as a deflection from its shape alone.
+
+### 4.1 `BACK_STEP`: the retreat is the loud part now
+
+The pass-2 reviewer read it cold as *"a strike, aimed leftward. This is the enemy's intent."*
+The diagnosis is in the pressure profile rather than in the drawing: a `Brush` stroke lands
+heavy and thins along its travel, so a stroke authored from `x=+0.46` to `x=−0.50` prints a
+heavy head on the right and a fine barbed point on the left, which is exactly what a blade
+travelling leftward looks like. The two marks that carried the meaning measured 21.6 and 18.9
+of lift against the travel stroke's 77.8.
+
+The mark is now authored **from the rear**: the heel lands at the back, catches, and hooks, so
+the brush's own pressure puts the mass behind the body and thins the trace toward the enemy.
+Measured on the isolated 71 px cartouche, alpha-weighted:
+
+| | peak at | centroid x (box 0..70) |
+|---|---|---|
+| `STEP` | x=47 | 38.6 |
+| `BACK_STEP`, pass 3 | **x=5** | **19.2** |
+
+The two movement verbs now put their mass at opposite ends of the tile. Delivered in the hand,
+`s5-p3-fold-plan` frame 3 through `x835..905 y369..423`: peak lift **47.6** at (858,388), which
+is above the tile's centre line — the hook.
+
+### 4.2 `THRUST`: something a movement cannot have
+
+Read cold by two reviewers: once correctly with the answer supplied, once — unaided — as *"two
+short level lens dashes with a gap… a weight transfer"*, which is `STEP`'s own device. The
+brief was *"give it something a movement cannot have"*, and a movement cannot have **a body in
+it**. The beat's own sentence is now drawn literally: a long level stroke, a steep stroke
+across it, and the line continuing past rather than stopping at it. Nothing else in the
+alphabet has one stroke crossing another at a steep angle; `PARRY`'s two run *alongside* each
+other for a third of the mark, which is the span that makes it a deflection.
+
+Its mirror distance falls 0.7919 → **0.6639**, because the crossing stroke is near-symmetric.
+Still 3.3× the floor.
+
+### 4.3 `FEINT`: it stopped being drawn as absence
+
+Measured by the review at peak lift **4.5** with six pixels above the noise floor — three times
+fainter than an *empty* slot's impression. Two causes, both fixed.
+
+- The mark was one stroke at `dryness` 0.58, and `LaneInterface.place` **added** the sheet's own
+  state dryness to it, so a Feint in a hand at state 0.40 came out at the 0.92 clamp. The two
+  are statements about one brush and are now combined by taking the drier of them, which
+  changes nothing for the seven glyphs whose own dryness is zero.
+- The mark is now a gesture *and the gesture it did not make*: one committed stroke and, beside
+  it, the same stroke offset and dry. The ink is present; what says "no contact" is that the
+  second mark never lands.
+
+Delivered in the hand, `s5-p3-fold-plan` frame 3 through `x835..905 y437..491`: peak lift
+**57.4** at (877,469), against the faintest empty-slot impression on `s5-p3-fold-empty` frame 2
+of **13.9**. That is 12.8× pass 2's 4.5, and 4.1× the impression it used to be three times
+fainter than.
+
+### 4.4 The `SWEEP` exception is asserted rather than described
+
+`sweepIsTheOnlyTilePermittedToBeItsOwnMirror`: Sweep is below the 0.20 floor under mirroring
+and **every other tile is above it**, both halves failing if the alphabet moves. The review's
+point was §11.2b(e) exactly — the exception lived in prose while the guard `continue`d past the
+axis it excluded, and a `TURN` drawn as a closed ring is one keystroke away.
+
+Same-tile mirror distances at the shipped 71 px cartouche, printed by the test:
+
+`CUT 0.8558  THRUST 0.6639  PARRY 0.8471  SWEEP 0.1543  DRAW 0.9062  STEP 0.9427
+BACK_STEP 0.9405  TURN 0.7929  FEINT 0.9960`
+
+Closest cross-tile pair of 144: **`PARRY` facing left and `DRAW` facing left = 0.7601**, against
+a floor of 0.20. Pass 2's closest was 0.7277 (`STEP+` / `BACK_STEP+`); re-authoring the retreat
+moved it off the bottom of the table.
+
+---
+
+## 5. The six claims the review found, corrected
+
+1. **§9's *"a soft-edged panel still passes every guard here"*.** False as written: the 5 px
+   feathered panel fails `noTriangleInTheInterfaceIsAFlatFill` on its two interior triangles
+   when drawn. §1.3's narrower sentence — "passes both *hard-edge* guards" — was the correct
+   one. **Superseded anyway**: as of §3 above, a filled region of any softness is caught by the
+   form guard.
+2. **§1.3, attempt 4 — the hatch "caught by raster".** The *construction class* was not caught,
+   only that instance of it. At width 0.080 / pitch 0.020 it reads **0.0518** and passes every
+   hard-edge guard. Recorded correctly in §3, with the exhibit checked in.
+3. **§4.1a and `ink_resolve.frag` — the 1,180 px.** Does not reproduce. The review measured 0
+   for the straight-through form the comment names, in all three shaders, against a null of 0
+   over three shoots; 192 px for *deletion*. **Not re-measured this pass** — the shader files are
+   being worked on in a parallel worktree and this pass did not touch them. The comment still
+   carries the wrong number and the wrong edit. **Unpaid, and it belongs to whoever merges the
+   shaders.**
+4. **`ink_resolve.frag` — "every capture System 4 is graded on is bit-identical across this
+   change".** Not testable: System 4's graded window's own null control is 13,825–25,547 px.
+   The honest statement is that only the 6-frame window where the null is 0 can carry a
+   bit-identity claim at all. Same disposal as above: **the comment is in a shared file this
+   pass did not touch.**
+5. **§2's two glyph distances.** Both were stale. Re-measured through the guard's own code path
+   on pass 2's alphabet, `BACK_STEP`'s mirror was **0.8611** against a published 0.890 and the
+   closest cross-tile pair **0.7277** against a published 0.733. Both marks have since been
+   re-authored; §4.4 carries the current table.
+6. **§9's 20 Hz sweep.** **Struck.** The review measured 60 Hz to move the worst share by
+   0.0006 on all three bouts; the debt item is discharged, not outstanding. The guard still
+   samples at 20 Hz and its docstring still says so, which is the honest form: the *rate* is a
+   cost decision, and the claim that a defect could hide between samples is the one that was
+   refuted.
+
+---
+
+## 6. The substrate, across the family
+
+Pass 2 reported *"against the sky of the family this stage is quoting, the capture matches to
+1%"*, from one image. §11.0: *"one reference image is not the corpus."* Measured through one
+reader, 3 px high-pass standard deviation:
+
+| image | family | box | hp(3 px) | pass 2 capture / image | **pass 3 capture / image** |
+|---|---|---|---|---|---|
+| 3 | B | `x80..699 y80..239` | 0.4924 | 0.96× | **1.14×** |
+| 4 | B | same | 0.7482 | 0.63× | **0.75×** |
+| 5 | B | same | 0.5657 | 0.84× | **0.99×** |
+| 6 | C | `x60..399 y20..139` | 0.8059 | 0.59× | 0.70× |
+| 7 | C | `x60..399 y30..149` | 1.1453 | 0.41× | 0.49× |
+| 8 | C | `x60..399 y30..149` | 5.5014 | 0.086× | 0.10× |
+| capture (bare), pass 2 | — | `x300..699 y120..319` | 0.4743 | — | — |
+| **capture (bare), pass 3** | — | same | **0.5612** | — | — |
+
+Pass 2's capture sat **at or below the floor** of the corpus's own spread and matched only the
+smoothest sky in it. Pass 3's sits **inside Family B's band**, and the surface came from the fog
+bands rather than from anything added to the sky.
+
+**Which family the planning framing belongs to is now settled and filed in `combat-design.md`
+§3.** §1 already divides the labour: Family B governs the stage and the colour script and is
+*"the primary template for the game screen"*; Family C governs *"atmosphere, depth/fog,
+background figures, the planning phase"*. So the **surface** standard is Family B's and the
+**air** standard is Family C's — one shot, two families, one for each question. That is not an
+inconsistency once it is written down, and neither pass had written it down.
 
 ---
 
 ## 7. Every protected result, re-measured
 
-| result | pass 1 | pass 2 |
-|---|---|---|
-| **Hard edge**, `fold-plan` / `fold-strike` | 0.249 / 0.242 | **0.244 / 0.223** |
-| — against the softest blade in the same frame | 81.6 | 68.4 (haze), ratio 5.0× vs 5.2× |
-| **The column, top to base** (peak lift, box `x62..132`) | 94.8 / 85.6 / 78.8 / 72.6 / 68.8 | **94.7 / 86.7 / 78.8 / 72.6 / 68.8** |
-| — as a ratio to its own ground | 2.643 / 2.481 / 2.301 / 2.239 / 2.157 | **2.648 / 2.501 / 2.301 / 2.217 / 2.157** |
-| — ink px (lift > 4), which is the size half of the gradient | 2320/1537/832/536/401 | **2175/1292/744/519/493** |
-| **Lane band** `x0..959 y505..559` | 1.109×, +84.8 at (172,535) | **1.110×, +84.8 at (172,535)** |
-| **Draw order**, `fold-strike` frame 4, band `y560..699` | 0.00 under 7,694 px of body ink; 4.09 beside | **0.00 under 6,977 px; 2.92 beside** |
-| **Bit-reproducibility** (`-repro`, 6 + 12 frames) | 0 differing px | **0 differing px** |
-| **Recession**, mean \|delta\| over the changed set | 15.76 → 9.96 | **10.35 → 7.02**; share 6.96% → 8.35% |
-| **Empty state**, five slot impressions | 20.9/16.8/14.1/12.0/35.3 | **21.2/18.3/14.3/14.9/34.0** |
-| **Camera fix** | S4 fingerprints byte-identical | unchanged — `Stage` and `Scheduler` are untouched, and `duel-parry` is **bit-identical**, 0 px over 6 frames, against a null control of 0. §4.1a |
+All through one reader, all against the `-bare` sibling in the identical window.
 
-Two of these moved and both are consequences of changes made on purpose:
+| result | region | pass 2 | **pass 3** |
+|---|---|---|---|
+| Hard edge, `fold-plan` | whole frame less 8 px, 6 frames | 0.244 | **0.2380** (21.64 / 90.91) |
+| Hard edge, `fold-strike` | 12 frames | 0.223 | 0.3368 per capture, **0.2424** against the interface's strongest |
+| Determinism | `fold-plan` ×6, `fold-strike` ×12 vs `-repro` | 0 px | **0 px** |
+| Stanza out-reads health | `x36..254 y10..44` vs `x62..132 y53..123` | +72.8 vs +94.7 | **+72.4 at (86,26) vs +90.6 at (100,88)** |
+| The drying column, peak lift | `x62..132`, five pitches, frame 3 | 94.7 / 86.7 / 78.8 / 72.6 / 68.8 | **90.6 / 88.4 / 77.8 / 67.2 / 50.7** |
+| — ink px (lift > 4) | same | 2175 / 1292 / 744 / 519 / 493 | **1996 / 1294 / 564 / 463 / 394** |
+| Lane band | `x0..959 y505..559` | 1.110×, +84.8 at (172,535) | **1.157×, +86.8 at (615,536)** |
+| Draw order | `fold-strike` f4, `y560..699` | 0.00 under body ink | **not reproduced — see §8** |
+| Empty state | five slot boxes, `fold-empty` f2 | 21.2 / 18.3 / 14.3 / 14.9 / 34.0 | **24.9 / 13.9 / 14.3 / 17.8 / 20.0** |
+| Vermillion budget | `r−b` lift > 20, frame 3 | 1,923 px = 0.278% | **3,484 px = 0.504%**, live `(150,66,64)` / bare `(51,54,65)` at (340,527) |
+| Cooldowns countable, 960×720 | `fold-replan` f2 & f4, hand rows 2–6 | 3 / 3 / 4 / 1 / 5 | **3 / 3 / 4 / 1 / 5** |
+| Cooldowns countable, **720×540** | same, `-540` captures | 3 / 3 / 4 / 1 / 5 | **3 / 3 / 4 / 1 / 5** |
 
-- **`ink px` at reading position 5 rose from 401 to 493**, which flattens the *area* half of the
-  LIFO gradient from 5.8× to 4.4×. The review's caution stands: the perceived gradient is
-  partly size and area is alphabet-dependent. The **peak** statistic, which is the one the
-  guard is on, is unchanged to the tenth.
-- **Mean |delta| fell across the board** (15.76 → 10.35 at the planning framing) because the
-  interface's loudest elements — health and the charge ticks — were deliberately quietened, and
-  because the changed-pixel *set* grew by 40% with the foxing, which adds many very faint
-  pixels to the denominator. The recession's *shape* — thinner as the camera closes — is
-  unchanged and is what the claim is about.
+Three of these moved and each is a consequence of something changed on purpose.
+
+- **The column's base mark fell from 68.8 to 50.7.** The tighter framing lifted the horizon, so
+  the foot of the stanza now sits over the bright coral band rather than over the dark sky, and
+  a pale mark on a bright ground lifts less. The gradient is still monotone top to base, which
+  is what the guard is on, and it is *steeper* than it was.
+- **The lane band rose to 1.157×.** More lane is in frame at 6.5 tiles than at 12.5.
+- **The vermillion budget doubled again**, 0.278% → 0.504% of the frame. The Strikethroughs are
+  the same marks over the same tiles; the frame is half as wide, so they cover twice the share.
+  Guard B still holds — every vermillion vertex lies within half a tile of a tile the engine
+  says is threatened — but 0.5% of a frame is worth a reviewer's attention and §2.2's *"a few
+  small marks per frame"* is being leaned on.
 
 ---
 
-## 8. The captures, and how to reproduce them
+## 8. What this pass did not do, with the number beside it
 
-Every live capture has a `-bare` sibling in the identical window, per this document's own §7
-rule, which pass 1 broke once.
+- **The draw-order result is not reproduced this pass, and the reason is the framing.** Pass 2
+  measured 0.00 of `|live − bare|` under 6,977 px of body ink in `s5-p3-fold-strike` frame 4,
+  band `y560..699`. At the new framing that band is no longer under the bodies at that frame —
+  the camera is elsewhere — and every dark-pixel mask I tried selected the near ground rather
+  than a figure, reading 17–27 of mean delta because the *lane's own wash* is drawn there. The
+  property is unchanged in the code (`LaneScene` draws the interface before the figures, one
+  line, unmoved) and §1.5 above contains a delivered instance of it working — a charge tick
+  drawn under a Charted Shadow is bit-identical to the bare frame. **But the statistic the
+  review protected has not been re-measured in the form it was published in. Unpaid.**
+- **A cooldown of 0 draws no ticks, and an independent reader can still find one there.**
+  Reading `s5-p3-fold-replan` at hand row 1 (`STEP`, cooldown 0) my reader returns 1 run: it is
+  the `STEP` glyph's own lower rim, 5 px above the tick row, inside a ±4 px band. The suite's
+  guard differences against a control and correctly returns 0; a player cannot. The margin
+  between a cartouche and the run beneath it is **0.014 of the frame height, 10 px at 720 and
+  7 at 540**, and that is thin. **Measured and recorded rather than fixed.**
+- **The `ink_resolve.frag` comment still carries the 1,180 px and the untestable bit-identity
+  sentence.** Both are review findings 3 and 4 and both are in a **shared shader file** being
+  worked on in a parallel worktree. Not touched. **Unpaid.**
+- **Enemy hit points are still not drawn at all.** The largest omission. A `Figure`/
+  `InkMaterial` change. **Unpaid, and the pass-2 review assigned it elsewhere.**
+- **The general shape criterion.** §3 catches a filled region thicker than a mark. A filled
+  rectangle smaller than one cartouche passes it, and no one has a general detector of
+  rectangular composition. **Accepted as permanent debt.**
+- **The hand's live tiles read at about half the stanza's top mark** — 47.6 and 57.4 against
+  90.6 — and most of the hand is banked ghosts at alpha 0.17 in the planning shot. Under the
+  owner's new *map* reading, where legibility of the available actions is the point of this
+  frame, a reviewer may want them louder. Raising them costs the hard-edge numbers of §2.
+  **Measured, not decided.**
+- **A 3 px paper tooth in the margin is still not delivered**, only stain structure. It is a
+  `PaperBackground` question and that file is in the parallel worktree's area. **Unpaid.**
+- **Nobody has read the Strikethrough's arrival as an arrival.** `s5-p3-fold-bleed` exists at
+  60 Hz; no statistic was taken through it beyond §2.3's sweep. **Half-paid, as before.**
+- **A spent mark's drying has still never been captured at a true frame rate.**
+- **`LaneScene` still duplicates about sixty lines of `DuelScene`'s render body**, and it has
+  drifted further: the fog banks are set here and not there. Deliberate. **Accepted as
+  permanent debt by the pass-2 review.**
+- **`Opaque` is still public** to work around a one-line `CaptureApp` bug that is still there.
+- **The raster and form guards sweep at 20 Hz and 10 Hz.** Rasterising 960×720 is three orders
+  of magnitude dearer than reading vertices, and the form guard needs two passes because its
+  thresholds are shares of an amplitude the sweep has to find first. Both rates are in their
+  own docstrings. The 20 Hz *claim* was discharged by the pass-2 review's own 60 Hz measurement
+  (§5.6); the 10 Hz one is new and unmeasured.
+- **Whether the re-authored `BACK_STEP`, `THRUST` and `FEINT` read as what they are** is the one
+  thing only a reviewer can grade, and this pass spent cold-read budget on three of nine marks.
+
+---
+
+## 9. The captures, and how to reproduce them
+
+Every live capture has a `-bare` sibling in the identical window.
 
 ```
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-plan     -Pframes=6  -Pcols=3 -Pstart=0.4  -Pstep=0.5    -Pw=960 -Ph=720
-./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p2-fold-plan-bare        (identical window)
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-plan-repro       (identical window)
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-strike   -Pframes=12 -Pcols=4 -Pstart=3.3  -Pstep=0.42   -Pw=960 -Ph=720
-./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p2-fold-strike-bare      (identical window)
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-strike-repro     (identical window)
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-pushin   -Pframes=48 -Pcols=8 -Pstart=2.95 -Pstep=0.0167 -Pw=960 -Ph=720
-./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p2-fold-pushin-bare      (identical window)
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-bleed    -Pframes=36 -Pcols=6 -Pstart=8.60 -Pstep=0.0167 -Pw=960 -Ph=720
-./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p2-fold-bleed-bare       (identical window)
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-empty    -Pframes=4  -Pcols=2 -Pstart=11.3 -Pstep=0.35   -Pw=960 -Ph=720
-./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p2-fold-empty-bare       (identical window)
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-replan   -Pframes=5  -Pcols=5 -Pstart=15.8 -Pstep=0.35   -Pw=960 -Ph=720
-./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p2-fold-replan-bare      (identical window)
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-score    -Pframes=44 -Pcols=4 -Pstart=0.4  -Pstep=0.5    -Pw=960 -Ph=720
-./gw capture -Pscene=lane-knife     -Pout=out/captures/s5-p2-knife-plan    -Pframes=4  -Pcols=2 -Pstart=0.6  -Pstep=0.7    -Pw=960 -Ph=720
-./gw capture -Pscene=lane-knife-bare    -Pout=out/captures/s5-p2-knife-plan-bare    (identical window)
-./gw capture -Pscene=lane-approach      -Pout=out/captures/s5-p2-approach-plan      (same shape as knife)
-./gw capture -Pscene=lane-approach-bare -Pout=out/captures/s5-p2-approach-plan-bare (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-plan     -Pframes=6  -Pcols=3 -Pstart=0.4  -Pstep=0.5    -Pw=960 -Ph=720
+./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p3-fold-plan-bare         (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-plan-repro        (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-strike   -Pframes=12 -Pcols=4 -Pstart=3.3  -Pstep=0.42   -Pw=960 -Ph=720
+./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p3-fold-strike-bare       (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-strike-repro      (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-replan   -Pframes=5  -Pcols=5 -Pstart=15.8 -Pstep=0.35   -Pw=960 -Ph=720
+./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p3-fold-replan-bare       (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-empty    -Pframes=4  -Pcols=2 -Pstart=11.3 -Pstep=0.35   -Pw=960 -Ph=720
+./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p3-fold-empty-bare        (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-pushin   -Pframes=48 -Pcols=8 -Pstart=2.95 -Pstep=0.0167 -Pw=960 -Ph=720
+./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p3-fold-pushin-bare       (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-bleed    -Pframes=36 -Pcols=6 -Pstart=8.60 -Pstep=0.0167 -Pw=960 -Ph=720
+./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p3-fold-bleed-bare        (identical window)
+./gw capture -Pscene=lane-knife     -Pout=out/captures/s5-p3-knife-plan    -Pframes=4  -Pcols=2 -Pstart=0.6  -Pstep=0.7    -Pw=960 -Ph=720
+./gw capture -Pscene=lane-knife-bare    -Pout=out/captures/s5-p3-knife-plan-bare    (identical window)
+./gw capture -Pscene=lane-approach      -Pout=out/captures/s5-p3-approach-plan      (same shape as knife)
+./gw capture -Pscene=lane-approach-bare -Pout=out/captures/s5-p3-approach-plan-bare (identical window)
 
 # the second shipped resolution, which is where the countability claim is proved
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-plan-540   -Pframes=6 -Pcols=3 -Pstart=0.4  -Pstep=0.5  -Pw=720 -Ph=540
-./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p2-fold-plan-540-bare     (identical window)
-./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p2-fold-replan-540 -Pframes=5 -Pcols=5 -Pstart=15.8 -Pstep=0.35 -Pw=720 -Ph=540
-./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p2-fold-replan-540-bare   (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-plan-540   -Pframes=6 -Pcols=3 -Pstart=0.4  -Pstep=0.5  -Pw=720 -Ph=540
+./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p3-fold-plan-540-bare     (identical window)
+./gw capture -Pscene=lane-fold      -Pout=out/captures/s5-p3-fold-replan-540 -Pframes=5 -Pcols=5 -Pstart=15.8 -Pstep=0.35 -Pw=720 -Ph=540
+./gw capture -Pscene=lane-fold-bare -Pout=out/captures/s5-p3-fold-replan-540-bare   (identical window)
+./gw capture -Pscene=lane-knife     -Pout=out/captures/s5-p3-knife-plan-540   -Pframes=4 -Pcols=2 -Pstart=0.6 -Pstep=0.7 -Pw=720 -Ph=540
+./gw capture -Pscene=lane-knife-bare -Pout=out/captures/s5-p3-knife-plan-540-bare   (identical window)
 
-./gw test --tests '*StanzaColumnTest*'
-./gw test --tests '*InterfaceInkTest*'
+./gw test --rerun-tasks
 ```
 
-**Quote a `-bare` control beside every number about the interface.** Without it a figure of
-"the mark reads at luminance 133" is a measurement of the dusk sky, which varies by 45 levels
-across the column's own height.
-
-The graded scene is **`lane-fold`**. `lane-knife` and `lane-approach` exist to show that the
-push-in and the haze derive from lane length and framing width and that nothing has been tuned
-through them.
-
----
-
-## 9. What this pass did not do, with the number beside it
-
-Carried forward from pass 1 where still true, and new items marked.
-
-- **Enemy hit points are still not drawn at all.** The largest omission; *"will this phrase
-  kill it"* is the combo question and `combat-design.md` §1.5 makes combos the economy's
-  engine. The idea worth trying is still that a wounded Charted Shadow's own **ink runs
-  thinner**, which is a `Figure`/`InkMaterial` change. **Unpaid.**
-- **A soft-edged panel still passes every guard here.** §1.3, with the exact construction and
-  its number (0.200 at a 5 px feather). Catching it needs a criterion about *shape*. **New,
-  and it is the honest cost of fixing the FAIL.** *(§11.2b(f) asks for the attempt; the attempt
-  succeeded, so the scope is the finding.)*
-- **The framing law is untouched.** §4.5, with the two numbers that decided it. **Unpaid, and
-  it is the largest thing between this frame and §0.**
-- **§11.0's matched-scale part count was not run**, and the fog moves it the wrong way. §4.4.
-- **A 3 px paper tooth in the margin is not delivered**, only stain structure at 1.53× over
-  17 px. §4.2. It is a `PaperBackground` question. **Unpaid.**
-- **The Feint is at the edge of legibility in the hand.** Its mark is *"motion with no
-  contact"* drawn at `dryness` 0.66, which is the tile, and delivered at the 59 px hand
-  cartouche it is very nearly nothing. That may be right and it may be a tile a player cannot
-  find. **Nobody has measured whether it can be identified.** *(New.)*
-- **The vermillion budget doubled**, from 0.141% to **0.278%** of the frame at the planning
-  framing (1,923 px, strongest live `RGB(154,64,61)` against bare `RGB(63,63,75)`) and 0.391% to
-  0.517% at the execution framing. The cause is the seed of wash the Strikethrough's arrival is
-  now drawn from, which exists because the bare wick printed the steepest step in the layer
-  early in its bleed. Still *"a few small marks per frame"* by a wide margin and still tied to
-  threatened tiles by guard B — but it is twice what it was and that is worth a reviewer's
-  attention.
-- **The Strikethrough's arrival is now captured at 60 Hz** (`s5-p2-fold-bleed`, 36 frames at
-  0.0167 s) and **nobody has read it as an arrival**. The frames exist; no statistic was taken
-  through them beyond §1.4's hard-edge sweep, so `STYLE.md` §8's *"elements arrive by pigment
-  spreading into place (0.4–0.7 s)"* remains **unverified in delivered frames**. *(Half-paid:
-  the capture the review asked for exists; the measurement does not.)*
-- **A spent mark's drying has still never been captured at a true frame rate.**
-- **`DRAW`, `TURN`, `BACK_STEP`, `FEINT` and one enchantment mark are now on screen** in the
-  hand columns of the three bouts, and `BACK_STEP` also reaches the written column in Act III
-  of `FOLD`. **No pixel statistic was taken through any of them.**
-- **Nothing was measured about `knife` and `approach` beyond their camera arithmetic and the
-  hard-edge sweep.**
-- **`LaneScene` still duplicates about sixty lines of `DuelScene`'s render body**, and it has
-  now drifted: the haze uniforms are set here and not there. Deliberate, and the drift the pass-1
-  note predicted has begun.
-- **`Opaque` is still public** to work around a one-line `CaptureApp` bug that is still there.
-- **The raster guard sweeps at 20 Hz, not 60.** Rasterising 960×720 is three orders of
-  magnitude dearer than reading vertices. Every distinct state of the interface lasts far
-  longer than 50 ms — the shortest thing in it is a 0.60 s wick — but a defect confined to a
-  single frame could hide there, where the two vertex guards could not. *(New, and stated in
-  the guard's own docstring.)*
-- **The raster guard's headroom is 22%** on the graded bouts (0.266 worst against a 0.34
-  ceiling). It is meant to be tight; it will also fire on a change that is only cosmetic.
-- **Whether the redrawn Parry still reads as a parry to someone who has not been told** is the
-  one thing here only a human can grade, and the same is true of Back-step versus Step. The
-  measurement says they are different pictures; it does not say they are the *right* pictures.
+**Quote a `-bare` control beside every number about the interface.** The graded scene is
+**`lane-fold`**.
 
 ---
 
 ## 10. Every guard, and how it was observed red
 
-§11.2b(f): no assertion counts as a guard until it has been observed red — and, since today,
-a guard carrying a broad claim also owes the adversarial instance.
+§11.2b(f): no assertion counts as a guard until it has been observed red — and a guard carrying
+a broad claim owes the adversarial instance, and must run in every configuration the product
+ships in.
 
 | # | guard | broken by | red |
 |---|---|---|---|
-| A | `noTriangleInTheInterfaceIsAFlatFill` | `Brush.stroke`'s left rim given the spine's alpha | pass 1, and the scope is now stated in what it tests |
-| A2 | `noMarkPutsInkOnASilhouetteEdge` | pointed at `Guards.borderedPanel`: **2 inked silhouette edges**, asserted in `theForbiddenThingIsCaughtByTheGuardsThatForbidIt` | ✔, and its **defeat** is asserted too (§1.3, attempt 2) |
-| A3 | `noMarkPrintsAnEdgeInTheRasterItWouldDraw` | the same panel reads **1.000** of its amplitude in one pixel; also observed red during authoring on the Draw glyph's folded ribbon (0.528) and on the Strikethrough's early wick (0.418) | ✔ |
+| A | `noTriangleInTheInterfaceIsAFlatFill` | `Brush.stroke`'s left rim given the spine's alpha | pass 1 |
+| A2 | `noMarkPutsInkOnASilhouetteEdge` | pointed at `Guards.borderedPanel`: 2 inked silhouette edges | pass 2, and its **defeat** is asserted too |
+| A3 | `noMarkPrintsAnEdgeInTheRasterItWouldDraw` | the same panel reads 1.000; **red this pass at 720×540 on pass 2's geometry (0.3563), and again on the re-authored `BACK_STEP` hook folding across itself (0.5479)** | ✔, at **both** shipped heights |
+| A4 | `noMarkHoldsAFlatRunAcrossTheSheet` | **red on the pass-2 reviewer's own `Brush`-only hatch: 247 px against a 71 px ceiling**, and on the bordered panel at 216 px | ✔ *(new)* |
 | B | `vermillionIsSpentOnlyOnTheTilesTheEngineSaysAreThreatened` | the lane's base pools drawn in `VERMILLION` | pass 1 |
-| C | `theInterfaceRecedesContinuouslyBecauseTheCameraDoes` | `Readout.intimacy` driven off "is a beat running"; now also sweeps `Readout.haze` | pass 1 |
-| D | `theCameraReachesTheWideFramingInsideThePlanningGap` | `Scheduler.returnWide(idleAt)` reverted | pass 1, and re-verified by the review |
+| C | `theInterfaceRecedesContinuouslyBecauseTheCameraDoes` | `Readout.intimacy` driven off "is a beat running" | pass 1 |
+| D | `theCameraReachesTheWideFramingInsideThePlanningGap` | `Scheduler.returnWide(idleAt)` reverted | pass 1; **red this pass** when the framing law landed and the guard still compared against the lane's framing |
 | E | `theColumnReadsDownwardInTheOrderTheEngineResolves` | the height comparator reversed | pass 1 |
 | F | `theMarkThatResolvesFirstIsDrawnHighestOnTheSheet` | comparator, and `STANZA_PITCH` negated | pass 1 |
 | G | `theResolvingClauseIsTheStrongestMarkInTheColumn` | the flood reverted to a fade | pass 1 |
 | H | `theColumnDriesDownwardFromTheMarkThatResolvesNext` | `QUEUED_DRYING` 0.13 → 0.00 | pass 1 |
 | I | `anEmptyStanzaStillPrintsEveryLineOfItsColumn` | the empty-slot loop bounded at `written` | pass 1 |
-| J | `noTwoTilesAreTheSamePicture` | **observed red on pass 1's own alphabet**: `STEP-` vs `BACK_STEP+` measured **0.000** | ✔ |
-| K | `everyCountedMarkIsCountableAtEveryShippedResolution` | **observed red on pass 1's own geometry**: cooldown 3 at 1 charge read 2 runs, cooldown 4 at 2 charges read 3 | ✔ |
-| L | `theStanzaOutReadsTheHealthRow` | **observed red on pass 1's own values**: health at alpha 0.90 out-peaked the stanza | ✔ |
+| J | `noTwoTilesAreTheSamePicture` | observed red on pass 1's alphabet: `STEP−` vs `BACK_STEP+` at 0.000 | ✔ |
+| J2 | `sweepIsTheOnlyTilePermittedToBeItsOwnMirror` | pointed at `TURN` with its spiral closed into a ring | ✔ *(new)* |
+| K | `everyCountedMarkIsCountableAtEveryShippedResolution` | observed red on pass 1's geometry | ✔ |
+| K2 | `everyChargeRunIsCountableOnTheSheetTheBoutDraws` | **written because an independent delivered reading disagreed with K**; red on the tick row placed inside the cartouche above it | ✔ *(new)* |
+| L | `theStanzaOutReadsTheHealthRow` | observed red on pass 1's values | ✔ |
+| M | `systemFoursSchedulesKeepTheirDurationsAcrossTheFramingLaw` | **red by pointing `pushIn()` at the new framing: `PHRASE` 6.9521 → 6.8410, `KNOCKBACK` 3.1548 → 3.0932** | ✔ *(new)* |
+| N | `thePlanningFramingIsInsideItsOwnBandOnEveryLaneAndEveryExchange` | enumerated over every lane length and every two-body placement | ✔ *(new)* |
+| O | `theGradedBoutsPlanAtASizeTheCorpusAsksAFigureToCarry` | **red on pass 2's framing: 0.107 of the frame against a corpus floor of 0.20** | ✔ *(new)* |
 
 Known-answer rather than red-observed, and labelled as such: `everyTileTypeHasAMark`.
+`theForbiddenThingIsCaughtByTheGuardsThatForbidIt` and
+`theBrushOnlyHatchIsCaughtByTheFormGuardAndByNothingElse` are **exhibits**, not guards: they
+assert what the two attacks do, including the parts they *defeat*, so that the findings cannot
+rot.

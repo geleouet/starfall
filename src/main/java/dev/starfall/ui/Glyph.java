@@ -63,12 +63,29 @@ public final class Glyph {
         MARKS.put(TileType.CUT, List.of(
                 line(-0.20f, 0.42f, 0.24f, -0.40f, 0.26f, 1.0f, 0.0f)));
 
-        // "Blade passing through a body, not stopping at it." Two collinear runs
-        // with the body's width between them: the mark is what a thrust leaves
-        // behind, which is a line interrupted rather than a line stopped.
+        // "Blade passing through a body, not stopping at it."
+        //
+        // <b>Re-authored: the interrupted line needed the thing that interrupts it.</b>
+        // Pass 1's reviewer read this correctly only after being told it was an
+        // interrupted line, and said so. The pass-2 reviewer read it unaided and got
+        // <i>"two short level lens dashes with a gap... a weight transfer"</i> --
+        // two footfalls, which is the Step's own device, and the vocabulary already
+        // spends "two marks side by side" on Step. Two reviews, one correct reading
+        // with the answer supplied and one movement verb without it.
+        //
+        // The brief for the fix was exact: <i>"give it something a movement cannot
+        // have."</i> A movement cannot have a <b>body in it</b>. So the beat's own
+        // sentence is drawn literally -- the long level stroke is the blade, the
+        // steep stroke across it is what it passes through, and the blade's line
+        // continues past it rather than stopping at it. Nothing in Step, Back-step,
+        // Turn or Feint has a second stroke crossing a first, and nothing in Parry
+        // crosses at a steep angle: Parry's two strokes run alongside each other for
+        // a third of the mark, which is the span that makes it a deflection.
         MARKS.put(TileType.THRUST, List.of(
-                line(-0.50f, 0.05f, -0.08f, 0.02f, 0.24f, 1.0f, 0.0f),
-                line(0.08f, 0.00f, 0.50f, -0.04f, 0.17f, 0.85f, 0.0f)));
+                line(-0.50f, 0.06f, -0.07f, 0.03f, 0.24f, 1.0f, 0.0f),
+                line(0.11f, 0.02f, 0.50f, -0.01f, 0.20f, 0.82f, 0.0f),
+                curve(new float[] {0.06f, 0.02f, 0.00f, 0.03f, 0.08f},
+                        new float[] {0.31f, 0.15f, -0.02f, -0.19f, -0.33f}, 0.13f, 0.62f, 0.0f)));
 
         // "The signature beat. Blade-on-blade, a deflection curve rather than a
         // collision."
@@ -138,11 +155,47 @@ public final class Glyph {
         // under the travel where the sole never left the ground. Nothing in the Step
         // has a hook and nothing in it is dry, so no reflection of either mark can
         // reach the other.
+        // <b>And pass 2's version of it was read cold as an attack.</b> The pass-2
+        // reviewer, off the delivered pixels, wrote: <i>"a long tapering stroke,
+        // thick through the middle, drawn out to a fine barbed point at the left --
+        // toward the hero -- with three small dashes beneath it. A strike, aimed
+        // leftward. This is the enemy's intent."</i> Confident, and wrong on the one
+        // axis {@code combat-design.md} 2.2 spends a whole tile on.
+        //
+        // The diagnosis is in the pressure profile rather than in the drawing. A
+        // {@link Brush} stroke lands heavy and thins along its travel, so a stroke
+        // authored from {@code x=+0.46} to {@code x=-0.50} prints a heavy head on the
+        // right and a fine point on the left -- which is exactly what a blade
+        // travelling leftward looks like. The two marks that carried the meaning, the
+        // hook and the dry scuff, measured 21.6 and 18.9 of luminance lift against
+        // the travel stroke's 77.8: <b>the loud part said the wrong word</b>.
+        //
+        // So the retreat is now the loud part, and the mark is drawn in the
+        // direction the body's weight goes:
+        //
+        //   - the <b>heel</b>, which is the whole gesture, is authored <em>from</em>
+        //     the rear. It lands at the back, catches, and hooks; the brush's own
+        //     pressure therefore puts its mass at the left and thins it forward, so
+        //     the heaviest thing in the mark is behind the body and the faintest is
+        //     the trace left toward the enemy. That is the reverse of a strike;
+        //   - the weight <em>still standing</em> where it was, at the front, quiet;
+        //   - and the dry scuff of the sole that never left the ground, running
+        //     forward-to-back under the travel.
+        //
+        // Nothing in the Step has a hook and nothing in it is dry, so no reflection
+        // of either mark can reach the other.
         MARKS.put(TileType.BACK_STEP, List.of(
-                curve(new float[] {0.46f, 0.20f, -0.06f, -0.32f, -0.50f},
-                        new float[] {0.08f, -0.02f, -0.12f, -0.15f, -0.02f}, 0.25f, 1.0f, 0.0f),
-                line(0.18f, -0.34f, 0.50f, -0.29f, 0.21f, 0.90f, 0.0f),
-                line(-0.24f, -0.45f, 0.24f, -0.41f, 0.17f, 0.72f, 0.18f)));
+                // Width 0.21 and not 0.26, and the hook opened, for the reason the
+                // Draw's own note records: at a half-width wider than the radius of
+                // its own turn a ribbon folds across itself, the two coats print a
+                // bright core, and the boundary of that core is the steepest thing
+                // the layer draws. Measured here at the hand's cartouche side, the
+                // first version of this mark read 0.5479 of the field's amplitude in
+                // one pixel against a ceiling of 0.354. A brush lifts as it turns.
+                curve(new float[] {-0.30f, -0.50f, -0.42f, -0.10f, 0.28f},
+                        new float[] {-0.32f, -0.10f, 0.16f, 0.12f, -0.02f}, 0.21f, 1.0f, 0.0f),
+                line(0.26f, -0.34f, 0.50f, -0.31f, 0.19f, 0.62f, 0.0f),
+                line(0.30f, -0.42f, -0.26f, -0.38f, 0.16f, 0.80f, 0.26f)));
 
         // "The whole body winding around; cloth and hair last to arrive." A single
         // closing spiral, so the mark itself has no end -- it runs out of ink.
@@ -150,10 +203,32 @@ public final class Glyph {
                 spiral(0f, 0f, 0.42f, 0.21f, 20f, -320f, 0.16f, 1.0f, 0.0f)));
 
         // "Motion with no contact -- the negative space that makes contact read."
-        // The Step's travel at a dryness that keeps the brush off the paper for most
-        // of it. The gesture is there and the ink is not, which is the tile.
+        //
+        // <b>Pass 2 drew this as absence and it delivered nothing at all.</b> One
+        // stroke at {@code dryness} 0.58, which the hand's own state dryness then
+        // pushed to the 0.92 clamp: measured on the delivered planning frame through
+        // {@code x835..900 y450..492}, the whole tile peaked at <b>4.5</b> of
+        // luminance lift with six pixels above the floor -- 17x fainter than the tile
+        // drawn immediately above it, and <em>three times fainter than the impression
+        // an empty stanza slot leaves</em>. Its own cooldown ticks out-read it by 9x.
+        // A tile the hand says is there and the eye cannot find is worse than an
+        // omission, which is the same finding the charge run produced in pass 1.
+        //
+        // The tile is negative space, so the mark is a gesture <b>and the gesture it
+        // did not make</b>: one committed stroke, and beside it the same stroke
+        // again, offset and dry, which is where the blade would have gone. The ink is
+        // present -- that is the fix -- and what says "no contact" is that the second
+        // mark never lands. Two parallel strokes on a rising diagonal are nothing
+        // else in this alphabet: Parry's two strokes cross, Thrust's are collinear
+        // with a body between them, and Step's are a short dash and a long lens at
+        // different heights.
+        //
+        // The state dryness of a held tile no longer adds to this one -- see
+        // {@code LaneInterface.place}, which takes the drier of the two rather than
+        // the sum, because they are two statements about one brush.
         MARKS.put(TileType.FEINT, List.of(
-                line(-0.46f, -0.24f, 0.48f, 0.20f, 0.26f, 1.0f, 0.58f)));
+                line(-0.46f, -0.26f, 0.46f, 0.16f, 0.27f, 1.0f, 0.28f),
+                line(-0.38f, -0.06f, 0.40f, 0.30f, 0.21f, 0.58f, 0.52f)));
     }
 
     private Glyph() {

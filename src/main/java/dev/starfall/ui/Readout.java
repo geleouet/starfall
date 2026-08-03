@@ -77,7 +77,26 @@ public final class Readout {
         this.schedule = schedule;
         this.chapters = List.copyOf(chapters);
         this.marks = List.copyOf(marks);
-        this.planningWidth = stage.planning().widthTiles();
+        this.planningWidth = widestOf(schedule, stage);
+    }
+
+    /**
+     * The widest shot this score actually holds.
+     *
+     * <p>Read off the schedule rather than from {@code stage.planning()}, because
+     * since {@link Stage#planning(Standing)} the two are different questions: the
+     * lane's own framing is what decides the <em>duration</em> of a push-in, and the
+     * shot the camera really opens on is the exchange's. {@link #intimacy(double)}
+     * is "how far in from the widest shot", so it has to be normalised by the shot
+     * that exists -- otherwise the interface arrives at the planning framing already
+     * two thirds receded, which is a recession with no camera move under it.
+     */
+    private static double widestOf(Schedule schedule, Stage stage) {
+        double widest = 0.0;
+        for (dev.starfall.stage.Directive.CameraKey k : schedule.camera()) {
+            widest = Math.max(widest, Math.max(k.from().widthTiles(), k.to().widthTiles()));
+        }
+        return widest > 0.0 ? widest : stage.planning().widthTiles();
     }
 
     public static Builder builder(Stage stage) {

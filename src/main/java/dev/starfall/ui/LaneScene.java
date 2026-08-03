@@ -83,6 +83,25 @@ public class LaneScene implements Scene, SceneProbe {
     /** How much of the camera's own travel the margin takes, before the cap. */
     public static final float PARALLAX_SHARE = 0.14f;
 
+    /**
+     * How much air there is at the most intimate framing.
+     *
+     * <p>Not zero: STYLE.md 6's fog bands are <i>"present in every single reference
+     * image"</i>, including images 3, 4 and 5, which are the intimate duel this
+     * framing quotes. What the camera's distance buys is <em>more</em> of it, not
+     * the difference between some and none.
+     */
+    public static final float FOG_FLOOR = 0.42f;
+
+    /**
+     * How much of {@link Readout#haze(double)} is still spent on the figures
+     * themselves.
+     *
+     * <p>See the note beside its use: the bands carry the atmosphere now, and this
+     * is the depth desaturation of STYLE.md 6's second bullet only.
+     */
+    public static final float SUBJECT_HAZE = 0.5f;
+
     private final Bout.Kind kind;
     private final String name;
 
@@ -228,6 +247,16 @@ public class LaneScene implements Scene, SceneProbe {
 
         paper.render(camera.combined, t);
 
+        // STYLE.md 6's fog, as bands and on both sides of the figures. It is world
+        // rather than interface, so the -bare control carries it too and every
+        // live - bare number in docs/system5-debt.md still measures the interface.
+        float haze = (float) staged.readout().haze(t);
+        float air = FOG_FLOOR + (1f - FOG_FLOOR) * haze;
+        ui.begin(camera.combined);
+        Fog.bank(ui, Fog.Layer.FAR, t, camera.position.x, camera.position.y,
+                camera.viewportWidth, camera.viewportHeight, air);
+        ui.end();
+
         // The Fold of the World, in world units: it scales, translates and is
         // occluded exactly as the ground the figures stand on, because it is that
         // ground.
@@ -246,9 +275,15 @@ public class LaneScene implements Scene, SceneProbe {
         // STYLE.md 9's "heavy fog, Family C mood": going wide costs the figures
         // contrast the way distance does. Driven by the framing width and nothing
         // else, so it is continuous wherever the camera is.
-        float haze = (float) staged.readout().haze(t);
-        renderer.haze(haze);
-        hair.haze(haze);
+        //
+        // <b>Halved, because the fog is now bands.</b> The pass-2 review's
+        // structural finding was that atmosphere delivered as attenuation of the
+        // subject "removes readable parts and adds none". The bands above and below
+        // carry STYLE.md 6's requirement; this term survives only as depth
+        // desaturation on a body seen through them (6's second bullet), at a weight
+        // that costs the figure a fraction of what it did.
+        renderer.haze(haze * SUBJECT_HAZE);
+        hair.haze(haze * SUBJECT_HAZE);
 
         renderer.begin(camera.combined, t);
         for (Figure f : director.figures()) {
@@ -266,6 +301,15 @@ public class LaneScene implements Scene, SceneProbe {
         fx.begin(camera.combined);
         director.renderInk(fx);
         fx.end();
+
+        // And the near bank, in front of the bodies: STYLE.md 6's "occlude the
+        // lower body of figures". Kept below hem height so what it veils is the
+        // dissolving lower third the ink material already frays, and not the head,
+        // the hands or the blade -- the parts STYLE.md 11.0 counts.
+        ui.begin(camera.combined);
+        Fog.bank(ui, Fog.Layer.NEAR, t, camera.position.x, camera.position.y,
+                camera.viewportWidth, camera.viewportHeight, air);
+        ui.end();
 
         paper.renderOverlay(camera.combined, t);
         Opaque.seal();

@@ -190,6 +190,92 @@ final class Raster {
     record Step(float size, int x, int y) {
     }
 
+    /** How wide an inked block is, which axis limits it, and where it is. */
+    record Run(int length, boolean horizontal, int x, int y) {
+    }
+
+    /**
+     * <b>The largest inked block: the interior of a filled region, measured.</b>
+     *
+     * <p>For every pixel, the length of the unbroken inked run it lies in along each
+     * axis; the statistic is the largest {@code min(horizontal, vertical)} anywhere
+     * in the field. It is the side of the largest square of solid ink the picture
+     * contains.
+     *
+     * <h2>What it is for</h2>
+     *
+     * <p>This is the criterion {@code system5-debt.md} 1.3 said nobody had -- <i>"a
+     * ban on a <b>shape</b>, and nothing in this project tests for a shape"</i> --
+     * and which the pass-2 review then defeated the entire suite with, by hatching a
+     * filled HUD panel out of legal {@link Brush} strokes until it read 0.0515 of its
+     * amplitude in one pixel, seven times <em>softer</em> than the interface it was
+     * hiding in.
+     *
+     * <p>What a filled region has that a mark does not is an interior in <b>both</b>
+     * directions at once. A stroke is a ridge: cut across it and the ink ends within
+     * a stroke width. A wash lying on the ground is a lens: long one way, thin the
+     * other. A panel -- feathered, hatched, or assembled from ten thousand legal
+     * brush strokes -- is thick both ways over hundreds of pixels, and nothing done
+     * to its rim changes that, because the defect is its middle.
+     *
+     * <h2>Why thickness and not the flatness the review asked for</h2>
+     *
+     * <p>The pass-2 review proposed <i>"no axis-aligned run of near-constant coverage
+     * longer than N px, on either axis"</i>. Built and measured, that form fails
+     * twice. On <b>one</b> axis it convicts the interface's own lane: a wash seen
+     * edge-on is 129 px of near-constant coverage across and about thirty tall, and
+     * that is a wash, which STYLE.md 8 asks for by name. And <b>near-constant</b> is
+     * the wrong predicate: the review's own hatch ripples at its stroke pitch, so at
+     * a band of 0.06 of amplitude its largest near-constant block measures <b>23 px
+     * against the interface's own 13</b> -- a margin of 1.8x, which a hatch tuned to
+     * ripple a little harder would close entirely. Thickness has no such dial: the
+     * same hatch measures <b>247 px against the interface's 27</b>.
+     *
+     * @param ink the share of the field's amplitude below which a pixel is paper
+     */
+    Run inkBlock(float amplitude, float ink, int margin) {
+        float floor = ink * amplitude;
+        int[] h = new int[width * height];
+        int[] v = new int[width * height];
+        for (int y = margin; y < height - margin; y++) {
+            segment(h, y, margin, width - margin, true, floor);
+        }
+        for (int x = margin; x < width - margin; x++) {
+            segment(v, x, margin, height - margin, false, floor);
+        }
+        Run best = new Run(0, true, 0, 0);
+        for (int y = margin; y < height - margin; y++) {
+            for (int x = margin; x < width - margin; x++) {
+                int i = y * width + x;
+                int side = Math.min(h[i], v[i]);
+                if (side > best.length()) {
+                    best = new Run(side, h[i] <= v[i], x, y);
+                }
+            }
+        }
+        return best;
+    }
+
+    /** Cuts one line into unbroken inked runs and writes each pixel's own run length. */
+    private void segment(int[] out, int line, int from, int to, boolean horizontal, float floor) {
+        int start = from;
+        for (int i = from; i <= to; i++) {
+            boolean inked = i < to && at(i, horizontal, line) >= floor;
+            if (inked) {
+                continue;
+            }
+            int len = i - start;
+            for (int k = start; k < i; k++) {
+                out[horizontal ? line * width + k : k * width + line] = len;
+            }
+            start = i + 1;
+        }
+    }
+
+    private float at(int i, boolean horizontal, int line) {
+        return horizontal ? alpha[line * width + i] : alpha[i * width + line];
+    }
+
     /**
      * The runs of ink along one row: where a counted mark is counted.
      *

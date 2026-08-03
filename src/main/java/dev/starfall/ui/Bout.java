@@ -115,9 +115,17 @@ public final class Bout {
         }
     }
 
-    /** A staged bout: the score, what the sheet says, and who opens where. */
+    /**
+     * A staged bout: the score, what the sheet says, who opens where, and the shot
+     * it plans in.
+     *
+     * @param planning the score's own planning framing -- {@code Stage.planning(Standing)}
+     *                 taken from the opening board, carried here so a test can assert
+     *                 the camera reaches it without re-deriving it from the arithmetic
+     *                 that produced it
+     */
     public record Staged(Schedule schedule, Readout readout, int hero, int heroTile, Facing heroFacing,
-                         List<Body> bodies) {
+                         List<Body> bodies, dev.starfall.stage.Framing planning) {
 
         /** One body placed for the renderer, in the order it should be drawn. */
         public record Body(int id, int tile, Facing facing, boolean hero) {
@@ -276,7 +284,7 @@ public final class Bout {
 
         Schedule schedule = scheduler.schedule();
         return new Staged(schedule, readout.build(schedule), heroId, heroStands, heroFacing,
-                List.copyOf(bodies));
+                List.copyOf(bodies), scheduler.planningFraming());
     }
 
     /**

@@ -273,6 +273,91 @@ public final class Stage {
     }
 
     /**
+     * The width of the planning framing on the shortest legal lane: the shot
+     * STYLE.md 9 was written about, and the floor {@link #planning(Standing)} will
+     * not go below.
+     *
+     * <p>Derived from the lane law rather than chosen -- it is {@link #planning()}
+     * evaluated at {@link Lane#MIN_LENGTH} -- which matters because it is the one
+     * number in the framing law that is not forced by the board.
+     */
+    public static final double SHORTEST_PLANNING =
+            Lane.MIN_LENGTH - 1 + 2 * EDGE_MARGIN + TILE_WIDTH;
+
+    /**
+     * <b>The planning framing, taken from the exchange rather than from the lane's
+     * midpoint.</b>
+     *
+     * <h2>Why the lane's own framing is the wrong shot to plan in</h2>
+     *
+     * <p>{@link #planning()} answers "how much lane is there", and three System 5
+     * reviews in a row have failed the picture it produces. Measured by STYLE.md
+     * 11.0's matched-scale count on the graded eleven-tile bout, the 12.5-tile
+     * framing delivers a hero <b>77 px</b> tall in 720 rows -- 0.107 of the frame --
+     * resolving about six readable parts against the reference's sixteen. Nothing in
+     * the corpus is that small: measured on the eight reference images, the
+     * <em>smallest</em> figure any of them asks to carry meaning is a Family C
+     * background figure at about <b>0.22</b> of the frame height, and the Family B
+     * duellists run 0.55 to 0.65. A figure at 0.107 is outside the corpus's own
+     * spread on the low side, which is STYLE.md 11.0's band-with-both-edges applied
+     * to the subject rather than to a material.
+     *
+     * <p>So the shot is cut to the <b>exchange</b> -- the hero and the Charted Shadow
+     * nearest it -- with exactly the margin the lane law already spends
+     * ({@link #EDGE_MARGIN} either side of the outermost tile), and the whole lane is
+     * shown only when the exchange happens to fill it. That is the pass-1 review's
+     * item, verbatim: a framing law that keeps the figure large <i>"even at the cost
+     * of not showing the whole lane"</i>.
+     *
+     * <h2>The two edges</h2>
+     *
+     * <ul>
+     *   <li><b>Floor: {@link #SHORTEST_PLANNING}.</b> A knife fight's own planning
+     *       framing, 6.5 tiles, which puts the figure at 0.22 of the frame -- the
+     *       bottom of the corpus's band and no lower. Without a floor a duel on
+     *       adjacent tiles would plan at 3.5 tiles, which is the <em>execution</em>
+     *       framing, and "wide to plan, push in to strike" would have nothing to
+     *       push in from.</li>
+     *   <li><b>Ceiling: {@link #planning()}.</b> The exchange is never framed wider
+     *       than the lane it happens on, so this can only ever tighten the shot and
+     *       a five-tile lane is untouched.</li>
+     * </ul>
+     *
+     * <p>Centred on the middle of the exchange and {@link #clamp(Framing) clamped} to
+     * the paper the lane covers, so the shot never frames a sheet of nothing.
+     *
+     * <p><b>What this does not change.</b> {@link #pushIn()}, {@link #pushInSeconds()}
+     * and {@link #returnSeconds()} still read {@link #planning()}, so the duration law
+     * of STYLE.md 9 is a property of the lane and every schedule the project has
+     * fingerprinted keeps its length. What moves is where the camera looks and how
+     * wide, which is the thing three reviews have asked for.
+     */
+    public Framing planning(Standing standing) {
+        Framing lane = planning();
+        int hero = standing.hero();
+        if (hero < 0) {
+            return lane;
+        }
+        int heroTile = standing.tile(hero);
+        int nearest = heroTile;
+        int best = Integer.MAX_VALUE;
+        for (Standing.Body b : standing.bodies()) {
+            if (b.id() == hero) {
+                continue;
+            }
+            int d = Math.abs(b.tile() - heroTile);
+            if (d < best) {
+                best = d;
+                nearest = b.tile();
+            }
+        }
+        double span = Math.abs(nearest - heroTile);
+        double width = Math.min(lane.widthTiles(),
+                Math.max(SHORTEST_PLANNING, span + 2 * EDGE_MARGIN + TILE_WIDTH));
+        return clamp(new Framing((heroTile + nearest) / 2.0, width));
+    }
+
+    /**
      * STYLE.md 9's execution framing, for one beat: "figures large, blades crossing
      * near frame centre."
      *

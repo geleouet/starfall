@@ -66,6 +66,49 @@ final class Guards {
         sink.triangle(tl, br, bl);
     }
 
+    /**
+     * <b>The second adversarial instance, and it is the one that beat pass 2.</b>
+     *
+     * <p>The pass-2 review built a filled rectangular HUD panel <em>out of nothing
+     * but {@code Brush.stroke}</em> -- a schedule of legal, edgeless, zero-rimmed
+     * strokes laid side by side until they close -- and it passed all 410 tests. Its
+     * parameters are the review's own: strokes of width {@value #HATCH_WIDTH} at a
+     * pitch of {@value #HATCH_PITCH}, running {@code x0.51..1.09} across the box
+     * {@code x0.60..1.00 y0.60..0.90} in frame heights. Measured through the raster
+     * the hard-edge guard uses, it reads <b>0.0515</b> of its own amplitude in one
+     * pixel -- <em>seven times softer</em> than anything the interface itself draws
+     * -- with zero flat-fill triangles and zero inked silhouette edges.
+     *
+     * <p>That is the whole finding, and it is why the hard-edge guards cannot be the
+     * ones to catch this: <i>"{@code LaneInterface} calling only {@code Brush} is the
+     * project's structural argument against chrome, and it is not an argument -- a
+     * rectangle is a schedule of legal strokes."</i>
+     *
+     * <p>Checked in as a fixture beside {@link #borderedPanel} so that the next pass
+     * cannot rediscover it, exactly as pass 2 did with the pass-1 reviewer's panel.
+     */
+    static void hatchPanel(Brush.Sink sink) {
+        hatchPanel(sink, HATCH_WIDTH, HATCH_PITCH, 0.45f);
+    }
+
+    static void hatchPanel(Brush.Sink sink, float width, float pitch, float alpha) {
+        for (float y = 0.60f; y <= 0.90f + 1e-4f; y += pitch) {
+            int n = 9;
+            float[] xs = new float[n];
+            float[] ys = new float[n];
+            for (int i = 0; i < n; i++) {
+                xs[i] = 0.51f + (1.09f - 0.51f) * i / (n - 1);
+                ys[i] = y;
+            }
+            Brush.stroke(sink, xs, ys, width, alpha, Palette.CLOTH_PALE, 4.1f + y * 37f, 0f);
+        }
+    }
+
+    /** The review's own parameters, kept as constants so the exhibit cannot drift. */
+    static final float HATCH_WIDTH = 0.080f;
+
+    static final float HATCH_PITCH = 0.020f;
+
     // -- the two properties, as predicates over what a sink was handed ------------
 
     /**
@@ -197,13 +240,62 @@ final class Guards {
             return new ArrayList<>();
         }
         float aspect = w / (float) h;
-        int right = Math.round((aspect - LaneInterface.HAND_INSET) * h);
-        int left = Math.max(0, right - Math.round(0.34f * h));
-        int mid = Math.round((1f - LaneInterface.HAND_TOP_Y) * h);
-        int band = Math.round(0.02f * h);
+        int cx = Math.round((aspect - LaneInterface.HAND_INSET) * h);
+        int reach = Math.round(5f * LaneInterface.TICK_PITCH * h);
+        int left = Math.max(0, cx - reach);
+        int right = Math.min(w - 1, cx + reach);
+        int mid = Math.round((1f - (LaneInterface.HAND_TOP_Y - LaneInterface.TICK_ROW)) * h);
+        int band = Math.round(0.010f * h);
         int row = only.densestRow(left, right, Math.max(0, mid - band),
                 Math.min(h - 1, mid + band));
         return only.runs(row, left, right, peak * 0.10f);
+    }
+
+    /**
+     * The runs of ink in one tile's charge marks <b>on the sheet the bout actually
+     * draws</b>, rather than on a sheet holding that tile and nothing else.
+     *
+     * <p>STYLE.md 11.2b(f): <i>"a guard is a claim about the product, and the product
+     * is every configuration it ships in."</i> {@link #tickRuns} answers "is this run
+     * separable", and it answers it about a tile alone in an empty hand. A player
+     * reads a run with a cartouche beside it and two more cartouches above and below,
+     * so this reads the same row out of the whole delivered sheet -- and the control
+     * it differences against is the same sheet with that one tile's cooldown set to
+     * zero, so what is left is that tile's charge marks and nothing else.
+     */
+    static List<int[]> tickRunsInHand(Look look, int index, int w, int h) {
+        Raster live = sheetField(look, w, h);
+        Raster none = sheetField(withoutCharges(look, index), w, h);
+        Raster only = new Raster(w, h);
+        float peak = 0f;
+        for (int i = 0; i < only.alpha.length; i++) {
+            only.alpha[i] = Math.max(0f, live.alpha[i] - none.alpha[i]);
+            peak = Math.max(peak, only.alpha[i]);
+        }
+        if (peak <= 0f) {
+            return new ArrayList<>();
+        }
+        float aspect = w / (float) h;
+        int cx = Math.round((aspect - LaneInterface.HAND_INSET) * h);
+        int reach = Math.round(5f * LaneInterface.TICK_PITCH * h);
+        int left = Math.max(0, cx - reach);
+        int right = Math.min(w - 1, cx + reach);
+        int mid = Math.round((1f - (LaneInterface.HAND_TOP_Y - index * LaneInterface.HAND_PITCH
+                - LaneInterface.TICK_ROW)) * h);
+        int band = Math.round(0.008f * h);
+        int row = only.densestRow(left, right, Math.max(0, mid - band),
+                Math.min(h - 1, mid + band));
+        return only.runs(row, left, right, peak * 0.10f);
+    }
+
+    /** The same sheet with one held tile's cooldown taken off it. */
+    private static Look withoutCharges(Look look, int index) {
+        List<Look.Held> hand = new ArrayList<>(look.hand());
+        Look.Held h = hand.get(index);
+        hand.set(index, new Look.Held(h.type(), h.enchantment(), 0, 0, h.banked()));
+        return new Look(look.time(), look.stanza(), List.copyOf(hand), look.health(),
+                look.maxHealth(), look.laneLength(), look.heroTile(), look.heroStep(),
+                look.reached(), look.threatened(), look.bleed(), look.intimacy());
     }
 
     /** A sheet with health alone on it, at a stated tally. */
