@@ -218,10 +218,19 @@ public final class Duel {
      * picture, so it is the one that must not be interrupted.
      */
     public static List<Figure> figuresFor(Staged staged) {
-        Figure enemy = Figure.pale(staged.enemy())
+        return figuresFor(staged, false);
+    }
+
+    /** The same two figures with no GPU meshes. See {@link dev.starfall.direct.Rehearsal}. */
+    public static List<Figure> headlessFiguresFor(Staged staged) {
+        return figuresFor(staged, true);
+    }
+
+    private static List<Figure> figuresFor(Staged staged, boolean headless) {
+        Figure enemy = (headless ? Figure.headlessPale(staged.enemy()) : Figure.pale(staged.enemy()))
                 .standAt(Director.stretch(staged.enemyTile() * Stage.TILE_WIDTH),
                         staged.enemyFacing().step());
-        Figure hero = Figure.dark(staged.hero())
+        Figure hero = (headless ? Figure.headlessDark(staged.hero()) : Figure.dark(staged.hero()))
                 .standAt(Director.stretch(staged.heroTile() * Stage.TILE_WIDTH),
                         staged.heroFacing().step());
         return List.of(enemy, hero);

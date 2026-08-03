@@ -35,6 +35,31 @@ public final class RegionSet {
 
     public enum Space { PIXEL, IMAGE, FIGURE }
 
+    /**
+     * Which figure a {@code FIGURE}-space region resolves against.
+     *
+     * <p><b>The absence of this enum is what made System 4 pass 1 unreviewable.</b>
+     * On a two-figure frame {@code Figure.detect} returns the largest connected ink
+     * component's box, which — the moment the two bodies touch — spans both of them.
+     * Every {@code FIGURE}-space region then resolves against a box twice the width
+     * it should be: {@code head} landed on the <em>other</em> figure's hair, and
+     * {@code torso} straddled the gap. The tool reported "hem trails hips by +6.52
+     * frames", a plausible number inside STYLE.md §7.1's own band, from rectangles
+     * that were nonsense.
+     *
+     * <p>STYLE.md §11.3 states the rule this closes: <i>"a silent wrong answer is
+     * worse than a refusal."</i> So a region set on a two-figure frame either names
+     * which figure it means, or {@link #resolve} throws.
+     */
+    public enum Which {
+        /** The largest ink component. Legal only when there is exactly one body. */
+        SOLE,
+        /** The leftmost body in the frame. */
+        LEFT,
+        /** The rightmost of the two. */
+        RIGHT
+    }
+
     public record Def(String name, Space space, double a, double b, double c, double d) {
 
         public Rect resolve(Frame frame, Figure figure) {
@@ -99,6 +124,58 @@ public final class RegionSet {
             out.put(d.name(), d.resolve(frame, figure));
         }
         return out;
+    }
+
+    /**
+     * Resolves against a <em>named</em> figure, refusing a frame it cannot resolve.
+     *
+     * <h2>The refusal, which is the point of the method</h2>
+     *
+     * <p>Two conditions, and both are STYLE.md §11.3 verbatim:
+     *
+     * <ul>
+     *   <li>the ink resolves into two components each above
+     *       {@link Duellists#BODY_SHARE} of the total, <b>and</b></li>
+     *   <li>no figure has been named ({@link Which#SOLE}).</li>
+     * </ul>
+     *
+     * <p>Then it throws rather than answering. {@code track} already <i>refuses</i>
+     * without an anchor and "anchors stopped being a problem"; this is the same
+     * shape of fix for the same class of defect, and the reason it has to be a
+     * refusal rather than a warning is that pass 1's wrong answer was inside the
+     * band a reviewer would have accepted.
+     *
+     * <p>It also refuses when a figure is named and the frame has only one body,
+     * because that is equally a mismatch between what the caller thinks it is
+     * measuring and what is there.
+     */
+    public Map<String, Rect> resolve(Frame frame, Paper paper, double inkFactor, Which which) {
+        int bodies = Duellists.bodyCount(frame, paper, inkFactor);
+        if (bodies >= 2 && which == Which.SOLE) {
+            throw new IllegalStateException(
+                    "this frame resolves into " + bodies + " ink components each holding at least "
+                    + Math.round(100 * Duellists.BODY_SHARE) + "% of its ink, and no figure has been "
+                    + "named. A figure-relative region on a two-figure frame lands on whichever "
+                    + "body the detector happened to reach first, or on the box spanning both -- "
+                    + "which is how a previous pass reported a hem lag of +6.52 frames from "
+                    + "rectangles that straddled the gap. Name a figure: --figure left|right.");
+        }
+        if (bodies < 2 && which != Which.SOLE) {
+            throw new IllegalStateException(
+                    "this frame has " + bodies + " body-sized ink component(s); '"
+                    + which.name().toLowerCase() + "' names one that is not there.");
+        }
+        Figure figure;
+        if (which == Which.SOLE) {
+            figure = Figure.detect(frame, paper, inkFactor);
+        } else {
+            Rect box = Duellists.bodyBounds(frame, paper, inkFactor, which == Which.LEFT ? 0 : 1);
+            if (box == null) {
+                throw new IllegalStateException("no " + which.name().toLowerCase() + " body in this frame");
+            }
+            figure = Figure.atBounds(box);
+        }
+        return resolve(frame, figure);
     }
 
     /**

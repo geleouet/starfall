@@ -47,6 +47,7 @@ public final class AimLink {
     private float maxSlewDegPerSecond = 1200f;
 
     private float targetX, targetY;
+    private float axisOffsetDeg;
     private float restLocalDeg;
     private float prevLocalDeg;
     private boolean primed;
@@ -95,6 +96,25 @@ public final class AimLink {
         return this;
     }
 
+    /**
+     * The angle between this bone's own +x axis and the thing that should end up
+     * pointing at the target.
+     *
+     * <p>Zero aims the bone itself, which is what a clavicle wants. A wrist wants
+     * something else: the blade it carries sits at a fixed bind angle out of the
+     * hand, so aiming the <em>hand</em> at a crossing points the hand at it and
+     * leaves the blade 45 degrees off. Setting this to that bind angle makes the
+     * link aim the blade and turn the hand by whatever that takes -- which is what
+     * a wrist actually does, and what pass 1 of System 4 had no way to express.
+     *
+     * <p>It composes with mirroring correctly for free: the offset is a local
+     * angle, so it reflects with the bone rather than needing a sign.
+     */
+    public AimLink axisOffsetDeg(float deg) {
+        this.axisOffsetDeg = deg;
+        return this;
+    }
+
     /** Local rotation the bone falls back to at weight 0. Defaults to its bind angle. */
     public AimLink restLocalDeg(float deg) {
         this.restLocalDeg = deg;
@@ -129,7 +149,7 @@ public final class AimLink {
             wantLocal = restLocalDeg;
         } else {
             float aimWorld = IkMath.atan2Deg(dy, dx);
-            float aimLocal = mirror * IkMath.deltaDeg(parentWorld + flip, aimWorld);
+            float aimLocal = mirror * IkMath.deltaDeg(parentWorld + flip, aimWorld) - axisOffsetDeg;
             // Partway, measured on the short arc from rest, so the weight is a
             // fraction of a turn rather than a lerp between two absolute angles
             // that could pick the long way round.

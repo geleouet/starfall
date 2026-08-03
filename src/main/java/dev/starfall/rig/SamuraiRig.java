@@ -43,6 +43,27 @@ public final class SamuraiRig {
         this.bladeMesh = bladeMesh;
     }
 
+    /** Heel to crown, in world units. The scale everything on a figure is quoted against. */
+    public static final float FIGURE_HEIGHT = 1.70f;
+
+    /**
+     * The nagasa, in world units: {@link MeshAuthor#BLADE_NAGASA_FRACTION} of the
+     * figure's own height. Public because aiming a blade needs to know how long
+     * it is, and because every blade statistic in {@code docs/system4-debt.md} is
+     * a fraction of the figure height this is derived from.
+     */
+    public static final float BLADE_LENGTH = MeshAuthor.BLADE_NAGASA_FRACTION * FIGURE_HEIGHT;
+
+    /**
+     * How far the blade's habaki sits out of the fist, along the hand's own axis.
+     *
+     * <p>Small, and load-bearing out of all proportion to its size: this offset
+     * plus the blade's 45-degree bind angle is the entire distance between "the
+     * two hands agree on a point" and "the two blades agree on a point", and pass
+     * 1 of System 4 spent a whole pass on the wrong one of those.
+     */
+    public static final float BLADE_GRIP_OFFSET = 0.10f;
+
     public static SamuraiRig build() {
         Skeleton skeleton = buildSkeleton();
         // Mesh authoring below reads bone world positions/rotations, so the
@@ -52,6 +73,27 @@ public final class SamuraiRig {
         SkinnedMesh mesh = author.buildBody();
         SkinnedMesh bladeMesh = author.buildBlade();
         return new SamuraiRig(skeleton, mesh, bladeMesh);
+    }
+
+    /**
+     * The whole rig except the two GPU meshes: same skeleton, same bind pose, no
+     * vertex buffers and therefore no GL context.
+     *
+     * <p><b>This is what makes a schedule rehearsable in a test.</b> Everything
+     * between the staging layer and the picture -- the director's reading of a
+     * directive, the IK chains, the blade aim, the cloth and hair -- is pure
+     * arithmetic on this skeleton; only the two {@link SkinnedMesh} uploads need
+     * a context. Before this existed, the only way to ask "where is the
+     * defender's blade during the contact span" was to shoot a capture and
+     * measure pixels, which is how a beat that never happened survived a whole
+     * pass. See {@code dev.starfall.direct.Rehearsal}.
+     *
+     * <p>{@link #mesh()} and {@link #bladeMesh()} are null on a headless rig and
+     * say so rather than returning an empty mesh, because a renderer handed an
+     * empty mesh draws nothing and reports success.
+     */
+    public static SamuraiRig headless() {
+        return new SamuraiRig(buildSkeletonOnly(), null, null);
     }
 
     /**
@@ -167,7 +209,7 @@ public final class SamuraiRig {
         // tucked against the ribs -- swing it forward to raise the tip and a
         // 50 px pocket of bare paper opens between the haori front and the
         // sleeve, which is a worse fault than the one it fixes.
-        add(bones, new Bone("blade", 10, handL).bindLocal(0.10f, 0f, 45f));
+        add(bones, new Bone("blade", 10, handL).bindLocal(BLADE_GRIP_OFFSET, 0f, 45f));
 
         // Off arm (far/back side): shorter, tucked, attached higher on the chest.
         Bone shoulderR = add(bones, new Bone("shoulderR", 11, chest).bindLocal(-0.09f, 0.14f, -85f));
@@ -681,10 +723,10 @@ public final class SamuraiRig {
          * katana's nagasa is about 70 cm on a 170 cm swordsman, so the number is
          * 0.40, and rig-fixes section 3 is superseded on this point.
          */
-        private static final float BLADE_NAGASA_FRACTION = 0.40f;
+        static final float BLADE_NAGASA_FRACTION = 0.40f;
 
         /** Heel (y=0.13) to crown (y=1.83) in the world-bind-space units of this file. */
-        private static final float FIGURE_HEIGHT = 1.70f;
+        private static final float FIGURE_HEIGHT = SamuraiRig.FIGURE_HEIGHT;
 
         SkinnedMesh buildBlade() {
             builder = new SkinnedMesh.Builder();

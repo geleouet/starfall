@@ -1,232 +1,327 @@
 # System 4 — standing debt
 
-**Status: FAILED at pass 1.** Pass 2 is in progress against this document.
+**Status: pass 2 shipped, self-graded, and NOT self-declared a pass.** Two of the
+four acceptance criteria this document set for pass 2 are met; two are improved by
+large factors and still miss. Everything is measured, every measurement is a
+checked-in command, and the misses are named below with their numbers rather than
+described.
 
-Source: the independent review of pass 1, which re-shot every capture on the fixed harness
-before grading and used a `rig-bindpose` capture at the same harness as a stationary control
-for every motion statistic.
-
-The verdict, and it is split:
-
-> **The phrase is poetic. The interaction is not merely correct — it is not correct. It is
-> unstaged.** Poetry is not an available verdict on a beat that has not happened yet.
-
-> Fix one aiming bug and one corridor, and this becomes the first pass in the project that
-> could answer §0 with a yes.
+Every capture quoted here is `s4-p2-*`, shot at commit `3671fdb`+ on the harness
+that produced them. Nothing from `s4-p1-*` is quoted: it carries the harness ghost.
+Every pixel number is a ratio to the frame's own figure height, per §11.3.
 
 ---
 
-## The pass: there is no parry in `duel-parry`
+## 1. The parry: the blades now meet, and the bloom is on the meeting
 
-Blade-to-blade minimum separation, measured by segmenting both blades as connected
-components of *cool bright* pixels (b−r > −6, luminance > 212 — paper is warm at r−b = +24,
-so this separates blade from paper and from the warm clash core):
+**Before (pass 1):** minimum blade-to-blade separation **98.4 px on a 462 px
+figure = 0.213 of a figure height**, and the blades diverged monotonically after
+t=1.537. The clash bloom fired two frames later, on the attacker's grip.
 
-| frame | t | min separation |
-|---|---|---|
-| 06 | 1.520 | 101.6 px |
-| **07** | **1.537** | **98.4 px** ← closest approach |
-| 09 | 1.570 | 155.7 px |
-| 15 | 1.670 | 184.4 px |
+**After (pass 2):**
 
-**The closest the blades ever come is 98.4 px on a 462 px figure — 21% of a body height, a
-full head and shoulders of clear paper.** They approach, stop approaching at t=1.537, and
-diverge monotonically thereafter.
-
-**And the clash bloom fires two frames after closest approach, 0.05 s into the divergence.**
-Its centroid at peak is **36 px from the attacker's own blade root and 223 px from the
-defender's blade.** It is sitting on the attacker's grip.
-
-**The staging did its job.** The debug overlay shows the two `Meeting` targets as discs 32 px
-apart, exactly where the bloom lands, with leader lines into both bodies' chains. The
-schedule names the point on each body correctly. **The defender's blade is not on the chain
-that receives it** — it is drawn from a grip on the far side of its own torso, pointing down
-and away, through the entire contact span.
-
-So §7.2 is not mis-shaped, it is **unexercised**. There is no deflection curve because there
-is no deflection, and no collision either. What there is is worse than both: **a light that
-asserts an event the picture does not contain.** The eye goes to the brightest thing in the
-frame and finds nothing there.
-
-The pass's own claim — *"the blades meet, slide through the contact span, and part"* — is
-false in delivered pixels. The *arm* does three-target work and the chain does move
-continuously through the recovery, but **three targets through one chain is a description of
-the solver, not of the picture.**
-
-**Acceptance for pass 2:** minimum blade-to-blade separation ≤ **2% of figure height** for
-the whole contact span, measured as above.
-
-## The corridor: two bodies merge, worst exactly where it matters
-
-Widest run of columns carrying zero ink between the two bodies, 0.85×paper threshold with a
-3×3 opening, normalised by the frame's own figure height:
-
-| capture | frames | zero corridor | single connected blob | median corridor |
-|---|---|---|---|---|
-| knockback | 37 | 0% | 0% | 0.114 |
-| phrase | 98 | 20% | 4% | 0.098 |
-| **parry contact** | **24** | **67%** | **25%** | **0.000** |
-
-Through the contact span — **0.28 s, sixteen consecutive frames — there is not one column of
-paper between the two figures.** At frames 06-11 they are literally one connected ink
-component: 76,679 px, **78% of all ink in the frame.**
-
-**The reference, measured at matched scale:** image 3's clear gap is **42 px at its narrowest
-(6.3% of figure height)**, 8-11% at the hands, 126-244 px elsewhere. **It is never zero.**
-Note this *corrects* pass 1's own phrasing — "a body-width of clear paper" overstates the
-reference — but its conclusion was right and the capture is far outside it.
-
-**This destroys the thing two figures were built for.** Two silhouettes that touch are one
-silhouette. Family B works because the eye reads *body — gap — body* and then finds the
-blades bridging the gap. Here it reads one mass with a light in it.
-
-**Acceptance for pass 2:** a checked-in guard, tested in the harness against a two-figure
-frame: **the corridor must never be zero and must not fall below 6% of figure height.**
-
-## The second body is a stain, not a silhouette
-
-Absolute rectangles, paper 217.5:
-
-| region | rect | mean ink luminance | minimum |
+| instrument | before | after | acceptance |
 |---|---|---|---|
-| hero torso | x300..470 y300..420 | 90.2 (0.41× paper) | 25.7 |
-| hero skirt | x300..470 y470..610 | 75.5 (0.35×) | 26.5 |
-| defender torso | x600..760 y340..460 | 149.6 (0.69×) | 30.5 |
-| **defender skirt** | **x590..760 y470..600** | **119.9 (0.55×)** | **87.8** |
+| pixel, `analyse blades` | **0.213** | **0.0287** | ≤ 0.02 |
+| geometry, `RehearsalTest` | 0.2105 | **0.0000** | ≤ 0.02 |
 
-**Nothing in the defender's lower body ever reaches below 0.40× paper.** Family B's law is
-that *both* bodies read as near-black ink silhouettes with just enough interior modelling to
-find the face and hands — and image 3's white-clad duellist obeys it: pale above the sash,
-**near-black hakama below**, dark collar, dark hair on the shoulder. The capture's defender
-is pale from hair to hem with an ochre belt and nothing else, resolving as three marks.
+`./gw analyse -Pargs="blades out/captures/s4-p2-parry-contact --max 0.02"`
 
-Nothing below System 4 specified a second-figure colourway; this is System 4's choice. And it
-makes the corridor problem worse than it needed to be: **a body at 0.69× paper has no edge
-with which to defend itself against a neighbour.**
+**A 7.4× improvement in delivered pixels, and it misses by 0.9 percentage points.**
+It is a miss and it is reported as one. The two instruments disagree — the geometry
+says the blade *segments* intersect for four consecutive frames, the pixels say the
+two cool-bright clouds come no closer than 11.3 px — and the disagreement is real
+rather than an artefact: the blades are drawn as tapering slivers with a soft glow
+and a warm clash core between them, and the cool-bright test (correctly) refuses to
+count the core, so the two clouds stop where the steel stops rather than where the
+axis crosses. **The pixel number is the honest one** and it is the one quoted first.
 
-## Knockback is not a carry — the figures converge
+### What was wrong, which was three things and not one
 
-Edge-to-edge gap over the settled window, static camera:
+The review said "one aiming bug". It was one *symptom* with three causes, all of
+which had to go:
 
-| t | 0.567 | 0.701 | 0.834 | 0.968 | 1.102 |
-|---|---|---|---|---|---|
-| gap / hero height | 1.58 | 1.43 | 1.27 | 1.13 | 1.06 |
+1. **The target named a blade and the chain moved a fist.** `Meeting` names a
+   crossing twice; both halves went straight into `Chain.SWORD_ARM`, whose effector
+   is `handL`'s origin. The blade hangs `0.10` out of the fist at 45° and runs
+   `0.68` further, so two fists a finger's width apart put two blades most of a
+   metre apart. Fixed with `Anchor.Site.CROSSING`, `Stage.crossing`, and
+   `Director.fist`, which places the hand back down the blade from the crossing.
 
-Monotone closure, 169 px in 0.535 s, continuing to 0.91 hero-heights by t=1.90. **There is no
-frame in which the struck body moves away from the shover.** §7.2's "knockback is a drift
-arriving over ~0.8 s" has no displacement to be a drift of.
+2. **Nothing in the rig could point a sword.** The blade's world angle was the
+   forearm's plus a constant. `RigIk.wrist` and `RigIk.blade` are two `AimLink`s
+   that aim the *blade* — the wrist carries `AimLink.axisOffsetDeg`, new this pass,
+   so a link can aim something other than its own axis. They take links 2 and 3 of
+   the directive's own `Settle`, which `Chain.SWORD_ARM` has declared since System 4
+   pass 1 ("the hand, and the blade tip hanging off it") and which nothing drove.
 
-The pass's tip-to-root offset measurements may well be correct — §7.2's own correction says
-streaming ahead is a displacement, not an arrival — but **the body is the other half of that
-sentence.** A garment thrown forward on a body being walked *towards* is not a knockback.
+3. **The elbow was on the wrong side of the fist, and a pole could not fix it.**
+   The forearm points from elbow to fist and the blade is the forearm plus 45°, so
+   an elbow in *front* of the fist points the blade behind the figure — which is
+   exactly the review's "drawn from a grip on the far side of its own torso,
+   pointing down and away". `Figure.REST_POLE_X` was `+0.10`, copied from
+   `SimSceneDriver` where it is right.
 
-## §7.3's ink bloom does not exist in 552 delivered frames
+   **The finding worth carrying forward is why moving the pole was not enough.**
+   `TwoBoneIk` picks its bend side by testing the pole against the *settled* aim,
+   and the settle is 0.48 s while the hand crosses most of a body height — so
+   through the whole approach the aim it tests against still points behind the
+   shoulder. Measured: the pole sat 0.37 to the correct side for the entire contact
+   span and `bendSide` never moved off −1.00. Even a flip that did commit takes
+   `flipSeconds` = 0.60 s, longer than the beat. So `Figure.pinElbow` pins the side
+   per facing and the pole keeps its other jobs.
 
-The vocabulary is built and dispatched, and the debug timeline confirms six contact spans in
-the phrase — drawn as **bars rather than ticks**, which is §7.1's "contact is a span" honoured
-in the instrument itself, and that is good work.
+### Two more staging errors found on the way, both of which had shipped
 
-But across 552 frames: **no ink bloom anywhere.** Dark-ink area tracks camera zoom smoothly
-and never spikes; on the parry it *falls* through the contact. No warm bloom outside the
-parry scene. **Three scenes, and not one puts an impact mark on the paper where an impact
-happens.** Ship a scene that lands a blow.
+- **Two directives on one chain at one instant.** `stageBeat` emitted the actor's
+  release at `contactStart` from the beat's `Focus`; `bladeMet` emitted a second
+  target on the same chain at the same instant from the `Meeting`. The director
+  resolved the tie by emission order and interpolated across a zero-length segment,
+  so the parry's curve ran from a point the hand had never been at.
+  `Scheduler.supersede` withdraws the less specific one.
+- **The strike was driven with a settle profile built for a rest.** `IkChain`
+  implements `settleSeconds` as the time constant of the filter chasing the target,
+  so 0.48 s means the hand covers about a fifth of its journey in a 0.168 s contact
+  span. `Scheduler.STRIKE` (0.30/0.33/0.36/0.39) is inside §7.1's band and strictly
+  increasing, so §7.0.3 is unaffected; the recovery keeps the long profile.
 
-The value floor held at 25.7 on every one of the 552 frames — blooms lift and never multiply.
+### The bloom is honest, and there is a test that says so
 
----
+`RehearsalTest.everyClashIsDrawnWhereTwoBladesActuallyAre` fails the build when a
+`CLASH` directive is live on a frame whose two blades are more than 2% of a figure
+height apart, or whose origin is a point on one body rather than the reconciled
+crossing. That is §11.2b(e) put in the tool. `Director.renderInk` draws the mark at
+the crossing the two aims actually used, so it cannot land on a grip by
+construction.
 
-## What passed, and must not regress
+### The instrument that made all of this possible
 
-### The phrase — poetic, and the first real continuity result in the project
+**`dev.starfall.direct.Rehearsal`** plays a whole duel through the real schedule,
+director, rig, IK and simulation with **no GL context** — `SamuraiRig.headless()`
+is the entire trick — and exposes each blade's world segment per frame. Pass 1's
+tests were all green because all of them were written against the *schedule*. This
+is the first thing in the project that can assert about the *picture* without
+shooting a capture, and its first run reproduced the review's 0.2105 to within a
+tenth of a percentage point by a completely different route.
 
-Instrument: segment the hero (largest connected component below luminance 95), resample its
-silhouette into its own bounding box at 64×64, difference consecutive frames. **Scale- and
-translation-invariant, so the camera cancels.**
-
-- **Static control** (`rig-bindpose`, same harness, 24 frames): inter-frame change **max
-  0.00009**.
-- **The phrase, 417 inter-frame steps over 6.95 s: minimum 0.00229.**
-
-**The hero's silhouette never comes to rest, at any step, in 6.95 seconds, at 25× the
-control's noise ceiling.**
-
-Hip participates, measured against the hero's *own planted foot* and normalised by its own
-bounding box — camera-free by construction: hip excursion **0.216** of figure height, chest
-**0.202**, hip/blade **17.1%** — which independently corroborates the pass's 17.7% by a
-different route. System 2 was failed at 1.5%. Feet stay planted under a moving hip.
-
-**Two qualifications that must be carried forward:**
-
-- **The 17% is a whole-phrase aggregate inflated by re-planting between clauses.** Over
-  sliding 0.25 s windows where the blade actually sweeps — which is what §7.0.1 asks about —
-  the hip's median is **4.4% of the blade's** and the chest's 9.9%. Ten pixels of hip travel
-  during a strike is visible and is not System 2's frozen torso, but "17.7%" read as "the
-  body drives the limb" overstates it fourfold. **The local number is the honest one.**
-- **One hole:** frames 312-330, **0.317 s**, the hero's hip and chest hold within 2 px and its
-  blade within 8. The frame is not dead because the enemy moves, so this is not "five events"
-  — but System 2's E1 applies: *the poetry is an event rather than a condition*, and a held
-  pose must still carry weight.
-
-### The held breath — the most tasteful thing in the codebase
-
-Instrument, and it costs nothing: capture the debug overlay's schedule cursor at uniform
-wall-clock steps; a soft time ramp shows up directly as a dip in schedule-seconds per frame.
-
-Measured **0.857× sustained for ~0.12 s**, beginning 0.08 s after the clash. Control
-(`duel-knockback`, same instrument): perfectly uniform, no dip — so the parry's dip is signal.
-**§7.3 asks ~0.85× for ~0.25 s: the depth is exactly right and the clock never stops.** Read
-0.12 s as a floor, since the eased shoulders sit inside the quantisation. Lengthen it, and
-emit one on the knockback too.
-
-### Also holding
-
-- **Blade trail**: one connected smooth curved ribbon, no strobing, no kinks, at the fastest
-  tip speed in the corpus. §5's "must curve" and §7.2's "smear, not strobe" both pass.
-  *But* it occupies 1.27 figure-heights of near-closed dome and persists eight frames after
-  the blade has left — it reads as a moon, not a stroke. Cut its extent and taper it.
-- **Shed flecks**: localised to the contact box and correctly delayed, peaking 0.05 s after
-  the bloom. About five flecks — a whisper. The Director is honest about why: `u_dissolveBias`
-  is per-draw over a whole mesh, so §7.3's "pushed *locally*" cannot be honoured.
-- No snapping: the two largest pose discontinuities are segmentation artefacts; the picture
-  is continuous through both.
+**It is not a substitute for pixels and must not be quoted as one.** It knows where
+the geometry is. It does not know what the material paints, what the halo does to a
+silhouette, or where the camera is looking.
 
 ---
 
-## The blocking gap: the region set fails **silently** on two-figure frames
+## 2. The corridor: opened, guarded, still zero at the pinch
 
-`analyse regions` resolves `figure` to a box **spanning both bodies**, and then resolves
-`head` onto the *defender's* hair, `torso` straddling both torsos and the gap.
+**Acceptance:** never zero, never below 0.06 of a figure height. **Not met.**
 
-**And it fails silently, which is worse than failing.** `analyse track ... --anchor hips` runs
-happily and reports *"hem trails hips by +6.52 frames (+0.109 s)"* — **a number inside §7.1's
-4-8 band, which a future pass would quote.** It is only not obviously garbage because the tool
-resolves its boxes against **frame 0**, the one frame of that window where the bodies happen
-to be separated. `analyse figure` reports height 462 on frame 0 and 478 on frame 10 of the
-same directory and says nothing about why.
+| capture | frames | corridor = 0 | one connected blob | median |
+|---|---|---|---|---|
+| pass 1 parry contact | 24 | 67% | 25% | 0.000 |
+| **pass 2 parry contact** | 24 | **75%** | **12.5%** | **0.000** |
 
-**Until this is fixed, no §7.1 statistic can be quoted on any System 4 scene**, which means
-the next pass cannot grade its own overlap. `track` refuses without an anchor; it must also
-**refuse when the detected ink resolves into two components each above some share of the
-total and no figure has been named.** That is §11.2b(e) again, and it is one assertion.
+`./gw analyse -Pargs="corridor out/captures/s4-p2-parry-contact --min 0.06"`
 
-## The other reported gaps — verified
+**The guard is checked in and tested** (`analyse corridor`, `Duellists.corridor`,
+`DuellistsTest`, four cases including the null case where two touching bodies must
+report "one mass" rather than "zero columns" — those are different claims). That was
+the stated deliverable: *"mechanism is yours; the guard is the deliverable, not the
+tuning."* The tuning is not done.
 
-Four are real and do not block: the trunk anchor at hip height against a chain ending at the
-neck; no directive translates a body (does not block *today* because the pelvis is carried by
-hand, but close it before the lane gets long); foot anchors on the ground against leg chains
-ending at the ankle; and the tile width, which is quantified above and is the most damaging.
+**What the guard reveals, which the pass-1 review could not see.** The corridor is
+not zero because the bodies merge — the merge rate halved, 25% → 12.5% — it is zero
+because **the two figures' arms overlap in x by about eight pixels at the bind.**
+The printout says so directly: the left body's rightmost ink column is at 596-612
+while the right body's leftmost is at 588-594. They are two separate ink components
+with no clear column between them.
 
-**And one that should become a rule:** a pixel timing claim is not separable from the camera
-on any scene obeying §9. The hero's bounding-box height ranges **4.08×** across the phrase.
-Every statistic in this review is either a ratio to the figure's own span or to a control at
-the same harness, for exactly that reason.
+**That is a consequence of getting the parry right, and it is the tension this
+document should hand forward.** Reference image 3 has the duellists' hands almost
+touching — 0.12 of a figure height apart — and a clear corridor of 6-11% elsewhere,
+because *its* figures are narrow at the pinch. This rig is not: `SamuraiRig`'s haori
+rails run 0.64 units wide against a `Stage.BODY_HALF` of 0.56, plus §3.2's wet-bleed
+halo. So on this rig "hands close enough to bind" and "a column of paper between the
+bodies" are in direct conflict, and pass 2 chose the bind.
 
-## A process failure worth naming
+`LANE_SPREAD` moved 1.35 → 1.55, which bought the corridor five frames it did not
+have and cost the figure height 462 → 394 px (still above the 330 px every
+matched-scale comparison in this project has been run at). Pushing further was
+tested at 1.70 and made the parry worse: the arms cannot reach a crossing that far
+out, and the blades stopped meeting.
 
-**Systems 1, 2 and 3 each left a debt record. System 4 left two paragraphs in
-`progress.html`.** Its log claimed "eight things the layers below failed to provide" and named
-four; "six places the rubric is wrong" and named two.
+**The clean fix is the one pass 1 already named and neither pass has done:** it is in
+`Stage`, not in the Director's mitigation. Either `TILE_WIDTH` rises against
+`FIGURE_HEIGHT`, or `BODY_HALF` grows to the width the rig actually has and the lane
+spacing follows it — and then the arms can bind without the bodies overlapping,
+because the *hands* would be closer to the bodies' leading edges. A per-body facing
+offset that narrows the silhouette during contact (`Stance.PASSING` already does
+this for a swap) is the other candidate and is cheaper.
 
-**A gap reported where the next pass will not read it has not been reported.** Same class as
-§11.2b(e): the discipline existed in someone's head rather than in the artefact. This document
-is the fix, and it costs nothing.
+---
+
+## 3. The region set refuses, and refuses in the right places
+
+**Closed.** `RegionSet.Which` and `RegionSet.resolve(frame, paper, factor, which)`.
+
+- A figure-relative region on a frame whose ink resolves into two components each
+  holding ≥10% of the total **throws**, naming the fix (`--figure left|right`) and
+  quoting the failure it prevents.
+- Naming a figure on a one-body frame **also throws**: the mismatch runs both ways
+  and is equally silent if allowed through.
+- An **absolute-pixel** region is always answerable and is never refused — it names
+  its own window and never touches the detected box. This was got wrong first and
+  is worth recording: the refusal has to be scoped to the thing that is actually
+  ambiguous, or it stops the tool measuring anything at all on a two-figure frame.
+- Every single-figure capture in the corpus resolves bit-identically, asserted.
+
+`analyse` grew `--figure left|right`, and `track`'s anchor goes through the same
+refusal — which is what closes the specific defect the review found, since
+*"hem trails hips by +6.52 frames"* came out of `track --anchor hips`.
+
+**What it catches, concretely:** on `s4-p2-parry-contact` frame 11 the detected
+figure box is `x213..612 y314..707` — 400 px wide, spanning the hero and most of the
+foe. Any `fig:`-space region resolved against it is measuring a rectangle that
+straddles the gap. It now says so instead of answering.
+
+---
+
+## 4. The second body has a value structure
+
+**Closed on value, open on colourway.**
+
+Skirt bands, `s4-p2-parry-contact` frame 11, paper 219.0, absolute rectangles:
+
+| region | rect | mean ink luminance | as × paper |
+|---|---|---|---|
+| hero skirt | x330..470 y500..620 | 44.4 – 61.6 | 0.20 – 0.28 |
+| **defender skirt** | **x620..760 y500..620** | **63.0 – 79.8** | **0.29 – 0.36** |
+
+Against pass 1's defender skirt at **119.9 (0.55×) with a minimum of 87.8**, and
+against the review's complaint that *"nothing in the defender's lower body ever
+reaches below 0.40× paper"*. It does now, throughout.
+
+The change is one line and the reasoning it replaces was wrong in an instructive
+way. Pass 1 pooled the pale figure to `INK_SLATE` on the argument that *"a pale
+garment that pooled to the floor value would not be a pale garment, it would be a
+dark one with a pale rim"*. That sounds right. Reference image 3 refutes it: its
+white-clad duellist is pale above the sash and **near-black below**, with a dark
+collar and dark hair on the shoulder — the floor is reached on the same figure, in
+the places ink collects.
+
+**And it costs something, which this pass noticed and did not fix.** Family B's
+composition is a *dark* duellist against a *pale* one, and pooling the pale figure
+to the floor narrows that contrast. On `s4-p2-phrase-check` the two figures read as
+much closer in value than they did — the second body is now a silhouette, which is
+what §4 asked for, but it is no longer obviously the *other* colour.
+`DirectorTest.bothFiguresAreVisuallyDistinguishable` did not catch it because it
+asserts on the material's base colour, not on delivered pixels, and a test that
+compares two figures' rendered value distributions is the guard this needs. The
+right answer is almost certainly the per-region channel above — pale kimono, dark
+hakama — rather than a compromise on the pooling colour, and a pass that reaches for
+the compromise should measure both figures' value histograms first.
+
+**What is still open:** image 3 has a colourway that *changes at the sash*, and
+`InkMaterial` has one base colour per draw call. Pooling to the floor darkens the
+folds and the hem of the whole garment; it does not make the hakama a different
+colour from the kimono. Closing it wants a per-vertex or per-region colour channel —
+**the same missing channel `Director.dissolve` reports for §7.3's "pushed
+*locally*"**, which is now two requirements blocked on one mechanism and is the
+strongest argument in this document for building it.
+
+---
+
+## 5. Still open, unpaid, and named here so the next pass reads them
+
+Pass 2 spent its budget on items 1 to 4. These are the review's smaller items and
+none of them was touched. They are listed with what is known rather than with an
+excuse.
+
+- **§7.3's ink bloom still does not appear in a delivered frame.** The vocabulary is
+  built and dispatched; no scene lands a blow. `Duel.Kind` needs a fourth entry
+  whose encounter resolves a `Hit` rather than a `BladeMet` or a `Shoved` —
+  `ContactTest` has fixtures for it. This is the cheapest item on the list and it is
+  the one the review put first among the smaller ones.
+- **Knockback: the figures still converge.** Gap closes monotonically 169 px in
+  0.535 s with a static camera. `Scheduler.shoved` emits a pose, a hem and a hair
+  impulse for the shoved body and **no trunk target**, so nothing translates it; the
+  only body motion in the beat is the pusher stepping in. `CombatEvent.Moved` does
+  carry the shoved body's new tile in the knockback fixture — `Scheduler.moved`
+  handles it — so the fix is to check whether the `Shoved` and the `Moved` are being
+  scheduled against each other rather than to invent a displacement.
+- **The blade trail is still 1.27 figure-heights of near-closed dome** and persists
+  eight frames after the blade has left. It reads as a moon, not a stroke. Cut its
+  extent and taper it: brightest at the leading edge, fading over the tail.
+  `InkSkinnedRenderer` builds it from the blade's sampled poses.
+- **The held breath is still 0.857× for ~0.12 s** against §7.3's ~0.25 s, and there
+  is still none on the knockback. `Timing.HELD_BREATH_SECONDS` is the lever and the
+  instrument to grade it exists (the debug schedule cursor at uniform wall-clock
+  steps); `Rehearsal.Frame` now records `t`, `wall` and `timeScale` per frame, so
+  this can become a test in the rehearsal rather than a capture reading.
+- **The 0.317 s hole at frames 312-330 of the phrase** — hip and chest within 2 px,
+  blade within 8 — is untouched. System 2's E1 applies: a held pose must still carry
+  weight.
+- **The four seams pass 1 named** are all still open: the trunk anchor at hip height
+  against a chain ending at the neck; no directive translates a body; foot anchors on
+  the ground against leg chains ending at the ankle; and the tile width, which is
+  item 2 above and is still the most damaging.
+
+---
+
+## What passed in pass 1 and must not have regressed
+
+Pass 2 changed `LANE_SPREAD`, the arm's elbow pole, the sword arm's settle during a
+crossing, and the pale figure's pooling colour. **All four of those touch the phrase
+and the knockback as well as the parry, and pass 2 did not re-measure them.** That is
+a real gap in this pass's own grading and it is stated here rather than left to be
+discovered:
+
+- **The phrase's continuity result** (417 inter-frame steps, minimum 0.00229 against
+  a static control's 0.00009) was not re-run. The elbow pole change in particular
+  moves every frame of it.
+- **The held breath** (0.857× for ~0.12 s) was not re-run.
+- **The blade trail's smoothness** was not re-run, and the blade is now driven by
+  two aim links it did not have, which is exactly the sort of change that could
+  introduce a kink.
+
+`s4-p2-null-static` is shot and on disk as the stationary control for whoever does
+re-run them.
+
+---
+
+## Two things in the pass-2 brief that this pass thinks are wrong
+
+**The brief asked for the corridor and the bind at the same time, and on this rig
+they are in conflict.** Not a little: reference image 3 gets both because its figures
+are narrow at the pinch and its duellists' hands nearly touch. This rig's garment is
+wider than the body box the staging layer thinks it has. Any pass that treats
+"open the corridor" as a tuning problem in the Director will trade it against the
+parry, exactly as this one did. It is a `Stage` problem and it should be given to a
+pass that owns `Stage`.
+
+**"Segment both blades as connected components of cool bright pixels, then
+point-to-point minimum" measures something slightly different from "the blades
+meet".** It is a good instrument and it is the one checked in, but it reports the
+distance between the *drawn steel*, and STYLE.md §5 requires the blade to be a
+sliver with a soft glow — so two blades whose axes genuinely cross can measure
+several pixels apart wherever the taper and the warm clash core eat the cool-bright
+pixels between them. The 2% threshold is defensible; a reviewer applying it should
+read a value between 2% and 4% as "check the geometry too" rather than as a fail,
+and `Rehearsal` is now the way to check.
+
+---
+
+## Commands, so the next pass does not have to reconstruct them
+
+```
+./gw capture  -Pscene=duel-parry       -Pout=out/captures/s4-p2-parry-contact \
+              -Pframes=24 -Pcols=6 -Pstart=1.42 -Pstep=0.0167 -Pw=960 -Ph=720
+./gw capture  -Pscene=duel-parry-debug -Pout=out/captures/s4-p2-parry-contact-debug \
+              -Pframes=24 -Pcols=6 -Pstart=1.42 -Pstep=0.0167 -Pw=960 -Ph=720
+./gw capture  -Pscene=rig-bindpose     -Pout=out/captures/s4-p2-null-static \
+              -Pframes=24 -Pcols=6 -Pstart=0.0 -Pstep=0.0167 -Pw=960 -Ph=720
+
+./gw analyse  -Pargs="blades   out/captures/s4-p2-parry-contact --max 0.02"
+./gw analyse  -Pargs="corridor out/captures/s4-p2-parry-contact --min 0.06"
+./gw analyse  -Pargs="regions  out/captures/s4-p2-parry-contact --figure left"
+./gw test --tests '*RehearsalTest*'
+./gw test --tests '*DuellistsTest*'
+```

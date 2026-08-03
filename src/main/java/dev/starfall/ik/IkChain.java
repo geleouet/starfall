@@ -308,6 +308,15 @@ public final class IkChain {
         return this;
     }
 
+    /** Where the pole currently sits, for debug overlays and rehearsal probes. */
+    public float poleX() {
+        return poleX;
+    }
+
+    public float poleY() {
+        return poleY;
+    }
+
     /** Drops back to the pose-derived pole. */
     public IkChain clearPole() {
         this.poleSet = false;

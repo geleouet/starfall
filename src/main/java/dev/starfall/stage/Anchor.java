@@ -1,6 +1,7 @@
 package dev.starfall.stage;
 
 import dev.starfall.combat.ContactPoint;
+import dev.starfall.combat.Meeting;
 
 import java.util.Locale;
 
@@ -29,6 +30,29 @@ public record Anchor(int body, Anchor.Site site, double x, double y) {
     public enum Site {
         /** A {@link ContactPoint} the engine named: where two bodies actually touch. */
         CONTACT,
+        /**
+         * The one point in space two blades meet at, and the only site in this
+         * enum that names a point on a <em>blade</em> rather than on a hand.
+         *
+         * <h2>Why it had to be its own site</h2>
+         *
+         * <p>{@link Meeting} names a crossing twice, once in each body's own
+         * vocabulary, and the reason it does is that "each of them solves for it
+         * in its own frame". Pass 1 read that literally and handed each half
+         * straight to the body's sword-arm chain -- whose effector is the
+         * <b>fist</b>. The blade hangs a further {@code 0.10} out of the fist at
+         * 45 degrees and runs {@code 0.68} beyond that, so two fists a finger's
+         * width apart put two blades a fifth of a body height apart, which is
+         * exactly what shipped: 98.4 px of clear paper between the blades on a
+         * 462 px figure, with the clash bloom sitting on a grip.
+         *
+         * <p>So the two named halves are reconciled here, in the layer that owns
+         * the mapping to space, into the single world point they were always
+         * describing -- and a target carrying this site is a point the
+         * <em>blade</em> must pass through, not a point the hand must reach. See
+         * {@code Stage#crossing} and {@code Director#arm}.
+         */
+        CROSSING,
         /** Where the blade sits when it is held rather than swung. */
         GUARD,
         /** The loaded rest position of the hand for this body's stance. */

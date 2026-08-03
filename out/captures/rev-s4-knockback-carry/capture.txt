@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=duel-knockback -Pout=out/captures/rev-s4-knockback-carry -Pframes=24 -Pcols=6 -Pstart=0.62 -Pstep=0.0167 -Pw=960 -Ph=720
+
+scene=duel-knockback
+description=a shove, and a body carried: cloth and hair thrown along the travel
+frames=24
+start=0.62
+step=0.0167
+window=0.3841
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=027ff50-dirty
+harness=f0ad18994eec

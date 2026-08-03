@@ -34,6 +34,18 @@ public final class Figure {
         this.threshold = threshold;
     }
 
+    /**
+     * A figure that is simply this box.
+     *
+     * <p>For the two-figure case, where "the figure" is one named body rather than
+     * the largest component -- see {@code RegionSet.Which}. The ink counts are not
+     * recomputed because nothing that resolves a region against a box reads them,
+     * and inventing numbers here would be worse than leaving them zero.
+     */
+    public static Figure atBounds(Rect bounds) {
+        return new Figure(bounds, 0, 0, 0, Double.NaN);
+    }
+
     public int height() {
         return bounds.h;
     }

@@ -188,46 +188,63 @@ class DirectorTest {
 
     @Test
     void theSpreadKeepsACrossingACrossing() {
-        // The one property the parry cannot survive losing. Meeting names one
-        // crossing twice, once in each body's vocabulary, and the two names have
-        // to land on the same point in space. Spreading the lane about tile
-        // centres pulls them apart by the whole spread; spreading a contact point
-        // with the lane keeps the gap proportional.
+        // The one property the parry cannot survive losing: both skeletons have to
+        // be aimed at *the same point in space*.
+        //
+        // <b>Pass 1 asserted a weaker thing and passed.</b> It checked that the
+        // Meeting's two named halves stayed 0.08 units apart under the lane spread,
+        // which was true, and shipped a parry with the blades a fifth of a body
+        // height apart -- because both halves were handed to chains whose effector
+        // is the fist, and the blade hangs a further 0.47 out of that. So the two
+        // halves are now reconciled in Stage into one Anchor.Site.CROSSING and this
+        // asserts identity rather than proximity.
         Schedule s = scheduleOf(Duel.Kind.PARRY);
         Duel.Staged staged = Duel.of(Duel.Kind.PARRY);
         double contact = s.contacts().get(s.contacts().size() - 1);
 
         dev.starfall.stage.Anchor onAttacker = crossingHalf(s, staged.enemy(), contact);
         dev.starfall.stage.Anchor onDefender = crossingHalf(s, staged.hero(), contact);
-        assertNotNull(onAttacker, "the attacker has no contact target live at the crossing");
-        assertNotNull(onDefender, "the defender has no contact target live at the crossing");
+        assertNotNull(onAttacker, "the attacker has no crossing target live at the crossing");
+        assertNotNull(onDefender, "the defender has no crossing target live at the crossing");
+        assertEquals(onAttacker, onDefender,
+                "the two bodies are aimed at two different points, which is not a crossing");
 
-        double before = Math.abs(onAttacker.x() - onDefender.x());
-        double after = Math.abs(Director.stretch(onAttacker) - Director.stretch(onDefender));
-        assertTrue(before < 0.2, "the engine's own two halves are already " + before + " apart");
-        // The invariant: the gap between the two names scales by exactly the same
-        // factor as the gap between the two bodies, so the crossing stays in the
-        // same relative place in it. Stretching a contact point about its own tile
-        // instead pulls the two halves apart by a whole spread -- measured at 0.43
-        // world units on the first capture of this pass, which is two blades
-        // passing either side of the gap rather than meeting in it.
-        assertEquals(Director.LANE_SPREAD, after / before, 1e-9,
-                "the crossing did not scale with the lane");
-        assertTrue(after < 0.2 * Director.LANE_SPREAD,
-                "the two named halves of one crossing are " + after + " apart in world units");
         // And it sits between the two bodies rather than inside either.
         double heroX = Director.stretch(staged.heroTile() * dev.starfall.stage.Stage.TILE_WIDTH);
         double foeX = Director.stretch(staged.enemyTile() * dev.starfall.stage.Stage.TILE_WIDTH);
-        double mid = 0.5 * (Director.stretch(onAttacker) + Director.stretch(onDefender));
+        double mid = Director.stretch(onAttacker);
         assertTrue(mid > Math.min(heroX, foeX) && mid < Math.max(heroX, foeX),
                 "the crossing at " + mid + " is not between the bodies at " + heroX + " and " + foeX);
+        // It scales with the lane, so the crossing stays in the same relative place
+        // in the gap however far apart the bodies are drawn.
+        assertEquals(onAttacker.x() * Director.LANE_SPREAD, mid, 1e-9,
+                "the crossing did not scale with the lane");
     }
 
-    /** This body's half of the crossing: the contact target live at {@code contact}. */
+    @Test
+    void theClashMarkIsOnTheCrossingAndNotOnAGrip() {
+        // STYLE.md 11.2b(e), in the tool rather than in the document: a CLASH is an
+        // assertion that two blades met, and pass 1 shipped one 36 px from the
+        // attacker's own grip. Its origin must be the same reconciled point both
+        // blades are aimed at, not either body's own half of it.
+        for (Duel.Kind kind : Duel.Kind.values()) {
+            Schedule s = scheduleOf(kind);
+            for (Directive.Ink d : s.of(Directive.Ink.class)) {
+                if (d.kind() != Directive.InkKind.CLASH) {
+                    continue;
+                }
+                assertEquals(dev.starfall.stage.Anchor.Site.CROSSING, d.origin().site(),
+                        kind + " draws a clash at " + d.origin() + ", which is a point on one body "
+                                + "rather than the point two blades share");
+            }
+        }
+    }
+
+    /** This body's half of the crossing: the crossing target live at {@code contact}. */
     private static dev.starfall.stage.Anchor crossingHalf(Schedule s, int body, double contact) {
         dev.starfall.stage.Anchor found = null;
         for (Directive.IkTarget d : s.chain(body, Chain.SWORD_ARM)) {
-            if (d.target().site() != dev.starfall.stage.Anchor.Site.CONTACT) {
+            if (d.target().site() != dev.starfall.stage.Anchor.Site.CROSSING) {
                 continue;
             }
             if (d.at() <= contact + 1e-9 && d.end() >= contact - 1e-9) {

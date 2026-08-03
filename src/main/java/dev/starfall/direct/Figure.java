@@ -91,12 +91,53 @@ public final class Figure {
         // so and SimSceneDriver uses these exact numbers. Below and behind the
         // shoulder is what STYLE.md 7.0.2 asks for: "upper arms hanging near the
         // torso axis, the blade doing the reaching".
-        ik.armPoleFromChest(0.10f, -0.19f);
+        ik.armPoleFromChest(REST_POLE_X, REST_POLE_Y);
     }
+
+    /**
+     * The elbow pole, in the chest's frame: below the sternum and <b>behind</b> it.
+     *
+     * <h2>The sign of the x is the whole of System 4 pass 1's aiming bug</h2>
+     *
+     * <p>It used to be {@code +0.10} -- below and in <em>front</em> of the sternum
+     * -- copied from {@code SimSceneDriver}, where it is right: {@code ik-gesture}
+     * reaches down and forward and the elbow leads.
+     *
+     * <p>On a duel it is wrong, and it is wrong in a way that decides the picture.
+     * The blade's world angle is the forearm's plus 45 degrees, and the forearm's
+     * angle is the line from elbow to fist -- so an elbow in <em>front</em> of the
+     * fist points the blade <em>behind</em> the figure, whatever the wrist does.
+     * That is the review's "drawn from a grip on the far side of its own torso,
+     * pointing down and away, through the entire contact span", stated as a
+     * coordinate.
+     *
+     * <p>Behind and under is also what the corpus holds: STYLE.md 7.0.2's "upper
+     * arms hanging near the torso axis, the blade doing the reaching", and every
+     * duellist in reference images 3, 4 and 5 has the elbow tucked at the ribs with
+     * the forearm coming up out of it.
+     *
+     * <p>It is a rest pole rather than something switched on for the parry because
+     * {@code TwoBoneIk.flipSeconds} is 0.60 s -- a bend flip is deliberately slower
+     * than a whole beat, so an elbow asked to change sides when the crossing starts
+     * arrives after the crossing has finished. Measured: half the flip had played
+     * out by the end of the contact span and the blade still pointed backwards.
+     * The pose has to be the standing one.
+     */
+    public static final float REST_POLE_X = -0.16f;
+    public static final float REST_POLE_Y = -0.22f;
 
     /** The dark duellist of reference images 3, 4 and 5. */
     public static Figure dark(int body) {
-        Figure f = new Figure(body, SamuraiRig.build());
+        return dark(body, SamuraiRig.build());
+    }
+
+    /** The same figure with no GPU meshes. See {@link SamuraiRig#headless()} and {@link Rehearsal}. */
+    public static Figure headlessDark(int body) {
+        return dark(body, SamuraiRig.headless());
+    }
+
+    private static Figure dark(int body, SamuraiRig rig) {
+        Figure f = new Figure(body, rig);
         f.cloth.base = Palette.INK_INDIGO;
         f.cloth.deep = Palette.INK_BLACK;
         f.cloth.stain = Palette.OCHRE;
@@ -116,9 +157,35 @@ public final class Figure {
      * The ink seed is offset so the two are not photocopies of one another.
      */
     public static Figure pale(int body) {
-        Figure f = new Figure(body, SamuraiRig.build());
+        return pale(body, SamuraiRig.build());
+    }
+
+    /** The same figure with no GPU meshes. See {@link SamuraiRig#headless()} and {@link Rehearsal}. */
+    public static Figure headlessPale(int body) {
+        return pale(body, SamuraiRig.headless());
+    }
+
+    private static Figure pale(int body, SamuraiRig rig) {
+        Figure f = new Figure(body, rig);
         f.cloth.base = Palette.CLOTH_PALE;
-        f.cloth.deep = Palette.INK_SLATE;
+        // <b>The pooling colour is the floor, not the mid-tone, and pass 1 had this
+        // backwards.</b> It pooled to INK_SLATE on the argument that "a pale garment
+        // that pooled to the floor value would not be a pale garment, it would be a
+        // dark one with a pale rim" -- which sounds right and is refuted by the
+        // reference. Image 3's white-clad duellist is pale above the sash and
+        // <em>near-black below it</em>, with a dark collar and dark hair on the
+        // shoulder: the value floor is reached on the same figure, in the places ink
+        // collects. Measured on the pass-1 capture, nothing in this figure's lower
+        // body ever reached below 0.40x paper and its skirt bottomed out at 0.55x,
+        // against the hero's 0.35x -- so it read as three marks rather than as a
+        // silhouette, and STYLE.md 11.0 counts silhouettes.
+        //
+        // <b>This is a partial payment and it is reported as one.</b> What image 3
+        // has and this cannot is a colourway that <em>changes</em> at the sash, and
+        // the material has one base colour per draw call. Pooling to the floor
+        // darkens the folds and the hem of the whole garment; it does not make the
+        // hakama a different colour from the kimono. See docs/system4-debt.md.
+        f.cloth.deep = Palette.INK_BLACK;
         // The dark figure's stain is OCHRE and its pale rim OCHRE_PALE, which reads
         // as rust bleeding through indigo. The same pair on a pale base is a large
         // warm field rather than a stain -- measured on the first two-figure
@@ -229,6 +296,41 @@ public final class Figure {
         Stances.blend(pose, previousStance, stance, stanceBlend);
         pose.set("root", (float) standX, 0f, 0f, facing, 1f);
         rig.applyPose(pose);
+        pinElbow();
+    }
+
+    /**
+     * Holds the sword elbow on the body side of the shoulder-to-hand line, for as
+     * long as the figure faces that way.
+     *
+     * <h2>Why a pole is not enough here, which is a finding about the solver</h2>
+     *
+     * <p>{@code TwoBoneIk} picks its bend side by testing the pole against the
+     * <em>settled</em> aim -- the filtered target, not the commanded one -- and then
+     * defends the choice with a hysteresis deadband, an opening gate and a 0.60 s
+     * flip. That is exactly right for a limb being swept around a body, and it is
+     * what stops the elbow strobing when a target crosses the chain axis.
+     *
+     * <p>It is wrong for a strike, and measurably so. Through the whole approach the
+     * settled aim still points <em>behind</em> the shoulder, because the filter is
+     * half a second long and the hand is crossing most of a body height. So the pole
+     * reads as being on the far side of an aim that is itself stale, the side is
+     * never reconsidered, and the mirrored figure keeps the elbow it committed to at
+     * bind -- above and in front of its own fist. Measured on the parry: the pole
+     * sat 0.37 to the correct side of the aim for the entire contact span and
+     * {@code bendSide} never moved off -1.00.
+     *
+     * <p>An elbow in front of the fist points the forearm backwards, and the blade
+     * is the forearm plus 45 degrees, so that one bit decides which way the sword
+     * points. It is not a quantity worth filtering: a duellist does not change which
+     * side of the arm the elbow is on mid-strike. So it is pinned, per facing, and
+     * the pole is left in place for everything else the solver uses it for.
+     *
+     * <p>The sign is the mirror: a left-facing figure's world-space bend side is the
+     * opposite of a right-facing one's for the same anatomical pose.
+     */
+    private void pinElbow() {
+        ik.swordArm().twoBoneSolver().preferSide(facing >= 0f ? -1f : 1f);
     }
 
     /** Second step: solve every chain, trunk first. */
@@ -252,6 +354,46 @@ public final class Figure {
     public com.badlogic.gdx.math.Vector2 where(String bone, com.badlogic.gdx.math.Vector2 out) {
         Bone b = skeleton.bone(bone);
         return skeleton.worldPosition(b.index, out);
+    }
+
+    /**
+     * A point on the blade, {@code u} of the way from the habaki to the kissaki.
+     *
+     * <p>The blade is one bone and one authored strip, so its whole world segment
+     * is two calls to this. <b>Nothing in the project could ask this question
+     * before System 4 pass 2</b>, which is the mechanical reason a parry could
+     * ship with the two blades a fifth of a body apart: every target, every
+     * probe and every assertion named the <em>fist</em>, and the blade hangs a
+     * further {@code 0.10} out of the fist at 45 degrees to it.
+     */
+    public com.badlogic.gdx.math.Vector2 bladeAt(float u, com.badlogic.gdx.math.Vector2 out) {
+        return skeleton.worldAlong(skeleton.bone("blade").index, u * SamuraiRig.BLADE_LENGTH, out);
+    }
+
+    /**
+     * Where along its own blade this figure crosses another's.
+     *
+     * <p><b>Measured off reference image 3 rather than assumed, and the assumption
+     * was wrong.</b> The obvious guess is the monouchi -- the middle third, where a
+     * blade is actually met in a fight -- and that guess puts the crossing 0.47
+     * world units out of each fist, which on this lane is further from a shoulder
+     * than the arm can reach, so both arms saturate and neither blade arrives.
+     *
+     * <p>What image 3 shows is quite different and much better staged: the two
+     * duellists' <em>hands</em> are almost touching in the middle of the frame at
+     * chest height, and the blades cross <b>just above the tsuba</b> -- 80 px above
+     * the hilts on 335 px of blade -- then diverge upward into a narrow X with the
+     * two kissaki a third of the frame apart. The bloom sits in the fork. It is a
+     * bind, not a fencing measure, and it is why the picture reads as two people
+     * leaning on each other rather than two people at arm's length.
+     *
+     * <p>0.24 is that measurement.
+     */
+    public static final float BLADE_CROSSING = 0.24f;
+
+    /** The point on this blade that a {@code Meeting} is about. */
+    public com.badlogic.gdx.math.Vector2 bladeCrossing(com.badlogic.gdx.math.Vector2 out) {
+        return bladeAt(BLADE_CROSSING, out);
     }
 
     /**

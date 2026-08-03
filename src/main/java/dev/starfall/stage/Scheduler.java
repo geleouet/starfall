@@ -106,6 +106,35 @@ public final class Scheduler {
     /** How far a parried arm gives ground, in tiles. STYLE.md 7.2's deflection curve. */
     public static final double GIVE_GROUND = 0.30;
 
+    /**
+     * The settle profile a blade travelling into a crossing is driven with.
+     *
+     * <h2>Why the strike gets its own, and why it is legal</h2>
+     *
+     * <p>{@link Chain#SWORD_ARM}'s profile spends the top of STYLE.md 7.1's band --
+     * 0.48 to 0.60 -- and that is right for a gesture coming to rest. It is not a
+     * rest here. {@code IkChain} implements {@code settleSeconds} as the time
+     * constant of the filter that <em>chases</em> the target, so 0.48 s means the
+     * hand covers about a fifth of its journey in a 0.168 s contact span. Measured
+     * on pass 1: the attacker's fist was still 0.62 world units from the crossing
+     * when its own beat's contact span ended, so the blades could not have met
+     * however well they were aimed.
+     *
+     * <p>0.30 to 0.39 is inside 7.1's band, strictly increasing down the links, so
+     * 7.0.3's actual requirement -- "settle times differ down the chain rather than
+     * being shared" -- holds exactly as before; what changes is that the run is
+     * spent at the bottom of the band rather than the top, for the one beat in the
+     * game that is a strike rather than a settle. 7.1's own instruction is that the
+     * band is "a range to spend, not a tolerance to sit inside", and 7.2 is the
+     * tie-breaker where two sections pull against each other: <b>a parry that does
+     * not happen is a worse failure than a wrist that arrives 90 ms early.</b>
+     *
+     * <p>The recovery target after the crossing keeps {@link Chain#SWORD_ARM}'s own
+     * profile, so the long settle is still there where 7.1 asks for it -- after the
+     * visible motion has ended.
+     */
+    public static final Settle STRIKE = Settle.of(0.30, 0.33, 0.36, 0.39);
+
     /** STYLE.md 5: a swung blade's trail "fades over ~0.4 s". */
     public static final double TRAIL_SECONDS = 0.40;
 
@@ -438,16 +467,36 @@ public final class Scheduler {
         contact(t);
         double dir = Stage.alongLane(standing.tile(attacker), standing.tile(defender));
 
-        emit(new Directive.IkTarget(attacker, Chain.SWORD_ARM, stage.contact(meeting.onActor(), standing),
-                ARM_PEAK, ARM_PEAK, t, beat.contactSpan(), Ease.EASE_OUT, Chain.SWORD_ARM.settle()));
-        Anchor met = stage.contact(meeting.onTarget(), standing);
+        // One point, named twice by the engine and reconciled by Stage. Both
+        // blades are aimed at it, which is the difference between "two skeletons
+        // agreeing on one point in space" and two skeletons each holding its own
+        // opinion 0.08 units from the other's.
+        Anchor met = stage.crossing(meeting, standing);
+
+        // <b>Both arms are led into the crossing, not released at it.</b> STYLE.md
+        // 7.1's correction is explicit that the blades meet at the *start* of the
+        // middle span and slide through it -- "reading the middle span as
+        // travel-toward-a-hit puts the meeting at 55 and collapses the deflection
+        // to a point, which is the collision this document exists to forbid". A
+        // chain whose own settle is 0.48 s cannot arrive at an instant it is first
+        // told about at that instant, so pass 1's attacker was still 0.8 units
+        // away when its beat's contact span was over. It now leaves a full contact
+        // span early, exactly as the defender already did.
+        supersede(attacker, Chain.SWORD_ARM, beat.contactStart());
+        double lead = Math.max(beat.contactSpan(), beat.windUpSpan() * 0.55);
+        emit(new Directive.IkTarget(attacker, Chain.SWORD_ARM, met,
+                ARM_PEAK, ARM_PEAK, t - lead, lead + beat.contactSpan(),
+                Ease.EASE_OUT, STRIKE));
         emit(new Directive.IkTarget(defender, Chain.SWORD_ARM, met,
-                ARM_HOLD, ARM_PEAK, t - beat.contactSpan(), beat.contactSpan(),
-                Ease.SLOW_IN_SLOWER_OUT, Chain.SWORD_ARM.settle()));
+                ARM_HOLD, ARM_PEAK, t - lead, lead + beat.contactSpan(),
+                Ease.SLOW_IN_SLOWER_OUT, STRIKE));
+        // The deflection: the defender's blade slides along the lane and drops,
+        // and it starts while the two are still touching, which is what makes it a
+        // curve rather than a release.
         emit(new Directive.IkTarget(defender, Chain.SWORD_ARM,
                 new Anchor(met.body(), met.site(), met.x() + dir * GIVE_GROUND, met.y() - 0.05),
-                ARM_PEAK, ARM_HOLD, t + beat.contactSpan() * 0.35,
-                beat.contactSpan() * 0.65 + beat.recoverySpan() * 0.5,
+                ARM_PEAK, ARM_HOLD, t + beat.contactSpan(),
+                beat.recoverySpan() * 0.5,
                 Ease.SLOW_IN_SLOWER_OUT, Chain.SWORD_ARM.settle()));
         // The defender's own source of motion. Without this the guard is an arm
         // moving on a frozen torso, which STYLE.md 7.0.1 fails before any analysis.
@@ -887,5 +936,26 @@ public final class Scheduler {
 
     private void emit(Directive d) {
         out.add(d);
+    }
+
+    /**
+     * Drops a chain directive a later, more specific event replaces.
+     *
+     * <p><b>Two directives on one chain at one instant is not a schedule, it is an
+     * ambiguity</b>, and pass 1 shipped one: {@link #stageBeat} emits the actor's
+     * release at {@code contactStart} from the beat's {@link Focus}, and then
+     * {@link #bladeMet} emitted a second target on the same chain at the same
+     * instant from the {@link Meeting}. The director resolves ties by emission
+     * order, so the picture depended on which handler ran first, and the segment
+     * between the two had zero duration -- so the interpolation that makes a parry
+     * a curve ran from a point the hand had never been at.
+     *
+     * <p>The Meeting is the more specific of the two: the beat says a stroke goes
+     * toward a tile, the Meeting says where it actually lands and on what. So the
+     * beat's release is withdrawn rather than left to race.
+     */
+    private void supersede(int body, Chain chain, double at) {
+        out.removeIf(d -> d instanceof Directive.IkTarget t
+                && t.body() == body && t.chain() == chain && Math.abs(t.at() - at) < 1e-9);
     }
 }

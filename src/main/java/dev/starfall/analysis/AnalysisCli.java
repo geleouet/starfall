@@ -79,6 +79,8 @@ public final class AnalysisCli {
             case "values" -> values(a);
             case "diff" -> diff(a);
             case "timing" -> timing(a);
+            case "blades" -> blades(a);
+            case "corridor" -> corridor(a);
             default -> {
                 System.err.println("unknown command '" + cmd + "'");
                 usage();
@@ -123,7 +125,14 @@ public final class AnalysisCli {
                   analyse marks    <dir|png> --region <spec> [--cuts 3] [--horizontal]
                                                         mark-width runs and whether they are bimodal
                   analyse values   <dir|png>            floor against #161A22, ceiling against paper
-                  analyse timing   <series.json> --anchor <name>
+                  analyse blades   <dir|png> [--max 0.02]
+                                                        STYLE.md 7.2's parry: minimum blade-to-blade
+                                                        separation as a fraction of figure height, from
+                                                        cool-bright components. Exits 1 past --max.
+  analyse corridor <dir|png> [--min 0.06]
+                                                        clear paper between two bodies, normalised by
+                                                        figure height. Exits 1 below --min.
+  analyse timing   <series.json> --anchor <name>
                                                         read a headless timing series (./gw timing) and
                                                         report arrivals in samples and in seconds. 7.1:
                                                         a timing claim ships with one of these
@@ -150,6 +159,8 @@ public final class AnalysisCli {
     /** Everything the commands share: the frame(s), the paper level, the figure and the regions. */
     private static final class Ctx {
         CaptureDir capture;
+        RegionSet.Which which = RegionSet.Which.SOLE;
+        int bodies;
         Frame frame;
         Paper paper;
         Figure figure;
@@ -175,7 +186,25 @@ public final class AnalysisCli {
         }
         c.paper = a.has("paper") ? Paper.fixed(a.getDouble("paper", 217)) : Paper.estimate(c.frame);
         c.factor = a.getDouble("threshold", 0.85);
-        c.figure = Figure.detect(c.frame, c.paper, c.factor);
+        c.which = RegionSet.Which.valueOf(a.get("figure", "sole").trim().toUpperCase());
+        c.bodies = Duellists.bodyCount(c.frame, c.paper, c.factor);
+        // The refusal of STYLE.md 11.3, applied once at load so every command that
+        // resolves a figure-relative rectangle inherits it. A frame with two bodies
+        // and no named figure has no answer to "where is the head", and answering
+        // anyway is what made a whole pass ungradeable.
+        if (c.which == RegionSet.Which.SOLE) {
+            c.figure = Figure.detect(c.frame, c.paper, c.factor);
+        } else {
+            Rect box = Duellists.bodyBounds(c.frame, c.paper, c.factor,
+                    c.which == RegionSet.Which.LEFT ? 0 : 1);
+            if (box == null) {
+                throw new IllegalStateException("this frame has no "
+                        + c.which.name().toLowerCase() + " body: only " + c.bodies
+                        + " ink component(s) reach " + Math.round(100 * Duellists.BODY_SHARE)
+                        + "% of the frame's ink");
+            }
+            c.figure = Figure.atBounds(box);
+        }
         if (a.has("regions")) {
             c.regionSet = RegionSet.load(a.getFile("regions", null));
         } else if (c.capture != null) {
@@ -187,11 +216,32 @@ public final class AnalysisCli {
         return c;
     }
 
+    /**
+     * Refuses a figure-relative rectangle on a frame carrying two bodies.
+     *
+     * <p>STYLE.md 11.3, verbatim: <i>"the tool must refuse when the ink resolves
+     * into two components each above some share of the total and no figure has been
+     * named."</i> Called before anything reads {@code c.figure}, because every
+     * failure this closes was silent -- the numbers came out plausible.
+     */
+    private static void requireNamedFigure(Ctx c, String what) {
+        if (c.bodies >= 2 && c.which == RegionSet.Which.SOLE) {
+            throw new IllegalStateException(what + " resolves against the detected figure box, and "
+                    + "this frame carries " + c.bodies + " ink components each holding at least "
+                    + Math.round(100 * Duellists.BODY_SHARE) + "% of its ink. The detected box spans "
+                    + "both bodies, so 'head' lands on whichever hair it reaches and 'torso' "
+                    + "straddles the gap -- which is how a previous pass reported a hem lag of "
+                    + "+6.52 frames, a number inside STYLE.md 7.1's own band, from rectangles that "
+                    + "were nonsense. Name a figure: --figure left|right.");
+        }
+    }
+
     /** Resolves {@code --region} specs: named entries from the region set, or inline definitions. */
     private static Map<String, Rect> resolveRegions(Ctx c, Args a, boolean defaultToAll) {
         Map<String, Rect> out = new LinkedHashMap<>();
         List<String> specs = a.all("region");
         if (specs.isEmpty()) {
+            requireNamedFigure(c, "the default region set");
             if (defaultToAll) {
                 return c.regionSet.resolve(c.frame, c.figure);
             }
@@ -201,12 +251,21 @@ public final class AnalysisCli {
         for (String spec : specs) {
             if (spec.contains("=")) {
                 RegionSet.Def d = RegionSet.parseSpec(spec);
+                // An absolute-pixel rectangle names its own window and does not
+                // touch the detected figure, so it is always answerable. Only a
+                // figure-relative one has to know which figure it means.
+                if (d.space() != RegionSet.Space.PIXEL) {
+                    requireNamedFigure(c, "region '" + d.name() + "'");
+                }
                 out.put(d.name(), d.resolve(c.frame, c.figure));
             } else {
                 RegionSet.Def d = c.regionSet.def(spec.trim());
                 if (d == null) {
                     throw new IllegalArgumentException("no region named '" + spec + "' in the region set "
                             + c.regionSet.names() + " — pass an inline spec name=x,y,w,h instead");
+                }
+                if (d.space() != RegionSet.Space.PIXEL) {
+                    requireNamedFigure(c, "region '" + d.name() + "'");
                 }
                 out.put(d.name(), d.resolve(c.frame, c.figure));
             }
@@ -258,6 +317,85 @@ public final class AnalysisCli {
                     scale, rf.bounds.h, c.figure.bounds.h);
             out().printf("  suggested reference size: %d x %d%n",
                     Math.round((float) (ref.width * scale)), Math.round((float) (ref.height * scale)));
+        }
+        return 0;
+    }
+
+    /**
+     * STYLE.md 7.2's parry, measured the way the pass-1 review measured it.
+     *
+     * <p>Cool-bright connected components, point-to-point minimum, normalised by the
+     * frame's own figure height. Exit code 1 when the minimum over the window is
+     * worse than {@code --max}, so this is usable as a gate and not only as a
+     * report.
+     */
+    private static int blades(Args a) throws IOException {
+        Ctx c = load(a, 0, false);
+        double max = a.getDouble("max", Double.NaN);
+        List<Frame> frames = c.capture == null ? List.of(c.frame) : c.capture.loadAll();
+        double best = Double.MAX_VALUE;
+        int bestIndex = -1;
+        out().printf("blade separation, cool-bright components (b-r > %.0f, lum > %.0f)%n",
+                Duellists.COOL_BR, Duellists.BRIGHT);
+        out().println("  frame  separation");
+        for (int i = 0; i < frames.size(); i++) {
+            Frame f = frames.get(i);
+            Paper p = a.has("paper") ? c.paper : Paper.estimate(f);
+            Duellists.Blades b = Duellists.blades(f, p, c.factor);
+            out().printf("  %3d    %s%n", i, b.describe());
+            if (!Double.isNaN(b.fraction()) && b.fraction() < best) {
+                best = b.fraction();
+                bestIndex = i;
+            }
+        }
+        if (bestIndex < 0) {
+            out().println("no frame carried two blades");
+            return 1;
+        }
+        out().printf("%nminimum %.4f of a figure height at frame %d%n", best, bestIndex);
+        if (!Double.isNaN(max)) {
+            out().printf("acceptance <= %.4f: %s%n", max, best <= max ? "PASS" : "FAIL");
+            return best <= max ? 0 : 1;
+        }
+        return 0;
+    }
+
+    /**
+     * The clear-paper corridor between two bodies, per frame.
+     *
+     * <p>{@code docs/system4-debt.md}: the corridor must never be zero and must not
+     * fall below 6% of a figure height, which is reference image 3's own pinch
+     * measured at matched scale. {@code --min} makes that a gate.
+     */
+    private static int corridor(Args a) throws IOException {
+        Ctx c = load(a, 0, false);
+        double min = a.getDouble("min", Double.NaN);
+        List<Frame> frames = c.capture == null ? List.of(c.frame) : c.capture.loadAll();
+        double worst = Double.MAX_VALUE;
+        int worstIndex = -1;
+        int merged = 0;
+        out().printf("clear-paper corridor between the two bodies (ink < %.2f x paper, "
+                + "a body is >= %.0f%% of the frame's ink)%n", c.factor, 100 * Duellists.BODY_SHARE);
+        out().println("  frame  corridor");
+        for (int i = 0; i < frames.size(); i++) {
+            Frame f = frames.get(i);
+            Paper p = a.has("paper") ? c.paper : Paper.estimate(f);
+            Duellists.Corridor cor = Duellists.corridor(f, p, c.factor);
+            out().printf("  %3d    %s%n", i, cor.describe());
+            if (cor.merged()) {
+                merged++;
+                worst = 0;
+                worstIndex = i;
+            } else if (cor.fraction() < worst) {
+                worst = cor.fraction();
+                worstIndex = i;
+            }
+        }
+        out().printf("%nworst %.4f of a figure height at frame %d; %d of %d frames are one mass%n",
+                worst, worstIndex, merged, frames.size());
+        if (!Double.isNaN(min)) {
+            out().printf("acceptance >= %.4f: %s%n", min, worst >= min ? "PASS" : "FAIL");
+            return worst >= min ? 0 : 1;
         }
         return 0;
     }
@@ -496,6 +634,7 @@ public final class AnalysisCli {
                 throw new IllegalArgumentException("--anchor " + anchor + " is not in the region set "
                         + c.regionSet.names());
             }
+            requireNamedFigure(c, "the anchor '" + anchor + "'");
             anchorRect = def.resolve(c.frame, c.figure);
         }
         // Registration by default, and the default is not a taste: STYLE.md 11.3 records that

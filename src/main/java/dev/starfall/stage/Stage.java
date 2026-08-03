@@ -3,6 +3,7 @@ package dev.starfall.stage;
 import dev.starfall.combat.ContactPoint;
 import dev.starfall.combat.Focus;
 import dev.starfall.combat.Lane;
+import dev.starfall.combat.Meeting;
 
 /**
  * The map from the engine's ordinals to space: tiles to world units, the three
@@ -141,6 +142,35 @@ public final class Stage {
         double reach = cp.part() == ContactPoint.Part.BLADE ? GUARD_REACH : BODY_HALF;
         return new Anchor(cp.body(), Anchor.Site.CONTACT,
                 tileX(tile) + step * side * reach, heightY(cp.height()));
+    }
+
+    /**
+     * The single point in space a {@link Meeting}'s two named halves describe.
+     *
+     * <h2>Reconciling two names into one point is this layer's job, not the
+     * engine's and not the rig's</h2>
+     *
+     * <p>{@link ContactPoint}'s own note: <i>"the renderer owns the mapping from
+     * that to a point in space, and two renderers at different figure scales can
+     * both honour it."</i> {@link Meeting}'s: <i>"a parry is two skeletons that
+     * have to agree on one point in space."</i> Put together, the two halves are
+     * two <em>descriptions</em> of one crossing and it is here that they become
+     * one coordinate -- the midpoint of the two, which for two bodies squared up
+     * on adjacent tiles is the exact middle of the gap between them, and stays
+     * the exact middle however far apart the lane is drawn.
+     *
+     * <p>Pass 1 shipped both halves separately into two IK chains. They resolved
+     * 0.08 world units apart, which is correct and was never the problem: what
+     * went wrong is that each half was handed to a chain whose effector is the
+     * <b>fist</b>, so the point two <em>hands</em> agreed on was 0.47 units short
+     * of where either <em>blade</em> was. The site is now
+     * {@link Anchor.Site#CROSSING} and it means what it says.
+     */
+    public Anchor crossing(Meeting meeting, Standing standing) {
+        Anchor a = contact(meeting.onActor(), standing);
+        Anchor b = contact(meeting.onTarget(), standing);
+        return new Anchor(Anchor.NO_BODY, Anchor.Site.CROSSING,
+                0.5 * (a.x() + b.x()), 0.5 * (a.y() + b.y()));
     }
 
     /** Where {@code body} holds its blade when it is not swinging it. */

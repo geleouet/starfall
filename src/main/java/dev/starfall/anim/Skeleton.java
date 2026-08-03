@@ -112,6 +112,26 @@ public final class Skeleton {
         return out;
     }
 
+    /**
+     * A point {@code distance} along a bone's own +x axis, in world space.
+     *
+     * <p>No mirror term is needed and that is worth stating, because every other
+     * bone-local-to-world helper in this project carries one: column {@code (a, b)}
+     * <em>is</em> the bone's +x axis expressed in world space, so a pure along-bone
+     * offset is already reflected by the transform. Only the {@code y} component of
+     * a local offset needs {@code RigIk.fromBone}'s correction.
+     */
+    public Vector2 worldAlong(int boneIndex, float distance, Vector2 out) {
+        int o = boneIndex * AFFINE_SIZE;
+        float ax = global[o];
+        float ay = global[o + 1];
+        float len = (float) Math.sqrt(ax * ax + ay * ay);
+        if (len < 1e-9f) {
+            return out.set(global[o + 4], global[o + 5]);
+        }
+        return out.set(global[o + 4] + distance * ax / len, global[o + 5] + distance * ay / len);
+    }
+
     public float worldRotationDeg(int boneIndex) {
         int o = boneIndex * AFFINE_SIZE;
         // Column (a, b) is the local +x axis expressed in world space; atan2 of it

@@ -3,11 +3,14 @@ package dev.starfall.direct;
 import com.badlogic.gdx.math.Vector2;
 import dev.starfall.anim.Bone;
 import dev.starfall.art.Palette;
+
 import dev.starfall.ik.IkChain;
 import dev.starfall.render.InkFxRenderer;
+import dev.starfall.rig.SamuraiRig;
 import dev.starfall.stage.Anchor;
 import dev.starfall.stage.Chain;
 import dev.starfall.stage.Directive;
+import dev.starfall.stage.Ease;
 import dev.starfall.stage.Framing;
 import dev.starfall.stage.Region;
 import dev.starfall.stage.Schedule;
@@ -134,7 +137,7 @@ public final class Director {
      * against {@code FIGURE_HEIGHT}, or {@code BODY_HALF} grows to the width the
      * rig actually has and the lane spacing follows it.
      */
-    public static final double LANE_SPREAD = 1.35;
+    public static final double LANE_SPREAD = 1.55;
 
     /**
      * Moves an anchor's tile without moving the anchor within its tile.
@@ -170,7 +173,7 @@ public final class Director {
      */
     public static double stretch(Anchor anchor) {
         return switch (anchor.site()) {
-            case CONTACT, TILE -> anchor.x() * LANE_SPREAD;
+            case CONTACT, CROSSING, TILE -> anchor.x() * LANE_SPREAD;
             default -> stretch(anchor.x());
         };
     }
@@ -265,6 +268,7 @@ public final class Director {
             drive(f, 0f);
             f.snap(0f);
         }
+        rememberHilts();
     }
 
     /**
@@ -282,6 +286,7 @@ public final class Director {
             gusts(f);
             f.simulate(step, (float) t);
         }
+        rememberHilts();
     }
 
     /** Writes this frame's pose, placement and IK state for one figure. */
@@ -442,13 +447,269 @@ public final class Director {
      */
     private void arm(Figure f) {
         IkChain sword = f.ik().swordArm();
-        Sample s = sample(chains.get(f.body()).get(Chain.SWORD_ARM));
-        if (s == null) {
+        Segment seg = segmentAt(chains.get(f.body()).get(Chain.SWORD_ARM), t);
+        if (seg == null) {
             return;
         }
-        sword.target((float) s.x, (float) s.y);
-        sword.weight((float) s.w);
+        // Each endpoint is mapped from what it *names* to what this chain can
+        // *hold* before the interpolation, exactly as the trunk and the legs
+        // already do. See #fist.
+        double toX = fistX(f, seg.active().target());
+        double toY = fistY(f, seg.active().target());
+        double fromX = seg.previous() == null ? toX : fistX(f, seg.previous().target());
+        double fromY = seg.previous() == null ? toY : fistY(f, seg.previous().target());
+        Ease ease = seg.active().ease();
+        sword.target((float) ease.lerp(fromX, toX, seg.u()), (float) ease.lerp(fromY, toY, seg.u()));
+        sword.weight((float) seg.w());
         applySettle(sword, Chain.SWORD_ARM.settle());
+        bladeAim(f, seg);
+    }
+
+    /**
+     * STYLE.md 7.2's parry, at last taken literally: the <em>blade</em> goes to the
+     * crossing.
+     *
+     * <p>An {@link Anchor.Site#CROSSING} target is a point the blade must pass
+     * through. Two things carry that, and they are separate on purpose:
+     *
+     * <ul>
+     *   <li>{@link #fist} puts the hand a blade's-crossing-length back from the
+     *       point along the direction the figure's own guard reaches it from, so
+     *       the crossing lands near the monouchi rather than on the hilt or past
+     *       the kissaki. That is a <em>position</em> and it is what an IK chain
+     *       whose effector is the fist can express.</li>
+     *   <li>{@link RigIk#blade()} then turns the blade so its axis runs through the
+     *       point. That is a <em>direction</em>, and nothing in the rig could
+     *       express it until this pass.</li>
+     * </ul>
+     *
+     * <p>Both are needed and neither is sufficient. The position alone leaves the
+     * blade at whatever angle the forearm ended up at plus 45 degrees, which is
+     * how pass 1 shipped a defender whose blade pointed down and away through the
+     * whole contact span. The direction alone would point a blade at a crossing it
+     * is too far from to reach, and the two segments would still not meet.
+     *
+     * <p>The aim's weight is the chain's, scaled by how far into the crossing
+     * directive the clock is, so the blade turns into the meeting over the same
+     * span the arm travels and lets go over the recovery. It is never switched.
+     */
+    private void bladeAim(Figure f, Segment seg) {
+        boolean toCrossing = seg.active().target().site() == Anchor.Site.CROSSING;
+        boolean fromCrossing = seg.previous() != null
+                && seg.previous().target().site() == Anchor.Site.CROSSING;
+        double aim = seg.active().ease().lerp(fromCrossing ? 1.0 : 0.0, toCrossing ? 1.0 : 0.0, seg.u());
+        Anchor point = toCrossing ? seg.active().target()
+                : fromCrossing ? seg.previous().target() : null;
+        if (point == null || aim <= 0) {
+            f.ik().aimBlade(0f, 0f, 0f);
+            return;
+        }
+        Vector2 c = crossing(point);
+        f.ik().aimBlade(c.x, c.y, (float) (aim * seg.w()));
+        // The wrist and the blade take links 2 and 3 of the directive's own settle
+        // profile -- which is exactly what Chain.SWORD_ARM declares them to be:
+        // "extended by two links the chain does not solve but the eye reads: the
+        // hand, and the blade tip hanging off it". Before this pass those two
+        // arrivals were written down and driven by nothing at all.
+        Settle settle = seg.active().settle();
+        f.ik().wrist().settleSeconds((float) settle.arrival(Math.min(2, settle.links() - 1)));
+        f.ik().blade().settleSeconds((float) settle.arrival(settle.links() - 1));
+    }
+
+    /**
+     * How far the crossing point sits from the fist, along the blade:
+     * {@link SamuraiRig#BLADE_GRIP_OFFSET} out of the fist to the habaki, then
+     * {@link Figure#BLADE_CROSSING} of the nagasa to where two blades bind.
+     */
+    public static final double REACH_TO_CROSSING =
+            SamuraiRig.BLADE_GRIP_OFFSET + Figure.BLADE_CROSSING * SamuraiRig.BLADE_LENGTH;
+
+    /** Where the two blades are actually being made to meet this frame. */
+    private final Vector2 crossing = new Vector2();
+
+    /** Last frame's fists, per body. See {@link #crossing(Anchor)}. */
+    private final Map<Integer, Vector2> hilts = new HashMap<>();
+
+    /**
+     * The point in space the two blades are aimed at, resolved against where those
+     * blades actually are.
+     *
+     * <h2>Why the schedule's own coordinate is not good enough, and why that is
+     * this layer's problem rather than the schedule's</h2>
+     *
+     * <p>{@code ContactPoint}: <i>"the renderer owns the mapping from that to a
+     * point in space, and two renderers at different figure scales can both honour
+     * it."</i> That sentence is doing real work here. The staging layer resolves the
+     * engine's two ordinal names into one world point, and it does so <em>without
+     * knowing where the arms ended up</em> -- it cannot know, because
+     * {@code IkChain.weight} blends local rotations rather than effector positions,
+     * so an arm at 0.85 driving a reachable target still finishes a fifth of a body
+     * height from it, and a stance blend pulls the other way the whole time.
+     *
+     * <p>A fixed world coordinate handed to two rigs is therefore a coordinate
+     * neither of them lands on, and a blade told to point at somewhere behind its
+     * own habaki saturates its wrist and points somewhere else entirely. What is
+     * invariant is the <em>relation</em>: two blades leave their hilts at
+     * {@link #BLADE_ELEVATION_DEG} and meet above the line between them, which is
+     * the X reference image 3 draws. So the crossing is the apex of that X, built
+     * from where the two hilts actually are.
+     *
+     * <p><b>The schedule is still the authority on where the beat happens.</b>
+     * {@code RehearsalTest} asserts that the resolved crossing stays within a tenth
+     * of a figure height of the anchor the scheduler emitted, so a staging that put
+     * the crossing inside a body or off the lane fails a test rather than quietly
+     * re-staging itself.
+     *
+     * <p>Roots are last frame's, because {@code Figure.writePose} has already reset
+     * the skeleton to its stance by the time this runs. At the 240 Hz substep that
+     * is 4 ms of lag on a quantity that moves a few millimetres per step.
+     */
+    private Vector2 crossing(Anchor scheduled) {
+        double cx = stretch(scheduled);
+        double cy = scheduled.y();
+        Vector2 a = null;
+        Vector2 b = null;
+        double sx = 0;
+        // (kept for the fallback branch: which way the first figure faces)
+        for (Figure f : figures) {
+            Vector2 r = hilts.get(f.body());
+            if (r == null) {
+                continue;
+            }
+            if (a == null) {
+                a = r;
+                sx = f.facing();
+            } else if (b == null) {
+                b = r;
+            }
+        }
+        if (a == null || b == null) {
+            return crossing.set((float) cx, (float) cy);
+        }
+        // The apex of the X: each blade leaves its own hilt at BLADE_ELEVATION_DEG
+        // to the line joining the two hilts, exactly as reference image 3 draws it,
+        // and the two meet above the middle of that line. Building it from the
+        // angle rather than from a fixed distance along the blade is what makes the
+        // aim nearly free: the direction asked for is close to the direction the
+        // blade already wants, so the wrist trims rather than saturating.
+        //
+        // <b>A ray-intersection construction was tried and measured worse.</b>
+        // Intersecting the two rays each figure's blade "wants" (elevation measured
+        // against the horizon rather than against the hilt line) is the more
+        // obvious model and reads better on paper. On this rig it put the apex
+        // where one blade could reach it and the other could not, and the minimum
+        // separation went from 0.0% of a figure height to 3.0%. Recorded because
+        // the obvious construction being the worse one is the sort of thing this
+        // project keeps rediscovering.
+        double dx = b.x - a.x;
+        double dy = b.y - a.y;
+        double d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 1e-4 || d > 2 * SamuraiRig.BLADE_LENGTH) {
+            // Hilts further apart than two blades cannot be bridged, and hilts on
+            // top of each other carry no direction. Fall back to what the schedule
+            // asked for and let the guard report it.
+            return crossing.set((float) cx, (float) cy);
+        }
+        double half = d / 2;
+        double h = half * Math.tan(Math.toRadians(BLADE_ELEVATION_DEG));
+        // Never past the kissaki: a crossing beyond the blade's own length is one
+        // the blade cannot make. 0.9 leaves the last tenth clear so the two points
+        // do not read as tips touching.
+        double span = Math.sqrt(half * half + h * h);
+        double limit = 0.9 * SamuraiRig.BLADE_LENGTH;
+        if (span > limit) {
+            h *= limit / span;
+        }
+        // The normal, taken upward: two blades meet above the line between their
+        // hilts, never below it.
+        double nx = -dy / d;
+        double ny = dx / d;
+        if (ny < 0) {
+            nx = -nx;
+            ny = -ny;
+        }
+        return crossing.set((float) (0.5 * (a.x + b.x) + nx * h),
+                (float) (0.5 * (a.y + b.y) + ny * h));
+    }
+
+    /** Where the crossing was resolved to on the last frame, for the clash mark. */
+    public Vector2 lastCrossing(Vector2 out) {
+        return out.set(crossing);
+    }
+
+    /**
+     * Records where each figure's fist finished this frame.
+     *
+     * <p><b>The fist and not the blade root, and the difference is a stability
+     * result rather than a preference.</b> The habaki's position depends on the
+     * hand's rotation, which the wrist aim writes, which is driven by the crossing,
+     * which is built from the habaki -- a loop, and it behaves like one: built from
+     * the blade roots the crossing chattered and both aims saturated chasing it.
+     * The fist is upstream of the aim entirely, so the crossing built from it is a
+     * fixed point of nothing and simply sits where the two hands put it.
+     */
+    private void rememberHilts() {
+        for (Figure f : figures) {
+            f.where("handL", scratch);
+            hilts.computeIfAbsent(f.body(), k -> new Vector2()).set(scratch);
+        }
+    }
+
+    /**
+     * How high the blade rides out of the guard, above horizontal, in degrees.
+     *
+     * <p>Read off the corpus rather than tuned. In reference image 3 the left
+     * duellist's blade runs from a tsuba at (390, 465) to a kissaki at (560, 135)
+     * and the right one's mirrors it: 62 and 61 degrees above horizontal, out of
+     * two hands almost touching at chest height. The rig is close to that on its
+     * own -- the forearm comes up out of a tucked elbow and the blade's bind angle
+     * adds 45 -- so the wrist has a few degrees to trim rather than a hundred.
+     *
+     * <p><b>Deriving this from the geometry instead was tried and is wrong.</b> The
+     * obvious construction is "the direction from the body's own guard point to the
+     * crossing", which is self-consistent and needs no constant. It degenerates:
+     * with the two bodies squared up, the guard point sits almost directly under
+     * the crossing, so the derived direction is nearly vertical, the fist target
+     * lands 0.6 units in front of a shoulder that reaches 0.56, and the arm
+     * saturates a third of a body height short of it. A constant elevation is the
+     * honest thing here -- how a swordsman holds a sword is not a fact about where
+     * the other one is standing.
+     */
+    public static final double BLADE_ELEVATION_DEG = 62.0;
+
+    /**
+     * Where the fist has to be for the blade to cross at {@code anchor}.
+     *
+     * <p>Back down the blade from the crossing: {@link #REACH_TO_CROSSING} along
+     * the direction {@link #BLADE_ELEVATION_DEG} says the blade rides at, mirrored
+     * with the figure. That puts the hand about a third of a body height in front
+     * of the body at chest height, holding a blade angled up into the meeting,
+     * which is the pose the corpus holds and -- not coincidentally -- one this
+     * arm can actually reach.
+     */
+    private void fist(Figure f, Anchor anchor, Vector2 out) {
+        double cx = stretch(anchor);
+        double cy = anchor.y();
+        if (anchor.site() != Anchor.Site.CROSSING) {
+            out.set((float) cx, (float) cy);
+            return;
+        }
+        double rad = Math.toRadians(BLADE_ELEVATION_DEG);
+        double dx = Math.signum(f.facing()) * Math.cos(rad);
+        double dy = Math.sin(rad);
+        out.set((float) (cx - dx * REACH_TO_CROSSING), (float) (cy - dy * REACH_TO_CROSSING));
+    }
+
+    private final Vector2 fistScratch = new Vector2();
+
+    private double fistX(Figure f, Anchor anchor) {
+        fist(f, anchor, fistScratch);
+        return fistScratch.x;
+    }
+
+    private double fistY(Figure f, Anchor anchor) {
+        fist(f, anchor, fistScratch);
+        return fistScratch.y;
     }
 
     /**
@@ -648,6 +909,17 @@ public final class Director {
             Figure f = byBody.get(d.body());
             float x = (float) stretch(d.origin());
             float y = (float) d.origin().y();
+            if (d.origin().site() == Anchor.Site.CROSSING) {
+                // <b>The bloom is drawn where the blades are, not where the score
+                // hoped they would be.</b> Pass 1 fired this mark two frames after
+                // the closest approach, 36 px from the attacker's own grip and
+                // 223 px from the defender's blade -- "a light that asserts an
+                // event the picture does not contain". Reading the same resolved
+                // crossing the two aims used makes the assertion true by
+                // construction: the mark cannot land anywhere but on the meeting.
+                x = crossing.x;
+                y = crossing.y;
+            }
             switch (d.kind()) {
                 case BLOOM -> fx.bloom(x, y, (float) d.dirX(), (float) d.dirY(),
                         (float) d.magnitude(), age, Palette.INDIGO_DEEP, seed);
@@ -743,6 +1015,47 @@ public final class Director {
      *                when there genuinely is no earlier position -- see
      *                {@link #trunk}.
      */
+    /**
+     * The two directives the clock is between on one chain, and where in the
+     * crossfade it is.
+     *
+     * <p>Split out of {@link #sampleAt} because {@link #arm} has to map each
+     * endpoint from what the anchor <em>names</em> to what the chain can
+     * <em>hold</em> before interpolating, and a {@link Sample} has already thrown
+     * the anchors away. That mapping is not a detail: an
+     * {@link Anchor.Site#CROSSING} names a point on a blade and the chain's
+     * effector is a fist, and interpolating in the wrong space is how the two
+     * ended up 0.47 units apart.
+     */
+    record Segment(Directive.IkTarget active, Directive.IkTarget previous, double u, double w) {
+    }
+
+    static Segment segmentAt(List<Directive.IkTarget> list, double t) {
+        if (list.isEmpty()) {
+            return null;
+        }
+        Directive.IkTarget active = null;
+        Directive.IkTarget previous = null;
+        for (Directive.IkTarget d : list) {
+            if (t <= d.at()) {
+                break;
+            }
+            previous = active;
+            active = d;
+        }
+        if (active == null) {
+            // Before the first directive, hold its opening state -- the same rule
+            // #sampleAt follows, so a chain is never driven at a weight nobody
+            // asked for and never lurches on the frame the first directive starts.
+            Directive.IkTarget first = list.get(0);
+            return new Segment(first, null, 0.0, first.weightFrom());
+        }
+        double u = active.duration() <= 0 ? 1.0 : (t - active.at()) / active.duration();
+        double w = t >= active.end() ? active.weightTo()
+                : active.ease().lerp(active.weightFrom(), active.weightTo(), u);
+        return new Segment(active, previous, u, w);
+    }
+
     static Sample sampleAt(List<Directive.IkTarget> list, double t, double originX) {
         if (list.isEmpty()) {
             return null;

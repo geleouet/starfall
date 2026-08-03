@@ -49,6 +49,42 @@ public final class RigIk {
      */
     private final AimLink clavicle;
 
+    /**
+     * The blade, aimed from its own habaki at a point in the world.
+     *
+     * <h2>The rig could not point its sword until System 4 pass 2</h2>
+     *
+     * <p>{@link #swordArm}'s effector is {@code handL}'s origin -- <i>"a target is
+     * where the fist goes; the blade hangs off the hand and follows"</i> -- and
+     * "follows" was doing an enormous amount of work in that sentence. The blade
+     * bone sits 0.10 out of the fist at 45 degrees to it and runs 0.68 further, so
+     * the blade's <em>direction</em> was whatever the forearm happened to end up at
+     * plus a constant. Nothing in the project could ask for a blade angle, and
+     * nothing checked one.
+     *
+     * <p>What that cost: pass 1's parry aimed both fists at one crossing, got them
+     * to within 0.1 world units of each other, and put the two blades 0.36 apart --
+     * 21% of a body height of clear paper between them, with a clash bloom burning
+     * on a grip. The blades are the only hard-edged element in the frame (STYLE.md
+     * 5) and the eye goes to them; two blades that do not meet are the whole beat
+     * failing however good the arms are.
+     *
+     * <p>An {@link AimLink} rather than another chain link, for the same reason
+     * the clavicle is one: the analytic two-bone solver stays intact and the blade
+     * turns <em>after</em> it, so it is the last thing in the composite run to
+     * arrive, which is what STYLE.md 7.0.3 asks of a chain's tip.
+     *
+     * <p>The limit is the wrist plus the hilt's own play in the hand. It is wide --
+     * the whole grip cluster (fist, tsuka, tsuba) is skinned to this bone or to the
+     * hand, so a turn here reads as the sword rolling in the grip rather than as a
+     * broken joint -- but it is a limit, and when it saturates the blade stops
+     * short of the aim rather than snapping past it.
+     */
+    private final AimLink blade;
+
+    /** The wrist. See its construction for why the hand was the free bone. */
+    private final AimLink wrist;
+
     /** Near/front leg, effector at {@code footL}'s origin (the ankle). */
     private final IkChain legL;
 
@@ -167,6 +203,38 @@ public final class RigIk {
                 .settleSeconds(0.18f)
                 .weight(0f);
 
+        // -- the wrist ---------------------------------------------------------
+        //
+        // The hand is the only bone in the upper body nothing else writes: the arm
+        // chain ends *at* it (it is the tip, not a link), the stance table does not
+        // name it, and the cloth hangs off it. So it was free, and it was unused --
+        // which is why pass 1's blade angle was an accident of the forearm.
+        //
+        // It aims with the blade's own bind angle as its axis offset, so a caller
+        // gives it a point and the *blade* points there. The range is wide because
+        // this one link is carrying the whole difference between the direction the
+        // arm happened to end in and the direction the beat needs: measured on the
+        // parry, the elbow can end up on either side of the fist depending on how
+        // far the arm has travelled, and the two cases differ by more than a
+        // hundred degrees of blade. A wrist that could not cover that would leave
+        // the blade pointing backwards on every frame the arm was still arriving.
+        this.wrist = new AimLink(skeleton, "handL")
+                .axisOffsetDeg(skeleton.bone("blade").bindRotDeg)
+                .limit(IkConstraint.around(0f, 88f))
+                .settleSeconds(0.50f)
+                .weight(0f);
+
+        // -- the blade ---------------------------------------------------------
+        //
+        // Settle 0.53: the last number in Chain's own composite run (0.30, 0.35,
+        // 0.41, 0.44, 0.48, 0.53) and the tip of the kinematic sentence, so the
+        // blade arrives after the hand that carries it. Weight 0 until something
+        // asks: with no aim the bind angle is what every scene before this drew.
+        this.blade = new AimLink(skeleton, "blade")
+                .limit(IkConstraint.around(45f, 62f))
+                .settleSeconds(0.53f)
+                .weight(0f);
+
         // -- legs --------------------------------------------------------------
         //
         // Poles, on purpose, and this is the case the solver author flagged as
@@ -232,6 +300,23 @@ public final class RigIk {
     /** The sword arm's link 0. Aimed automatically from {@link #swordArm}'s own target. */
     public AimLink clavicle() {
         return clavicle;
+    }
+
+    /** The blade, aimed from its habaki. Set a target and a weight; see {@link #blade}. */
+    public AimLink blade() {
+        return blade;
+    }
+
+    /** The wrist, which aims the blade by turning the hand. Same target, same weight. */
+    public AimLink wrist() {
+        return wrist;
+    }
+
+    /** Points the blade at a world point, wrist first and then the blade itself. */
+    public RigIk aimBlade(float x, float y, float weight) {
+        wrist.target(x, y).weight(weight);
+        blade.target(x, y).weight(weight);
+        return this;
     }
 
     public IkChain legL() {
@@ -332,6 +417,13 @@ public final class RigIk {
         refreshArmPole();
         clavicle.update(dt);
         swordArm.update(dt);
+        // After the arm, because the blade hangs off the hand the arm has just
+        // placed: aiming it first would point this frame's blade out of last
+        // frame's fist, which is the same ordering mistake the class note names
+        // for the simulation. Wrist first, then the blade: the blade hangs off the
+        // hand, so the fine trim has to see where the coarse turn left it.
+        wrist.update(dt);
+        blade.update(dt);
         legL.update(dt);
         legR.update(dt);
     }
@@ -404,6 +496,8 @@ public final class RigIk {
         refreshArmPole();
         clavicle.snap();
         swordArm.snap();
+        wrist.snap();
+        blade.snap();
         legL.snap();
         legR.snap();
     }
