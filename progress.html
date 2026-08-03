@@ -159,19 +159,19 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — a harness bug corrupted every capture ever taken; two figures on screen; system 3 at its final pass",
+  updated: "2026-08-03 — system 3 closed on a demonstrated negative; system 4 in review",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 3 pass 5 \u2014 the final pass, with an honest negative allowed",
-    detail: "A harness bug found by System 4 had been compositing every captured frame with " +
-            "its own mirror image since day one \u2014 <b>76-79% of pixels affected</b>, through a " +
-            "dozen reviews. Regraded on clean captures, the cloth simulation turns out to be " +
-            "<b>invisible</b> on the scene the aesthetic is judged on: a garment welded rigid " +
-            "to the hips produces the same picture. Pass 5 must make the solver visible or " +
-            "demonstrate honestly that this mechanism cannot \u2014 and a well-proven negative " +
-            "closes the system rather than failing it."
+    title: "System 4 in review \u2014 the system everything else was built to serve",
+    detail: "System 3 closed at its five-pass cap on a <b>demonstrated negative</b>: the rail " +
+            "was fixed, the delivered pixels moved fourteen times more than the previous pass " +
+            "moved them, and the paired captures are still indistinguishable at viewing scale. " +
+            "That is an answer, not an abandonment, and the replacement mechanism is on record. " +
+            "System 4 \u2014 two figures, a parry, a five-beat phrase \u2014 is now with an " +
+            "independent reviewer, which is re-shooting every capture on the fixed harness " +
+            "before grading."
   },
 
   systems: [
@@ -179,7 +179,7 @@ const DATA = {
       summary:"Bone hierarchy, local→global transforms, GPU linear blend skinning, ink-dissolve material." },
     { n:"02", name:"IK", status:"passed", passes:3,
       summary:"2-bone analytic solver, FABRIK, per-joint constraints. Solvers done with 83 tests and continuity proved by sweep; not yet wired to the rig, no visual review." },
-    { n:"03", name:"Verlet hair + cloth", status:"building", passes:5,
+    { n:"03", name:"Verlet hair + cloth", status:"failed", passes:5,
       summary:"Mass-spring strands and cloth, tuned slow and ink-trail-like rather than snappy." },
     { n:"3b", name:"Faces — expression + variety", status:"pending", passes:0,
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
@@ -255,6 +255,61 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 3", kind:"build", pass:5,
+      title:"Closed at the cap on a demonstrated negative \u2014 which is an answer, not an abandonment",
+      body:[
+        "The final pass fixed the rail, articulated the cloth a third harder, and moved the " +
+        "delivered pixels <b>fourteen times</b> what the previous pass moved them \u2014 drape on " +
+        "the slow scene from 1.03\u00d7 to <b>1.36\u00d7</b>, dynamic range from 0.39 px to 5.48. " +
+        "<b>And the paired captures are still not separable at viewing scale.</b> Separable at " +
+        "4\u00d7 side by side; at 2\u00d7 the implementer could not pick the simulated one, and nothing " +
+        "in the live panel <i>says</i> simulated. No fold, no readable lag.",
+
+        "That is the negative the review anticipated and explicitly authorised, and it closes " +
+        "the system. The conclusion on record: <b>a Verlet rail hanging off a skinned garment " +
+        "is the wrong mechanism for this picture.</b> Reaching that deliberately, with the " +
+        "captures that prove it shipped alongside, is a better outcome than avoiding it into a " +
+        "sixth pass.",
+
+        "The particle gate went from two of six outside the drawn figure to <b>zero of eight</b> " +
+        "across all three chains \u2014 and became an <i>instrument</i> rather than a sentence. Run " +
+        "against the previous build it names <b>exactly the two particles the review named</b>, " +
+        "which is its calibration. It then found <b>a third the review had missed</b>: the " +
+        "sleeve tip sat on a fully-dissolved row and was passing only because the previous " +
+        "pass's splatter threw marks a hundred pixels past every silhouette and it had landed " +
+        "on one. Pulling the splatter back took its darkest neighbour from 74.9 to 220.6 against " +
+        "paper at 219.",
+
+        "The splatter retreat also <b>brought the datum back</b>: the detected figure box fell " +
+        "from 259 px to 196. That box had been silently resizing every figure-space region in " +
+        "the project."
+      ],
+      notes:[
+        { kind:"fix", label:"The replacement mechanism, in one sentence",
+          text:"Keep Verlet for hair and sleeve \u2014 neither is a small perturbation on a large " +
+               "skinned motion. Replace the skirt rail with <b>authored secondary motion on the " +
+               "trailing panels</b>, each with its own phase, its own delay off hip velocity and " +
+               "its own amplitude, so that three panels on three clocks <b>cross</b> \u2014 " +
+               "<i>and a crossing is a fold, which one boundary can never produce.</i> Second " +
+               "lever, costing no bones: modulate the dissolve threshold along the hem with body " +
+               "velocity, so the ink <i>sheds</i> on a direction change." },
+        { kind:"fix", label:"A freeze of mine that was wrong",
+          text:"I had frozen torso coverage at 97.5% on the must-not-regress list. That was an " +
+               "error: it is an absolute pixel statistic that <b>two consecutive briefs asked to " +
+               "lower</b>, so freezing it scored the removal of a fail-on-sight artefact as a " +
+               "regression. It now reads 93.8% with ink luminance through the same box unchanged " +
+               "\u2014 which is exactly the improvement both briefs asked for, arriving as a " +
+               "flagged breach of my own rule." },
+        { kind:"fix", label:"And the control flag is now a guard rather than a note",
+          text:"<code>--control</code> refuses four ways \u2014 no manifest, wrong clamp, mismatched " +
+               "scene or clock, different harness \u2014 each asserted in a test. A <i>missing</i> " +
+               "harness field counts as its own older version, so a capture from this pass " +
+               "refuses a control from the last one. That closes §11.2b(e): a discipline written " +
+               "into a document but not into the tool that reads it is documentation, not a " +
+               "guard." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 3", kind:"review", pass:4, verdict:"FAIL",
       title:"Regraded on clean captures \u2014 the cloth is not merely weak, it is absent",
