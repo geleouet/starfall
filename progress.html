@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — it is a duel at dusk; system 4 in its final review",
+  updated: "2026-08-03 — three guards were failing open; system 4 on its last pass",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 4 pass 4 in review \u2014 the sky was the whole thing",
-    detail: "Three passes argued about statistics on a picture of two figures standing on cream " +
-            "paper. <b>The sky had been deferred twice as cosmetic.</b> It was the whole thing: " +
-            "the warm/cool opposition the palette is built on had been inverted on every frame " +
-            "this project has ever graded. The reviewer is deciding whether System 4 closes here " +
-            "on recorded debt or spends its <b>one remaining pass</b> \u2014 and that judgement " +
-            "is the deliverable, not the verdict."
+    title: "System 4 pass 5 \u2014 the last one, and two hard edges to kill",
+    detail: "The final review answers §0 with <b>no</b>, on a count: 25 readable parts per " +
+            "duellist in the reference against <b>9</b> here. Two §10 fail-on-sight defects sit " +
+            "exactly where the eye goes. The last pass spends itself on those, on the lane " +
+            "spacing whose refusal is now void, and on a closing debt record that 3b, 3c and " +
+            "System 5 will inherit. <b>Meanwhile the combat UI is being built in parallel, in an " +
+            "isolated worktree.</b>"
   },
 
   systems: [
@@ -184,9 +184,9 @@ const DATA = {
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
-    { n:"04", name:"Procedural interaction", status:"review", passes:4,
+    { n:"04", name:"Procedural interaction", status:"building", passes:5,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
-    { n:"05", name:"Combat + action queue", status:"partial", passes:0,
+    { n:"05", name:"Combat + action queue", status:"building", passes:1,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
     { n:"06", name:"Capture harness + MCP", status:"passed", passes:0,
       summary:"Offscreen capture and contact sheets are already live and load-bearing. HTTP debug API and MCP server still to come." }
@@ -254,6 +254,65 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 4", kind:"review", pass:4, verdict:"FAIL",
+      title:"Nine readable parts against twenty-five \u2014 and three guards that were failing open",
+      body:[
+        "<b>§0 is answered no, on a count.</b> At matched scale the reference resolves <b>25 " +
+        "readable parts per duellist; this frame resolves 9</b> \u2014 no face, no hand, no " +
+        "guard, no fold, no foot on either figure. That is the same instrument that failed " +
+        "System 1 at its cap, and it is the honest reading of a picture that had just been " +
+        "described here in glowing terms.",
+
+        "Two <b>§10 fail-on-sight</b> defects sit exactly where the eye goes: filled " +
+        "axis-aligned <b>7\u00d77 and 8\u00d78 squares</b> beside the clash, and rays that are " +
+        "flat polygon wedges with a maximum single-pixel step of <b>134 where the reference has " +
+        "none above 100</b>. §3\u2019s first rule is that nothing but a blade has a hard edge. " +
+        "And <b>the disc that reads as a moon is not one</b> \u2014 it is the blade trail, a " +
+        "177\u00b0 arc of radius half a figure height sweeping through empty sky. It fooled the " +
+        "author of this page.",
+
+        "<b>The lane-spread refusal carried by two passes is now entirely void.</b> The half " +
+        "pass 4 kept compared an <i>un-spanned</i> reading against a <i>spanned</i> one; run " +
+        "consistently through the project\u2019s own tool the lower spread is <b>twice better " +
+        "on merges</b> \u2014 8 of 24 against 17 \u2014 not worse. The over-tall span is upheld " +
+        "and <b>inverts one of pass 4\u2019s own conclusions</b>: measured properly the " +
+        "duellists stand <i>further</i> apart at the skirt than their own lane spacing, so the " +
+        "garments do not lean inward at all.",
+
+        "<b>The corridor band criterion is declared permanent debt</b>, on the reviewer\u2019s " +
+        "recommendation. It has never discriminated between two settings of this project across " +
+        "three passes; it reads 0 of 24 for every pass alike; and at a fixed threshold the " +
+        "improvement pass 4 reported as 22% is <b>0.4103 against 0.4149 \u2014 no change at " +
+        "all</b>. The acceptance goes. The printout stays, because the second fixed reading is " +
+        "the best thing pass 4 built."
+      ],
+      notes:[
+        { kind:"crit", label:"An assertion has three outcomes, and the third is silent",
+          text:"<b>Three guards in this project were failing open.</b> Each reads a capture frame " +
+               "that <code>.gitignore</code> excludes, wrapped in <code>assumeTrue(file.isFile())</code> " +
+               "\u2014 so on the author\u2019s machine they pass, and <b>on a clean clone they " +
+               "skip in silence</b> and the results they certify do not exist for anybody else. " +
+               "One was pass 4\u2019s headline value ratio and its ratchet. This is the same " +
+               "defect found in <i>this page\u2019s own images</i> this morning, one layer down, " +
+               "and the check was not carried across when it was fixed. <b>The tautological guard " +
+               "at least ran; a skipping one is harder to see, because the suite reports it as " +
+               "success.</b>" },
+        { kind:"fix", label:"Closed in the tool, not in a paragraph",
+          text:"The three frames are force-added. <code>tools/check-progress.mjs</code> now " +
+               "refuses on <b>any</b> capture frame referenced from <code>src/</code> that git " +
+               "does not track \u2014 observed red before being believed. §11.2b(f) gains the " +
+               "general form: <b>any mechanism that can turn a test into a no-op belongs in the " +
+               "review</b> \u2014 an assumption, a conditional skip, an empty parameter set, a " +
+               "forgotten <code>@Disabled</code>." },
+        { kind:"crit", label:"And a headline number withdrawn",
+          text:"The phrase\u2019s <b>192\u00d7</b> continuity is withdrawn: the reader tracks a " +
+               "component ranging <b>1,464\u201319,951 px</b> and at the minimum has latched onto " +
+               "a fragment \u2014 a two-figure frame read with no figure named, which §11.3 " +
+               "forbids. The <i>conclusion</i> survives by a different route, independently " +
+               "reproduced." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 4", kind:"build", pass:4,
       title:"It is a duel at dusk",
