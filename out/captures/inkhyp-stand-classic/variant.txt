@@ -1,0 +1,2 @@
+variant=classic (-Pclassic=1 -> starfall.inkClassic=1 -> ink_skin.frag u_classic). First
+iteration (band 0.09); superseded by inkhyp-stand-classic2. See inkhyp-parry-classic/variant.txt.

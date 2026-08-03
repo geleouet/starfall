@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=duel-knockback -Pout=out/captures/inkhyp-knockback-current -Pframes=24 -Pcols=6 -Pw=960 -Ph=720
+
+scene=duel-knockback
+description=a shove, and a body carried: cloth and hair thrown along the travel
+frames=24
+start=0.0
+step=0.13716674
+window=3.154835
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=5af69ff-dirty
+harness=f0ad18994eec

@@ -1,0 +1,6 @@
+variant=classic (-Pclassic=1 -> system property starfall.inkClassic=1 -> ink_skin.frag u_classic)
+note=capture.txt cannot record this: the flag is deliberately NOT a CaptureSpec field, because
+CaptureSpec is part of the HarnessId apparatus digest and the variant is subject, not apparatus.
+Reproduce by appending -Pclassic=1 to the command in capture.txt.
+Second iteration: coverage feather band on solid passages widened 0.09 -> 0.15 after the
+edge-step measurement (docs/ink-hypothesis.md, cost 1). This is the graded classic capture.

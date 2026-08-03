@@ -1,0 +1,3 @@
+variant=classic (-Pclassic=1 -> starfall.inkClassic=1 -> ink_skin.frag u_classic). Second
+iteration (band 0.15 on solid passages) — the graded standing capture. See
+inkhyp-parry-classic2/variant.txt.

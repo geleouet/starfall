@@ -1,0 +1,5 @@
+variant=off — the control. The edited shader with u_classic=0, shot to prove the switch is
+inert when off. analyse diff against inkhyp-parry-current (shot pre-edit, same harness
+f0ad18994eec): 21 of 24 frames bit-identical; the three that differ (5,269 px total, boxes
+inside x513..646 y364..475) are the shed-fleck/clash region System 4 debt §7.1 records as
+run-to-run non-deterministic at this exact box and mechanism. No silhouette pixel differs.

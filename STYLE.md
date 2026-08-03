@@ -169,10 +169,40 @@ Look at how the garments terminate in the references: the hem of a haori does no
 *frays*, breaks into separate brush marks, bleeds into a wet cloud, and dissolves into the
 ground. The bottom third of nearly every figure is not a figure at all — it is ink smoke.
 
+**But "dissolve" is one word doing two jobs, and the conflation is this section's oldest
+defect.** The corpus uses two different instruments and this document has never
+distinguished them:
+
+- **Soft** — a wet gradient 5–15 px wide where the edge stays *whole*. This is what the
+  corpus does on **leading** edges and across the body's core.
+- **Broken** — the silhouette torn into separate marks, with paper between them. This is
+  what the corpus does at the **trailing** edge and the periphery.
+
+Measured at matched scale on all three family-B images, both duellists: **the references
+break *more* perimeter than we do** — 37–51% mask-level breakage against our 36.5%,
+tortuosity 1.49–1.62 against our 1.44. So the fix was never *less ink*. **It is ink with a
+grain.** Trailing exceeds leading in five of six reference figures, and their leading edges
+are soft-but-whole; ours are torn flaps distributed isotropically, including across the
+middle of the torso, which the corpus never does. That is why our figure reads as damaged
+where the reference reads as moving.
+
+**And the corpus does not reserve fragmentation for motion** — reference image 1 detonates
+at rest. Fragmentation lives at the periphery *always* and grows with speed; the core is
+classical *always*. So motion modulates the amount, never the location.
+
+This was tested rather than argued: a prototype pulling breakage back to where the corpus
+breaks it, with the core kept whole, was shot as a matched pair. It raises the matched-scale
+part count from 9–12 to **12–14** against the reference's ~24 — **and the gain comes from
+*connection*, not from addition.** The remaining ten parts are hands, grip, guard, face,
+feet and folds: **mesh, not material.** No setting of the ink reaches §11.4's floor of 18.
+The fittings pass closes that count; this section cannot.
+
 Implementation requirements:
 
 1. **Edge dissolve.** Every skinned garment surface carries a per-vertex `dissolve` weight,
-   0 at the body core rising to 1 at hems, sleeve ends, and trailing edges. The fragment
+   0 at the body core rising to 1 at hems, sleeve ends, and trailing edges. **Read the two
+   paragraphs above before tuning it: the weight must be anisotropic — leading edges soft
+   and whole, trailing edges broken — and it must never tear the core.** The fragment
    shader thresholds a multi-octave noise field against this weight so the silhouette breaks
    into discrete brush flecks before vanishing. The threshold must be **soft** (smoothstep
    band ~0.12 wide) so flecks have feathered edges, not aliased ones.

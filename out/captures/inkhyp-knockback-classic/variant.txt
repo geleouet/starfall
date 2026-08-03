@@ -1,0 +1,4 @@
+variant=classic (-Pclassic=1 -> starfall.inkClassic=1 -> ink_skin.frag u_classic). Second
+iteration (band 0.15). Shot to verify the ink-as-verb path survives the remap: the struck
+figure still sheds flecks mid-carry (dissolveBias adds BEFORE the classic remap). Pair of
+inkhyp-knockback-current.
