@@ -957,6 +957,26 @@ evidence this project produces, so a **vacuous** one is worse than none. It does
 fail to catch the defect — it certifies it, and it persuades the next reviewer to stop
 looking.
 
+**A guard that skips is a guard that fails open, and it is the harder one to see.** The
+tautological guard at least *ran*. Three assertions in this project read a capture frame
+that `.gitignore` excludes, each wrapped in `assumeTrue(file.isFile())` — so on the author's
+machine they pass, and on a clean clone they **silently skip** and the results they certify
+do not exist for anyone else. One of them was a pass's headline value result. This survived
+a review that checked the guard's *logic*, because the logic was fine.
+
+Two things follow. **Never let a guard depend on an artefact the repository does not
+publish** — if an assertion needs a frame, that frame is source and must be force-added,
+whatever the ignore rules say about its neighbours. And **`skipped="0"` on the machine that
+wrote the test proves nothing**, because the file is on that machine's disk; the only honest
+check is whether version control hands it to someone else. `tools/check-progress.mjs` now
+refuses on any `out/captures/**/frame_*.png` referenced from `src/` that git does not track,
+and was observed red before being believed.
+
+The general form, which is worth more than either instance: **an assertion has three
+outcomes, not two, and the third one is silent.** Any mechanism that can turn a test into a
+no-op — an assumption, a conditional skip, an empty parameter set, a tag filter, a `@Disabled`
+someone meant to remove — belongs in the review, because a suite reports it as success.
+
 **(g) The control must exercise the property it certifies.** Every review since the harness
 bug has opened by proving its apparatus in scope against `rig-bindpose`, a static null, and
 reporting *0 of 691,200 pixels differ*. That sentence was read as "captures are

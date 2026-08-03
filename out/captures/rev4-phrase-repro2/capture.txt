@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=duel-phrase -Pout=out/captures/rev4-phrase-repro2 -Pframes=170 -Pcols=17 -Pstep=0.0167 -Pw=960 -Ph=720
+
+scene=duel-phrase
+description=five-tile stanza against a rooted body: one phrase, five clauses
+frames=170
+start=0.0
+step=0.0167
+window=2.8223
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=1564fcf-dirty
+harness=f0ad18994eec

@@ -59,7 +59,33 @@ const checkImg = (rel, where) => {
 (DATA.refs || []).forEach(r => checkImg(r, 'refs'));
 (DATA.log || []).forEach((e, i) => { if (e.sheet) checkImg(e.sheet, 'log[' + i + '] ' + e.title); });
 
+// A test that reads a gitignored capture and guards it with assumeTrue does not fail
+// on a clean clone -- it SKIPS, silently, and the result it certifies simply does not
+// exist for anyone else. Three did. `skipped="0"` on the author's machine proves
+// nothing, because the files are on the author's disk; the only honest check is
+// whether git publishes them. Same class as the images above, one layer down.
+const srcRefs = new Map();
+const scan = (dir) => {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) scan(p);
+    else if (/\.java$/.test(e.name)) {
+      for (const m of fs.readFileSync(p, 'utf8').matchAll(/out\/captures\/[\w./-]*frame_\d+\.png/g)) {
+        if (!srcRefs.has(m[0])) srcRefs.set(m[0], path.relative(root, p).replace(/\\/g, '/'));
+      }
+    }
+  }
+};
+scan(path.join(root, 'src'));
+for (const [rel, from] of srcRefs) {
+  if (!tracked.has(rel)) {
+    console.error('FAIL untracked capture read by code — the assertion fails OPEN on a clean '
+      + 'clone (' + from + '): ' + rel + '  [git add -f it]'); bad++;
+  }
+}
+
 // Sanity counts
+console.log('captures read by code: ' + srcRefs.size);
 console.log('log entries: ' + (DATA.log || []).length);
 console.log('systems: ' + (DATA.systems || []).map(s => s.n + ':' + s.status + '/p' + s.passes).join(' '));
 console.log('updated: ' + DATA.updated);
