@@ -159,18 +159,18 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — pass 3 measured the reference, then refused its own brief",
+  updated: "2026-08-03 — the criterion was fitted to one image; system 4 at pass 4 of five",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
     label: "Now building",
-    title: "System 4 pass 3 in review \u2014 the builder refused the brief, with a table",
-    detail: "The review\u2019s first instruction was to fix the corridor <i>criterion</i> before " +
-            "the corridor. Pass 3 did \u2014 as a command that measures reference image 3 every " +
-            "time it runs \u2014 and then used it to <b>decline both halves of the review\u2019s " +
-            "prescription in writing</b>, because the profile says the capture is too <i>far " +
-            "apart</i> at the base, not too close everywhere. A fresh reviewer is adjudicating " +
-            "that refusal on measurement rather than authority. Two passes remain of five."
+    title: "System 4 pass 4 \u2014 the last pass that can afford to build instruments",
+    detail: "Pass 3\u2019s refusal was <b>upheld</b> and its reasoning refuted in the same " +
+            "review. But the criterion it argued from was fitted to a single reference image, " +
+            "and two others in the family fail it \u2014 one reading the <i>identical</i> number " +
+            "the capture is failed for. Pass 4 is ranked by change-to-the-image per unit work " +
+            "and opens with the dusk sky, deferred twice as cosmetic. <b>One pass follows this " +
+            "one.</b>"
   },
 
   systems: [
@@ -184,7 +184,7 @@ const DATA = {
       summary:"Profile face sub-rig (brow, eyelid, jaw, gaze), skin material exempt from the ink dissolve, seeded generator for enemy faces, authored hero and bosses." },
     { n:"3c", name:"Materials + surface texture", status:"pending", passes:0,
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
-    { n:"04", name:"Procedural interaction", status:"review", passes:3,
+    { n:"04", name:"Procedural interaction", status:"building", passes:4,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
     { n:"05", name:"Combat + action queue", status:"partial", passes:0,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
@@ -254,6 +254,63 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-03", system:"System 4", kind:"review", pass:3, verdict:"FAIL",
+      title:"The refusal is upheld, its reasoning refuted, and the criterion behind it fitted to one image",
+      body:[
+        "<b>Pass 3 was right to decline its brief.</b> Shot four ways, the lane spread pass 2 " +
+        "demanded merges the duellists on <b>10 frames of 24</b> and the blades never meet. That " +
+        "instruction is formally withdrawn. <b>But pass 3\u2019s stated reason is false</b> \u2014 " +
+        "lowering the constant does <i>not</i> scale every band by one factor; the torso band runs " +
+        "3.67, 0.00, 0.92, 3.58 across the sweep. <code>stretch</code> scales the contact and " +
+        "crossing anchors while body anchors keep their offsets, so the constant changes the " +
+        "<b>pose</b>, not the spacing. Right conclusion, wrong mechanism \u2014 and the difference " +
+        "matters, because the real fault is a <i>stance</i>: separation <b>grows</b> down the " +
+        "figure, 0.63 at the head to 0.79 at the skirt, where the corpus holds 0.58\u20130.66 at " +
+        "every band. The figures lean into each other, and no lane constant can fix that.",
+
+        "<b>The criterion demanded last night is itself broken, in the way it was written to " +
+        "prevent.</b> It measures reference image 3 on every run \u2014 which is exactly what " +
+        "§11.0 asked for, and §11.0 was under-specified. Pointed at the rest of the family, " +
+        "<b>image 4 fails three bands and image 5 fails four, reading a torso corridor of " +
+        "0.0000</b> \u2014 <i>the identical number the capture is failed for</i>. A criterion " +
+        "validated against one image is fitted to that image.",
+
+        "It is also <b>floors-only</b>, and a one-sided criterion measures distance in one " +
+        "direction rather than resemblance \u2014 so something will always score well by running " +
+        "away. The sweep\u2019s best score, 21 of 24 bands, belongs to the setting that pushes the " +
+        "skirt gap to <b>4.19\u00d7 the corpus</b> and destroys the parry.",
+
+        "And the corridor improvement is <b>entirely photometric</b>. Skirt and feet are " +
+        "<i>identical on all 24 frames</i> between the two passes; the three frames that flipped " +
+        "flipped on torso alone, at columns inside the pale duellist, <b>on pixels that got " +
+        "brighter rather than moved</b>. The pass said part of the gain was photometric. It was " +
+        "all of it."
+      ],
+      notes:[
+        { kind:"crit", label:"§11.2b(g) \u2014 the finding that reaches backwards",
+          text:"Every review since the harness bug has opened by proving scope against a static " +
+               "null and reporting <i>0 of 691,200 pixels differ</i>, and that sentence was read " +
+               "as <b>captures are reproducible</b>. It only ever established that <b>a scene with " +
+               "nothing moving in it renders the same twice.</b> Shot twice at one commit on one " +
+               "harness, the graded duel differs by <b>13,545 pixels, peak delta 122</b>, on four " +
+               "frames \u2014 including the one every number in the last two passes was taken " +
+               "from. A control answers exactly the question its own content can pose." },
+        { kind:"fix", label:"The first pass whose guards a reviewer could not fault",
+          text:"Five guards broken, five red with the message each was written to print. And they " +
+               "are <b>better than pass 3 believed</b>: it volunteered that two placement " +
+               "assertions were near-tautological, and the reviewer found them <i>strictly " +
+               "entailed</i> by the load-bearing one. One pass after §11.2b(f) was written, it is " +
+               "being applied honestly rather than ceremonially." },
+        { kind:"crit", label:"And the contrast work is reassigned again",
+          text:"Pass 3 concluded the gap was a System 1 mesh-wetness problem. Refuted by " +
+               "measurement: <b>one line</b> changing the dark figure\u2019s base from " +
+               "<code>INK_INDIGO</code> to <code>INK_BLACK</code> moves the ratio 2.12 \u2192 " +
+               "2.58\u00d7 \u2014 <b>four times what the pass\u2019s own change bought</b> \u2014 " +
+               "with interior spread unchanged. Third pass with the pelvis at <b>exactly " +
+               "0.0000</b> horizontal motion in all three scenes." }
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 4", kind:"build", pass:3,
       title:"The criterion measures the reference first \u2014 and then refuses the brief",
