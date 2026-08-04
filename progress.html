@@ -90,7 +90,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 à M7 revus et corrigés · prêt pour M8</b></div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M8 livré, review indépendante en cours · 379 tests verts</b></div>
 </header>
 
 <div class="banner warn">
@@ -127,17 +127,27 @@
   <tr><td><span class="pill p-done">revu</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution dernier-entré premier-sorti, recharges en points, tuiles Free-Play, ajout et retrait sans coût de tour. Six tuiles, jouables au clavier et à la souris. <b>Review indépendante passée : « tient avec réserves ».</b> 5 défauts relevés, tous corrigés ; 318 tests verts.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">Quatre archétypes aux silhouettes distinctes, quatre traits, et surtout le <b>télégraphe</b> : ce qui est annoncé est ce qui est joué. <b>Review indépendante passée : refusée en l’état, puis corrigée.</b> 8 défauts relevés, tous traités ; 346 tests verts.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M7 — Résolution du combat</b><span class="why">Points de vie, dégâts, collisions qui blessent et étourdissent, combo kills, trois vagues enchaînées, victoire et défaite. <b>Review indépendante passée : refusée en l’état, puis corrigée.</b> 8 défauts relevés, tous traités ; 366 tests verts.</span></td></tr>
-  <tr><td><span class="pill p-now">suivant</span></td><td><b>M8 — Interface</b><span class="why">HUD, barre de file, portées d'attaque, PV, infobulles — en français.</span></td></tr>
-  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M9 — Boss</b><span class="why">Rencontre finale de la tranche : invocations, combo charge + frappe.</span></td></tr>
+  <tr><td><span class="pill p-now">à relire</span></td><td><b>M8 — Interface</b><span class="why">L'interface quitte le bandeau de diagnostic et passe en pixels-monde : bandeau d'état, panneau d'information, <b>portées d'attaque</b>, infobulles, aide en français. Au cœur, le <b>préavis</b> : il n'accompagne pas le code d'exécution, il <i>est</i> le code d'exécution, si bien que ce que l'interface annonce d'une tuile ne peut pas s'écarter de ce que la tuile fait. 379 tests verts. <b>Review indépendante en cours.</b></span></td></tr>
+  <tr><td><span class="pill p-now">suivant</span></td><td><b>M9 — Boss</b><span class="why">Rencontre finale de la tranche : invocations, combo charge + frappe.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M10 — Équilibrage file de 5</b><span class="why">Réaccordage complet des recharges et de la pression ennemie autour de la file élargie.</span></td></tr>
 </table>
 
 <h2>En cours de construction</h2>
 <div class="banner">
-  <span class="k">Prochaine étape — M8, l’interface</span>
-  <p>Le combat se résout. Le héros et les ennemis ont des points de vie, une poussée qui butte blesse et étourdit, plusieurs morts d'un même geste comptent comme un enchaînement, et trois vagues s'enchaînent jusqu'à la victoire — ou jusqu'à ce que la Vagabonde tombe.</p>
-  <p><b>Reste à faire :</b> HUD, barre de file, portées d'attaque, PV, infobulles — tout en français.</p>
+  <span class="k">Prochaine étape — M9, le boss</span>
+  <p>L'interface a quitté le coin de la fenêtre. Tout ce qui concerne le jeu vit maintenant en pixels-monde, sur la même grille de pixels que le plateau : bandeau d'état, panneau d'information, repères de portée sous les dalles, infobulles au survol, aide en <code>F1</code>. Et le jeu répond enfin à la question qu'il ne savait pas poser : <b>qu'est-ce qui part si j'appuie ?</b></p>
+  <p><b>Reste à faire :</b> la rencontre finale de la tranche — invocations, combo charge + frappe — puis le réaccordage complet autour de la file de cinq.</p>
 </div>
+
+<h3>Les règles de M8</h3>
+<table>
+  <tr><td>Le préavis <b>est</b> l'exécution</td><td>Chaque tuile est écrite en deux temps : <code>preview</code> décide, <code>execute</code> fait. L'affichage lit le même objet que l'exécution consomme.<span class="why">La tentation était de dessiner la portée dans la scène, à côté du code qui l'applique. C'est le piège qui a coûté deux jalons : <b>une règle écrite à deux endroits finit par diverger</b>. Ici il n'y a pas deux versions à tenir d'accord — et un test de propriété rejoue des milliers d'actions pour confronter l'annonce au résultat, exactement comme le télégraphe le fait pour les ennemis.</span></td></tr>
+  <tr><td>Résolu contre statique</td><td>La tuile du <b>sommet de la file</b> annonce un résultat : repères <b>pleins</b>. Une tuile <b>survolée</b> ne montre que sa portée depuis la position actuelle : repères <b>creux</b>.<span class="why">Une tuile du râtelier ne s'exécute pas tout de suite : elle passe d'abord par la file, derrière celles déjà posées, et le plateau aura changé d'ici là. Lui prêter un résultat serait recommencer le mensonge que le télégraphe a coûté deux jalons à éteindre. Plein contre creux : la forme dit « ceci arrivera » ou « ceci pourrait atteindre », sans qu'il faille lire un libellé.</span></td></tr>
+  <tr><td>Une tuile qui rate le dit avant</td><td>Un coup annoncé dans le vide s'affiche en repère éteint, et la ligne d'annonce écrit <code>TUILE PERDUE</code>.<span class="why">Une tuile dépensée sans effet est punie par les règles depuis M5 ; jusqu'ici rien ne prévenait. L'estoc porte à deux cases, la frappe à une, et le seul moyen de l'apprendre était de gâcher des tuiles.</span></td></tr>
+  <tr><td>Violet contre rouge</td><td>Le rouge dit ce qui va m'arriver ; le violet dit ce que je vais provoquer.<span class="why">Les deux repères tombent souvent sur la même case — une poussée qui répond à une charge — et chacun a désormais sa propre bande de hauteur. Un test vérifie que les bandes ne se recouvrent pas ; un autre qu'aucune couleur de signal ne se confond avec une couleur de la palette d'art, ni avec le fond des panneaux.</span></td></tr>
+  <tr><td>L'aide s'ouvre, puis s'efface</td><td>Les commandes sont affichées tant que le joueur n'a rien fait, et se referment au premier geste. <code>F1</code> les rappelle.<span class="why">Un jeu au tour par tour dont les commandes ne sont écrites nulle part n'est pas jouable ; un jeu qui les affiche en permanence gaspille la moitié de son écran.</span></td></tr>
+  <tr><td>Le bandeau de diagnostic disparaît</td><td>L'arène ne rend plus aucune ligne d'interface en pixels-écran. La mire de calibration garde la sienne.<span class="why">Garder les deux aurait donné deux affichages du même état à tenir d'accord. La mire, elle, est un instrument et non un jeu : son bandeau a un sens.</span></td></tr>
+</table>
 
 <h3>Les règles de M7</h3>
 <table>
@@ -198,31 +208,42 @@
 <h2>Planches-contact</h2>
 
 <figure class="sheet">
-  <img src="captures/m7/starfall-1280x720-frame00.png" alt="Starfall M7, vague 1 au repos">
-  <figcaption><b>M7 &mdash; vague 1 sur 3, tout le monde &agrave; pleine sant&eacute;.</b> Quatre lectures superpos&eacute;es : les pastilles de vie au-dessus des t&ecirc;tes &mdash; cinq bleues pour le h&eacute;ros, une rouge par ennemi l&eacute;ger &mdash; les glyphes d&rsquo;intention encore au-dessus, la case menac&eacute;e cercl&eacute;e de rouge sur la dalle, et la bande tactique sous elle. Chaque bande a sa propre hauteur, verrouill&eacute;e par un test : les pastilles de vie tombaient d&rsquo;abord exactement sur la ligne des barres de menace.</figcaption>
+  <img src="captures/m8/starfall-1280x720-frame00.png" alt="Starfall M8, l&rsquo;aide &agrave; l&rsquo;ouverture">
+  <figcaption><b>M8 &mdash; ce qu&rsquo;un joueur voit en arrivant.</b> L&rsquo;aide est ouverte tant qu&rsquo;il n&rsquo;a rien fait, et se referme au premier geste. Elle vit en pixels-monde comme tout le reste : m&ecirc;me grille de pixels que le plateau, m&ecirc;me &eacute;chelle enti&egrave;re. Le bandeau d&rsquo;&eacute;tat ne porte que ce que la sc&egrave;ne ne montre pas &mdash; vague, tour, points de vie &mdash; et le rappel de la touche.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m7/starfall-1280x720-frame08.png" alt="Starfall M7, vague 2 apr&egrave;s un enchainement">
-  <figcaption><b>Vague 2 sur 3, apr&egrave;s avoir vid&eacute; la premi&egrave;re.</b> Le bandeau raconte toute la partie : <code>VAGUE 2/3</code>, <code>VIE : 4/5</code> &mdash; le h&eacute;ros a encaiss&eacute; puis r&eacute;cup&eacute;r&eacute; un point au passage de vague &mdash; et <code>ENCHA&Icirc;NEMENT : 1</code>. La vague 2 ajoute le lancier, dont on voit les <b>deux</b> pastilles de vie et qui affiche &laquo; attend &raquo;. Chaque vague pose une question que la pr&eacute;c&eacute;dente ne posait pas.</figcaption>
+  <img src="captures/m8/starfall-1280x720-frame02.png" alt="Starfall M8, une tuile annonc&eacute;e comme perdue">
+  <figcaption><b>Le cas qui justifie tout le jalon : <code>SOMMET : FRAPPE &mdash; CASE 6 VIDE &mdash; TUILE PERDUE</code>.</b> La frappe porte &agrave; une case, l&rsquo;ennemi est &agrave; deux, et le rep&egrave;re sous la case 6 est <b>&eacute;teint</b> : ce coup ne portera pas, et la tuile partira quand m&ecirc;me en recharge. Avant M8, le joueur l&rsquo;apprenait en la gaspillant. C&rsquo;est aussi l&rsquo;image qui montre pourquoi l&rsquo;estoc existe.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m7-etroit/starfall-400x240-frame00.png" alt="Starfall M7, grille de 15 en 400x240">
-  <figcaption><b>Le cas le plus contraint : 15 cases dans une fen&ecirc;tre de 400&times;240, &eacute;chelle &times;1.</b> Plateau, vie, menaces, intentions, file et r&acirc;telier tiennent tous dans les 180 pixels-monde de haut sans se recouvrir.</figcaption>
+  <img src="captures/m8/starfall-1280x720-frame04.png" alt="Starfall M8, la port&eacute;e variable de l&rsquo;&eacute;lan">
+  <figcaption><b>Survol de l&rsquo;&eacute;lan : la seule tuile dont la port&eacute;e d&eacute;pend du terrain.</b> Le trait violet court du h&eacute;ros jusqu&rsquo;&agrave; la derni&egrave;re case libre, et le rep&egrave;re d&rsquo;arriv&eacute;e est <b>creux</b> &mdash; « voil&agrave; o&ugrave; tu t&rsquo;arr&ecirc;terais », et non « voil&agrave; ce qui va se produire ». L&rsquo;infobulle donne le reste : effet, co&ucirc;t de recharge, disponibilit&eacute;.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m7-grille-5/starfall-960x540-frame00.png" alt="Starfall M7, grille de 5 cases">
-  <figcaption><b>La grille la plus &eacute;troite, 5 cases.</b> Elle m&eacute;rite sa propre planche depuis que la review a montr&eacute; qu&rsquo;elle n&rsquo;y rencontrait <i>jamais</i> ni lancier ni colosse explosif : les vagues y &eacute;taient silencieusement ampu-t&eacute;es de leurs derniers arch&eacute;types, ce qui rendait la m&eacute;canique vedette du jalon injouable et faisait de la grille la plus &eacute;troite la plus facile. La vague arrive maintenant enti&egrave;re, quitte &agrave; se serrer.</figcaption>
+  <img src="captures/m8/starfall-1280x720-frame11.png" alt="Starfall M8, pr&eacute;avis r&eacute;solu d&rsquo;une frappe">
+  <figcaption><b>Pr&eacute;avis <i>r&eacute;solu</i> : rep&egrave;re plein.</b> La tuile du sommet s&rsquo;ex&eacute;cutera contre l&rsquo;&eacute;tat actuel du plateau, donc elle a le droit d&rsquo;annoncer un r&eacute;sultat. Trois bandes distinctes sous les dalles, chacune verrouill&eacute;e par un test : le violet du pr&eacute;avis, le cyan du h&eacute;ros et de son regard, l&rsquo;or de la cible d&rsquo;&eacute;change. Elles disent trois choses diff&eacute;rentes au m&ecirc;me endroit de l&rsquo;&eacute;cran, et devaient donc cesser de se marcher dessus.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m7-grille-15/starfall-960x540-frame00.png" alt="Starfall M7, grille de 15 cases">
-  <figcaption><b>La grille la plus large, 15 cases.</b> 300 px-monde dans une zone garantie de 320 : aucune case n&rsquo;est coup&eacute;e, et il n&rsquo;a pas fallu changer de zoom entre les deux largeurs.</figcaption>
+  <img src="captures/m8-etroit/starfall-400x240-frame01.png" alt="Starfall M8, grille de 15 en 400x240">
+  <figcaption><b>Le cas le plus contraint : 15 cases dans une fen&ecirc;tre de 400&times;240, &eacute;chelle &times;1.</b> Bandeau, panneau d&rsquo;information de trois lignes, plateau, intentions, file et r&acirc;telier tiennent tous dans les 180 pixels-monde de haut sans se recouvrir. Deux tests mesurent chaque phrase que l&rsquo;interface peut produire &mdash; ils ont attrap&eacute; deux d&eacute;bordements avant la premi&egrave;re capture.</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/m8-grille-5/starfall-960x540-frame03.png" alt="Starfall M8, grille de 5 cases">
+  <figcaption><b>La grille la plus &eacute;troite, 5 cases.</b> Survol de la pouss&eacute;e : le rep&egrave;re creux tombe sur la case devant le h&eacute;ros, &eacute;teint parce qu&rsquo;elle est vide. Une seule forme dit &agrave; la fois « c&rsquo;est l&agrave; que &ccedil;a porterait » et « il n&rsquo;y a personne ».</figcaption>
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev">
+  <div class="hd">M8 &mdash; <b>Review ind&eacute;pendante : en cours</b></div>
+  <p style="margin-bottom:0">Ce qu&rsquo;il faudra chercher en priorit&eacute; : une port&eacute;e affich&eacute;e qui s&rsquo;&eacute;carte de l&rsquo;effet jou&eacute; ; un rep&egrave;re de pr&eacute;avis qui en recouvre un autre &agrave; une taille de fen&ecirc;tre particuli&egrave;re ; une phrase d&rsquo;interface tronqu&eacute;e ou &agrave; l&rsquo;accent manquant ; et le point le plus discutable du jalon &mdash; le choix de faire dispara&icirc;tre compl&egrave;tement le bandeau de diagnostic de l&rsquo;ar&egrave;ne.</p>
+</div>
+
 
 <div class="rev fail">
   <div class="hd">M7 &mdash; passe 1 &mdash; <b>Verdict : refus&eacute;e en l&rsquo;&eacute;tat</b></div>

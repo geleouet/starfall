@@ -116,6 +116,28 @@ public final class ArenaLayout {
     public static final int HEALTH_Y = FIGURE_Y + FIGURE_HEIGHT + 1;
     public static final int HEALTH_HEIGHT = 2;
 
+    /**
+     * Bande des repères tactiques : position du héros, son regard, et le lien vers sa cible
+     * d'échange.
+     *
+     * <p>Elle vivait en constante privée dans la scène, ce qui la rendait invérifiable — or c'est
+     * précisément le genre de valeur qui doit être confrontable aux autres bandes, puisque le seul
+     * défaut qu'elle puisse avoir est d'en recouvrir une.
+     */
+    public static final int MARK_Y = GROUND_Y - 4;
+    public static final int MARK_HEIGHT = 2;
+
+    /**
+     * Bande des repères de portée : ce que la prochaine tuile fera, sous les dalles.
+     *
+     * <p>Elle a sa propre hauteur, quatre pixels sous celle des repères tactiques. Les y mêler
+     * aurait fait se recouvrir le trait de liaison de la capacité d'échange et la trajectoire d'une
+     * poussée — deux flèches de même longueur au même endroit, dont l'une décrit ce que fait la
+     * touche E et l'autre ce que fait la tuile du sommet.
+     */
+    public static final int PREVIEW_Y = GROUND_Y - 8;
+    public static final int PREVIEW_HEIGHT = 3;
+
     /** Bord bas de la bande sensible au pointage : un peu sous les dalles, pour viser large. */
     public static final int PICK_BOTTOM = GROUND_Y - 8;
     /** Bord haut de la bande sensible : au-dessus des têtes, sans plus. */

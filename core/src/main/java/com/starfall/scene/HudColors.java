@@ -45,4 +45,33 @@ public final class HudColors {
      * pas à apprendre une nuance de rouge pour comprendre qu'il doit bouger.
      */
     public static final Color THREAT = new Color(0xff4a5aff);
+
+    /**
+     * Ce que <b>ma</b> prochaine tuile va faire : portée, case visée, trajectoire d'une poussée.
+     *
+     * <p>Un violet, et le choix compte : le rouge appartient à ce qui va m'arriver, le violet à ce
+     * que je vais provoquer. Les deux repères tombent souvent sur la même case — une poussée qui
+     * répond à une charge, par exemple — et le joueur doit lire d'un coup laquelle des deux
+     * intentions il regarde.
+     */
+    public static final Color PREVIEW = new Color(0xb47dffff);
+
+    // ------------------------------------------------------------------ surfaces
+
+    /**
+     * Fond des panneaux d'interface : infobulles, aide, bannière de fin.
+     *
+     * <p>Ce n'est pas un signal mais une <b>surface</b>, et la distinction a des conséquences
+     * mesurables : un signal doit se distinguer des couleurs de la palette d'art, une surface doit
+     * se distinguer de tous les signaux, sinon le texte posé dessus disparaît. Le test applique
+     * bien deux règles différentes, plutôt qu'une règle unique qui aurait interdit tout fond
+     * sombre — les noirs de la palette sont des noirs, et un panneau doit pouvoir être sombre.
+     */
+    public static final Color PANEL = new Color(0x141024f0);
+    /** Bord d'un panneau : assez clair pour poser le panneau sur la scène, jamais lu comme un signal. */
+    public static final Color PANEL_EDGE = new Color(0x6a5a8cff);
+    /** Texte d'interface. */
+    public static final Color TEXT = new Color(0xffffffff);
+    /** Texte secondaire : ce qui précise sans commander le regard. */
+    public static final Color TEXT_DIM = new Color(0xa8b0d8ff);
 }

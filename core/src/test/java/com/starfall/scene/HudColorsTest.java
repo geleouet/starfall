@@ -42,14 +42,39 @@ class HudColorsTest {
     private record NamedColor(String name, Color color) {
     }
 
-    private static List<NamedColor> hudColors() {
+    /**
+     * Les couleurs de <b>signal</b> : celles qui veulent dire quelque chose.
+     *
+     * <p>{@code THREAT} manquait à cette liste, et c'est une omission qui aurait fini par coûter :
+     * c'est la couleur la plus chargée de sens du jeu — tout ce qui va faire mal — et elle vivait à
+     * côté du rouge vif de la palette sans que rien ne le vérifie.
+     */
+    private static List<NamedColor> signalColors() {
         return List.of(
                 new NamedColor("QUEUE", HudColors.QUEUE),
                 new NamedColor("SLOT_EMPTY", HudColors.SLOT_EMPTY),
                 new NamedColor("SLOT_OUTLINE", HudColors.SLOT_OUTLINE),
                 new NamedColor("DIMMED", HudColors.DIMMED),
                 new NamedColor("RECHARGE", HudColors.RECHARGE),
-                new NamedColor("HOVER", HudColors.HOVER));
+                new NamedColor("HOVER", HudColors.HOVER),
+                new NamedColor("THREAT", HudColors.THREAT),
+                new NamedColor("PREVIEW", HudColors.PREVIEW));
+    }
+
+    /**
+     * Les couleurs de <b>surface</b> : fonds et bords de panneaux, textes.
+     *
+     * <p>Elles suivent une règle différente, et pas par facilité. Une surface n'a pas à se
+     * distinguer de la palette d'art — les noirs de la palette sont des noirs, et un panneau doit
+     * pouvoir être sombre. Ce dont elle doit se distinguer, c'est de <em>tous les signaux</em>,
+     * faute de quoi un repère posé sur un panneau y disparaît.
+     */
+    private static List<NamedColor> surfaceColors() {
+        return List.of(
+                new NamedColor("PANEL", HudColors.PANEL),
+                new NamedColor("PANEL_EDGE", HudColors.PANEL_EDGE),
+                new NamedColor("TEXT", HudColors.TEXT),
+                new NamedColor("TEXT_DIM", HudColors.TEXT_DIM));
     }
 
     /**
@@ -76,7 +101,7 @@ class HudColorsTest {
                 Files.readAllLines(paletteFile, StandardCharsets.UTF_8));
 
         List<String> collisions = new ArrayList<>();
-        for (NamedColor hud : hudColors()) {
+        for (NamedColor hud : signalColors()) {
             int rgba = Color.rgba8888(hud.color());
             for (char code : palette.codes()) {
                 int distance = distance(rgba, palette.color(code, paletteFile.toString(), 0));
@@ -93,7 +118,7 @@ class HudColorsTest {
     @Test
     @DisplayName("Les couleurs de rôle se distinguent entre elles")
     void roleColoursDifferFromEachOther() {
-        List<NamedColor> colors = hudColors();
+        List<NamedColor> colors = signalColors();
         for (int i = 0; i < colors.size(); i++) {
             for (int j = i + 1; j < colors.size(); j++) {
                 int distance = distance(Color.rgba8888(colors.get(i).color()),
@@ -103,5 +128,45 @@ class HudColorsTest {
                                 + " sont trop proches (écart " + distance + ")");
             }
         }
+    }
+
+    /**
+     * Un signal posé sur un panneau doit rester lisible.
+     *
+     * <p>Le cas concret : la ligne d'annonce et les infobulles vivent sur un panneau opaque, et
+     * c'est là que s'écrivent les mots qui portent les couleurs de rôle. Un fond choisi trop près
+     * d'un signal ferait disparaître ce signal <em>seulement</em> quand il tombe sur un panneau —
+     * un défaut qui n'apparaît que dans certaines situations de jeu.
+     */
+    @Test
+    @DisplayName("Aucune surface de panneau ne se confond avec une couleur de signal")
+    void noPanelSurfaceCollidesWithASignal() {
+        List<String> collisions = new ArrayList<>();
+        for (NamedColor surface : surfaceColors()) {
+            for (NamedColor signal : signalColors()) {
+                int distance = distance(Color.rgba8888(surface.color()),
+                        Color.rgba8888(signal.color()));
+                if (distance < MIN_DISTANCE) {
+                    collisions.add(surface.name() + " est trop proche du signal " + signal.name()
+                            + " (écart " + distance + ")");
+                }
+            }
+        }
+        assertTrue(collisions.isEmpty(), "collisions surface/signal : " + collisions);
+    }
+
+    /**
+     * Le texte secondaire doit se distinguer du texte principal, sinon la hiérarchie qu'il est censé
+     * porter n'existe pas.
+     */
+    @Test
+    @DisplayName("Le texte secondaire se distingue du texte principal et du fond")
+    void secondaryTextIsDistinguishable() {
+        assertTrue(distance(Color.rgba8888(HudColors.TEXT), Color.rgba8888(HudColors.TEXT_DIM))
+                        >= MIN_DISTANCE,
+                "TEXT et TEXT_DIM sont trop proches");
+        assertTrue(distance(Color.rgba8888(HudColors.TEXT_DIM), Color.rgba8888(HudColors.PANEL))
+                        >= MIN_DISTANCE,
+                "TEXT_DIM disparaitrait sur le fond des panneaux");
     }
 }

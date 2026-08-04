@@ -35,6 +35,64 @@ public final class HudLayout {
     public static final int RACK_MARK_BOTTOM = RACK_Y - 4;
     public static final int RACK_MARK_TOP = RACK_Y + TILE_SIZE;
 
+    // ------------------------------------------------------------------ bandes de texte
+    //
+    // Hauteur d'une cellule de texte : 11 px-monde, celle de la police du jeu. Les bandes sont
+    // déclarées par leur bord SUPÉRIEUR, parce que c'est ce que la police attend — une conversion
+    // recopiée à chaque appel finit par se tromper de sens une fois.
+
+    /** Hauteur d'une ligne de texte, cellule comprise. */
+    public static final int TEXT_CELL = 11;
+    /** Pas vertical entre deux lignes d'un panneau. */
+    public static final int TEXT_STEP = 13;
+    /** Marge intérieure des panneaux. */
+    public static final int PANEL_PADDING = 3;
+
+    /**
+     * Bord supérieur du bandeau d'état, en haut de la zone garantie.
+     *
+     * <p>Il est ancré sur la <b>zone garantie</b> et non sur la zone dessinée : sur une fenêtre
+     * large, le décor déborde des 320 px-monde promis, et un bandeau collé au bord de la fenêtre
+     * s'éloignerait du plateau au lieu de l'accompagner.
+     */
+    public static final int BANNER_TOP = 178;
+    /** Bord inférieur du bandeau, pour vérifier qu'il ne mord sur rien. */
+    public static final int BANNER_BOTTOM = BANNER_TOP - TEXT_CELL;
+
+    /**
+     * Bord supérieur du panneau d'information : ce que fera la tuile du sommet, ou l'infobulle de
+     * la tuile survolée.
+     *
+     * <p>Les deux partagent la même bande, et c'est délibéré. Une infobulle qui suit le curseur
+     * oblige l'œil à la chercher et recouvre justement ce que le joueur essayait de regarder ;
+     * ancrée à un endroit fixe, au-dessus du plateau, elle se lit sans quitter la scène des yeux —
+     * et elle ne cache jamais une figure ni une case menacée.
+     *
+     * <p>Le panneau <b>grandit vers le bas</b> depuis ce bord. Son plancher est donc ce qui limite
+     * le nombre de lignes, et {@link #MAX_INFO_LINES} le fixe une fois pour toutes.
+     */
+    public static final int INFO_TOP = 162;
+
+    /**
+     * Nombre maximal de lignes du panneau d'information.
+     *
+     * <p>Au-delà, le panneau mordrait sur les glyphes d'intention — c'est-à-dire qu'une infobulle
+     * cacherait le télégraphe, exactement le genre d'occultation que les jalons précédents ont
+     * payée deux fois. {@code HudLayoutTest} vérifie que la valeur tient encore si l'on touche aux
+     * hauteurs.
+     */
+    public static final int MAX_INFO_LINES = 3;
+
+    /** Hauteur d'un panneau de {@code lines} lignes, marges comprises. */
+    public static int panelHeight(int lines) {
+        return lines * TEXT_STEP + 2 * PANEL_PADDING;
+    }
+
+    /** Bord inférieur du panneau d'information pour un nombre de lignes donné. */
+    public static int infoPanelBottom(int lines) {
+        return INFO_TOP - panelHeight(lines);
+    }
+
     private final int worldCentre;
     private final int rackSize;
 

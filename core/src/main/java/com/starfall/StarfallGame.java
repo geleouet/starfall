@@ -98,7 +98,7 @@ public class StarfallGame extends ApplicationAdapter {
         viewport.setCameraTarget(MIN_WORLD_WIDTH / 2f, MIN_WORLD_HEIGHT / 2f);
         viewport.update(Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), false);
 
-        scene.create(new SceneContext(batch, painter, atlas, viewport, options));
+        scene.create(new SceneContext(batch, painter, atlas, viewport, font, options));
 
         if (options.isScreenshotMode()) {
             recorder = new ScreenshotRecorder(options.screenshotDir, options.frames, options.width, options.height);

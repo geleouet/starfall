@@ -193,4 +193,25 @@ class ArenaLayoutTest {
                         + (ArenaLayout.FIGURE_Y + ArenaLayout.FIGURE_HEIGHT));
         assertTrue(ArenaLayout.GROUND_Y >= 0);
     }
+
+    /**
+     * Les bandes de repères sous les dalles ne se recouvrent pas.
+     *
+     * <p>Elles portent trois messages différents au même endroit de l'écran : où je suis et où je
+     * regarde, ce que la touche d'échange viserait, et ce que la tuile du sommet fera. Deux d'entre
+     * elles au même pixel, ce serait un trait de liaison doré et une trajectoire de poussée
+     * violette de même longueur superposés — deux phrases lues comme une seule.
+     */
+    @Test
+    @DisplayName("Les bandes de repères sous les dalles ne se recouvrent pas")
+    void theMarkBandsBelowTheGroundDoNotOverlap() {
+        assertTrue(ArenaLayout.PREVIEW_Y + ArenaLayout.PREVIEW_HEIGHT <= ArenaLayout.MARK_Y,
+                "la bande des portees mord sur celle des reperes tactiques : "
+                        + (ArenaLayout.PREVIEW_Y + ArenaLayout.PREVIEW_HEIGHT)
+                        + " > " + ArenaLayout.MARK_Y);
+        assertTrue(ArenaLayout.MARK_Y + ArenaLayout.MARK_HEIGHT <= ArenaLayout.GROUND_Y,
+                "les reperes tactiques mordent sur les dalles");
+        assertTrue(ArenaLayout.PREVIEW_Y >= HudLayout.RACK_Y + HudLayout.TILE_SIZE,
+                "la bande des portees mord sur le ratelier");
+    }
 }

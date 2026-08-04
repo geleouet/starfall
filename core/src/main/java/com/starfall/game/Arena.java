@@ -435,22 +435,36 @@ public final class Arena {
     }
 
     /**
-     * Repousse un occupant, et résout la collision s'il y en a une.
+     * Décide ce que ferait une poussée, sans la faire.
      *
      * <p>Une poussée qui aboutit ne fait que déplacer. Une poussée qui <b>butte</b> — sur un bord ou
      * sur quelqu'un — blesse le poussé, blesse ce qu'il a percuté, et l'étourdit. C'est ce qui fait
      * d'une tuile de placement une tuile de dégâts quand on l'utilise bien : le mur devient une
      * arme, et la position de l'ennemi compte autant que ses points de vie.
      *
-     * @return le résultat à afficher
+     * <p>La décision est isolée de son exécution parce que l'interface doit pouvoir la montrer au
+     * joueur <em>avant</em> qu'il valide. Le cas de la collision est justement celui qu'un joueur ne
+     * peut pas calculer d'un coup d'œil au bord de la grille — et c'est le plus rentable.
      */
-    ActionResult shove(int from, Direction direction) {
-        Occupant pushed = grid.occupantAt(from);
-        if (pushed == null) {
-            return ActionResult.NO_TARGET;
+    TilePreview planShove(Tile tile, int from, Direction direction) {
+        if (grid.occupantAt(from) == null) {
+            return TilePreview.inert(tile, ActionResult.NO_TARGET, direction, from);
         }
         int landing = from + direction.step();
-        if (grid.isFree(landing)) {
+        // La case d'arrivée peut être hors grille : c'est le mur, et le préavis doit le dire.
+        return new TilePreview(tile,
+                grid.isFree(landing) ? ActionResult.PUSHED : ActionResult.COLLIDED,
+                TilePreview.Kind.PUSH, direction, from, landing);
+    }
+
+    /** Réalise une poussée déjà décidée. Ne décide de rien. */
+    ActionResult applyShove(TilePreview plan) {
+        if (!plan.connects()) {
+            return plan.outcome();
+        }
+        int from = plan.aim();
+        int landing = plan.landing();
+        if (plan.outcome() == ActionResult.PUSHED) {
             grid.move(from, landing);
             return ActionResult.PUSHED;
         }
@@ -642,6 +656,30 @@ public final class Arena {
             consumeTurn();
         }
         return settle(result);
+    }
+
+    /**
+     * Ce que ferait la tuile du sommet si on l'exécutait maintenant, ou {@code null} si la file est
+     * vide.
+     *
+     * <p>C'est la réponse à la seule question que le joueur se pose en regardant sa file :
+     * <i>qu'est-ce qui part si j'appuie ?</i> Elle est calculée par le code qui exécute, pas par un
+     * code parallèle qui le décrit — voir {@link TilePreview}.
+     *
+     * <p>Elle vaut {@code null} quand la partie est finie, comme les six portes d'action : promettre
+     * un coup qu'aucune touche ne peut plus déclencher serait une promesse en trop.
+     */
+    public TilePreview previewTop() {
+        Tile top = queue.top();
+        if (top == null || isOver()) {
+            return null;
+        }
+        return top.preview(this);
+    }
+
+    /** Ce que ferait une tuile donnée si elle partait maintenant. Sert à l'infobulle du râtelier. */
+    public TilePreview preview(Tile tile) {
+        return isOver() ? null : tile.preview(this);
     }
 
     /** Case que la capacité viserait maintenant, ou {@code -1}. Sert aussi à la télégraphier. */

@@ -17,20 +17,37 @@ import com.starfall.game.HudLayout;
 import com.starfall.game.Intention;
 import com.starfall.game.Occupant;
 import com.starfall.game.Tile;
+import com.starfall.game.TilePreview;
 import com.starfall.game.Trait;
+import com.starfall.render.PixelFont;
 import com.starfall.render.PixelPainter;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Le jeu : une grille linéaire, un héros qui s'y déplace et s'y oriente, et sa capacité d'échange
- * de place.
+ * Le jeu : une grille linéaire, un héros, ses tuiles, et les ennemis qui annoncent leurs coups.
  *
- * <p>Tout ce qui est dessiné ici sert à répondre d'un coup d'œil aux trois questions du jalon :
- * <b>où suis-je, où est-ce que je regarde, et qu'est-ce que ma capacité viserait</b>. Le reste —
- * décor, atmosphère — n'existe pas encore et n'a pas à exister avant que ces trois réponses soient
- * nettes.
+ * <h2>L'interface, et pourquoi elle a quitté le bandeau de diagnostic</h2>
+ *
+ * <p>Jusqu'ici l'état du jeu s'écrivait dans un bandeau noir posé dans le coin de la <b>fenêtre</b>,
+ * en huit lignes de capitales. Ça marchait comme instrument de mise au point et ça ne marchait pas
+ * du tout comme interface, pour trois raisons qui se cumulaient :
+ *
+ * <ul>
+ *   <li>il vivait en pixels-écran, donc il n'était pas au même endroit que ce dont il parlait, et
+ *       il rétrécissait ou grandissait indépendamment du plateau ;</li>
+ *   <li>il disait des choses que la scène montrait déjà — la vie, l'orientation, les intentions —
+ *       et le joueur devait choisir laquelle des deux sources croire ;</li>
+ *   <li>et surtout il <b>ne disait pas</b> la seule chose que le plateau ne montrait pas : la
+ *       portée des tuiles. L'estoc porte à deux cases, la frappe à une, et rien à l'écran ne
+ *       l'indiquait. Le joueur devait l'apprendre en gâchant des tuiles.</li>
+ * </ul>
+ *
+ * <p>Tout ce qui concerne le jeu vit donc maintenant en pixels-monde, sur la même grille de pixels
+ * que le plateau : bandeau d'état en haut, panneau d'information juste au-dessus des têtes, repères
+ * de portée sous les dalles, infobulles au survol, aide en {@code F1}. Le bandeau de diagnostic
+ * reste disponible pour la mire de calibration, qui est un instrument et non un jeu.
  */
 public final class ArenaScene implements Scene {
 
@@ -42,11 +59,9 @@ public final class ArenaScene implements Scene {
     private static final Color TARGET_MARK = new Color(0xffcc33ff);
     private static final Color HOVER_MARK = HudColors.HOVER;
 
-    /** Hauteur, sous les dalles, de la bande où vivent tous les repères tactiques. */
-    private static final int MARK_Y = ArenaLayout.GROUND_Y - 4;
-
     private SceneContext context;
     private PixelPainter painter;
+    private PixelFont font;
     private Arena arena;
     private ArenaLayout layout;
     private HudLayout hud;
@@ -55,6 +70,16 @@ public final class ArenaScene implements Scene {
     private int hoveredQueueSlot = -1;
     private int hoveredRackSlot = -1;
     private ActionResult lastResult;
+
+    /**
+     * L'aide est <b>ouverte au départ</b> et se referme au premier geste.
+     *
+     * <p>Un jeu au tour par tour dont les commandes ne sont écrites nulle part n'est pas jouable ;
+     * un jeu qui affiche ses commandes en permanence gaspille la moitié de son écran. Le compromis
+     * est de les montrer tant que le joueur n'a rien fait, et de lui rendre la place dès qu'il a
+     * commencé — {@code F1} les rappelle à tout moment.
+     */
+    private boolean helpVisible = true;
 
     @Override
     public String name() {
@@ -65,6 +90,7 @@ public final class ArenaScene implements Scene {
     public void create(SceneContext context) {
         this.context = context;
         this.painter = context.painter();
+        this.font = context.font();
 
         int gridWidth = context.options().gridWidth;
         arena = ArenaSetup.trainingArena(gridWidth);
@@ -77,13 +103,16 @@ public final class ArenaScene implements Scene {
      *
      * <p>Les entrées sont coupées en capture, donc sans cela toutes les images d'une série seraient
      * identiques. Rejouer un scénario court les rend différentes <em>et</em> utiles : la planche de
-     * contact montre l'échange de place à l'œuvre au lieu de trois copies de la position de départ.
+     * contact montre le jeu à l'œuvre au lieu de trois copies de la position de départ.
      */
     @Override
     public void act(float time, int frameIndex, boolean interactive) {
         if (!interactive) {
-            hoveredCell = -1;
             replayScript(frameIndex);
+            return;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F1)) {
+            helpVisible = !helpVisible;
             return;
         }
         // Une seule action par image, quelle qu'en soit la source. La souris respectait déjà la
@@ -95,12 +124,34 @@ public final class ArenaScene implements Scene {
     }
 
     /**
+     * Enregistre le résultat d'une action.
+     *
+     * <p>Point de passage unique, pour la même raison que {@code consumeTurn} côté modèle : c'est
+     * ici, et nulle part ailleurs, que l'aide se referme. Éparpillé sur les huit endroits qui
+     * déclenchent une action, ce geste aurait été oublié par le neuvième.
+     */
+    private boolean applied(ActionResult result) {
+        lastResult = result;
+        helpVisible = false;
+        return true;
+    }
+
+    /**
      * Rejoue les {@code frameIndex} premières actions du scénario depuis un état neuf.
      *
      * <p>Rejouer depuis le début plutôt qu'appliquer une action de plus est ce qui garde la capture
      * reproductible : {@code act} est appelée à chaque image rendue, pas une fois par image écrite.
+     *
+     * <p>Le survol est scénarisé lui aussi. Sans cela l'infobulle et le repère de portée — c'est-à-
+     * dire l'essentiel de ce que ce jalon ajoute — n'apparaîtraient sur <em>aucune</em> planche de
+     * contact, et une planche qui ne montre pas ce qu'elle légende vaut moins que pas de planche.
      */
     private void replayScript(int frameIndex) {
+        hoveredCell = -1;
+        hoveredQueueSlot = -1;
+        hoveredRackSlot = frameIndex < HOVER_SCRIPT.length ? HOVER_SCRIPT[frameIndex] : -1;
+        helpVisible = frameIndex == 0;
+
         if (frameIndex == scriptedFrame) {
             return;
         }
@@ -125,9 +176,9 @@ public final class ArenaScene implements Scene {
     }
 
     /**
-     * Le scénario montre la file d'actions, parce que c'est ce que le jalon apporte : on charge, on
-     * regarde la file se remplir, puis on la dépile — et l'on voit qu'elle se vide à l'envers de
-     * l'ordre où on l'a remplie.
+     * Le scénario montre la file d'actions et les portées : on charge, on regarde la file se
+     * remplir, puis on la dépile — et l'on voit qu'elle se vide à l'envers de l'ordre où on l'a
+     * remplie, la ligne d'annonce disant à chaque étape ce qui partira.
      */
     private static final ScriptedAction[] SCRIPT = {
             a -> a.queueTile(Tile.THRUST),   // l'estoc porte à deux cases : c'est la portée utile
@@ -138,7 +189,29 @@ public final class ArenaScene implements Scene {
             a -> a.step(Direction.LEFT),     // on avance : les ennemis jouent, la vie descend
             a -> a.queueTile(Tile.STRIKE),
             a -> a.executeTop(),             // et la vague bascule quand le terrain se vide
-            a -> a.step(Direction.RIGHT),
+            a -> a.step(Direction.RIGHT),    // on va au contact du premier de la vague suivante
+            a -> a.queueTile(Tile.PUSH),     // la poussée annonce sa trajectoire, case par case
+            a -> a.queueTile(Tile.STRIKE),
+    };
+
+    /**
+     * Tuile du râtelier survolée à chaque image de la capture, ou {@code -1}.
+     *
+     * <p>L'ordre du râtelier est celui de {@code ArenaSetup} : frappe, estoc, poussée, élan, pas de
+     * côté, volte-face.
+     */
+    private static final int[] HOVER_SCRIPT = {
+            -1,  // image 0 : l'aide, telle qu'un joueur la découvre
+            1,   // l'estoc et sa portée 2
+            -1,  // rien de survolé : le préavis résolu du sommet, et il annonce un coup dans le vide
+            2,   // la poussée
+            3,   // l'élan, dont la portée dépend du terrain
+            -1,
+            4,   // le pas de côté, tuile Free-Play
+            -1,
+            -1,
+            -1,  // le préavis résolu d'une poussée : sa trajectoire et son arrivée
+            5,   // la volte-face, qui ne vise aucune case
     };
 
     private int scriptedFrame = -1;
@@ -161,16 +234,13 @@ public final class ArenaScene implements Scene {
         // Les trois zones sont disjointes par construction ; l'ordre ne fait que rendre
         // l'intention explicite.
         if (hoveredRackSlot >= 0) {
-            lastResult = arena.queueTile(arena.rack().tiles().get(hoveredRackSlot));
-            return true;
+            return applied(arena.queueTile(arena.rack().tiles().get(hoveredRackSlot)));
         }
         if (hoveredQueueSlot >= 0) {
-            lastResult = arena.unqueueAt(hoveredQueueSlot);
-            return true;
+            return applied(arena.unqueueAt(hoveredQueueSlot));
         }
         if (hoveredCell >= 0) {
-            lastResult = arena.clickOn(hoveredCell);
-            return true;
+            return applied(arena.clickOn(hoveredCell));
         }
         return false;
     }
@@ -189,18 +259,18 @@ public final class ArenaScene implements Scene {
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)
                 || Gdx.input.isKeyJustPressed(Input.Keys.A)
                 || Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
-            lastResult = arena.step(Direction.LEFT);
+            applied(arena.step(Direction.LEFT));
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)
                 || Gdx.input.isKeyJustPressed(Input.Keys.D)) {
-            lastResult = arena.step(Direction.RIGHT);
+            applied(arena.step(Direction.RIGHT));
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-            lastResult = arena.swapWithTarget();
+            applied(arena.swapWithTarget());
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
                 || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            lastResult = arena.executeTop();
+            applied(arena.executeTop());
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)
                 || Gdx.input.isKeyJustPressed(Input.Keys.FORWARD_DEL)) {
-            lastResult = arena.unqueueAt(arena.queue().size() - 1);
+            applied(arena.unqueueAt(arena.queue().size() - 1));
         } else {
             readTileKeys();
         }
@@ -217,7 +287,7 @@ public final class ArenaScene implements Scene {
         for (int i = 0; i < tiles.size() && i < 9; i++) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1 + i)
                     || Gdx.input.isKeyJustPressed(Input.Keys.NUMPAD_1 + i)) {
-                lastResult = arena.queueTile(tiles.get(i));
+                applied(arena.queueTile(tiles.get(i)));
                 return;
             }
         }
@@ -228,6 +298,7 @@ public final class ArenaScene implements Scene {
         drawBackdrop();
         drawGround();
         drawThreats();
+        drawReach();
         drawOccupants();
         drawIntentions();
         drawTacticalMarks();
@@ -235,113 +306,272 @@ public final class ArenaScene implements Scene {
         // même si les deux bandes venaient à se croiser un jour.
         drawRack();
         drawQueue();
+        // Puis l'interface, par-dessus tout le reste : un panneau doit couvrir la scène, jamais
+        // l'inverse.
+        drawBanner();
+        drawInfoPanel();
+        drawOutcome();
+        drawHelp();
         painter.color(Color.WHITE);
     }
 
-    /**
-     * La file d'actions.
-     *
-     * <p>Elle se lit de gauche à droite dans l'ordre où l'on a posé — mais elle s'exécute à
-     * l'envers. C'est le point le plus contre-intuitif du jeu, donc la <b>flèche de retour</b>
-     * au-dessus de la dernière tuile posée n'est pas décorative : elle dit « c'est celle-là qui
-     * part la première ».
-     */
-    private void drawQueue() {
-        var empty = context.atlas().region("tile/empty");
-        List<Tile> tiles = arena.queue().fromOldest();
-
-        for (int slot = 0; slot < ActionQueue.CAPACITY; slot++) {
-            int x = hud.queueSlotX(slot);
-            if (slot < tiles.size()) {
-                painter.sprite(context.atlas().region(tiles.get(slot).spriteName()), x, HudLayout.QUEUE_Y);
-                if (hoveredQueueSlot == slot) {
-                    painter.outline(x - 1, HudLayout.QUEUE_Y - 1,
-                            HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
-                }
-            } else {
-                // Un emplacement vide doit rester comptable d'un coup d'œil : la file en a cinq, et
-                // savoir combien il en reste fait partie de la décision. Le contour est là pour ça.
-                painter.spriteTinted(empty, x, HudLayout.QUEUE_Y, HudColors.SLOT_EMPTY);
-                painter.outline(x, HudLayout.QUEUE_Y, HudLayout.TILE_SIZE, HudLayout.TILE_SIZE,
-                        HudColors.SLOT_OUTLINE);
-            }
-        }
-
-        if (!tiles.isEmpty()) {
-            drawNextMarker(hud.queueSlotX(tiles.size() - 1));
-        }
-    }
+    // ------------------------------------------------------------------ portées
 
     /**
-     * Repère de la prochaine tuile exécutée.
+     * Les repères de portée, dans leur bande sous les dalles.
      *
-     * <p>Trois signes concordants, parce que l'ordre à l'envers est le point le plus
-     * contre-intuitif du jeu : un cadre autour de la tuile, un trait plein sous elle, et un chevron
-     * <b>pointant vers elle</b>. La version précédente n'avait qu'un chevron, orienté à l'envers et
-     * posé dans la bande du râtelier, où les repères de celui-ci l'effaçaient en partie : il se
-     * lisait comme une annotation du râtelier.
-     */
-    private void drawNextMarker(int slotX) {
-        painter.outline(slotX - 1, HudLayout.QUEUE_Y - 1,
-                HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HudColors.QUEUE);
-        painter.fill(slotX, HudLayout.QUEUE_MARK_BOTTOM, HudLayout.TILE_SIZE, 2, HudColors.QUEUE);
-
-        // Chevron pointe en bas : la pointe touche la tuile qu'il désigne.
-        int centre = slotX + HudLayout.TILE_SIZE / 2;
-        int apex = HudLayout.QUEUE_Y + HudLayout.TILE_SIZE + 1;
-        for (int i = 0; i < 4; i++) {
-            painter.fill(centre - i, apex + i, 1, 1, HudColors.QUEUE);
-            painter.fill(centre + i, apex + i, 1, 1, HudColors.QUEUE);
-        }
-    }
-
-    /**
-     * Le râtelier : ce que le héros sait faire, et ce qui lui est accessible <em>maintenant</em>.
+     * <p>Deux régimes, et la différence entre les deux est le point délicat du jalon.
      *
-     * <p>Trois états, et chacun se distingue sans lire de texte :
      * <ul>
-     *   <li><b>disponible</b> — pleine lumière, aucun repère ;</li>
-     *   <li><b>posée sur la file</b> — éteinte, avec un trait or, la couleur de la file : « elle
-     *       est là-bas » ;</li>
-     *   <li><b>en recharge</b> — éteinte, avec autant de points ocre que de tours à attendre.</li>
+     *   <li><b>Le sommet de la file</b> est <em>résolu</em> : il s'exécutera contre l'état actuel du
+     *       plateau, donc on a le droit d'annoncer ce qu'il fera, case par case et résultat compris.
+     *       Repères <b>pleins</b>.</li>
+     *   <li><b>Une tuile survolée</b> ne s'exécutera pas tout de suite : elle passera d'abord par la
+     *       file, derrière les tuiles déjà posées, et le plateau aura changé d'ici là. Lui prêter un
+     *       résultat serait exactement le mensonge que le télégraphe a coûté deux jalons à
+     *       éteindre. On ne montre donc que sa <em>portée</em>, c'est-à-dire les cases qu'elle peut
+     *       atteindre depuis la position actuelle. Repères <b>creux</b>.</li>
      * </ul>
      *
-     * <p>Il n'y a délibérément <b>aucun repère de disponibilité</b> : la pleine lumière suffit, et
-     * le trait vert qui jouait ce rôle utilisait exactement le vert des tuiles Free-Play. Au repos,
-     * les six tuiles portaient donc du vert — alors que le vert doit vouloir dire une seule chose.
-     *
-     * <p>Faire disparaître une tuile indisponible serait plus simple à dessiner et beaucoup moins
-     * utile : le joueur doit voir <em>laquelle</em> lui manque.
+     * <p>Plein contre creux : la forme dit « ceci arrivera » ou « ceci pourrait atteindre », sans
+     * qu'il faille lire un libellé.
      */
-    private void drawRack() {
-        List<Tile> tiles = arena.rack().tiles();
-        for (int i = 0; i < tiles.size(); i++) {
-            Tile tile = tiles.get(i);
-            int x = hud.rackSlotX(i);
-            var region = context.atlas().region(tile.spriteName());
+    private void drawReach() {
+        Tile hovered = hoveredTile();
+        TilePreview preview = hovered != null ? arena.preview(hovered) : arena.previewTop();
+        if (preview != null) {
+            drawPreview(preview, hovered == null);
+        }
+    }
 
-            if (arena.rack().isReady(tile)) {
-                painter.sprite(region, x, HudLayout.RACK_Y);
-            } else {
-                painter.spriteTinted(region, x, HudLayout.RACK_Y, HudColors.DIMMED);
+    /** Tuile survolée, du râtelier ou de la file, ou {@code null}. */
+    private Tile hoveredTile() {
+        if (hoveredRackSlot >= 0 && hoveredRackSlot < arena.rack().tiles().size()) {
+            return arena.rack().tiles().get(hoveredRackSlot);
+        }
+        List<Tile> queued = arena.queue().fromOldest();
+        if (hoveredQueueSlot >= 0 && hoveredQueueSlot < queued.size()) {
+            return queued.get(hoveredQueueSlot);
+        }
+        return null;
+    }
+
+    /**
+     * Dessine un préavis. {@code committed} distingue les deux régimes : plein pour ce qui va se
+     * produire, creux pour ce que la tuile survolée pourrait atteindre.
+     */
+    private void drawPreview(TilePreview preview, boolean committed) {
+        switch (preview.kind()) {
+            case HIT -> {
+                drawReachLink(arena.heroCell(), preview.aim());
+                drawReachBar(preview.aim(), HudColors.PREVIEW, committed);
             }
-
-            int missing = arena.rack().missingPoints(tile);
-            if (missing > 0) {
-                for (int point = 0; point < missing; point++) {
-                    painter.fill(x + 2 + point * 3, HudLayout.RACK_MARK_BOTTOM, 2, 2,
-                            HudColors.RECHARGE);
+            case PUSH -> {
+                drawReachBar(preview.aim(), HudColors.PREVIEW, committed);
+                drawPushTrack(preview, committed);
+            }
+            case MOVE -> {
+                drawReachLink(arena.heroCell(), preview.landing());
+                drawReachBar(preview.landing(), HudColors.PREVIEW, committed);
+            }
+            // Le demi-tour ne vise aucune case : un repère sous le héros, et la ligne d'annonce dit
+            // vers où il regardera.
+            case TURN -> drawReachBar(arena.heroCell(), HudColors.PREVIEW, committed);
+            // Une tuile qui ne portera pas mérite d'être annoncée : elle sera dépensée quand même.
+            // Éteinte plutôt qu'absente, sinon rien ne distingue « ça rate » de « rien en file ».
+            case NONE -> {
+                if (arena.grid().contains(preview.aim())) {
+                    drawReachBar(preview.aim(), HudColors.DIMMED, committed);
                 }
-            } else if (!arena.rack().holds(tile)) {
-                painter.fill(x, HudLayout.RACK_MARK_BOTTOM, HudLayout.TILE_SIZE, 2, HudColors.QUEUE);
-            }
-
-            if (hoveredRackSlot == i) {
-                painter.outline(x - 1, HudLayout.RACK_Y - 1,
-                        HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
             }
         }
     }
+
+    private void drawReachBar(int cell, Color color, boolean committed) {
+        int x = layout.cellLeft(cell) + 2;
+        int width = ArenaLayout.CELL_WIDTH - 4;
+        if (committed) {
+            painter.fill(x, ArenaLayout.PREVIEW_Y, width, ArenaLayout.PREVIEW_HEIGHT, color);
+        } else {
+            painter.outline(x, ArenaLayout.PREVIEW_Y, width, ArenaLayout.PREVIEW_HEIGHT, color);
+        }
+    }
+
+    /** Trait entre le héros et la case concernée, dans la bande des portées. */
+    private void drawReachLink(int from, int to) {
+        int a = cellCentre(from);
+        int b = cellCentre(to);
+        painter.fill(Math.min(a, b), ArenaLayout.PREVIEW_Y + 1, Math.abs(b - a), 1,
+                HudColors.PREVIEW);
+    }
+
+    /**
+     * Trajectoire d'une poussée : de la case visée vers son arrivée.
+     *
+     * <p>Quand l'arrivée est hors grille, le trait s'arrête sur un bloc posé au bord — le mur. C'est
+     * le cas le plus rentable du jeu et le moins calculable d'un coup d'œil : le montrer était l'une
+     * des raisons d'écrire ce jalon.
+     */
+    private void drawPushTrack(TilePreview preview, boolean committed) {
+        int step = preview.direction().step();
+        int start = cellCentre(preview.aim());
+        boolean onBoard = arena.grid().contains(preview.landing());
+        int end = onBoard
+                ? cellCentre(preview.landing())
+                : layout.cellLeft(preview.aim()) + (step > 0 ? ArenaLayout.CELL_WIDTH + 2 : -3);
+
+        painter.fill(Math.min(start, end), ArenaLayout.PREVIEW_Y + 1, Math.abs(end - start), 1,
+                HudColors.PREVIEW);
+        if (preview.outcome() == ActionResult.COLLIDED) {
+            // Un bloc épais là où ça butte : la poussée s'arrête ici et fait mal des deux côtés.
+            painter.fill(end - (step > 0 ? 0 : 2), ArenaLayout.PREVIEW_Y - 1, 3,
+                    ArenaLayout.PREVIEW_HEIGHT + 2, HudColors.PREVIEW);
+        } else {
+            drawReachBar(preview.landing(), HudColors.PREVIEW, committed);
+        }
+    }
+
+    private int cellCentre(int cell) {
+        return layout.cellLeft(cell) + ArenaLayout.CELL_WIDTH / 2;
+    }
+
+    // ------------------------------------------------------------------ texte de l'interface
+
+    /**
+     * Bandeau d'état, en haut de la zone garantie.
+     *
+     * <p>Il ne porte que ce que la scène ne peut pas montrer : le numéro de vague, le compte des
+     * tours, et le rappel de la touche d'aide. Les points de vie y figurent en chiffres parce que
+     * les pastilles au-dessus des têtes répondent à « est-ce que ça va » et pas à « combien
+     * exactement », et que la différence décide parfois du tour.
+     */
+    private void drawBanner() {
+        int left = safeLeft() + 4;
+        int width = context.viewport().getSafeWorldWidth() - 8;
+
+        String hint = HudText.HELP_HINT;
+        int hintWidth = PixelFont.widthOf(hint, 1);
+        drawLine(HudText.banner(arena), left, HudLayout.BANNER_TOP, HudColors.TEXT,
+                width - hintWidth - 6);
+        drawLine(hint, left + width - hintWidth, HudLayout.BANNER_TOP, HudColors.TEXT_DIM, hintWidth);
+    }
+
+    /**
+     * Panneau d'information : ce que fera le sommet de la file, ou le détail de la tuile survolée.
+     *
+     * <p>Une seule bande pour les deux, ancrée au même endroit — voir {@link HudLayout#INFO_TOP}.
+     */
+    private void drawInfoPanel() {
+        if (helpVisible) {
+            // L'aide est modale : deux panneaux superposés se lisent comme un défaut d'affichage,
+            // et de toute façon l'aide couvre la bande d'information.
+            return;
+        }
+        drawPanel(infoLines(), safeLeft() + 4, HudLayout.INFO_TOP);
+    }
+
+    private List<String> infoLines() {
+        int rack = hoveredRackSlot;
+        if (rack >= 0 && rack < arena.rack().tiles().size()) {
+            return HudText.rackTooltip(arena, arena.rack().tiles().get(rack));
+        }
+        List<Tile> queued = arena.queue().fromOldest();
+        if (hoveredQueueSlot >= 0 && hoveredQueueSlot < queued.size()) {
+            return HudText.queueTooltip(queued, hoveredQueueSlot);
+        }
+        if (lastResult == null) {
+            return List.of(HudText.announce(arena));
+        }
+        return List.of(HudText.announce(arena), HudText.lastAction(lastResult));
+    }
+
+    /** Bannière de fin de partie, au centre du plateau. */
+    private void drawOutcome() {
+        if (!arena.isOver()) {
+            return;
+        }
+        drawCentredPanel(HudText.outcome(arena),
+                ArenaLayout.FIGURE_Y + ArenaLayout.FIGURE_HEIGHT / 2);
+    }
+
+    /** Aide : les commandes, en français, ouverte tant que le joueur n'a rien fait. */
+    private void drawHelp() {
+        if (helpVisible) {
+            drawCentredPanel(HudText.help(), StarfallGame.MIN_WORLD_HEIGHT / 2);
+        }
+    }
+
+    // ------------------------------------------------------------------ primitives de panneau
+
+    private int safeLeft() {
+        return context.viewport().getSafeLeft();
+    }
+
+    /** Largeur utile pour du texte : la zone garantie, moins les marges. */
+    private int textWidth() {
+        return context.viewport().getSafeWorldWidth() - 8;
+    }
+
+    /**
+     * Dessine une ligne, tronquée à la largeur disponible.
+     *
+     * <p>La troncature est un filet de sécurité, pas une mise en page : les libellés sont écrits
+     * pour tenir. Mais un libellé qui déborderait sortirait de la zone garantie, c'est-à-dire
+     * disparaîtrait sur certaines fenêtres et pas sur d'autres — le genre de défaut qu'on ne voit
+     * jamais sur sa propre machine.
+     */
+    private void drawLine(String line, int x, int top, Color color, int maxWidth) {
+        context.batch().setColor(color);
+        font.draw(context.batch(), truncate(line, maxWidth), x, top, 1);
+        context.batch().setColor(Color.WHITE);
+    }
+
+    static String truncate(String line, int maxWidth) {
+        String result = line;
+        while (!result.isEmpty() && PixelFont.widthOf(result, 1) > maxWidth) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result;
+    }
+
+    /** Panneau ancré par son coin haut-gauche, qui grandit vers le bas. */
+    private void drawPanel(List<String> lines, int left, int top) {
+        int maxWidth = textWidth() - 2 * HudLayout.PANEL_PADDING;
+        List<String> fitted = new ArrayList<>(lines.size());
+        int widest = 0;
+        for (String line : lines) {
+            String clipped = truncate(line, maxWidth);
+            fitted.add(clipped);
+            widest = Math.max(widest, PixelFont.widthOf(clipped, 1));
+        }
+
+        int width = widest + 2 * HudLayout.PANEL_PADDING;
+        int height = HudLayout.panelHeight(fitted.size());
+        painter.fill(left, top - height, width, height, HudColors.PANEL);
+        painter.outline(left, top - height, width, height, HudColors.PANEL_EDGE);
+
+        int y = top - HudLayout.PANEL_PADDING;
+        for (int i = 0; i < fitted.size(); i++) {
+            drawLine(fitted.get(i), left + HudLayout.PANEL_PADDING, y,
+                    i == 0 ? HudColors.TEXT : HudColors.TEXT_DIM, maxWidth);
+            y -= HudLayout.TEXT_STEP;
+        }
+    }
+
+    /** Panneau centré sur la zone garantie, autour d'une ordonnée donnée. */
+    private void drawCentredPanel(List<String> lines, int centreY) {
+        int maxWidth = textWidth() - 2 * HudLayout.PANEL_PADDING;
+        int widest = 0;
+        for (String line : lines) {
+            widest = Math.max(widest, PixelFont.widthOf(truncate(line, maxWidth), 1));
+        }
+        int width = widest + 2 * HudLayout.PANEL_PADDING;
+        int height = HudLayout.panelHeight(lines.size());
+        int left = safeLeft() + (context.viewport().getSafeWorldWidth() - width) / 2;
+        drawPanel(lines, left, centreY + height / 2);
+    }
+
+    // ------------------------------------------------------------------ plateau
 
     /**
      * Trois bandes horizontales seulement : le ciel, le mur derrière la grille, et le vide sous
@@ -381,9 +611,9 @@ public final class ArenaScene implements Scene {
     /**
      * Points de vie, en pastilles sous chaque figure.
      *
-     * <p>Des pastilles et non une barre : &agrave; cette &eacute;chelle, compter trois carr&eacute;s est plus rapide que
-     * mesurer une longueur, et la diff&eacute;rence entre « il lui en reste deux » et « il lui en reste
-     * trois » est exactement la d&eacute;cision que le joueur doit prendre.
+     * <p>Des pastilles et non une barre : à cette échelle, compter trois carrés est plus rapide que
+     * mesurer une longueur, et la différence entre « il lui en reste deux » et « il lui en reste
+     * trois » est exactement la décision que le joueur doit prendre.
      */
     private void drawHealth(int cell, int health, int maxHealth, Color color) {
         int left = layout.cellLeft(cell) + (ArenaLayout.CELL_WIDTH - (maxHealth * 3 - 1)) / 2;
@@ -461,7 +691,7 @@ public final class ArenaScene implements Scene {
     private void drawIntentions() {
         for (Enemy enemy : arena.enemies()) {
             int cell = arena.grid().indexOf(enemy);
-            int centre = layout.cellLeft(cell) + ArenaLayout.CELL_WIDTH / 2;
+            int centre = cellCentre(cell);
             int y = ArenaLayout.INTENT_Y;
             Intention intention = enemy.intention();
 
@@ -484,9 +714,7 @@ public final class ArenaScene implements Scene {
                 // pleine, pour que la lecture ne repose pas seulement sur la couleur.
                 case ADVANCE -> drawChevron(centre, y, directionTo(cell, intention.targetCell()),
                         HudColors.SLOT_EMPTY);
-                case WAIT -> {
-                    painter.fill(centre - 2, y + 2, 5, 1, HudColors.SLOT_EMPTY);
-                }
+                case WAIT -> painter.fill(centre - 2, y + 2, 5, 1, HudColors.SLOT_EMPTY);
             }
         }
     }
@@ -549,15 +777,15 @@ public final class ArenaScene implements Scene {
 
     /** Repère de case : un trait épais sous la dalle, qui ne cache jamais la figure. */
     private void drawCellMark(int cell, Color color) {
-        painter.fill(layout.cellLeft(cell) + 2, MARK_Y, ArenaLayout.CELL_WIDTH - 4, 2, color);
+        painter.fill(layout.cellLeft(cell) + 2, ArenaLayout.MARK_Y, ArenaLayout.CELL_WIDTH - 4, 2, color);
     }
 
     /** Trait de liaison entre le héros et la cible, sur la même ligne que les deux repères. */
     private void drawAimLink(int hero, int target) {
-        int heroCentre = layout.cellLeft(hero) + ArenaLayout.CELL_WIDTH / 2;
-        int targetCentre = layout.cellLeft(target) + ArenaLayout.CELL_WIDTH / 2;
+        int heroCentre = cellCentre(hero);
+        int targetCentre = cellCentre(target);
 
-        painter.fill(Math.min(heroCentre, targetCentre), MARK_Y,
+        painter.fill(Math.min(heroCentre, targetCentre), ArenaLayout.MARK_Y,
                 Math.abs(targetCentre - heroCentre), 1, TARGET_MARK);
     }
 
@@ -573,15 +801,125 @@ public final class ArenaScene implements Scene {
         int step = arena.hero().facing().step();
         int left = layout.cellLeft(cell) + 2;
         int width = ArenaLayout.CELL_WIDTH - 4;
-        painter.fill(left, MARK_Y, width, 2, HERO_MARK);
+        painter.fill(left, ArenaLayout.MARK_Y, width, 2, HERO_MARK);
 
         // Pointe : quatre colonnes qui s'affinent vers l'extérieur, centrées sur le trait.
         int tip = step > 0 ? left + width : left - 1;
         for (int i = 0; i < 4; i++) {
             int height = 8 - 2 * i;
-            painter.fill(tip + step * i, MARK_Y + 1 - height / 2, 1, height, HERO_MARK);
+            painter.fill(tip + step * i, ArenaLayout.MARK_Y + 1 - height / 2, 1, height, HERO_MARK);
         }
     }
+
+    // ------------------------------------------------------------------ file et râtelier
+
+    /**
+     * La file d'actions.
+     *
+     * <p>Elle se lit de gauche à droite dans l'ordre où l'on a posé — mais elle s'exécute à
+     * l'envers. C'est le point le plus contre-intuitif du jeu, donc la <b>flèche de retour</b>
+     * au-dessus de la dernière tuile posée n'est pas décorative : elle dit « c'est celle-là qui
+     * part la première ».
+     */
+    private void drawQueue() {
+        var empty = context.atlas().region("tile/empty");
+        List<Tile> tiles = arena.queue().fromOldest();
+
+        for (int slot = 0; slot < ActionQueue.CAPACITY; slot++) {
+            int x = hud.queueSlotX(slot);
+            if (slot < tiles.size()) {
+                painter.sprite(context.atlas().region(tiles.get(slot).spriteName()), x, HudLayout.QUEUE_Y);
+                if (hoveredQueueSlot == slot) {
+                    painter.outline(x - 1, HudLayout.QUEUE_Y - 1,
+                            HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
+                }
+            } else {
+                // Un emplacement vide doit rester comptable d'un coup d'œil : la file en a cinq, et
+                // savoir combien il en reste fait partie de la décision. Le contour est là pour ça.
+                painter.spriteTinted(empty, x, HudLayout.QUEUE_Y, HudColors.SLOT_EMPTY);
+                painter.outline(x, HudLayout.QUEUE_Y, HudLayout.TILE_SIZE, HudLayout.TILE_SIZE,
+                        HudColors.SLOT_OUTLINE);
+            }
+        }
+
+        if (!tiles.isEmpty()) {
+            drawNextMarker(hud.queueSlotX(tiles.size() - 1));
+        }
+    }
+
+    /**
+     * Repère de la prochaine tuile exécutée.
+     *
+     * <p>Trois signes concordants, parce que l'ordre à l'envers est le point le plus
+     * contre-intuitif du jeu : un cadre autour de la tuile, un trait plein sous elle, et un chevron
+     * <b>pointant vers elle</b>. La version précédente n'avait qu'un chevron, orienté à l'envers et
+     * posé dans la bande du râtelier, où les repères de celui-ci l'effaçaient en partie : il se
+     * lisait comme une annotation du râtelier.
+     */
+    private void drawNextMarker(int slotX) {
+        painter.outline(slotX - 1, HudLayout.QUEUE_Y - 1,
+                HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HudColors.QUEUE);
+        painter.fill(slotX, HudLayout.QUEUE_MARK_BOTTOM, HudLayout.TILE_SIZE, 2, HudColors.QUEUE);
+
+        // Chevron pointe en bas : la pointe touche la tuile qu'il désigne.
+        int centre = slotX + HudLayout.TILE_SIZE / 2;
+        int apex = HudLayout.QUEUE_Y + HudLayout.TILE_SIZE + 1;
+        for (int i = 0; i < 4; i++) {
+            painter.fill(centre - i, apex + i, 1, 1, HudColors.QUEUE);
+            painter.fill(centre + i, apex + i, 1, 1, HudColors.QUEUE);
+        }
+    }
+
+    /**
+     * Le râtelier : ce que le héros sait faire, et ce qui lui est accessible <em>maintenant</em>.
+     *
+     * <p>Trois états, et chacun se distingue sans lire de texte :
+     * <ul>
+     *   <li><b>disponible</b> — pleine lumière, aucun repère ;</li>
+     *   <li><b>posée sur la file</b> — éteinte, avec un trait or, la couleur de la file : « elle
+     *       est là-bas » ;</li>
+     *   <li><b>en recharge</b> — éteinte, avec autant de points ocre que de tours à attendre.</li>
+     * </ul>
+     *
+     * <p>Il n'y a délibérément <b>aucun repère de disponibilité</b> : la pleine lumière suffit, et
+     * le trait vert qui jouait ce rôle utilisait exactement le vert des tuiles Free-Play. Au repos,
+     * les six tuiles portaient donc du vert — alors que le vert doit vouloir dire une seule chose.
+     *
+     * <p>Faire disparaître une tuile indisponible serait plus simple à dessiner et beaucoup moins
+     * utile : le joueur doit voir <em>laquelle</em> lui manque. L'infobulle dit le reste — combien
+     * de points il reste à attendre, et ce que la tuile fera quand elle reviendra.
+     */
+    private void drawRack() {
+        List<Tile> tiles = arena.rack().tiles();
+        for (int i = 0; i < tiles.size(); i++) {
+            Tile tile = tiles.get(i);
+            int x = hud.rackSlotX(i);
+            var region = context.atlas().region(tile.spriteName());
+
+            if (arena.rack().isReady(tile)) {
+                painter.sprite(region, x, HudLayout.RACK_Y);
+            } else {
+                painter.spriteTinted(region, x, HudLayout.RACK_Y, HudColors.DIMMED);
+            }
+
+            int missing = arena.rack().missingPoints(tile);
+            if (missing > 0) {
+                for (int point = 0; point < missing; point++) {
+                    painter.fill(x + 2 + point * 3, HudLayout.RACK_MARK_BOTTOM, 2, 2,
+                            HudColors.RECHARGE);
+                }
+            } else if (!arena.rack().holds(tile)) {
+                painter.fill(x, HudLayout.RACK_MARK_BOTTOM, HudLayout.TILE_SIZE, 2, HudColors.QUEUE);
+            }
+
+            if (hoveredRackSlot == i) {
+                painter.outline(x - 1, HudLayout.RACK_Y - 1,
+                        HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ cadrage
 
     /**
      * La caméra reste calée sur le centre de la grille, quelle que soit sa largeur. La valeur vient
@@ -600,61 +938,22 @@ public final class ArenaScene implements Scene {
 
     @Override
     public int contentTopWorldY() {
-        // Les glyphes d'intention sont le contenu le plus haut, pas les têtes : c'est leur bande
-        // que le bandeau d'interface ne doit jamais mordre.
-        return ArenaLayout.INTENT_TOP + 1;
+        // Le bandeau d'état occupe désormais le haut de la zone garantie : plus rien ne peut se
+        // poser au-dessus.
+        return HudLayout.BANNER_TOP;
     }
 
+    /**
+     * Aucune ligne de diagnostic.
+     *
+     * <p>L'interface du jeu vit en pixels-monde depuis ce jalon. Laisser en plus un bandeau écran
+     * qui répète le même état aurait donné deux affichages à tenir d'accord — et l'expérience de ce
+     * projet est sans appel sur ce point : <b>ce qui est écrit à deux endroits finit par
+     * diverger</b>. La mire de calibration, elle, garde son bandeau : c'est un instrument, pas un
+     * jeu.
+     */
     @Override
     public List<String> overlayLines(int screenWidth, int screenHeight) {
-        List<String> lines = new ArrayList<>();
-        lines.add("STARFALL - JALON M7 - RÉSOLUTION DU COMBAT");
-        lines.add("VAGUE " + arena.wave() + "/" + arena.waveCount()
-                + "   TOUR " + arena.turnsTaken()
-                + "   VIE : " + arena.hero().health() + "/" + Hero.MAX_HEALTH
-                + "   HÉROS : CASE " + (arena.heroCell() + 1)
-                + "   REGARD : " + arena.hero().facing().label().toUpperCase());
-
-        if (arena.isVictory()) {
-            lines.add("VICTOIRE - LES " + arena.waveCount() + " VAGUES SONT TOMBÉES"
-                    + "   MEILLEUR ENCHAÎNEMENT : " + arena.bestCombo());
-        } else if (arena.isDefeat()) {
-            lines.add("DÉFAITE - LA VAGABONDE EST TOMBÉE AU TOUR " + arena.turnsTaken());
-        }
-
-        Tile next = arena.queue().top();
-        lines.add("FILE : " + arena.queue().size() + "/" + ActionQueue.CAPACITY
-                + "   PROCHAINE : " + (next == null ? "AUCUNE"
-                        : next.label().toUpperCase() + (next.isFreePlay() ? " (GRATUITE)" : "")));
-
-        int target = arena.swapTarget();
-        lines.add("ÉCHANGE : " + (target < 0 ? "AUCUNE CIBLE" : "CASE " + (target + 1)
-                + " (" + arena.grid().occupantAt(target).label().toUpperCase() + ")")
-                + "   ENCHAÎNEMENT : " + arena.lastCombo()
-                + (arena.bestCombo() > 1 ? " (RECORD " + arena.bestCombo() + ")" : ""));
-
-        StringBuilder threats = new StringBuilder();
-        for (Enemy enemy : arena.enemies()) {
-            if (threats.length() > 0) {
-                threats.append("   ");
-            }
-            // Pas de mention « étourdi » ici : l'étourdissement est posé et consommé dans le même
-            // geste du joueur, donc il n'est jamais observable entre deux tours. Il se lit au
-            // résultat de l'action — « collision » — et au fait que l'ennemi annonce « attend ».
-            threats.append(enemy.label().toUpperCase()).append(" : ")
-                    .append(enemy.intention().kind().label().toUpperCase());
-        }
-        if (threats.length() > 0) {
-            lines.add(threats.toString());
-        }
-
-        if (lastResult != null) {
-            lines.add("DERNIÈRE ACTION : " + lastResult.label().toUpperCase()
-                    + (lastResult == ActionResult.COLLIDED ? " - ENNEMI ÉTOURDI" : ""));
-        }
-        lines.add("1-6 : POSER   ESPACE : EXÉCUTER LE SOMMET   RETOUR ARRIÈRE : REPRENDRE");
-        lines.add("FLÈCHES OU A/Q ET D : SE TOURNER PUIS AVANCER   E : ÉCHANGE   CLIC : TOUT");
-        lines.add("ÉCHAP : QUITTER   F11 : PLEIN ÉCRAN");
-        return lines;
+        return List.of();
     }
 }
