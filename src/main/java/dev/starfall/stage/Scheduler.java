@@ -334,6 +334,25 @@ public final class Scheduler {
         return this;
     }
 
+    /**
+     * Opens the score on the planning shot.
+     *
+     * <p>A staged bout never needed this: its first beat arrives within a
+     * second, {@code track} emits a camera key, and {@code Schedule.framingAt}
+     * has something to read. A <em>played</em> fight opens with no beats at all
+     * -- the player is looking at the board -- and with an empty camera track
+     * {@code framingAt} falls back to the lane's own framing, which on an
+     * eleven-tile Fold is 12.5 tiles against the exchange plan's 6.5. Measured
+     * live before this existed: the opening frame of {@code play-fold} read
+     * {@code intimacy (0, 12.5)} where every graded planning shot reads 6.5.
+     * One drift key at t = 0 pins the opening to the plan, and satisfies
+     * STYLE.md 9's "the camera is never perfectly still" while it does it.
+     */
+    public Scheduler openOnPlan() {
+        drift(0.0, Timing.CAMERA_MIN_DRIFT);
+        return this;
+    }
+
     public Scheduler accept(Resolution resolution) {
         return accept(resolution.events());
     }

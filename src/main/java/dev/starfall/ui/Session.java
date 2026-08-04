@@ -80,7 +80,11 @@ public final class Session {
         this.scheduler = new Scheduler(stage, opening());
         this.readout = Readout.builder(stage);
         scheduler.accept(engine.opening());
-        readout.board(0.0, engine.state(), Readout.footprint(engine.previewExecution()));
+        // After accept, so the plan has been re-aimed by EncounterBegan's own
+        // naming of the hero. See Scheduler.openOnPlan for the live-session gap
+        // this closes.
+        scheduler.openOnPlan();
+        readout.board(0.0, engine.state(), footprintNow());
         refresh();
         this.busyUntil = 0.0;
     }
@@ -184,10 +188,10 @@ public final class Session {
             // the board the next chapter shows. Exactly Bout's stamping, with the
             // player's own instant in place of the scripted one.
             readout.bank(now, bankedTile);
-            readout.board(opensAt, engine.state(), Readout.footprint(engine.previewExecution()));
+            readout.board(opensAt, engine.state(), footprintNow());
         } else if (cmd instanceof Command.Remove) {
             readout.erase(now);
-            readout.board(now, engine.state(), Readout.footprint(engine.previewExecution()));
+            readout.board(now, engine.state(), footprintNow());
         } else if (cmd instanceof Command.Execute) {
             List<ScheduledBeat> clauses = new ArrayList<>();
             for (ScheduledBeat b : added) {
@@ -200,7 +204,7 @@ public final class Session {
                     : clauses.get(clauses.size() - 1).end();
             readout.board(phraseEnd, engine.state(), List.of());
         } else {
-            readout.board(opensAt, engine.state(), Readout.footprint(engine.previewExecution()));
+            readout.board(opensAt, engine.state(), footprintNow());
         }
 
         refresh();
@@ -209,6 +213,16 @@ public final class Session {
             endedAt = busyUntil;
         }
         return true;
+    }
+
+    /**
+     * The written phrase's footprint, or nothing when there is no phrase --
+     * {@code previewExecution()} refuses an empty stanza, and an empty stanza
+     * reaches no tiles, which is the same statement.
+     */
+    private List<Integer> footprintNow() {
+        return engine.can(Command.execute())
+                ? Readout.footprint(engine.previewExecution()) : List.of();
     }
 
     /** Rebuilds the published schedule and readout from the accumulated timeline. */

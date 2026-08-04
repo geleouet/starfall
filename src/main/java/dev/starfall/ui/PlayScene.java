@@ -76,6 +76,25 @@ public final class PlayScene implements Scene, SceneProbe, SceneEvents {
     /** The persistent brisk toggle (F): quicker without abandoning the poem. */
     public static final float BRISK = 1.6f;
 
+    /**
+     * How long a pilot looks at the quiet board before acting, in seconds.
+     *
+     * <h2>Found by playing, and it is the pass's central tempo measurement</h2>
+     *
+     * <p>Camera moves are delayed, never compressed (STYLE.md 9), and one turn
+     * emits about 1.66 s of camera (push-in 0.64 + return 1.02 on a nine-tile
+     * lane) against beats of 1.12-2.2 s. A player who commands the instant the
+     * beats end therefore banks ~0.5 s of camera debt per turn: driven at that
+     * cadence, the victory exhibit's own camera was 2.4 s behind by the third
+     * command and the phrase's push-in started at t=7.15 <b>after the phrase's
+     * last contact at 6.9</b>. At a human cadence the debt never accumulates.
+     * So the scripted players think for one breath -- roughly the return's own
+     * length -- and the keyboard player self-paces; what the fast player is
+     * owed is not a compressed glide but {@link #FAST_FORWARD}, which scales
+     * the clock and the camera together.
+     */
+    public static final double PILOT_BREATH = 1.4;
+
     /** How long the sheet takes to dry off once the fight is decided, in seconds. */
     public static final double EPILOGUE_DRY = 2.8;
 
@@ -242,7 +261,7 @@ public final class PlayScene implements Scene, SceneProbe, SceneEvents {
     @Override
     public void update(float dt) {
         if (pilot != null && !session.outcome().over()
-                && session.quietAt(director.time())) {
+                && session.quietAt(director.time() - PILOT_BREATH)) {
             Command cmd = pilot.decide(session.engine());
             if (cmd != null) {
                 command(cmd);
@@ -406,6 +425,17 @@ public final class PlayScene implements Scene, SceneProbe, SceneEvents {
         out.put("health", new float[] {look.health(), look.maxHealth()});
         out.put("stanza", new float[] {look.stanza().size()});
         out.put("outcome", new float[] {session.outcome().ordinal()});
+        // The engine's own account, beside the Look's: turn, the hero's ink, and
+        // each tile's charges. The Look is what the player sees and the engine is
+        // what is true; printing both is what lets a driven session notice the
+        // two disagreeing, which is exactly what a probe is for.
+        out.put("turn", new float[] {session.engine().state().turn(),
+                session.engine().state().hero().hp()});
+        var loadout = session.engine().state().loadout();
+        for (int i = 0; i < loadout.size(); i++) {
+            out.put("tile" + i, new float[] {loadout.charges(i),
+                    loadout.tile(i).cooldown(), loadout.banked(i) ? 1 : 0});
+        }
         for (Look.Shadow s : look.shadows()) {
             out.put("shadow" + s.body(),
                     new float[] {s.hp(), s.maxHp(), (float) s.dying()});

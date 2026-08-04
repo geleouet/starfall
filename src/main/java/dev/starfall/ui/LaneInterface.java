@@ -407,12 +407,19 @@ public final class LaneInterface {
         float first = x - (s.maxHp() - 1) * pitch * 0.5f;
         for (int i = 0; i < s.maxHp(); i++) {
             boolean wet = i < s.hp();
+            // Dryness 0 on the ghosts too, and that is a measured lesson rather
+            // than a taste: shipped first at 0.30, the dry-brush breakup ate a
+            // ghost outright and a Wisp at 0 of 3 delivered TWO separable marks
+            // at 960x720 -- the guard's first red was its own drawing. A ghost is
+            // separated from a live stroke by value and hue (0.24 paper-cool
+            // against 0.60 cloth-pale), exactly the charge run's rule: a mark the
+            // noise can eat cannot be part of a count.
             tick(sink, first + i * pitch, SHADOW_Y,
                     SHADOW_HALF_LENGTH * frameHeight, 0.0030f * frameHeight,
                     SHADOW_WIDTH * frameHeight,
                     (wet ? SHADOW_ALPHA : SHADOW_GHOST) * fade,
                     wet ? Palette.CLOTH_PALE : Palette.PAPER_COOL,
-                    seed + i * 2.3f, wet ? 0f : 0.30f);
+                    seed + i * 2.3f, 0f);
         }
     }
 

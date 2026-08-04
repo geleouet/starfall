@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=play-victory -Pout=out/captures/s5-input-victory -Pframes=12 -Pcols=4 -Pstart=0.5 -Pstep=1.6 -Pw=960 -Ph=720
+
+scene=play-victory
+description=a fight played by a deterministic pilot through the input loop
+frames=12
+start=0.5
+step=1.6
+window=17.6
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=03053bd-dirty
+harness=f0ad18994eec

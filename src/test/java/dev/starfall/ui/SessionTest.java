@@ -246,8 +246,13 @@ class SessionTest {
      *
      * <p>This is the teleport guard for the whole live loop -- the state the
      * schedule does not carry (clock, carries, origins, hilts) must survive the
-     * handover. Observed red by dropping the pelvis-carry copy from
-     * {@code rescore}: the two runs then differ by the carry snapping.
+     * handover. <b>Observed red</b> by dropping the clock copy from
+     * {@code rescore} ({@code d.t = this.t}), which restarts the performance and
+     * moves every body. The pelvis-carry copy, tried first, could NOT be turned
+     * red: a {@code Carry} holds only its value and that value round-trips
+     * through {@code Figure.standX}, so a fresh carry seeded at the current
+     * stand is the same filter state -- recorded here so nobody mistakes that
+     * line of {@code rescore} for load-bearing when it is belt-and-braces.
      */
     @Test
     void rescoringMidPerformanceMovesNoBody() {

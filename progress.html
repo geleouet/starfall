@@ -159,7 +159,7 @@
      =================================================================== -->
 <script>
 const DATA = {
-  updated: "2026-08-03 — the ink floor is a measured fraction at last; faces merged",
+  updated: "2026-08-04 — the input loop: the game is playable, losable, and its enemies' ink is counted",
   tagline: "A turn-based samurai duel rendered as a half-remembered ink painting.",
 
   now: {
@@ -185,7 +185,7 @@ const DATA = {
       summary:"Shibori indigo, pleated hakama, lamellar armour and brass, sashiko linen and cordage, blade hamon, weathered wood, aged paper for UI, embroidered silk for hero and bosses. Detail resolves on push-in." },
     { n:"04", name:"Procedural interaction", status:"failed", passes:5,
       summary:"Contact detection, dynamic IK targeting, hit/parry/knockback as choreography beats. Also drives facial expression from combat state." },
-    { n:"05", name:"Combat + action queue", status:"review", passes:3,
+    { n:"05", name:"Combat + action queue", status:"review", passes:4,
       summary:"Lane of 5 to 15 tiles, LIFO 5-slot queue, intent telegraphs, lane-derived camera, chrome-free ink UI." },
     { n:"06", name:"Capture harness + MCP", status:"passed", passes:0,
       summary:"Offscreen capture and contact sheets are already live and load-bearing. HTTP debug API and MCP server still to come." }
@@ -253,6 +253,38 @@ const DATA = {
   blocked: [],
 
   log: [
+    {
+      ts:"2026-08-04", system:"System 5", kind:"build", pass:4,
+      title:"The input loop: somebody can finally play this game, and lose it",
+      sheet:"out/captures/s5-input-defeat/frame_007.png",
+      sheetNote:"Defeat, reached from input: the Pilgrim held its ground through three " +
+                "telegraphed blows and dissolved on the third. No card, no text - a figure " +
+                "that stops being a figure, and a page that keeps one pale Shadow.",
+      body:[
+        "<b>Seven rendering systems were built before anyone could choose an action; this " +
+        "pass joins the tested engine, scheduler and sheet to a player.</b> Keyboard on " +
+        "desktop (digits bank, backspace un-banks - LIFO, the queue's whole grammar - " +
+        "enter commits, space held is 3x fast-forward), the debug API for driven play, " +
+        "and deterministic pilots for the capture harness, all through one command gate.",
+
+        "<b>Enemy hit points are drawn</b> - the omission two documents called the " +
+        "largest - as a horizontal row of the hero's own stroke grammar pinned above " +
+        "each body, ghosts staying as the record of what was lost, the row drying off " +
+        "with the body's dissolve. Delivered and counted at both shipped resolutions: " +
+        "4 of 4 and 5 of 5 separable runs, live minus bare, regions recorded. The count " +
+        "drops at the blade's own second, measured at 60 Hz: flat to t=13.884, fallen " +
+        "by 13.934 against a staged wound at 13.88.",
+
+        "<b>And the game was played</b> - three lanes, turn by turn, plus two scripted " +
+        "fights. The five-tile stanza takes 6.97 s to resolve, uninterruptible; a " +
+        "too-fast player banks 0.5 s of camera debt per turn (measured: the phrase's " +
+        "push-in once arrived after the phrase); the cooldowns bind hard at the 1-2 tile " +
+        "phrases real fights produce; and the knife lane's Reacher is close to unfair. " +
+        "The answers to combat-design 3d.3 and 1.1a, from play rather than theory, are " +
+        "in docs/system5-input-debt.md - with what is judgement marked as judgement, " +
+        "because no human hand has touched the keys yet."
+      ]
+    },
     {
       ts:"2026-08-03", system:"System 3b", kind:"build", pass:2,
       title:"The ink floor becomes a measured fraction, and the face stops being a decal",
