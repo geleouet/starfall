@@ -1,5 +1,8 @@
 package com.starfall.game;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * L'état d'un combat : une {@link Grid} et le {@link Hero} qui s'y trouve, plus les règles qui
  * relient les deux.
@@ -32,6 +35,9 @@ public final class Arena {
     private final ActionQueue queue = new ActionQueue();
 
     private int turnsTaken;
+    /** Numéro de la phase ennemie, qui sert aux archétypes n'agissant qu'une phase sur deux. */
+    private int phaseIndex;
+    private int heroHits;
 
     public Arena(int gridWidth) {
         this(gridWidth, gridWidth / 2);
@@ -72,12 +78,159 @@ public final class Arena {
     /**
      * Consomme un tour : c'est ici, et nulle part ailleurs, que le temps passe.
      *
-     * <p>Tout centraliser dans une seule méthode est ce qui garantit qu'on ne pourra pas ajouter en
-     * M6 une action qui fait avancer les ennemis en oubliant de recharger les tuiles, ou l'inverse.
+     * <p>Tout centraliser dans une seule méthode est ce qui garantit qu'on ne pourra pas ajouter
+     * une action qui fait avancer les ennemis en oubliant de recharger les tuiles, ou l'inverse.
      */
     private void consumeTurn() {
         turnsTaken++;
         rack.gainRechargePoint();
+        enemyPhase();
+    }
+
+    // ------------------------------------------------------------------ phase ennemie
+
+    /**
+     * Les ennemis exécutent ce qu'ils avaient annoncé, puis annoncent la suite.
+     *
+     * <p>L'ordre est de gauche à droite, et il est fixé pour une raison : deux ennemis qui visent la
+     * même case doivent produire le même résultat à chaque partie. Un ordre dépendant de
+     * l'itération d'une structure interne rendrait le jeu subtilement non reproductible.
+     *
+     * <p>Exécuter d'abord, annoncer ensuite, est ce qui rend le télégraphe honnête : ce qui est
+     * montré au joueur pendant qu'il réfléchit est exactement ce qui sera joué.
+     */
+    private void enemyPhase() {
+        for (Enemy enemy : enemiesLeftToRight()) {
+            if (!enemy.kind().actsThisPhase(phaseIndex)) {
+                continue;
+            }
+            execute(enemy);
+        }
+        phaseIndex++;
+        announceIntentions();
+    }
+
+    /** Ennemis présents sur la grille, de gauche à droite. */
+    private List<Enemy> enemiesLeftToRight() {
+        List<Enemy> enemies = new ArrayList<>();
+        for (int cell : grid.occupiedCells()) {
+            if (grid.occupantAt(cell) instanceof Enemy enemy) {
+                enemies.add(enemy);
+            }
+        }
+        return enemies;
+    }
+
+    /** Fait recalculer son intention à chaque ennemi encore en vie. */
+    public void announceIntentions() {
+        int heroCell = heroCell();
+        for (Enemy enemy : enemiesLeftToRight()) {
+            enemy.announce(EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell));
+        }
+    }
+
+    /**
+     * Joue l'intention annoncée, sans la recalculer.
+     *
+     * <p>Si le joueur s'est écarté de la case visée, l'attaque part dans le vide — c'est exactement
+     * ainsi qu'on esquive, et c'est pour cela que rien n'est recalculé ici.
+     */
+    private void execute(Enemy enemy) {
+        int cell = grid.indexOf(enemy);
+        if (cell < 0) {
+            return; // tué entre-temps
+        }
+        Intention intention = enemy.intention();
+        switch (intention.kind()) {
+            case ADVANCE -> {
+                if (grid.isFree(intention.targetCell())) {
+                    grid.move(cell, intention.targetCell());
+                }
+            }
+            case ATTACK -> {
+                for (int blow = 0; blow < enemy.strikesPerAttack(); blow++) {
+                    strike(intention.targetCell());
+                }
+            }
+            case WIND_UP -> enemy.setWindingUp(true);
+            case CHARGE -> {
+                enemy.setWindingUp(false);
+                int landing = intention.targetCell() - enemy.facing().step();
+                if (landing != cell && grid.isFree(landing)) {
+                    grid.move(cell, landing);
+                }
+                strike(intention.targetCell());
+            }
+            case WAIT -> {
+            }
+        }
+    }
+
+    /** Résout une frappe ennemie sur une case. */
+    private void strike(int cell) {
+        if (grid.occupantAt(cell) == hero) {
+            heroHits++;
+        }
+    }
+
+    /**
+     * Retire un occupant de la grille, et déclenche ce que sa mort provoque.
+     *
+     * <p>Tout ce qui tue passe par ici. Vider directement la case fonctionnerait — et c'est ce que
+     * faisaient les tuiles — mais un ennemi explosif n'exploserait jamais : un trait qui ne fait
+     * rien est pire qu'un trait absent, puisqu'il est annoncé au joueur.
+     */
+    void kill(int cell) {
+        Occupant victim = grid.clear(cell);
+        if (victim instanceof Enemy enemy && enemy.has(Trait.EXPLOSIF)) {
+            explode(cell);
+        }
+    }
+
+    /**
+     * Un explosif emporte ses deux voisins immédiats.
+     *
+     * <p>La récursion se termine parce que la victime est retirée <em>avant</em> que l'explosion ne
+     * se propage : une chaîne d'explosifs se déclenche donc en cascade, chacun une seule fois. Cette
+     * cascade est la forme la plus simple du combo, que la résolution du combat (M7) reprendra pour
+     * en faire un enchaînement compté et récompensé.
+     */
+    private void explode(int centre) {
+        for (int step : new int[]{-1, 1}) {
+            int neighbour = centre + step;
+            Occupant victim = grid.occupantAt(neighbour);
+            if (victim == hero) {
+                heroHits++;
+            } else if (victim instanceof Enemy) {
+                kill(neighbour);
+            }
+        }
+    }
+
+    /**
+     * Nombre de fois où le héros a été touché.
+     *
+     * <p>Un simple compteur, et c'est assumé : les points de vie, les statuts et les combos sont
+     * l'affaire de la résolution du combat (M7). Ce qui doit être juste dès maintenant, c'est
+     * <em>quand</em> une frappe porte — donc le télégraphe et l'esquive.
+     */
+    public int heroHits() {
+        return heroHits;
+    }
+
+    /** Ennemis encore en vie, de gauche à droite. */
+    public List<Enemy> enemies() {
+        return enemiesLeftToRight();
+    }
+
+    /** Vrai si une case est menacée par l'intention annoncée d'au moins un ennemi. */
+    public boolean isThreatened(int cell) {
+        for (Enemy enemy : enemiesLeftToRight()) {
+            if (enemy.intention().threatens(cell)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Case du héros. Toujours valide : le héros ne quitte jamais la grille. */

@@ -20,6 +20,14 @@ import org.junit.jupiter.api.Test;
  */
 class ActionQueueTest {
 
+    /** Occupant inerte : ces tests portent sur la file, pas sur le comportement des ennemis. */
+    private record Pawn(String label) implements Occupant {
+        @Override
+        public String spriteName() {
+            return "enemy/sabreur";
+        }
+    }
+
     private static Arena arena() {
         return new Arena(9);
     }
@@ -342,7 +350,7 @@ class ActionQueueTest {
         void theStrikeRemovesTheOccupantAhead() {
             Arena arena = arena();
             int target = arena.heroCell() + 1;
-            arena.grid().place(target, new TrainingDummy("cible"));
+            arena.grid().place(target, new Pawn("cible"));
 
             arena.queueTile(Tile.STRIKE);
             assertEquals(ActionResult.STRUCK, arena.executeTop());
@@ -355,7 +363,7 @@ class ActionQueueTest {
         void thePushMovesTheTargetOneCell() {
             Arena arena = arena();
             int target = arena.heroCell() + 1;
-            Occupant victim = new TrainingDummy("cible");
+            Occupant victim = new Pawn("cible");
             arena.grid().place(target, victim);
 
             arena.queueTile(Tile.PUSH);
@@ -369,7 +377,7 @@ class ActionQueueTest {
         @DisplayName("Une poussée contre un mur ou un autre occupant est bloquée")
         void aPushIntoSomethingIsBlocked() {
             Arena arena = new Arena(9, 7);
-            arena.grid().place(8, new TrainingDummy("au bord"));
+            arena.grid().place(8, new Pawn("au bord"));
 
             arena.queueTile(Tile.PUSH);
             assertEquals(ActionResult.BLOCKED, arena.executeTop());
@@ -380,7 +388,7 @@ class ActionQueueTest {
         @DisplayName("L'élan charge jusqu'au premier obstacle")
         void theDashRunsUntilBlocked() {
             Arena arena = new Arena(15, 0);
-            arena.grid().place(6, new TrainingDummy("obstacle"));
+            arena.grid().place(6, new Pawn("obstacle"));
 
             arena.queueTile(Tile.DASH);
             assertEquals(ActionResult.DASHED, arena.executeTop());

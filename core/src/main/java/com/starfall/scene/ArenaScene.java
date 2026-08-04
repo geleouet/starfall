@@ -11,6 +11,7 @@ import com.starfall.game.Arena;
 import com.starfall.game.ArenaLayout;
 import com.starfall.game.ArenaSetup;
 import com.starfall.game.Direction;
+import com.starfall.game.Enemy;
 import com.starfall.game.HudLayout;
 import com.starfall.game.Occupant;
 import com.starfall.game.Tile;
@@ -127,11 +128,10 @@ public final class ArenaScene implements Scene {
      */
     private static final ScriptedAction[] SCRIPT = {
             a -> a.queueTile(Tile.STRIKE),   // on charge, gratuitement : le compteur reste à zéro
-            a -> a.queueTile(Tile.DASH),
-            a -> a.queueTile(Tile.THRUST),
+            a -> a.queueTile(Tile.THRUST),   // et les ennemis n'avancent pas pendant ce temps
             a -> a.executeTop(),             // l'estoc, posé en dernier, part en premier
-            a -> a.executeTop(),             // puis l'élan
-            a -> a.executeTop(),             // et enfin la frappe, posée en premier
+            a -> a.executeTop(),             // puis la frappe — et les intentions ont changé
+            a -> a.step(Direction.LEFT),     // demi-tour : un tour de plus pour les ennemis
     };
 
     private int scriptedFrame = -1;
@@ -220,7 +220,9 @@ public final class ArenaScene implements Scene {
     public void drawWorld() {
         drawBackdrop();
         drawGround();
+        drawThreats();
         drawOccupants();
+        drawIntentions();
         drawTacticalMarks();
         // Le râtelier d'abord : ses repères ne doivent jamais pouvoir recouvrir ceux de la file,
         // même si les deux bandes venaient à se croiser un jour.
@@ -374,12 +376,74 @@ public final class ArenaScene implements Scene {
             Occupant occupant = arena.grid().occupantAt(cell);
             var region = context.atlas().region(occupant.spriteName());
             int x = layout.figureLeft(cell);
-            // Le héros est retourné selon son orientation ; c'est la lecture la plus immédiate de
-            // « où est-ce que je regarde ».
-            if (occupant == arena.hero() && arena.hero().facing() == Direction.LEFT) {
+
+            // Chaque figure est retournée selon son orientation. Le héros est dessiné tourné à
+            // droite, les ennemis tournés à gauche : ils arrivent face à lui.
+            boolean flip = occupant == arena.hero()
+                    ? arena.hero().facing() == Direction.LEFT
+                    : occupant instanceof Enemy enemy && enemy.facing() == Direction.RIGHT;
+            if (flip) {
                 painter.spriteFlipped(region, x, ArenaLayout.FIGURE_Y);
             } else {
                 painter.sprite(region, x, ArenaLayout.FIGURE_Y);
+            }
+        }
+    }
+
+    /**
+     * Les cases que les ennemis ont annoncé vouloir frapper.
+     *
+     * <p>C'est la réponse visuelle à « qui va frapper quoi, où ». Elle est peinte <b>sur la dalle</b>
+     * et non en marge : la question du joueur est « est-ce que je peux rester là », et la réponse
+     * doit être au même endroit que la question.
+     */
+    private void drawThreats() {
+        for (int cell = 0; cell < layout.gridWidth(); cell++) {
+            if (!arena.isThreatened(cell)) {
+                continue;
+            }
+            painter.outline(layout.cellLeft(cell), ArenaLayout.GROUND_Y,
+                    ArenaLayout.CELL_WIDTH, ArenaLayout.GROUND_HEIGHT, HudColors.THREAT);
+            painter.fill(layout.cellLeft(cell) + 1, ArenaLayout.GROUND_Y + ArenaLayout.GROUND_HEIGHT - 3,
+                    ArenaLayout.CELL_WIDTH - 2, 2, HudColors.THREAT);
+        }
+    }
+
+    /**
+     * L'intention de chaque ennemi, au-dessus de sa tête.
+     *
+     * <p>La case menacée dit <em>où</em> ; ce glyphe dit <em>quoi</em>, et surtout il existe pour les
+     * intentions qui ne menacent aucune case — avancer, prendre son élan — sans lesquelles le joueur
+     * ne saurait pas distinguer un ennemi qui se rapproche d'un ennemi qui attend.
+     */
+    private void drawIntentions() {
+        for (Enemy enemy : arena.enemies()) {
+            int cell = arena.grid().indexOf(enemy);
+            int centre = layout.cellLeft(cell) + ArenaLayout.CELL_WIDTH / 2;
+            int y = ArenaLayout.FIGURE_Y + ArenaLayout.FIGURE_HEIGHT + 2;
+            int step = enemy.facing().step();
+
+            switch (enemy.intention().kind()) {
+                case ATTACK, CHARGE -> {
+                    // Une flèche pleine vers la cible : le geste est décidé, il partira.
+                    painter.fill(centre - 3, y + 1, 7, 2, HudColors.THREAT);
+                    for (int i = 0; i < 3; i++) {
+                        painter.fill(centre + step * (3 - i), y + 2 - i, 1, 1 + 2 * i, HudColors.THREAT);
+                    }
+                }
+                case WIND_UP -> {
+                    // Deux barres : il se charge, on a un tour pour réagir.
+                    painter.fill(centre - 2, y, 2, 5, HudColors.THREAT);
+                    painter.fill(centre + 1, y, 2, 5, HudColors.THREAT);
+                }
+                case ADVANCE -> {
+                    painter.fill(centre - 2, y + 2, 5, 1, HudColors.SLOT_EMPTY);
+                    for (int i = 0; i < 2; i++) {
+                        painter.fill(centre + step * (2 - i), y + 2 - i, 1, 1 + 2 * i,
+                                HudColors.SLOT_EMPTY);
+                    }
+                }
+                case WAIT -> painter.fill(centre - 1, y + 1, 2, 2, HudColors.SLOT_EMPTY);
             }
         }
     }
@@ -467,7 +531,7 @@ public final class ArenaScene implements Scene {
     @Override
     public List<String> overlayLines(int screenWidth, int screenHeight) {
         List<String> lines = new ArrayList<>();
-        lines.add("STARFALL - JALON M5 - FILE D'ACTIONS");
+        lines.add("STARFALL - JALON M6 - ENNEMIS ET INTENTIONS");
         lines.add("TOUR " + arena.turnsTaken() + "   GRILLE : " + layout.gridWidth()
                 + " CASES   HÉROS : CASE " + (arena.heroCell() + 1)
                 + "   REGARD : " + arena.hero().facing().label().toUpperCase());
@@ -479,7 +543,20 @@ public final class ArenaScene implements Scene {
 
         int target = arena.swapTarget();
         lines.add("ÉCHANGE : " + (target < 0 ? "AUCUNE CIBLE" : "CASE " + (target + 1)
-                + " (" + arena.grid().occupantAt(target).label().toUpperCase() + ")"));
+                + " (" + arena.grid().occupantAt(target).label().toUpperCase() + ")")
+                + "   TOUCHÉ : " + arena.heroHits() + " FOIS");
+
+        StringBuilder threats = new StringBuilder();
+        for (Enemy enemy : arena.enemies()) {
+            if (threats.length() > 0) {
+                threats.append("   ");
+            }
+            threats.append(enemy.label().toUpperCase()).append(" : ")
+                    .append(enemy.intention().kind().label().toUpperCase());
+        }
+        if (threats.length() > 0) {
+            lines.add(threats.toString());
+        }
 
         if (lastResult != null) {
             lines.add("DERNIÈRE ACTION : " + lastResult.label().toUpperCase());

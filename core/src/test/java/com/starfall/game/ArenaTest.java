@@ -17,7 +17,7 @@ class ArenaTest {
     private record Pawn(String label) implements Occupant {
         @Override
         public String spriteName() {
-            return "enemy/melee";
+            return "enemy/sabreur";
         }
     }
 
@@ -322,36 +322,46 @@ class ArenaTest {
     }
 
     @Nested
-    @DisplayName("Mise en place d'entraînement")
-    class Setup2 {
+    @DisplayName("Mise en place d'une vague")
+    class WaveSetup {
 
         @ParameterizedTest(name = "grille de {0} cases")
         @ValueSource(ints = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15})
-        @DisplayName("Il y a toujours un mannequin de chaque côté du héros")
-        void thereIsAlwaysATargetOnBothSides(int gridWidth) {
-            // Sans ca, la capacite d'echange n'est essayable que dans un sens - c'etait le cas a
-            // 5 cases, ou les deux mannequins se retrouvaient du meme cote.
+        @DisplayName("Il y a toujours un ennemi de chaque côté du héros")
+        void thereIsAlwaysAnEnemyOnBothSides(int gridWidth) {
+            // Sans ca, la moitie des mecaniques d'orientation ne serait jamais mise a l'epreuve.
             Arena arena = ArenaSetup.trainingArena(gridWidth);
             int hero = arena.heroCell();
 
             assertTrue(arena.grid().firstOccupied(hero, Direction.LEFT) >= 0,
-                    "aucune cible a gauche sur une grille de " + gridWidth);
+                    "aucun ennemi a gauche sur une grille de " + gridWidth);
             assertTrue(arena.grid().firstOccupied(hero, Direction.RIGHT) >= 0,
-                    "aucune cible a droite sur une grille de " + gridWidth);
+                    "aucun ennemi a droite sur une grille de " + gridWidth);
         }
 
         @ParameterizedTest(name = "grille de {0} cases")
-        @ValueSource(ints = {5, 6, 9, 15})
-        @DisplayName("Les mannequins ne recouvrent jamais le héros")
-        void dummiesNeverOverlapTheHero(int gridWidth) {
+        @ValueSource(ints = {5, 7, 9, 15})
+        @DisplayName("La vague ne recouvre jamais le héros, et chaque ennemi est une instance à lui")
+        void theWaveNeverOverlapsTheHero(int gridWidth) {
             Arena arena = ArenaSetup.trainingArena(gridWidth);
 
             assertSame(arena.hero(), arena.grid().occupantAt(arena.heroCell()));
-            // Trois mannequins, sauf sur la plus petite grille où deux des emplacements visés se
-            // confondent — deux suffisent, l'essentiel étant qu'il y en ait un de chaque côté.
-            int expectedDummies = gridWidth == 5 ? 2 : 3;
-            assertEquals(expectedDummies + 1, arena.grid().occupiedCells().size(),
-                    expectedDummies + " mannequins et le heros");
+            assertTrue(arena.enemies().size() >= 2,
+                    "vague de " + arena.enemies().size() + " sur une grille de " + gridWidth);
+            assertEquals(arena.enemies().size(), new java.util.HashSet<>(arena.enemies()).size(),
+                    "deux cases partagent la meme instance d'ennemi");
+        }
+
+        @Test
+        @DisplayName("Chaque ennemi a annoncé son intention avant le premier geste du joueur")
+        void everyEnemyHasAnnouncedBeforeThePlayerMoves() {
+            // Tout l'interet du telegraphe : on doit pouvoir lire la menace avant d'agir.
+            Arena arena = ArenaSetup.trainingArena(9);
+
+            assertEquals(0, arena.turnsTaken());
+            for (Enemy enemy : arena.enemies()) {
+                assertTrue(enemy.intention() != null, enemy.label() + " n'a rien annonce");
+            }
         }
     }
 }

@@ -37,4 +37,12 @@ public final class HudColors {
     public static final Color RECHARGE = new Color(0xff8a3cff);
     /** Survol de la souris. */
     public static final Color HOVER = new Color(0xd8f0ffff);
+
+    /**
+     * Case menacée par l'intention annoncée d'un ennemi, et tout ce qui annonce un coup.
+     *
+     * <p>Une seule couleur pour tout ce qui va faire mal, y compris la prise d'élan : le joueur n'a
+     * pas à apprendre une nuance de rouge pour comprendre qu'il doit bouger.
+     */
+    public static final Color THREAT = new Color(0xff4a5aff);
 }

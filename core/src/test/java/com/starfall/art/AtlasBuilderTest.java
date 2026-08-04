@@ -174,15 +174,18 @@ class AtlasBuilderTest {
         assertTrue(result.spriteCount() >= 5, "sprites trouves : " + result.spriteCount());
         AtlasIndex index = AtlasIndex.parse("index",
                 Files.readAllLines(result.index(), StandardCharsets.UTF_8));
-        for (String expected : List.of("hero/idle", "enemy/melee", "tile/slash", "tile/empty", "ground/plain")) {
+        for (String expected : List.of("hero/idle", "tile/slash", "tile/empty", "ground/plain",
+                "enemy/sabreur", "enemy/archer", "enemy/lancier", "enemy/colosse")) {
             assertTrue(index.contains(expected), "sprite manquant dans l'atlas : " + expected);
         }
 
-        // Les personnages tiennent le gabarit verrouille au cadrage.
-        assertEquals(16, index.region("hero/idle").width());
-        assertEquals(32, index.region("hero/idle").height());
-        assertEquals(16, index.region("enemy/melee").width());
-        assertEquals(32, index.region("enemy/melee").height());
+        // Tous les personnages tiennent le gabarit verrouille au cadrage : un ennemi qui
+        // deborderait de sa case ne se verrait qu'a l'ecran, et seulement a certaines largeurs.
+        for (String character : List.of("hero/idle", "enemy/sabreur", "enemy/archer",
+                "enemy/lancier", "enemy/colosse")) {
+            assertEquals(16, index.region(character).width(), character);
+            assertEquals(32, index.region(character).height(), character);
+        }
 
         // Et le heros n'est pas une silhouette vide : il doit rester des pixels opaques.
         BufferedImage image = ImageIO.read(result.image().toFile());

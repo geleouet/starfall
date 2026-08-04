@@ -90,7 +90,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1, M3, M4 et M5 revus et corrigés · prêt pour M6</b></div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 à M5 revus · M6 construit · review de M6 à faire</b></div>
 </header>
 
 <div class="banner warn">
@@ -125,8 +125,8 @@
   <tr><td><span class="pill p-done">revu</span></td><td><b>M3 — Pipeline pixel art</b><span class="why">Palette maître en texte, format <code>.sprite</code> (grilles de caractères indexées), générateur d'atlas déterministe branché sur le build, chargement et rendu à l'écran. 5 sprites de démonstration. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 147 tests verts sur 17 suites.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M4 — Grille et héros</b><span class="why">Grille linéaire de 5 à 15 cases, déplacement, orientation, capacité d'échange de place, cadrage caméra. Clavier <b>et</b> souris. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 271 tests verts sur 25 suites.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution dernier-entré premier-sorti, recharges en points, tuiles Free-Play, ajout et retrait sans coût de tour. Six tuiles, jouables au clavier et à la souris. <b>Review indépendante passée : « tient avec réserves ».</b> 5 défauts relevés, tous corrigés ; 318 tests verts.</span></td></tr>
-  <tr><td><span class="pill p-now">suivant</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">4 archétypes, traits, IA de file, bulles d'intention télégraphiées.</span></td></tr>
-  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M7 — Résolution du combat</b><span class="why">Dégâts, statuts, collisions et repoussements, combo kills, enchaînement des vagues.</span></td></tr>
+  <tr><td><span class="pill p-done">construit</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">Quatre archétypes aux silhouettes distinctes, quatre traits, et surtout le <b>télégraphe</b> : ce qui est annoncé est ce qui est joué. 337 tests verts. <b style="color:var(--gold)">Review indépendante pas encore passée.</b></span></td></tr>
+  <tr><td><span class="pill p-now">suivant</span></td><td><b>M7 — Résolution du combat</b><span class="why">Dégâts, statuts, collisions et repoussements, combo kills, enchaînement des vagues.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M8 — Interface</b><span class="why">HUD, barre de file, portées d'attaque, PV, infobulles — en français.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M9 — Boss</b><span class="why">Rencontre finale de la tranche : invocations, combo charge + frappe.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M10 — Équilibrage file de 5</b><span class="why">Réaccordage complet des recharges et de la pression ennemie autour de la file élargie.</span></td></tr>
@@ -134,10 +134,19 @@
 
 <h2>En cours de construction</h2>
 <div class="banner">
-  <span class="k">Prochaine étape — M6, les ennemis</span>
-  <p>La boucle centrale tourne. On charge la file gratuitement, puis on la dépile — et elle se vide à l'envers de l'ordre où on l'a remplie. Le temps ne passe qu'en consommant un tour, et c'est le tour qui recharge les tuiles.</p>
-  <p><b>Reste à faire :</b> quatre archétypes d’ennemis, leurs traits, une IA de file, et surtout les <b>intentions télégraphiées</b> — c’est ce qui transforme la file d’un puzzle en solitaire en une lecture d’adversaire.</p>
+  <span class="k">M6 construit — review indépendante à lancer</span>
+  <p>Les ennemis existent, et surtout ils <b>annoncent</b>. Chaque ennemi affiche ce qu'il fera à sa prochaine activation, et l'exécute ensuite <i>tel quel</i> — même si le joueur s'est déplacé entre-temps. C'est cette dernière clause qui fait le jeu : on esquive en quittant la case annoncée.</p>
+  <p><b>Ensuite :</b> review indépendante de M6, puis M7 — dégâts, statuts, collisions et combos.</p>
 </div>
+
+<h3>Les règles de M6</h3>
+<table>
+  <tr><td>Le télégraphe</td><td>L'intention est calculée à la fin d'une phase, montrée pendant toute la réflexion du joueur, puis exécutée <b>sans être recalculée</b>.<span class="why">Si l'ennemi recalculait sa cible au moment de frapper, le télégraphe serait un mensonge et il n'y aurait plus rien à lire. C'est l'invariant que les tests protègent le plus.</span></td></tr>
+  <tr><td>Quatre archétypes</td><td><b>Sabreur</b> portée 1 · <b>archer</b> portée 3, et il recule si on le colle · <b>lancier</b> qui prend son élan puis charge · <b>colosse</b> qui n'agit qu'une phase sur deux.<span class="why">Ils se distinguent par la distance à laquelle ils deviennent dangereux — la seule information qui compte sur une ligne. L'archer inverse la question posée par le sabreur : contre lui, s'approcher est la bonne réponse.</span></td></tr>
+  <tr><td>Quatre traits</td><td><b>Rapide</b> deux cases ou deux coups · <b>agressif</b> une case de portée en plus · <b>fonceur</b> comble toute la distance d'un coup · <b>explosif</b> emporte ses voisins, en chaîne.<span class="why">Aucun trait ne double une <i>activation</i> : la seconde action ne pourrait pas être annoncée sans être recalculée, et le joueur lirait une promesse ne couvrant que la moitié de ce qui va se passer. Les traits amplifient donc l'intention annoncée.</span></td></tr>
+  <tr><td>Ordre</td><td>Les ennemis agissent de gauche à droite, toujours.<span class="why">Deux ennemis qui visent la même case doivent produire le même résultat à chaque partie. Un test rejoue six fois la même séquence et compare le plateau.</span></td></tr>
+  <tr><td>Dégâts</td><td>Un simple compteur de coups reçus, et c'est assumé.<span class="why">Points de vie, statuts et combos sont l'affaire de M7. Ce qui doit être juste dès maintenant, c'est <i>quand</i> une frappe porte — donc le télégraphe et l'esquive.</span></td></tr>
+</table>
 
 <h3>Les règles de M5</h3>
 <table>
@@ -180,27 +189,32 @@
 <h2>Planches-contact</h2>
 
 <figure class="sheet">
-  <img src="captures/m5/starfall-1280x720-frame00.png" alt="Starfall M5, arène 9 cases, file vide">
-  <figcaption><b>M5 — l'arène au repos, file vide.</b> Trois lectures superposées, du haut vers le bas : le plateau ; la bande de repères tactiques sous les dalles — le repère du héros <i>est</i> la flèche de son orientation, un trait le relie à la cible de sa capacité ; puis les cinq emplacements de la file, vides et contourés pour rester comptables ; et enfin le râtelier, six tuiles avec leur trait vert de disponibilité. La couleur des tuiles dit la famille : cyan pour les attaques, or pour le placement, <b>vert pour ce qui ne coûte pas de tour</b>.</figcaption>
+  <img src="captures/m6/starfall-1280x720-frame00.png" alt="Starfall M6, quatre ennemis et leurs intentions">
+  <figcaption><b>M6 — quatre archétypes, et ce qu'ils ont annoncé.</b> De gauche à droite : colosse explosif, archer, héros, sabreur rapide, lancier. Les silhouettes se distinguent sans lire un mot — le colosse est deux fois plus large, l'archer porte son arc, le lancier sa lance à l'horizontale. Au-dessus de chaque tête, un glyphe dit ce qu'il fera : flèche grise pour avancer, flèche rouge pour frapper. <b>La case du héros est cerclée de rouge</b> : l'archer l'a annoncée. La réponse est peinte là où se pose la question — « est-ce que je peux rester là ».</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m5/starfall-1280x720-frame03.png" alt="Starfall M5, trois tuiles posées sur la file">
+  <img src="captures/m6/starfall-1280x720-frame05.png" alt="Starfall M6, deux tours plus tard">
+  <figcaption><b>Deux tours plus tard.</b> Le sabreur rapide est mort — estoc puis frappe — le héros a fait demi-tour, et il a encaissé deux coups. Le lancier, lui, a pris son élan et affiche maintenant <b>charge</b> : il traversera toute la ligne au prochain tour. Le colosse attend, parce qu'il n'agit qu'une phase sur deux. Deux tuiles se rechargent, points ocre à l'appui.</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/m6/starfall-1280x720-frame02.png" alt="Starfall M5, trois tuiles posées sur la file">
   <figcaption><b>La file chargée : 3 sur 5, et le compteur de tours toujours à zéro.</b> Poser ne coûte rien. Les trois tuiles correspondantes sont éteintes au râtelier avec un trait crème — « elle est là-bas » — mais restent visibles : le joueur doit voir <i>laquelle</i> lui manque, pas seulement qu'il lui en manque une. Trois signes concordants désignent l'<b>estoc</b>, posé en dernier, comme le prochain à partir : un cadre, un trait sous la tuile, et un chevron qui pointe vers elle. L'exécution à l'envers de l'ordre de pose est le point le plus contre-intuitif du jeu ; un seul repère ne suffisait pas, la première version en avait un et il était illisible.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m5-etroit/starfall-400x240-frame00.png" alt="Starfall M5, grille de 15 dans une fenêtre 400x240">
+  <img src="captures/m6-etroit/starfall-400x240-frame00.png" alt="Starfall M5, grille de 15 dans une fenêtre 400x240">
   <figcaption><b>Le cas le plus contraint : 15 cases dans une fenêtre de 400×240, échelle ×1.</b> Plateau, repères, file et râtelier tiennent tous dans les 180 pixels-monde de haut, sans se recouvrir — un test le verrouille plutôt que de s'en remettre au coup d'œil.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m5-grille-5/starfall-960x540-frame00.png" alt="Starfall M5, arène 5 cases">
+  <img src="captures/m6-grille-5/starfall-960x540-frame00.png" alt="Starfall M5, arène 5 cases">
   <figcaption><b>La grille la plus étroite, 5 cases.</b> Centrée, avec du décor de part et d'autre.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m5-grille-15/starfall-960x540-frame00.png" alt="Starfall M5, arène 15 cases">
+  <img src="captures/m6-grille-15/starfall-960x540-frame00.png" alt="Starfall M5, arène 15 cases">
   <figcaption><b>La grille la plus large, 15 cases.</b> 300 px-monde dans une zone garantie de 320 : aucune case n'est coupée, et il n'a pas fallu changer de zoom entre les deux largeurs. C'est ce que le choix d'une case de 20 px achète.</figcaption>
 </figure>
 
@@ -237,6 +251,12 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev">
+  <div class="hd">M6 — <b>Review indépendante : à faire</b></div>
+  <p>Le jalon vient d'être construit ; la review en contexte neuf n'a pas encore été lancée.</p>
+  <p style="color:var(--dim2);font-size:12.5px;margin-bottom:0">Vérifié par mes soins en attendant : build en sortie 0 sans avertissement, <b>337 tests verts</b>, aucune régression de grille pixel dans les deux scènes. Un défaut a été attrapé en cours de route par le durcissement de M3 : la mire référençait encore l'ancien nom de sprite ennemi, et le chargement de l'atlas a échoué bruyamment au lieu d'afficher un rectangle vide.<br>Un autre a été attrapé par la conception : le trait « rapide » exécutait deux fois la <i>même</i> intention annoncée, donc le second déplacement ne faisait rien. Le corriger en recalculant entre les deux activations aurait trahi le télégraphe — j'ai changé la définition du trait pour que ce qui est annoncé couvre les deux.</p>
+</div>
 
 <div class="rev fail">
   <div class="hd">M5 &mdash; passe 1 &mdash; <b>Verdict : tient avec r&eacute;serves</b></div>

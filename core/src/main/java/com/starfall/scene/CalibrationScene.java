@@ -193,7 +193,7 @@ public final class CalibrationScene implements Scene {
         painter.sprite(atlas.region("ground/plain"), SHOWCASE_X, SHOWCASE_GROUND_Y);
         painter.sprite(atlas.region("ground/plain"), SHOWCASE_X + SHOWCASE_COLUMN, SHOWCASE_GROUND_Y);
         painter.sprite(atlas.region("hero/idle"), SHOWCASE_X + 2, SHOWCASE_FIGURE_Y);
-        painter.sprite(atlas.region("enemy/melee"), SHOWCASE_X + SHOWCASE_COLUMN + 2, SHOWCASE_FIGURE_Y);
+        painter.sprite(atlas.region("enemy/sabreur"), SHOWCASE_X + SHOWCASE_COLUMN + 2, SHOWCASE_FIGURE_Y);
 
         int tilesX = SHOWCASE_X + 2 * SHOWCASE_COLUMN;
         painter.sprite(atlas.region("tile/empty"), tilesX, SHOWCASE_FIGURE_Y + 16);

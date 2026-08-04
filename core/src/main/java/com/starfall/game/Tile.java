@@ -35,8 +35,9 @@ public enum Tile {
             if (arena.grid().occupantAt(target) == null) {
                 return ActionResult.NO_TARGET;
             }
-            // Retrait direct : place tenue pour les points de vie et les statuts de M7.
-            arena.grid().clear(target);
+            // Passe par arena.kill : c'est ce qui déclenche l'explosion d'un ennemi explosif.
+            // Les points de vie et les statuts restent l'affaire de M7.
+            arena.kill(target);
             return ActionResult.STRUCK;
         }
     },
@@ -54,7 +55,7 @@ public enum Tile {
             if (arena.grid().occupantAt(target) == null) {
                 return ActionResult.NO_TARGET;
             }
-            arena.grid().clear(target);
+            arena.kill(target);
             return ActionResult.STRUCK;
         }
     },
