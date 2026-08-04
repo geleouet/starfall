@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =====================================================================
+     02 — INK STANZA (détail, colonne verticale, LIFO base-anchored)
+     combat-design.md §3 + §1.1a (5 slots) + guards E/F/G/H/K2.
+     La strophe est un parchemin suspendu, lu vers le bas.
+       - Base-anchored : la 1re tuile posée est en bas.
+       - Newest en haut → résout EN PREMIER (LIFO).
+       - Drying gradient : la clause qui résout ensuite (top) est la plus
+         humide / foncée ; ça sèche vers le bas (guard H).
+       - Au-dessus de la pile : impressions "nib" fantômes (la ligne
+         d'atterrissage suivant plus forte).
+       - La colonne se vide du haut vers le bas pendant l'exécution.
+     ===================================================================== -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 720" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <linearGradient id="paper2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#EDE4D3"/>
+      <stop offset="1"   stop-color="#D9CFB8"/>
+    </linearGradient>
+    <filter id="bleed2"><feGaussianBlur stdDeviation="1.6"/></filter>
+    <filter id="softblur"><feGaussianBlur stdDeviation="0.6"/></filter>
+    <filter id="paperG2" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="9" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.38 0 0 0 0.07 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="foxBlur"><feGaussianBlur stdDeviation="14"/></filter>
+  </defs>
+
+  <!-- warm paper substrate (the margin the UI lives on, per combat §3) -->
+  <rect width="360" height="720" fill="url(#paper2)"/>
+  <!-- foxing stains -->
+  <g filter="url(#foxBlur)">
+    <ellipse cx="60"  cy="120" rx="44" ry="70" fill="#B5793A" opacity="0.16"/>
+    <ellipse cx="300" cy="220" rx="38" ry="60" fill="#9C6330" opacity="0.13"/>
+    <ellipse cx="80"  cy="560" rx="40" ry="64" fill="#B5793A" opacity="0.14"/>
+    <ellipse cx="290" cy="600" rx="34" ry="50" fill="#9C6330" opacity="0.12"/>
+  </g>
+
+  <!-- ochre seal at head (one author) -->
+  <rect x="158" y="40" width="44" height="44" fill="#B5793A" opacity="0.88" transform="rotate(-3 180 62)"/>
+  <rect x="166" y="48" width="28" height="28" fill="#D8A86A" opacity="0.55" transform="rotate(-3 180 62)"/>
+
+  <!-- HEALTH ROW at head of stanza (drying/fading strokes, drops downward) -->
+  <g transform="translate(96 108)">
+    <text x="-6" y="6" font-size="10" fill="#5E5C68" opacity="0.5" font-style="italic">vie</text>
+    <g>
+      <rect x="40" y="0"  width="108" height="6" rx="3" fill="#161A22" opacity="0.92"/>
+      <rect x="40" y="12" width="108" height="6" rx="3" fill="#161A22" opacity="0.78"/>
+      <rect x="40" y="24" width="108" height="6" rx="3" fill="#161A22" opacity="0.58"/>
+      <rect x="40" y="36" width="108" height="6" rx="3" fill="#161A22" opacity="0.26"/>
+      <rect x="40" y="48" width="108" height="6" rx="3" fill="#161A22" opacity="0.16"/>
+    </g>
+  </g>
+
+  <!-- ===== STANZA HEADER (serif letterspaced, low contrast) ===== -->
+  <text x="180" y="196" font-size="13" fill="#3E5470" text-anchor="middle" letter-spacing="6" opacity="0.7">STROPHE</text>
+  <line x1="120" y1="206" x2="240" y2="206" stroke="#5E5C68" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- ===== THE COLUMN : 5 capacity lines, base-anchored =====
+       Layout (top→bottom of the sheet):  capacity line 5 (top, empty)
+                                          capacity line 4 (empty, fainter)
+                                          --- banked stack (3 tiles) ---
+                                          slot 3 top  (newest, resolves 1st, WETTEST)
+                                          slot 2 mid  (drier)
+                                          slot 1 base (oldest, resolves LAST, DRIEST)
+                                          base anchor rail
+  -->
+  <g transform="translate(140 220)">
+
+    <!-- empty capacity lines (nib impressions) : faintest, the lower of the two stronger = next landing -->
+    <g>
+      <rect x="0" y="0"   width="80" height="56" rx="4" fill="none" stroke="#161A22" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.10"/>
+      <rect x="0" y="64"  width="80" height="56" rx="4" fill="none" stroke="#161A22" stroke-width="0.8" stroke-dasharray="3 4" opacity="0.20"/>
+      <text x="88" y="98" font-size="9" fill="#5E5C68" opacity="0.45" font-style="italic">← prochaine</text>
+    </g>
+
+    <!-- SLOT 3 (top of stack, NEWEST, resolves FIRST) : strongest/wettest. Glyph = THRUST -->
+    <g transform="translate(0 128)">
+      <rect x="-3" y="-2" width="86" height="60" rx="4" fill="#161A22" opacity="0.04"/>  <!-- wet surround -->
+      <!-- committed stroke + crossing body -->
+      <rect x="37" y="8"  width="6" height="44" fill="#12151C"/>
+      <rect x="8"  y="30" width="64" height="4.5" fill="#12151C"/>
+      <!-- soft wet halo (§3 item 2) -->
+      <rect x="34" y="5"  width="12" height="50" fill="#12151C" opacity="0.18" filter="url(#bleed2)"/>
+      <text x="88" y="44" font-size="10" fill="#12151C" opacity="0.75" font-weight="bold">1</text>
+      <text x="100" y="44" font-size="9" fill="#3E5470" opacity="0.6" font-style="italic">résout d'abord</text>
+    </g>
+
+    <!-- SLOT 2 (middle) : drier. Glyph = CUT -->
+    <g transform="translate(0 196)">
+      <rect x="37" y="10" width="6" height="38" fill="#12151C" opacity="0.74"/>
+      <rect x="35" y="8"  width="10" height="42" fill="#12151C" opacity="0.10" filter="url(#bleed2)"/>
+      <text x="88" y="36" font-size="10" fill="#12151C" opacity="0.55">2</text>
+    </g>
+
+    <!-- SLOT 1 (BASE, oldest, resolves LAST) : driest/faintest. Glyph = STEP -->
+    <g transform="translate(0 264)">
+      <rect x="10" y="34" width="60" height="6" rx="3" fill="#12151C" opacity="0.5"/>
+      <rect x="6"  y="40" width="28" height="6" rx="3" fill="#12151C" opacity="0.62"/>
+      <text x="88" y="40" font-size="10" fill="#12151C" opacity="0.4">3</text>
+      <text x="100" y="40" font-size="9" fill="#3E5470" opacity="0.5" font-style="italic">résout en dernier</text>
+    </g>
+
+    <!-- base anchor rail (the column's foot) -->
+    <line x1="-6" y1="324" x2="86" y2="324" stroke="#161A22" stroke-width="2" opacity="0.55"/>
+    <line x1="-6" y1="324" x2="86" y2="324" stroke="#161A22" stroke-width="6" opacity="0.15" filter="url(#bleed2)"/>
+  </g>
+
+  <!-- flow arrows explaining LIFO (design-proposal annotation) -->
+  <g stroke="#C8382E" stroke-width="1" fill="none" opacity="0.5" stroke-dasharray="3 3">
+    <path d="M120 388 Q100 388 100 360" marker-end=""/>
+  </g>
+  <text x="60" y="312" font-size="10" fill="#C8382E" opacity="0.7" font-style="italic">haut =</text>
+  <text x="56" y="324" font-size="10" fill="#C8382E" opacity="0.7" font-style="italic">plus frais</text>
+  <text x="60" y="560" font-size="10" fill="#5E5C68" opacity="0.6" font-style="italic">base =</text>
+  <text x="56" y="572" font-size="10" fill="#5E5C68" opacity="0.6" font-style="italic">ancrage</text>
+
+  <!-- vertical reading-direction cue (downward = temporal order of resolution) -->
+  <g stroke="#3E5470" stroke-width="0.8" opacity="0.3">
+    <line x1="30" y1="240" x2="30" y2="540"/>
+    <path d="M26 536 L30 544 L34 536" fill="none"/>
+  </g>
+  <text x="14" y="390" font-size="9" fill="#3E5470" opacity="0.45" font-style="italic" transform="rotate(-90 14 390)">lecture = ordre d'exécution</text>
+
+  <!-- paper grain overlay -->
+  <rect width="360" height="720" fill="#5A4A2E" opacity="0.0" filter="url(#paperG2)"/>
+
+  <text x="180" y="700" font-size="10" fill="#5E5C68" opacity="0.55" text-anchor="middle" font-style="italic">02 — strophe d'encre · 5 slots · base-anchored · LIFO · sèche vers le bas</text>
+</svg>

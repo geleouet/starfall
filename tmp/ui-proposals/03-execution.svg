@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =====================================================================
+     03 — EXECUTION FRAME (intimate, push-in, UI receded)
+     STYLE.md §5 (blades), §7.2 (parry = deflection curve), §7.3 (hit vocab),
+     §9 (push-in scales with lane), BP6 (smoke wisps), BP7 (sun).
+     Lames croisées près du centre, clash star sans trail, étincelles qui
+     flottent, fumées d'encre qui bouclent, UI fantôme.
+     ===================================================================== -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#2B3A5C"/>
+      <stop offset="0.38" stop-color="#5B4A6E"/>
+      <stop offset="0.70" stop-color="#D9736B"/>
+      <stop offset="0.84" stop-color="#E8907E"/>
+      <stop offset="1"   stop-color="#B85E48"/>
+    </linearGradient>
+    <radialGradient id="sun3" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"   stop-color="#F2B98A" stop-opacity="0.7"/>
+      <stop offset="0.5" stop-color="#D9736B" stop-opacity="0.35"/>
+      <stop offset="1"   stop-color="#D9736B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ground3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#161A22" stop-opacity="0"/>
+      <stop offset="0.4" stop-color="#0F1218" stop-opacity="0.6"/>
+      <stop offset="1"   stop-color="#080A0F" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="fig3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#181E30"/>
+      <stop offset="1"   stop-color="#0C0F18"/>
+    </linearGradient>
+    <!-- clash bloom core : warm white, only at contact -->
+    <radialGradient id="bloom" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"   stop-color="#FFF6E2" stop-opacity="1"/>
+      <stop offset="0.3" stop-color="#FFE0A8" stop-opacity="0.7"/>
+      <stop offset="1"   stop-color="#FF9A4D" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur3"><feGaussianBlur stdDeviation="2.2"/></filter>
+    <filter id="bigblur"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="diss3" x="-20%" y="-10%" width="140%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03 0.05" numOctaves="2" seed="4" result="t"/>
+      <feDisplacementMap in="SourceGraphic" in2="t" scale="22"/>
+    </filter>
+    <filter id="smokeDisp" x="-50%" y="-50%" width="200%" height="200%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.01 0.02" numOctaves="2" seed="11" result="t"/>
+      <feDisplacementMap in="SourceGraphic" in2="t" scale="30"/>
+    </filter>
+
+    <!-- Hero figure profile (facing right), large in frame -->
+    <symbol id="hero3" viewBox="0 0 200 440" overflow="visible">
+      <!-- topknot + streaming hair (escapees sell the dream) -->
+      <path d="M104 36 Q78 24 72 56 Q70 82 90 92 L82 64 Z" fill="#0C0F18"/>
+      <path d="M72 56 Q24 78 12 130 Q6 158 18 166 Q34 158 46 122 Q62 86 80 66 Z" fill="#12161F" opacity="0.9"/>
+      <path d="M80 50 Q40 60 26 90" stroke="#0C0F18" stroke-width="2" fill="none" opacity="0.7"/>
+      <!-- head + face profile (whole, §4b.1) -->
+      <path d="M98 48 Q126 48 132 70 Q134 86 124 94 L120 100 L124 106 Q118 114 110 114 L100 114 Z" fill="#1B2233"/>
+      <!-- eye : single high-contrast, specular offset toward light -->
+      <circle cx="120" cy="66" r="2.4" fill="#080A0F"/>
+      <circle cx="119.2" cy="65" r="0.9" fill="#FFF6E2"/>
+      <!-- jaw/neck wedge -->
+      <path d="M100 100 L110 114 L96 122 Z" fill="#0C0F18"/>
+      <!-- torso / outer robe -->
+      <path d="M76 118 Q66 168 58 230 Q48 312 48 372 L152 372 Q156 312 148 230 Q140 168 130 118 Z" fill="url(#fig3)"/>
+      <!-- ochre sash + knot -->
+      <path d="M52 224 Q104 216 156 228 L152 244 Q104 252 56 244 Z" fill="#B5793A"/>
+      <path d="M146 222 Q166 226 162 244 Q154 248 150 240 Z" fill="#9C6330"/>
+      <!-- second sheathed blade across back -->
+      <rect x="40" y="180" width="120" height="7" rx="3" fill="#24304A" transform="rotate(-10 100 183)"/>
+      <!-- arm reaching, hand+grip+guard cluster (B1) -->
+      <path d="M128 146 Q170 150 188 178 L178 188 Q160 160 124 156 Z" fill="#12172A"/>
+      <rect x="176" y="172" width="16" height="7" fill="#5A4A2E"/>           <!-- grip -->
+      <rect x="173" y="166" width="5" height="19" fill="#9C6330"/>          <!-- guard -->
+      <ellipse cx="183" cy="175" rx="4" ry="3.6" fill="#E3D2BB"/>           <!-- hand -->
+      <!-- star-blade : pale, faintly cool, hard edge — sweeping UP-LEFT in deflection arc -->
+      <path d="M178 170 L60 92 L66 100 L182 178 Z" fill="#EAF2F8"/>
+      <!-- forward leg + foot + ground splash -->
+      <path d="M76 330 Q66 360 66 384 L92 388 L100 356 Z" fill="#10141F"/>
+      <ellipse cx="84" cy="388" rx="22" ry="5" fill="#07090E"/>
+      <path d="M70 386 Q84 392 100 388" stroke="#07090E" stroke-width="2" fill="none" opacity="0.7"/>
+      <!-- trailing hem DISSOLVES (filter on use) -->
+      <path d="M48 330 Q34 366 40 396 Q70 408 120 404 Q156 400 152 380 L146 340 Z" fill="#0E1220"/>
+    </symbol>
+
+    <!-- Shadow figure profile (facing left, mirrored, wraith register per B4 option b) -->
+    <symbol id="shadow3" viewBox="0 0 200 440" overflow="visible">
+      <path d="M96 36 Q122 24 128 56 Q130 82 110 92 L118 64 Z" fill="#0C0F18"/>
+      <path d="M128 56 Q176 78 188 130 Q194 158 182 166 Q166 158 154 122 Q138 86 120 66 Z" fill="#12161F" opacity="0.9"/>
+      <path d="M120 48 Q160 60 174 90" stroke="#0C0F18" stroke-width="2" fill="none" opacity="0.7"/>
+      <path d="M102 48 Q74 48 68 70 Q66 86 76 94 L80 100 L76 106 Q82 114 90 114 L100 114 Z" fill="#1B2233"/>
+      <circle cx="80" cy="66" r="2.4" fill="#080A0F"/>
+      <circle cx="80.8" cy="65" r="0.9" fill="#FFF6E2"/>
+      <path d="M100 100 L90 114 L104 122 Z" fill="#0C0F18"/>
+      <path d="M124 118 Q134 168 142 230 Q152 312 152 372 L48 372 Q44 312 52 230 Q60 168 70 118 Z" fill="url(#fig3)"/>
+      <path d="M44 224 Q96 216 148 228 L152 244 Q96 252 48 244 Z" fill="#B5793A" opacity="0.7"/>
+      <!-- arm + blade sweeping DOWN-RIGHT (deflection partner) -->
+      <path d="M72 146 Q30 150 12 178 L22 188 Q40 160 76 156 Z" fill="#12172A"/>
+      <rect x="8" y="172" width="16" height="7" fill="#5A4A2E"/>
+      <rect x="22" y="166" width="5" height="19" fill="#9C6330"/>
+      <ellipse cx="17" cy="175" rx="4" ry="3.6" fill="#E3D2BB"/>
+      <path d="M22 170 L140 250 L134 242 L18 162 Z" fill="#EAF2F8"/>
+      <path d="M124 330 Q134 360 134 384 L108 388 L100 356 Z" fill="#10141F"/>
+      <ellipse cx="116" cy="388" rx="22" ry="5" fill="#07090E"/>
+      <path d="M152 330 Q166 366 160 396 Q130 408 80 404 Q44 400 48 380 L54 340 Z" fill="#0E1220"/>
+    </symbol>
+  </defs>
+
+  <!-- ===== BACKGROUND ===== -->
+  <rect width="960" height="720" fill="url(#sky3)"/>
+  <circle cx="480" cy="420" r="240" fill="url(#sun3)"/>
+
+  <!-- dense colored fog banks (Family C air, denser than planning) -->
+  <g filter="url(#bigblur)" opacity="0.5">
+    <rect x="-40" y="280" width="1040" height="60" fill="#B5793A" opacity="0.3"/>
+    <rect x="-40" y="340" width="1040" height="50" fill="#D9736B" opacity="0.3"/>
+    <rect x="-40" y="400" width="1040" height="60" fill="#5B4A6E" opacity="0.34"/>
+  </g>
+
+  <!-- ground smear -->
+  <rect x="0" y="540" width="960" height="180" fill="url(#ground3)"/>
+  <g stroke="#07090E" stroke-width="1.6" stroke-linecap="round" opacity="0.75">
+    <line x1="240" y1="566" x2="237" y2="550"/>
+    <line x1="320" y1="572" x2="323" y2="554"/>
+    <line x1="430" y1="566" x2="428" y2="550"/>
+    <line x1="540" y1="572" x2="543" y2="554"/>
+    <line x1="660" y1="566" x2="657" y2="550"/>
+    <line x1="760" y1="572" x2="763" y2="554"/>
+  </g>
+
+  <!-- ===== FIGURES (large, intimate framing) ===== -->
+  <g transform="translate(170 160)" filter="url(#diss3)">
+    <use href="#hero3" width="200" height="440"/>
+  </g>
+  <g transform="translate(770 160) scale(-1 1)" filter="url(#diss3)" opacity="0.97">
+    <use href="#shadow3" width="200" height="440"/>
+  </g>
+
+  <!-- ===== INK SMOKE STREAMERS off silhouettes (BP6 : curl, garment-scale escapees) ===== -->
+  <g stroke="#12161F" fill="none" stroke-linecap="round" opacity="0.6" filter="url(#smokeDisp)">
+    <path d="M250 360 Q210 340 200 380 Q190 420 230 430" stroke-width="3"/>
+    <path d="M270 420 Q240 440 260 480 Q280 500 250 520" stroke-width="2.4"/>
+    <path d="M700 360 Q740 340 760 380 Q770 420 730 430" stroke-width="3"/>
+    <path d="M680 420 Q710 440 690 480 Q670 500 700 520" stroke-width="2.4"/>
+  </g>
+  <!-- hair thrown ahead along travel (knockback/carry vocab, §7.2) -->
+  <g stroke="#0C0F18" fill="none" stroke-linecap="round" opacity="0.7" filter="url(#smokeDisp)">
+    <path d="M190 210 Q150 200 130 230" stroke-width="2"/>
+    <path d="M770 210 Q810 200 830 230" stroke-width="2"/>
+  </g>
+
+  <!-- ===== THE CLASH (§5 : star bloom, 4-6 long soft rays, 8-20 embers floating) ===== -->
+  <!-- blades meet ~ (480,300) -->
+  <g transform="translate(480 300)">
+    <!-- soft star bloom core -->
+    <circle r="46" fill="url(#bloom)"/>
+    <!-- 5 long soft rays -->
+    <g stroke="#FFF6E2" stroke-width="2.4" opacity="0.55" filter="url(#blur3)">
+      <line x1="0" y1="0" x2="0" y2="-110"/>
+      <line x1="0" y1="0" x2="104" y2="-36"/>
+      <line x1="0" y1="0" x2="98" y2="48"/>
+      <line x1="0" y1="0" x2="-104" y2="36"/>
+      <line x1="0" y1="0" x2="-96" y2="-52"/>
+    </g>
+    <circle r="6" fill="#FFF6E2"/>
+  </g>
+
+  <!-- embers floating slowly outward+upward, fading (NOT grinder sparks) -->
+  <g fill="#FF9A4D" filter="url(#blur3)">
+    <circle cx="430" cy="280" r="2.2" opacity="0.8"/>
+    <circle cx="528" cy="276" r="1.8" opacity="0.7"/>
+    <circle cx="448" cy="252" r="1.4" opacity="0.6"/>
+    <circle cx="510" cy="248" r="1.6" opacity="0.7"/>
+    <circle cx="466" cy="226" r="1.2" opacity="0.5"/>
+    <circle cx="492" cy="220" r="1.0" opacity="0.5"/>
+    <circle cx="408" cy="304" r="1.6" opacity="0.6"/>
+    <circle cx="556" cy="300" r="1.8" opacity="0.7"/>
+    <circle cx="424" cy="336" r="1.4" opacity="0.5"/>
+    <circle cx="540" cy="338" r="1.6" opacity="0.6"/>
+    <circle cx="478" cy="200" r="1.0" opacity="0.4"/>
+    <circle cx="500" cy="190" r="0.9" opacity="0.4"/>
+  </g>
+
+  <!-- ===== JEWEL MOTES ===== -->
+  <g>
+    <circle cx="140" cy="180" r="4" fill="#5FD8E8" opacity="0.5" filter="url(#blur3)"/>
+    <circle cx="820" cy="160" r="3" fill="#E06BA8" opacity="0.5" filter="url(#blur3)"/>
+    <circle cx="880" cy="280" r="3.4" fill="#FF9A4D" opacity="0.45" filter="url(#blur3)"/>
+    <circle cx="90" cy="320" r="3" fill="#5FD8E8" opacity="0.45" filter="url(#blur3)"/>
+  </g>
+
+  <!-- ===== UI RECEDED (ghost stanza upper-left sky, very faint — §C guard) ===== -->
+  <g transform="translate(60 70)" opacity="0.16">
+    <rect x="0" y="0"  width="26" height="36" rx="2" fill="#12151C"/>
+    <rect x="0" y="42" width="26" height="36" rx="2" fill="#12151C" opacity="0.7"/>
+    <rect x="0" y="84" width="26" height="36" rx="2" fill="#12151C" opacity="0.4"/>
+    <line x1="-4" y1="124" x2="30" y2="124" stroke="#12151C" stroke-width="1.5"/>
+  </g>
+
+  <!-- held breath : a faint luminous breathing ring around the clash (§7.3 "held breath", not a freeze) -->
+  <circle cx="480" cy="300" r="120" fill="none" stroke="#FFF6E2" stroke-width="1" opacity="0.10"/>
+
+  <text x="480" y="700" font-size="11" fill="#EDE4D3" opacity="0.55" text-anchor="middle" font-style="italic">03 — exécution · push-in intime · clash star sans trail · fumées qui bouclent (BP6) · UI fantôme</text>
+</svg>

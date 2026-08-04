@@ -211,6 +211,32 @@ public final class Scheduler {
     private final TreeSet<Integer> carriers = new TreeSet<>();
     private double lastRamp = Double.NEGATIVE_INFINITY;
 
+    /**
+     * One blow landed, in seconds: which body, when, and what its ink stands at
+     * after.
+     *
+     * <p>This exists for the interface, and it lives here rather than in the
+     * readout because this class is the project's <em>only</em> ordinal-to-seconds
+     * mapping: {@code CombatEvent.Hit} says a stroke lands at 40 parts of beat
+     * seven, and the second that becomes is decided in {@link #hit}. A health row
+     * that dropped at the end of the phrase instead of at the blow would be a
+     * light asserting an event the picture does not contain, in reverse -- the
+     * picture containing an event the light ignores.
+     *
+     * <p>{@code hpAfter} is carried rather than the amount, because the engine's
+     * {@code Hit} already states it and a row drawn from absolute values cannot
+     * drift by missing one event.
+     */
+    public record Wound(int body, double at, int hpAfter) {
+    }
+
+    /** One body going: when its dissolve starts and how many seconds it spans. */
+    public record Passing(int body, double at, double span) {
+    }
+
+    private final List<Wound> wounds = new ArrayList<>();
+    private final List<Passing> passings = new ArrayList<>();
+
     private Framing framing;
     /**
      * The shot this score plans in: {@link Stage#planning(Standing)} taken from the
@@ -276,6 +302,54 @@ public final class Scheduler {
      */
     public Scheduler pause(double seconds) {
         floor = Math.max(floor, cursor() + Math.max(0.0, seconds));
+        return this;
+    }
+
+    /**
+     * Every blow this score has landed so far, in seconds. Read-only; grows with
+     * {@link #accept}.
+     */
+    public List<Wound> wounds() {
+        return Collections.unmodifiableList(wounds);
+    }
+
+    /** Every death this score has staged so far, in seconds. */
+    public List<Passing> passings() {
+        return Collections.unmodifiableList(passings);
+    }
+
+    /**
+     * Floors the next beat at an <b>absolute</b> schedule time.
+     *
+     * <p>{@link #pause(double)} states the gap relative to the cursor, which is
+     * right for a scripted score and wrong for a played one: a player who thought
+     * for eleven seconds has moved the clock and the scheduler has no way to know.
+     * The live loop calls this with the director's own time before accepting a
+     * command, so a beat can never be placed in the past of the picture that has
+     * already been drawn. Like {@code pause}, it can only move beats later, so the
+     * ordering theorem is untouched.
+     */
+    public Scheduler notBefore(double at) {
+        floor = Math.max(floor, at);
+        return this;
+    }
+
+    /**
+     * Opens the score on the planning shot.
+     *
+     * <p>A staged bout never needed this: its first beat arrives within a
+     * second, {@code track} emits a camera key, and {@code Schedule.framingAt}
+     * has something to read. A <em>played</em> fight opens with no beats at all
+     * -- the player is looking at the board -- and with an empty camera track
+     * {@code framingAt} falls back to the lane's own framing, which on an
+     * eleven-tile Fold is 12.5 tiles against the exchange plan's 6.5. Measured
+     * live before this existed: the opening frame of {@code play-fold} read
+     * {@code intimacy (0, 12.5)} where every graded planning shot reads 6.5.
+     * One drift key at t = 0 pins the opening to the plan, and satisfies
+     * STYLE.md 9's "the camera is never perfectly still" while it does it.
+     */
+    public Scheduler openOnPlan() {
+        drift(0.0, Timing.CAMERA_MIN_DRIFT);
         return this;
     }
 
@@ -537,6 +611,7 @@ public final class Scheduler {
             dir = -standing.facing(e.target()).step();
         }
         double force = Math.min(1.0, 0.30 + 0.18 * e.amount());
+        wounds.add(new Wound(e.target(), t, e.hpAfter()));
 
         // STYLE.md 7.3's four reactions, all four of them, and none of them a freeze.
         emit(new Directive.Ink(e.target(), Directive.InkKind.BLOOM, origin, dir, 0.0, force,
@@ -790,6 +865,7 @@ public final class Scheduler {
             case DRIVE -> 0.7;
             case HEADLONG -> 1.0;
         };
+        passings.add(new Passing(e.entity(), t, span));
         emit(new Directive.Ink(e.entity(), Directive.InkKind.DISSOLVE,
                 stage.hip(e.entity(), standing), dir, 0.08, force, t, span));
         emit(new Directive.PoseChange(e.entity(), Stance.SLACK,

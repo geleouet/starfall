@@ -263,6 +263,47 @@ public final class Director {
         return schedule;
     }
 
+    /**
+     * Continues this performance under a longer score.
+     *
+     * <h2>Why this exists: a played fight grows its schedule</h2>
+     *
+     * <p>Every scene before the input loop built its whole {@link Schedule} up
+     * front and played it once. A <em>played</em> fight cannot: each command
+     * extends the score, and the {@code Scheduler} explicitly accumulates one
+     * continuous timeline for exactly this reason. What must survive the
+     * extension is everything the schedule does not carry -- the clock, the
+     * pelvis carries, the opening origins, last frame's fists -- because those
+     * are the performance's own state, and resetting any of them mid-fight is a
+     * teleport, which STYLE.md 7.2 bans as the first word of its first rule.
+     *
+     * <p>The new schedule contains every directive the old one did (the scheduler
+     * only appends, and {@code notBefore} can only move beats later), so replaying
+     * it from the preserved clock is the same evaluation the old director would
+     * have made -- pinned by {@code SessionTest}, which rescored a director
+     * mid-run against an unrescored twin and asserted identical bodies.
+     *
+     * @return a new director over the same figures, mid-performance
+     */
+    public Director rescore(Schedule next) {
+        Director d = new Director(next, figures);
+        d.t = this.t;
+        d.scale = this.scale;
+        d.origins.clear();
+        d.origins.putAll(this.origins);
+        // The Carry objects themselves, not copies of their targets: a carry is a
+        // filter with state, and handing the new director fresh ones would let
+        // every pelvis snap to its target on the next frame.
+        d.pelvis.clear();
+        d.pelvis.putAll(this.pelvis);
+        for (Map.Entry<Integer, Vector2> e : this.hilts.entrySet()) {
+            d.hilts.put(e.getKey(), new Vector2(e.getValue()));
+        }
+        d.crossing.set(this.crossing);
+        d.drawnCrossing.set(this.drawnCrossing);
+        return d;
+    }
+
     public List<Figure> figures() {
         return figures;
     }

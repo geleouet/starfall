@@ -264,6 +264,17 @@ public class LaneScene implements Scene, SceneProbe {
             ui.begin(camera.combined);
             LaneInterface.ground(ui, look, Director.stretchTiles(Stage.TILE_WIDTH),
                     camera.viewportHeight);
+            // The Charted Shadows' strokes, pinned to the bodies they count. The
+            // figure's own stand position rather than the chapter's tile, so the
+            // row travels with the body instead of waiting for it on the board.
+            for (Look.Shadow s : look.shadows()) {
+                for (Figure f : director.figures()) {
+                    if (f.body() == s.body()) {
+                        LaneInterface.shadow(ui, s, (float) f.standX(),
+                                camera.viewportHeight, look.intimacy());
+                    }
+                }
+            }
             ui.end();
 
             // The margin of the sheet, in frame heights -- and still under the figures.
@@ -355,6 +366,14 @@ public class LaneScene implements Scene, SceneProbe {
         for (Figure f : director.figures()) {
             com.badlogic.gdx.math.Vector2 v = new com.badlogic.gdx.math.Vector2();
             out.put("body" + f.body(), worldPixel(f.where("hips", v).x, f.where("hips", v).y));
+        }
+        for (Look.Shadow s : look.shadows()) {
+            for (Figure f : director.figures()) {
+                if (f.body() == s.body()) {
+                    out.put("shadow" + s.body(),
+                            worldPixel((float) f.standX(), LaneInterface.SHADOW_Y));
+                }
+            }
         }
         out.put("intimacy", new float[] {intimacy(), (float) director.framing().widthTiles()});
         return out;

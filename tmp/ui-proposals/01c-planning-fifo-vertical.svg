@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =====================================================================
+     01c — PLANNING FRAME (FIFO VERTICAL au-dessus de chaque personnage)
+     Colonne verticale au-dessus de chaque tête, lue top→bottom.
+       - FIFO : le haut (le plus ancien, premier entré) résout en premier.
+       - Banking : on ajoute en bas de la colonne ; la consommation se fait
+         par le haut (la strophe "descend" sur le combattant).
+       - Le slot du haut = plus humide/foncé (résout ensuite) ; sèche vers le bas.
+       - Ombre : sa propre colonne = intention visible ; glyphes mirroir.
+       - Strikethrough vermillon sur la tuile menacée par le HAUT de la file ennemie.
+     ===================================================================== -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#2B3A5C"/>
+      <stop offset="0.42" stop-color="#5B4A6E"/>
+      <stop offset="0.74" stop-color="#D9736B"/>
+      <stop offset="0.86" stop-color="#E8907E"/>
+      <stop offset="1"    stop-color="#C26A52"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"   stop-color="#F2B98A" stop-opacity="0.55"/>
+      <stop offset="0.45" stop-color="#D9736B" stop-opacity="0.30"/>
+      <stop offset="1"   stop-color="#D9736B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#161A22" stop-opacity="0"/>
+      <stop offset="0.35" stop-color="#161A22" stop-opacity="0.55"/>
+      <stop offset="1"   stop-color="#0F1218" stop-opacity="0.92"/>
+    </linearGradient>
+    <linearGradient id="figGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#1A2030"/>
+      <stop offset="0.55" stop-color="#15192A"/>
+      <stop offset="1"   stop-color="#10131C"/>
+    </linearGradient>
+    <filter id="paper" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.92 0 0 0 0 0.89 0 0 0 0 0.83 0 0 0 0.06 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="bleed"><feGaussianBlur stdDeviation="2.4"/></filter>
+    <filter id="softink"><feGaussianBlur stdDeviation="0.5"/></filter>
+    <filter id="dissolve" x="-20%" y="-10%" width="140%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035 0.06" numOctaves="2" seed="7" result="t"/>
+      <feDisplacementMap in="SourceGraphic" in2="t" scale="18"/>
+    </filter>
+    <filter id="vermWash" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="fogBlur"><feGaussianBlur stdDeviation="9"/></filter>
+
+    <symbol id="figure" viewBox="0 0 120 260" overflow="visible">
+      <path d="M62 22 Q44 12 40 34 Q38 52 50 60 L46 40 Z" fill="#10131C"/>
+      <path d="M40 34 Q12 52 6 92 Q3 112 12 116 Q20 110 26 86 Q34 58 44 44 Z" fill="#15192A" opacity="0.85"/>
+      <path d="M58 30 Q74 30 78 46 Q80 58 74 64 L70 70 L74 74 Q70 80 64 80 L58 80 Z" fill="#1C2233"/>
+      <circle cx="71" cy="49" r="1.6" fill="#0A0C12"/>
+      <circle cx="70.4" cy="48.4" r="0.6" fill="#FFF6E2"/>
+      <path d="M44 74 Q40 110 36 150 Q30 200 30 232 L90 232 Q92 200 86 150 Q82 110 78 74 Z" fill="url(#figGrad)"/>
+      <path d="M34 138 Q60 134 88 140 L86 150 Q60 154 36 150 Z" fill="#B5793A"/>
+      <path d="M82 138 Q92 140 90 150 Q86 152 84 148 Z" fill="#9C6330"/>
+      <rect x="34" y="150" width="58" height="5" rx="2" fill="#24304A" transform="rotate(-8 60 152)"/>
+      <path d="M76 96 Q98 104 108 124 L102 130 Q92 112 74 108 Z" fill="#171C2C"/>
+      <rect x="100" y="120" width="10" height="5" fill="#5A4A2E"/>
+      <rect x="98"  y="117" width="3"  height="11" fill="#9C6330"/>
+      <circle cx="104" cy="122" r="2.2" fill="#E3D2BB"/>
+      <rect x="108" y="58" width="3" height="64" fill="#EAF2F8"/>
+      <path d="M44 210 Q40 226 40 238 L52 240 L56 224 Z" fill="#14182A"/>
+      <ellipse cx="48" cy="240" rx="12" ry="3" fill="#0C0F16"/>
+      <path d="M30 210 Q22 230 26 250 Q40 258 70 256 Q92 254 90 240 L86 214 Z" fill="#121626"/>
+    </symbol>
+
+    <!-- glyph symbols orientés "vers la droite" -->
+    <symbol id="g-cut" viewBox="-30 -30 60 60" overflow="visible">
+      <rect x="-2" y="-24" width="4" height="48" rx="1.5" fill="#12151C" filter="url(#softink)"/>
+      <rect x="-3" y="-24" width="6" height="48" fill="#12151C" opacity="0.16" filter="url(#bleed)"/>
+    </symbol>
+    <symbol id="g-thrust" viewBox="-30 -30 60 60" overflow="visible">
+      <rect x="-1.5" y="-26" width="3" height="52" fill="#12151C" filter="url(#softink)"/>
+      <rect x="-17" y="-2" width="34" height="3.2" fill="#12151C" filter="url(#softink)"/>
+    </symbol>
+    <symbol id="g-parry" viewBox="-30 -30 60 60" overflow="visible">
+      <path d="M-21 -22 Q0 -26 21 -16" stroke="#12151C" stroke-width="3" fill="none" stroke-linecap="round" filter="url(#softink)"/>
+      <path d="M-17 -4 Q0 -8 17 2" stroke="#12151C" stroke-width="3" fill="none" stroke-linecap="round" filter="url(#softink)"/>
+    </symbol>
+    <symbol id="g-draw" viewBox="-30 -30 60 60" overflow="visible">
+      <path d="M-24 -18 Q0 -2 24 -18" stroke="#12151C" stroke-width="2.8" fill="none" stroke-linecap="round" filter="url(#softink)"/>
+      <path d="M20 -20 Q26 -8 16 0" stroke="#12151C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <circle cx="-24" cy="-18" r="1.6" fill="#12151C"/>
+    </symbol>
+    <symbol id="g-step" viewBox="-30 -30 60 60" overflow="visible">
+      <rect x="-24" y="6" width="8" height="4" rx="2" fill="#12151C" opacity="0.65" filter="url(#softink)"/>
+      <rect x="-16" y="4" width="34" height="5" rx="2.5" fill="#12151C" filter="url(#softink)"/>
+      <rect x="16" y="2" width="4" height="9" rx="1" fill="#12151C"/>
+    </symbol>
+  </defs>
+
+  <!-- ============== BACKGROUND ============== -->
+  <rect width="960" height="720" fill="url(#sky)"/>
+  <circle cx="500" cy="430" r="190" fill="url(#sun)"/>
+
+  <!-- ============== FOG BANDS ============== -->
+  <g filter="url(#fogBlur)" opacity="0.55">
+    <rect x="-40" y="300" width="1040" height="46" fill="#B5793A" opacity="0.28"/>
+    <rect x="-40" y="352" width="1040" height="38" fill="#D9736B" opacity="0.26"/>
+    <rect x="-40" y="396" width="1040" height="52" fill="#5B4A6E" opacity="0.30"/>
+    <rect x="-40" y="448" width="1040" height="40" fill="#D6D2CE" opacity="0.34"/>
+    <rect x="-40" y="498" width="1040" height="34" fill="#4A5A6B" opacity="0.30"/>
+  </g>
+
+  <!-- ============== GROUND + grass ============== -->
+  <rect x="0" y="540" width="960" height="180" fill="url(#ground)"/>
+  <g stroke="#0E1118" stroke-width="1.4" stroke-linecap="round" opacity="0.7">
+    <line x1="180" y1="566" x2="183" y2="552"/><line x1="240" y1="558" x2="237" y2="544"/>
+    <line x1="330" y1="564" x2="333" y2="550"/><line x1="420" y1="560" x2="418" y2="546"/>
+    <line x1="560" y1="566" x2="563" y2="552"/><line x1="640" y1="560" x2="637" y2="546"/>
+    <line x1="720" y1="566" x2="723" y2="552"/><line x1="820" y1="562" x2="818" y2="548"/>
+  </g>
+
+  <!-- ============== LANE ============== -->
+  <g opacity="0.5">
+    <g fill="#D6D2CE" opacity="0.18">
+      <rect x="120" y="528" width="2" height="22" rx="1"/><rect x="190" y="528" width="2" height="22" rx="1"/>
+      <rect x="260" y="528" width="2" height="22" rx="1"/><rect x="330" y="528" width="2" height="22" rx="1"/>
+      <rect x="540" y="528" width="2" height="22" rx="1"/><rect x="750" y="528" width="2" height="22" rx="1"/>
+      <rect x="820" y="528" width="2" height="22" rx="1"/>
+    </g>
+    <g fill="#C8C2B8" opacity="0.55">
+      <rect x="398" y="524" width="4" height="30" rx="2"/>
+      <rect x="678" y="524" width="4" height="30" rx="2"/>
+      <rect x="468" y="524" width="3" height="28" rx="1.5"/>
+    </g>
+  </g>
+
+  <!-- ============== VERMILLION STRIKETHROUGH
+       tie avec le HAUT de la file ennemie (TIRER → menace la tuile x≈610). ============== -->
+  <g filter="url(#vermWash)"><rect x="582" y="520" width="60" height="40" fill="#C8382E" opacity="0.40"/></g>
+  <path d="M586 540 Q612 536 638 540" stroke="#C8382E" stroke-width="1.4" fill="none" opacity="0.6"/>
+
+  <!-- ============== FIGURES ============== -->
+  <g transform="translate(386 290) scale(0.95)" filter="url(#dissolve)"><use href="#figure" width="120" height="260"/></g>
+  <g transform="translate(610 296) scale(-0.95 0.92)" filter="url(#dissolve)" opacity="0.96"><use href="#figure" width="120" height="260"/></g>
+
+  <!-- ============== JEWEL MOTES ============== -->
+  <g>
+    <circle cx="210" cy="180" r="4" fill="#5FD8E8" opacity="0.5" filter="url(#bleed)"/>
+    <circle cx="760" cy="150" r="3" fill="#E06BA8" opacity="0.5" filter="url(#bleed)"/>
+    <circle cx="850" cy="240" r="3.5" fill="#FF9A4D" opacity="0.45" filter="url(#bleed)"/>
+    <circle cx="90"  cy="430" r="3" fill="#FF9A4D" opacity="0.35" filter="url(#bleed)"/>
+    <circle cx="900" cy="400" r="2.5" fill="#5FD8E8" opacity="0.4" filter="url(#bleed)"/>
+  </g>
+
+  <!-- ============== MARGINS ============== -->
+  <g>
+    <ellipse cx="55"  cy="120" rx="42" ry="60" fill="#B5793A" opacity="0.10" filter="url(#fogBlur)"/>
+    <ellipse cx="905" cy="140" rx="40" ry="55" fill="#B5793A" opacity="0.10" filter="url(#fogBlur)"/>
+    <rect x="42"  y="60" width="22" height="22" fill="#B5793A" opacity="0.85" transform="rotate(-4 53 71)"/>
+    <rect x="895" y="60" width="22" height="22" fill="#B5793A" opacity="0.85" transform="rotate(4 906 71)"/>
+  </g>
+
+  <!-- =====================================================================
+       FIFO VERTICAL AU-DESSUS DE CHAQUE TÊTE
+       Colonne lue top→bottom. Top = premier entré = résout d'abord (le plus
+       humide). On banque en bas ; la consommation se fait par le haut
+       (la strophe descend sur le combattant). Flèche verticale pointant vers le bas.
+       ===================================================================== -->
+
+  <!-- ===== HERO : colonne centrée x≈446, 3 tuiles  PAS(haut) → PERCER → PARER(bas) ===== -->
+  <g transform="translate(446 0)">
+    <!-- ligne nib verticale (le fil de la colonne) -->
+    <line x1="0" y1="150" x2="0" y2="296" stroke="#12151C" stroke-width="1" opacity="0.35"/>
+    <line x1="0" y1="150" x2="0" y2="296" stroke="#12151C" stroke-width="4" opacity="0.10" filter="url(#bleed)"/>
+
+    <!-- slot TOP (résout EN PREMIER, le plus humide) : PAS -->
+    <g transform="translate(0 172)">
+      <rect x="-24" y="-22" width="48" height="44" rx="4" fill="#12151C" opacity="0.06"/>
+      <use href="#g-step" x="-26" y="-26" width="52" height="52"/>
+      <!-- caret "prochaine" au-dessus -->
+      <path d="M-5 -32 L0 -27 L5 -32 Z" fill="#C8382E" opacity="0.85"/>
+    </g>
+    <!-- slot MID : PERCER -->
+    <g transform="translate(0 224)" opacity="0.76">
+      <use href="#g-thrust" x="-26" y="-26" width="52" height="52"/>
+    </g>
+    <!-- slot BOTTOM (résout en dernier, le plus sec) : PARER -->
+    <g transform="translate(0 276)" opacity="0.5">
+      <use href="#g-parry" x="-26" y="-26" width="52" height="52"/>
+    </g>
+
+    <!-- flèche de sens (top→bottom = temps) -->
+    <g stroke="#3E5470" stroke-width="0.9" fill="none" opacity="0.5">
+      <line x1="38" y1="172" x2="38" y2="270"/>
+      <path d="M34 266 L38 274 L42 266"/>
+    </g>
+    <text x="44" y="176" font-size="9" fill="#3E5470" opacity="0.6" font-style="italic">résout</text>
+    <text x="44" y="187" font-size="9" fill="#3E5470" opacity="0.6" font-style="italic">d'abord</text>
+
+    <text x="0" y="134" font-size="10" fill="#EDE4D3" opacity="0.6" text-anchor="middle" letter-spacing="4" font-style="italic">STROPHE — PÉLERIN</text>
+  </g>
+
+  <!-- ===== OMBRE : colonne centrée x≈670, 2 tuiles  TIRER(haut) → COUPER(bas), mirroir ===== -->
+  <g transform="translate(670 0)">
+    <line x1="0" y1="150" x2="0" y2="296" stroke="#12151C" stroke-width="1" opacity="0.35"/>
+    <line x1="0" y1="150" x2="0" y2="296" stroke="#12151C" stroke-width="4" opacity="0.10" filter="url(#bleed)"/>
+
+    <!-- slot TOP (intention immédiate, vermillon) : TIRER, mirroir -->
+    <g transform="translate(0 172)">
+      <rect x="-24" y="-22" width="48" height="44" rx="4" fill="#C8382E" opacity="0.07"/>
+      <g transform="scale(-1 1)"><use href="#g-draw" x="-26" y="-26" width="52" height="52"/></g>
+      <path d="M-5 -32 L0 -27 L5 -32 Z" fill="#C8382E" opacity="0.9"/>
+    </g>
+    <!-- slot BOTTOM : COUPER, mirroir -->
+    <g transform="translate(0 276)" opacity="0.6">
+      <g transform="scale(-1 1)"><use href="#g-cut" x="-26" y="-26" width="52" height="52"/></g>
+    </g>
+
+    <g stroke="#7A4A38" stroke-width="0.9" fill="none" opacity="0.5">
+      <line x1="-38" y1="172" x2="-38" y2="270"/>
+      <path d="M-42 266 L-38 274 L-34 266"/>
+    </g>
+    <text x="0" y="134" font-size="10" fill="#EDE4D3" opacity="0.65" text-anchor="middle" letter-spacing="4" font-style="italic">INTENTION — OMBRE</text>
+  </g>
+
+  <!-- ===== HEALTH ROWS aux pieds ===== -->
+  <g transform="translate(446 512)">
+    <rect x="-50" y="0"  width="100" height="5" rx="2.5" fill="#12151C" opacity="0.85"/>
+    <rect x="-50" y="9"  width="100" height="5" rx="2.5" fill="#12151C" opacity="0.70"/>
+    <rect x="-50" y="18" width="100" height="5" rx="2.5" fill="#12151C" opacity="0.50"/>
+    <rect x="-50" y="27" width="100" height="5" rx="2.5" fill="#12151C" opacity="0.22"/>
+  </g>
+  <g transform="translate(670 512)">
+    <rect x="-40" y="0"  width="80" height="5" rx="2.5" fill="#12151C" opacity="0.85"/>
+    <rect x="-40" y="9"  width="80" height="5" rx="2.5" fill="#12151C" opacity="0.68"/>
+    <rect x="-40" y="18" width="80" height="5" rx="2.5" fill="#12151C" opacity="0.20"/>
+    <rect x="-40" y="27" width="80" height="5" rx="2.5" fill="#12151C" opacity="0.14"/>
+  </g>
+
+  <!-- ============== PAPER GRAIN ============== -->
+  <rect width="960" height="720" fill="#EDE4D3" opacity="0.0" filter="url(#paper)"/>
+
+  <g font-size="11" fill="#EDE4D3" opacity="0.6" font-style="italic">
+    <text x="24" y="700">01c — planning (FIFO vertical au-dessus de chaque tête) · haut = résout d'abord · la strophe descend sur le corps</text>
+  </g>
+</svg>

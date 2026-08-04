@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =====================================================================
+     04 — TILE ALPHABET (les 9 glyphes, marks d'encre sur papier)
+     D'après combat-design.md §2.2 + system5-debt §4 (cold-read fixes).
+     Règles de l'alphabet :
+       - rien ne s'amincit en pointe de lame sauf l'acier (→ BACK_STEP ne
+         peut pas copier ce profile).
+       - THRUST a "un corps dedans" : un trait en croise un autre à angle
+         raide (aucun mark de mouvement ne fait ça).
+       - FEINT = geste + le geste non fait : un trait commit + un fantôme
+         sec décalé.
+       - SWEEP est le seul autorisé à être son propre miroir (devant+derrière).
+       - STEP : la masse pointe vers l'ennemi ; BACK_STEP : la masse est
+         le poids qui se retire (derrière, bas).
+     Chaque glyphe est montré dans son cartouche de 71 px (la taille shipped).
+     ===================================================================== -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <linearGradient id="paper4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EDE4D3"/>
+      <stop offset="1" stop-color="#DCD0B6"/>
+    </linearGradient>
+    <filter id="paperG4" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="5" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.42 0 0 0 0 0.36 0 0 0 0 0.28 0 0 0 0.06 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="inkBleed4"><feGaussianBlur stdDeviation="0.8"/></filter>
+    <filter id="foxBlur4"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="dryMark"><feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="2" seed="2" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="3"/></filter>
+
+    <!-- 71px cartouche frame (faint, just to show the tile boundary) -->
+    <symbol id="cartouche" viewBox="0 0 71 71" overflow="visible">
+      <rect x="0.5" y="0.5" width="70" height="70" fill="none" stroke="#5E5C68" stroke-width="0.4" stroke-dasharray="2 3" opacity="0.25"/>
+    </symbol>
+  </defs>
+
+  <!-- paper substrate -->
+  <rect width="900" height="900" fill="url(#paper4)"/>
+  <!-- foxing -->
+  <g filter="url(#foxBlur4)">
+    <ellipse cx="120" cy="120" rx="80" ry="100" fill="#B5793A" opacity="0.14"/>
+    <ellipse cx="780" cy="180" rx="70" ry="90" fill="#9C6330" opacity="0.12"/>
+    <ellipse cx="150" cy="760" rx="90" ry="110" fill="#B5793A" opacity="0.13"/>
+    <ellipse cx="760" cy="740" rx="70" ry="90" fill="#9C6330" opacity="0.12"/>
+  </g>
+
+  <!-- title -->
+  <text x="450" y="60" font-size="20" fill="#3E5470" text-anchor="middle" letter-spacing="10" opacity="0.7">ALPHABET DES TUILES</text>
+  <line x1="300" y1="78" x2="600" y2="78" stroke="#5E5C68" stroke-width="0.6" opacity="0.4"/>
+  <text x="450" y="100" font-size="11" fill="#5E5C68" text-anchor="middle" opacity="0.55" font-style="italic">neuf marques · chacune gagne son sens par la forme, pas par le texte</text>
+
+  <!-- ===== GRID 3×3, each cell 240px, glyph in a 71px cartouche centered ===== -->
+  <!-- helper: cells centered at (150,250)(450,250)(750,250) / y=550 / y=850 -->
+
+  <!-- ROW 1 -->
+  <!-- CUT — baseline vertical stroke -->
+  <g transform="translate(150 250)">
+    <use href="#cartouche" x="-35.5" y="-35.5" width="71" height="71"/>
+    <rect x="-2" y="-26" width="4" height="52" fill="#12151C" rx="1" filter="url(#inkBleed4)"/>
+    <rect x="-3" y="-26" width="6" height="52" fill="#12151C" opacity="0.18" filter="url(#inkBleed4)"/>
+    <text x="0" y="60" font-size="13" fill="#12151C" text-anchor="middle" letter-spacing="3">COUPER</text>
+    <text x="0" y="76" font-size="9" fill="#5E5C68" text-anchor="middle" opacity="0.6" font-style="italic">le trait de base</text>
+  </g>
+
+  <!-- THRUST — long stroke + crossing "body" stroke, continues past it -->
+  <g transform="translate(450 250)">
+    <use href="#cartouche" x="-35.5" y="-35.5" width="71" height="71"/>
+    <!-- the blade/pierce line, continues past the crossing -->
+    <rect x="-1.5" y="-28" width="3" height="56" fill="#12151C" filter="url(#inkBleed4)"/>
+    <!-- the "body in it" : steep crossing stroke -->
+    <rect x="-18" y="-2" width="36" height="3.5" fill="#12151C" filter="url(#inkBleed4)"/>
+    <text x="0" y="60" font-size="13" fill="#12151C" text-anchor="middle" letter-spacing="3">PERCER</text>
+    <text x="0" y="76" font-size="9" fill="#5E5C68" text-anchor="middle" opacity="0.6" font-style="italic">un corps traversé — un mouvement ne croise pas</text>
+  </g>
+
+  <!-- PARRY — two strokes running ALONGSIDE for a third of the mark (deflection) -->
+  <g transform="translate(750 250)">
+    <use href="#cartouche" x="-35.5" y="-35.5" width="71" height="71"/>
+    <path d="M-22 -24 Q-2 -28 22 -18" stroke="#12151C" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#inkBleed4)"/>
+    <path d="M-18 -6 Q2 -10 26 0" stroke="#12151C" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#inkBleed4)"/>
+    <!-- the protected result : deflection arc, not a collision -->
+    <text x="0" y="60" font-size="13" fill="#12151C" text-anchor="middle" letter-spacing="3">PARER</text>
+    <text x="0" y="76" font-size="9" fill="#5E5C68" text-anchor="middle" opacity="0.6" font-style="italic">deux traits parallèles — la déviation, pas le choc</text>
+  </g>
+
+  <!-- ROW 2 -->
+  <!-- SWEEP — one continuous arc through front AND behind (own mirror) -->
+  <g transform="translate(150 550)">
+    <use href="#cartouche" x="-35.5" y="-35.5" width="71" height="71"/>
+    <path d="M24 -20 Q-2 -8 -22 -22" stroke="#12151C" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#inkBleed4)"/>
+    <path d="M24 18 Q-2 6 -22 20" stroke="#12151C" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#inkBleed4)"/>
+    <!-- the body point between them -->
+    <circle cx="0" cy="0" r="1.8" fill="#12151C"/>
+    <text x="0" y="60" font-size="13" fill="#12151C" text-anchor="middle" letter-spacing="3">BALAYER</text>
+    <text x="0" y="76" font-size="9" fill="#5E5C68" text-anchor="middle" opacity="0.6" font-style="italic">devant + derrière — le seul autoréfléchi</text>
+  </g>
+
+  <!-- DRAW — pull line, contact at distance -->
+  <g transform="translate(450 550)">
+    <use href="#cartouche" x="-35.5" y="-35.5" width="71" height="71"/>
+    <path d="M-26 -22 Q0 -4 26 -22" stroke="#12151C" stroke-width="3" fill="none" stroke-linecap="round" filter="url(#inkBleed4)"/>
+    <!-- the hook pulling back toward user -->
+    <path d="M22 -24 Q28 -10 18 -2" stroke="#12151C" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="-26" cy="-22" r="1.8" fill="#12151C"/>
+    <text x="0" y="60" font-size="13" fill="#12151C" text-anchor="middle" letter-spacing="3">TIRER</text>
+    <text x="0" y="76" font-size="9" fill="#5E5C68" text-anchor="middle" opacity="0.6" font-style="italic">une ligne de force entre deux figures</text>
+  </g>
+
+  <!-- STEP — weight transfer, long mark points AT the enemy -->
+  <g transform="translate(750 550)">
+    <use href="#cartouche" x="-35.5" y="-35.5" width="71" height="71"/>
+    <!-- short mark where weight leaves -->
+    <rect x="-26" y="8" width="8" height="4" rx="2" fill="#12151C" opacity="0.7" filter="url(#inkBleed4)"/>
+    <!-- long mark where weight arrives, pointing forward (toward enemy = right) -->
+    <rect x="-18" y="6" width="36" height="5" rx="2.5" fill="#12151C" filter="url(#inkBleed4)"/>
+    <!-- blunt end (NOT a blade tip) -->
+    <rect x="16" y="4" width="4" height="9" rx="1" fill="#12151C"/>
+    <text x="0" y="60" font-size="13" fill="#12151C" text-anchor="middle" letter-spacing="3">PAS</text>
+    <text x="0" y="76" font-size="9" fill="#5E5C68" text-anchor="middle" opacity="0.6" font-style="italic">la masse pointe vers l'ennemi — extrémité franche</text>
+  </g>
+
+  <!-- ROW 3 -->
+  <!-- BACK_STEP — loud part is the WITHDRAWING weight (behind, low, grounded). No taper to a tip. -->
+  <g transform="translate(150 850)">
+    <use href="#cartouche" x="-35.5" y="-35.5" width="71" height="71"/>
+    <!-- heavy heel at the back (left), catches + hooks -->
+    <rect x="-26" y="2" width="14" height="9" rx="1.5" fill="#12151C" filter="url(#inkBleed4)"/>
+    <!-- thinning trace toward the enemy (right), but BLUNT not barbed -->
+    <path d="M-14 7 Q4 12 26 14" stroke="#12151C" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <!-- grounded settling mark below -->
+    <rect x="-26" y="13" width="20" height="2" rx="1" fill="#12151C" opacity="0.55"/>
+    <text x="0" y="60" font-size="13" fill="#12151C" text-anchor="middle" letter-spacing="3">PAS ARRIÈRE</text>
+    <text x="0" y="76" font-size="9" fill="#5E5C68" text-anchor="middle" opacity="0.6" font-style="italic">le bruit est le poids qui se retire — jamais une pointe</text>
+  </g>
+
+  <!-- TURN — whole body winding, cloth & hair last -->
+  <g transform="translate(450 850)">
+    <use href="#cartouche" x="-35.5" y="-35.5" width="71" height="71"/>
+    <!-- spiral : the body winding around, trailing off -->
+    <path d="M-2 -24 Q22 -22 22 0 Q22 22 -2 22 Q-22 22 -22 4 Q-22 -10 -8 -10 Q2 -10 2 0"
+          stroke="#12151C" stroke-width="3" fill="none" stroke-linecap="round" filter="url(#inkBleed4)"/>
+    <!-- trailing tail (cloth/hair arriving last) -->
+    <path d="M2 0 Q14 8 24 22" stroke="#12151C" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/>
+    <text x="0" y="60" font-size="13" fill="#12151C" text-anchor="middle" letter-spacing="3">TOURNER</text>
+    <text x="0" y="76" font-size="9" fill="#5E5C68" text-anchor="middle" opacity="0.6" font-style="italic">le corps s'enroule — la traîne arrive dernière</text>
+  </g>
+
+  <!-- FEINT — committed stroke + dry offset ghost (the gesture AND the gesture not made) -->
+  <g transform="translate(750 850)">
+    <use href="#cartouche" x="-35.5" y="-35.5" width="71" height="71"/>
+    <!-- committed stroke : full amplitude -->
+    <path d="M-22 22 Q-2 -8 22 -22" stroke="#12151C" stroke-width="3.4" fill="none" stroke-linecap="round" filter="url(#inkBleed4)"/>
+    <!-- the gesture NOT made : same stroke, offset, DRY (cracked, faint) -->
+    <path d="M-14 24 Q18 -4 30 -14" stroke="#12151C" stroke-width="2.6" fill="none" stroke-linecap="round" opacity="0.22" filter="url(#dryMark)"/>
+    <text x="0" y="60" font-size="13" fill="#12151C" text-anchor="middle" letter-spacing="3">FEINTE</text>
+    <text x="0" y="76" font-size="9" fill="#5E5C68" text-anchor="middle" opacity="0.6" font-style="italic">pleine en forme, vide de corps — le geste et le geste non fait</text>
+  </g>
+
+  <!-- paper grain -->
+  <rect width="900" height="900" fill="#5A4A2E" opacity="0.0" filter="url(#paperG4)"/>
+
+  <!-- legend footer -->
+  <text x="450" y="880" font-size="10" fill="#5E5C68" text-anchor="middle" opacity="0.55" font-style="italic">04 — alphabet · chaque glyphe diffère par la forme, lisible à froid sans légende</text>
+</svg>

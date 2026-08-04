@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- =====================================================================
+     01 — PLANNING FRAME (map, densifié, BP5 de l'audit)
+     Proposition d'après STYLE.md §6/§8/§9, combat-design.md §3, STORY.md.
+     960×720 (résolution shipped). Family B dusk stage + air Family C.
+     ===================================================================== -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <!-- Sky ramp : indigo → violet → coral → hot horizon -->
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#2B3A5C"/>
+      <stop offset="0.42" stop-color="#5B4A6E"/>
+      <stop offset="0.74" stop-color="#D9736B"/>
+      <stop offset="0.86" stop-color="#E8907E"/>
+      <stop offset="1"    stop-color="#C26A52"/>
+    </linearGradient>
+    <!-- Warm sun disk behind the action (BP7) -->
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"   stop-color="#F2B98A" stop-opacity="0.55"/>
+      <stop offset="0.45" stop-color="#D9736B" stop-opacity="0.30"/>
+      <stop offset="1"   stop-color="#D9736B" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Ground smear -->
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#161A22" stop-opacity="0"/>
+      <stop offset="0.35" stop-color="#161A22" stop-opacity="0.55"/>
+      <stop offset="1"   stop-color="#0F1218" stop-opacity="0.92"/>
+    </linearGradient>
+    <!-- Ink figure vertical value pooling -->
+    <linearGradient id="figGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#1A2030"/>
+      <stop offset="0.55" stop-color="#15192A"/>
+      <stop offset="1"   stop-color="#10131C"/>
+    </linearGradient>
+    <!-- Paper tooth / grain -->
+    <filter id="paper" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.92  0 0 0 0 0.89  0 0 0 0 0.83  0 0 0 0.06 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <!-- Wet bleed halo -->
+    <filter id="bleed" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+    <!-- Soft dissolve at hem : turbulence + displacement -->
+    <filter id="dissolve" x="-20%" y="-10%" width="140%" height="130%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035 0.06" numOctaves="2" seed="7" result="t"/>
+      <feDisplacementMap in="SourceGraphic" in2="t" scale="18" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <!-- Vermillion wet wash for telegraph -->
+    <filter id="vermWash" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <!-- Fog band blur -->
+    <filter id="fogBlur"><feGaussianBlur stdDeviation="9"/></filter>
+
+    <!-- Reusable robed figure (profile, facing right). Solved hem dissolves at bottom. -->
+    <symbol id="figure" viewBox="0 0 120 260" overflow="visible">
+      <!-- hair / topknot -->
+      <path d="M62 22 Q44 12 40 34 Q38 52 50 60 L46 40 Z" fill="#10131C"/>
+      <!-- streaming hair wisp (escapee) -->
+      <path d="M40 34 Q12 52 6 92 Q3 112 12 116 Q20 110 26 86 Q34 58 44 44 Z" fill="#15192A" opacity="0.85"/>
+      <!-- head + face profile (kept whole per §4b.1) -->
+      <path d="M58 30 Q74 30 78 46 Q80 58 74 64 L70 70 L74 74 Q70 80 64 80 L58 80 Z" fill="#1C2233"/>
+      <!-- brow / eye mark (single high-contrast dot offset toward light) -->
+      <circle cx="71" cy="49" r="1.6" fill="#0A0C12"/>
+      <circle cx="70.4" cy="48.4" r="0.6" fill="#FFF6E2"/>
+      <!-- torso / robe -->
+      <path d="M44 74 Q40 110 36 150 Q30 200 30 232 L90 232 Q92 200 86 150 Q82 110 78 74 Z" fill="url(#figGrad)"/>
+      <!-- ochre sash band with knot (fitting) -->
+      <path d="M34 138 Q60 134 88 140 L86 150 Q60 154 36 150 Z" fill="#B5793A"/>
+      <path d="M82 138 Q92 140 90 150 Q86 152 84 148 Z" fill="#9C6330"/>
+      <!-- scabbard / second blade at hip -->
+      <rect x="34" y="150" width="58" height="5" rx="2" fill="#24304A" transform="rotate(-8 60 152)"/>
+      <!-- arm + hand+grip+guard cluster (B1 fitting) -->
+      <path d="M76 96 Q98 104 108 124 L102 130 Q92 112 74 108 Z" fill="#171C2C"/>
+      <rect x="100" y="120" width="10" height="5" fill="#5A4A2E"/>            <!-- grip -->
+      <rect x="98"  y="117" width="3"  height="11" fill="#9C6330"/>           <!-- guard -->
+      <circle cx="104" cy="122" r="2.2" fill="#E3D2BB"/>                       <!-- hand -->
+      <!-- star-blade : only hard edge, pale luminance, faint cool -->
+      <rect x="108" y="58" width="3" height="64" fill="#EAF2F8"/>
+      <!-- forward leg / foot ground-contact -->
+      <path d="M44 210 Q40 226 40 238 L52 240 L56 224 Z" fill="#14182A"/>
+      <ellipse cx="48" cy="240" rx="12" ry="3" fill="#0C0F16"/>
+      <!-- trailing hem : DISSOLVES into ink smoke (dissolve filter applied on use) -->
+      <path d="M30 210 Q22 230 26 250 Q40 258 70 256 Q92 254 90 240 L86 214 Z" fill="#121626"/>
+    </symbol>
+
+    <!-- Stanza glyph : ink cartouche slot, vertical orientation -->
+    <symbol id="slot" viewBox="0 0 60 70" overflow="visible">
+      <rect x="0" y="0" width="60" height="70" fill="none"/>
+    </symbol>
+  </defs>
+
+  <!-- ============== BACKGROUND ============== -->
+  <rect width="960" height="720" fill="url(#sky)"/>
+  <!-- warm sun, behind action, never brighter than horizon -->
+  <circle cx="500" cy="430" r="190" fill="url(#sun)"/>
+
+  <!-- ============== FOG BANDS (Family C air : colored, dense, low-contrast) ============== -->
+  <g filter="url(#fogBlur)" opacity="0.55">
+    <rect x="-40" y="300" width="1040" height="46" fill="#B5793A" opacity="0.28"/>   <!-- rust -->
+    <rect x="-40" y="352" width="1040" height="38" fill="#D9736B" opacity="0.26"/>   <!-- coral -->
+    <rect x="-40" y="396" width="1040" height="52" fill="#5B4A6E" opacity="0.30"/>   <!-- violet -->
+    <rect x="-40" y="448" width="1040" height="40" fill="#D6D2CE" opacity="0.34"/>   <!-- neutral -->
+    <rect x="-40" y="498" width="1040" height="34" fill="#4A5A6B" opacity="0.30"/>
+  </g>
+
+  <!-- ============== GROUND SMEAR + grass strokes ============== -->
+  <rect x="0" y="540" width="960" height="180" fill="url(#ground)"/>
+  <g stroke="#0E1118" stroke-width="1.4" stroke-linecap="round" opacity="0.7">
+    <line x1="120" y1="560" x2="118" y2="548"/>
+    <line x1="180" y1="566" x2="183" y2="552"/>
+    <line x1="240" y1="558" x2="237" y2="544"/>
+    <line x1="330" y1="564" x2="333" y2="550"/>
+    <line x1="420" y1="560" x2="418" y2="546"/>
+    <line x1="560" y1="566" x2="563" y2="552"/>
+    <line x1="640" y1="560" x2="637" y2="546"/>
+    <line x1="720" y1="566" x2="723" y2="552"/>
+    <line x1="820" y1="562" x2="818" y2="548"/>
+  </g>
+
+  <!-- ============== LANE : 11 faint wash marks, intensified near figures (§8) ============== -->
+  <!-- tile pitch ~70px centered on the action region -->
+  <g opacity="0.5">
+    <!-- faint marks -->
+    <g fill="#D6D2CE" opacity="0.18">
+      <rect x="120" y="528" width="2" height="22" rx="1"/>
+      <rect x="190" y="528" width="2" height="22" rx="1"/>
+      <rect x="260" y="528" width="2" height="22" rx="1"/>
+      <rect x="330" y="528" width="2" height="22" rx="1"/>
+      <rect x="610" y="528" width="2" height="22" rx="1"/>
+      <rect x="680" y="528" width="2" height="22" rx="1"/>
+      <rect x="750" y="528" width="2" height="22" rx="1"/>
+      <rect x="820" y="528" width="2" height="22" rx="1"/>
+    </g>
+    <!-- intensified near action -->
+    <g fill="#C8C2B8" opacity="0.5">
+      <rect x="400" y="524" width="3" height="30" rx="1.5"/>
+      <rect x="470" y="524" width="3" height="30" rx="1.5"/>
+      <rect x="540" y="524" width="3" height="30" rx="1.5"/>
+    </g>
+  </g>
+
+  <!-- ============== VERMILLION STRIKETHROUGH (telegraph, wet bleed, §8) ============== -->
+  <!-- enemy threatens 2 tiles to the hero's left -->
+  <g filter="url(#vermWash)">
+    <rect x="320" y="520" width="76" height="40" fill="#C8382E" opacity="0.42"/>
+    <rect x="392" y="520" width="76" height="40" fill="#C8382E" opacity="0.42"/>
+  </g>
+  <!-- thin vermillion edge bleed stroke over threatened tiles -->
+  <path d="M330 538 Q360 534 392 538 Q424 542 460 538" stroke="#C8382E" stroke-width="1.4" fill="none" opacity="0.6"/>
+
+  <!-- ============== FIGURES ============== -->
+  <!-- Hero (Pilgrim) — left, facing right, larger per BP5 (0.45 fh ≈ 260px of 720 → shown ~250) -->
+  <g transform="translate(386 290) scale(0.95)" filter="url(#dissolve)">
+    <use href="#figure" width="120" height="260"/>
+  </g>
+  <!-- Charted Shadow (enemy) — right, facing left (mirrored), slightly darker/wraith-like -->
+  <g transform="translate(610 296) scale(-0.95 0.92)" filter="url(#dissolve)" opacity="0.96">
+    <use href="#figure" width="120" height="260"/>
+  </g>
+
+  <!-- ============== JEWEL MOTES (Family C bokeh) ============== -->
+  <g>
+    <circle cx="210" cy="180" r="4" fill="#5FD8E8" opacity="0.5" filter="url(#bleed)"/>
+    <circle cx="760" cy="150" r="3" fill="#E06BA8" opacity="0.5" filter="url(#bleed)"/>
+    <circle cx="850" cy="240" r="3.5" fill="#FF9A4D" opacity="0.45" filter="url(#bleed)"/>
+    <circle cx="160" cy="320" r="2.5" fill="#5FD8E8" opacity="0.4" filter="url(#bleed)"/>
+    <circle cx="700" cy="360" r="2.5" fill="#E06BA8" opacity="0.4" filter="url(#bleed)"/>
+    <circle cx="90"  cy="430" r="3" fill="#FF9A4D" opacity="0.35" filter="url(#bleed)"/>
+    <circle cx="900" cy="400" r="2.5" fill="#5FD8E8" opacity="0.4" filter="url(#bleed)"/>
+  </g>
+
+  <!-- ============== MARGINS (foxing stains = substrate for UI, §3b.3 / combat §3) ============== -->
+  <g>
+    <ellipse cx="55"  cy="120" rx="42" ry="60" fill="#B5793A" opacity="0.10" filter="url(#fogBlur)"/>
+    <ellipse cx="40"  cy="380" rx="30" ry="48" fill="#9C6330" opacity="0.08" filter="url(#fogBlur)"/>
+    <ellipse cx="905" cy="140" rx="40" ry="55" fill="#B5793A" opacity="0.10" filter="url(#fogBlur)"/>
+    <ellipse cx="920" cy="400" rx="28" ry="44" fill="#9C6330" opacity="0.08" filter="url(#fogBlur)"/>
+  </g>
+
+  <!-- ============== OCHRE SEALS at each margin head (one sheet, one author, §1.5) ============== -->
+  <g>
+    <rect x="42"  y="60" width="22" height="22" fill="#B5793A" opacity="0.85" transform="rotate(-4 53 71)"/>
+    <rect x="895" y="60" width="22" height="22" fill="#B5793A" opacity="0.85" transform="rotate(4 906 71)"/>
+  </g>
+
+  <!-- ============== HEALTH ROW (head of stanza, drying/fading strokes, §3) ============== -->
+  <!-- placed at right margin head, just below seal -->
+  <g transform="translate(870 110)">
+    <!-- 5 strokes, the lower ones fainter (health dropping) -->
+    <rect x="0"  y="0"  width="40" height="5" rx="2.5" fill="#161A22" opacity="0.85"/>
+    <rect x="0"  y="10" width="40" height="5" rx="2.5" fill="#161A22" opacity="0.70"/>
+    <rect x="0"  y="20" width="40" height="5" rx="2.5" fill="#161A22" opacity="0.50"/>
+    <rect x="0"  y="30" width="40" height="5" rx="2.5" fill="#161A22" opacity="0.22"/>
+    <rect x="0"  y="40" width="40" height="5" rx="2.5" fill="#161A22" opacity="0.14"/>
+  </g>
+
+  <!-- ============== INK STANZA (right margin, vertical, base-anchored, LIFO, §3) ==============
+       5 capacity lines. 3 banked : base (oldest, driest) → mid → top (newest, wettest, resolves first).
+       Above the stack : faint nib impressions, strongest on the next-landing line. -->
+  <g transform="translate(874 230)">
+    <!-- next-landing ghost (strongest of the empty) -->
+    <rect x="14" y="0"  width="32" height="44" rx="3" fill="#161A22" opacity="0.10"/>
+    <!-- top empty ghost (faintest) -->
+    <rect x="14" y="50" width="32" height="44" rx="3" fill="#161A22" opacity="0.05"/>
+
+    <!-- ===== BANKED STACK (3 tiles) : wettest at top ===== -->
+    <!-- slot 3 (top, newest, resolves FIRST, wettest/strongest) : glyph = THRUST -->
+    <g transform="translate(14 100)">
+      <rect x="0" y="0" width="32" height="44" rx="3" fill="#161A22" opacity="0.0"/>
+      <rect x="13" y="6" width="3" height="32" fill="#12151C" opacity="0.92"/>     <!-- committed stroke -->
+      <rect x="5"  y="22" width="22" height="2.4" fill="#12151C" opacity="0.92"/>  <!-- crossing body -->
+      <rect x="3"  y="0" width="2"  height="44" fill="#12151C" opacity="0.18"/>    <!-- wet edge bleed -->
+    </g>
+    <!-- slot 2 (middle, drier) : glyph = CUT -->
+    <g transform="translate(14 150)">
+      <rect x="14" y="8" width="3" height="28" fill="#12151C" opacity="0.70"/>
+    </g>
+    <!-- slot 1 (base, oldest, resolves LAST, driest/faintest) : glyph = STEP -->
+    <g transform="translate(14 200)">
+      <rect x="6" y="20" width="20" height="3" rx="1.5" fill="#12151C" opacity="0.45"/>
+      <rect x="4" y="24" width="10" height="3" rx="1.5" fill="#12151C" opacity="0.55"/>
+    </g>
+
+    <!-- base anchor rail -->
+    <line x1="8" y1="250" x2="50" y2="250" stroke="#161A22" stroke-width="1.5" opacity="0.5"/>
+  </g>
+
+  <!-- ============== HAND + COOLDOWN RUN (left margin, under held tiles, §1.5 / K2) ============== -->
+  <!-- 5 held tiles as small cartouches with charge runs beneath, centered on each (countable) -->
+  <g transform="translate(40 230)">
+    <!-- tile 1 : STEP, 1/3 charges -->
+    <g transform="translate(0 0)">
+      <rect x="6" y="20" width="20" height="3" rx="1.5" fill="#12151C" opacity="0.7"/>
+      <!-- charge run : 3 separable ticks, pitch = 2.6 widths -->
+      <g fill="#B5793A">
+        <rect x="2" y="40" width="6" height="6" rx="1" opacity="0.85"/>
+        <rect x="12" y="40" width="6" height="6" rx="1" opacity="0.30"/>
+        <rect x="22" y="40" width="6" height="6" rx="1" opacity="0.30"/>
+      </g>
+    </g>
+    <!-- tile 2 : CUT, ready -->
+    <g transform="translate(0 60)">
+      <rect x="13" y="20" width="3" height="20" fill="#12151C" opacity="0.85"/>
+      <g fill="#B5793A"><rect x="12" y="40" width="6" height="6" rx="1" opacity="0.85"/></g>
+    </g>
+    <!-- tile 3 : PARRY, 2/4 -->
+    <g transform="translate(0 120)">
+      <rect x="8" y="18" width="3" height="24" fill="#12151C" opacity="0.6"/>
+      <rect x="20" y="18" width="3" height="24" fill="#12151C" opacity="0.6"/>
+      <g fill="#B5793A">
+        <rect x="2" y="40" width="6" height="6" rx="1" opacity="0.85"/>
+        <rect x="22" y="40" width="6" height="6" rx="1" opacity="0.85"/>
+      </g>
+    </g>
+    <!-- tile 4 : DRAW -->
+    <g transform="translate(0 180)">
+      <path d="M6 30 Q18 22 28 30" stroke="#12151C" stroke-width="2.4" fill="none" opacity="0.7"/>
+      <g fill="#B5793A"><rect x="12" y="40" width="6" height="6" rx="1" opacity="0.85"/></g>
+    </g>
+    <!-- tile 5 : FEINT (free-play, marked) -->
+    <g transform="translate(0 240)">
+      <rect x="6" y="18" width="3" height="24" fill="#12151C" opacity="0.8"/>
+      <rect x="22" y="18" width="3" height="24" fill="#12151C" opacity="0.18"/>  <!-- dry ghost : gesture not made -->
+      <circle cx="30" cy="16" r="2" fill="#B5793A" opacity="0.9"/>  <!-- free-play mark -->
+      <g fill="#B5793A"><rect x="12" y="40" width="6" height="6" rx="1" opacity="0.4"/></g>
+    </g>
+  </g>
+
+  <!-- ============== PAPER GRAIN OVERLAY (whole sheet) ============== -->
+  <rect width="960" height="720" fill="#EDE4D3" opacity="0.0" filter="url(#paper)"/>
+
+  <!-- ============== LEGEND (small, letterspaced serif, low contrast — design-proposal only) ============== -->
+  <g font-size="11" fill="#EDE4D3" opacity="0.55" font-style="italic">
+    <text x="24" y="700">01 — planning frame (map, densified per BP5) · hero ~0.45 fh · 11-tile lane · 3 banked · vermillion strikethrough</text>
+  </g>
+</svg>

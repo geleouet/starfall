@@ -1,0 +1,15 @@
+# Reproduce this capture:
+./gw capture -Pscene=play-victory-bare -Pout=out/captures/s5-input-victory-blow-bare -Pframes=36 -Pcols=6 -Pstart=13.55 -Pstep=0.0167 -Pw=960 -Ph=720
+
+scene=play-victory-bare
+description=a fight played by a deterministic pilot through the input loop -- CONTROL: no interface
+frames=36
+start=13.55
+step=0.0167
+window=0.58449996
+size=960x720
+substep=0.004166667
+clamp=none
+clothRigid=false
+commit=03053bd-dirty
+harness=f0ad18994eec

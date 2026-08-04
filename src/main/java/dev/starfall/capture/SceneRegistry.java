@@ -91,6 +91,33 @@ public final class SceneRegistry {
             register(name, () -> new LaneScene(kind, name));
             register(name + "-bare", () -> new LaneScene(kind, name + "-bare", true));
         }
+
+        // The input loop: fights that are PLAYED rather than staged.
+        //
+        // play-* takes live commands -- keyboard in the desktop launcher, /event
+        // over the debug API -- against the same encounter the graded bout stages,
+        // one per lane length because combat-design.md 1.1a's lane/queue pairing
+        // is an open question only playing can settle.
+        //
+        // play-victory and play-defeat are the two exhibits the input pass owes on
+        // pixels: a deterministic pilot plays through the same Session the keys
+        // do, so "this fight can be won" and "this fight can be lost" are
+        // reproducible captures rather than claims. Each ships its -bare control
+        // (STYLE.md 11.2b(g)).
+        register("play-knife", () -> new dev.starfall.ui.PlayScene("play-knife",
+                dev.starfall.ui.Plays.bout(Bout.Kind.KNIFE), null, false));
+        register("play-fold", () -> new dev.starfall.ui.PlayScene("play-fold",
+                dev.starfall.ui.Plays.bout(Bout.Kind.FOLD), null, false));
+        register("play-approach", () -> new dev.starfall.ui.PlayScene("play-approach",
+                dev.starfall.ui.Plays.bout(Bout.Kind.APPROACH), null, false));
+        register("play-victory", () -> new dev.starfall.ui.PlayScene("play-victory",
+                dev.starfall.ui.Plays.victory(), dev.starfall.ui.Plays.duellist(), false));
+        register("play-victory-bare", () -> new dev.starfall.ui.PlayScene("play-victory-bare",
+                dev.starfall.ui.Plays.victory(), dev.starfall.ui.Plays.duellist(), true));
+        register("play-defeat", () -> new dev.starfall.ui.PlayScene("play-defeat",
+                dev.starfall.ui.Plays.defeat(), dev.starfall.ui.Plays.bystander(), false));
+        register("play-defeat-bare", () -> new dev.starfall.ui.PlayScene("play-defeat-bare",
+                dev.starfall.ui.Plays.defeat(), dev.starfall.ui.Plays.bystander(), true));
     }
 
     private SceneRegistry() {
