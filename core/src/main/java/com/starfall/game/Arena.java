@@ -213,13 +213,12 @@ public final class Arena {
         }
 
         Direction direction = Direction.towards(from, cell);
-        if (hero.facing() != direction) {
-            hero.face(direction);
-            return ActionResult.TURNED;
-        }
-        // Déjà tourné vers la case : si elle porte la cible de la capacité, l'échange est le geste
-        // attendu ; sinon on avance d'un pas.
-        if (cell == swapTarget()) {
+        // Le demi-tour et le pas sont délégués à step() plutôt que réécrits ici. La version
+        // précédente dupliquait la logique de demi-tour, et c'est exactement ce qui a laissé le
+        // clic échapper à la comptabilité des tours : se retourner coûtait un tour au clavier et
+        // rien à la souris. Une règle écrite à deux endroits finit toujours par diverger.
+        if (hero.facing() == direction && cell == swapTarget()) {
+            // Déjà tourné vers la cible de la capacité : l'échange est le geste attendu.
             return swapWithTarget();
         }
         return step(direction);

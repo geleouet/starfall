@@ -36,13 +36,7 @@ public final class ArenaScene implements Scene {
     private static final Color CELL_LINE = new Color(0x39456bff);
     private static final Color HERO_MARK = new Color(0x54d6ffff);
     private static final Color TARGET_MARK = new Color(0xffcc33ff);
-    private static final Color HOVER_MARK = new Color(0x7be08aff);
-    private static final Color SLOT_EMPTY = new Color(0x9a9aa8ff);
-    private static final Color SLOT_OUTLINE = new Color(0x4a5570ff);
-    private static final Color SLOT_DIM = new Color(0x4a4a55ff);
-    private static final Color READY_MARK = new Color(0x8bc47fff);
-    private static final Color RECHARGE_MARK = new Color(0xc98a3cff);
-    private static final Color NEXT_MARK = new Color(0xf0c05aff);
+    private static final Color HOVER_MARK = HudColors.HOVER;
 
     /** Hauteur, sous les dalles, de la bande où vivent tous les repères tactiques. */
     private static final int MARK_Y = ArenaLayout.GROUND_Y - 4;
@@ -132,11 +126,11 @@ public final class ArenaScene implements Scene {
      * l'ordre où on l'a remplie.
      */
     private static final ScriptedAction[] SCRIPT = {
-            a -> a.queueTile(Tile.STRIKE),   // on charge...
-            a -> a.queueTile(Tile.PUSH),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.executeTop(),             // ...puis on dépile : la volte-face part en premier
-            a -> a.executeTop(),             // puis la poussée
+            a -> a.queueTile(Tile.STRIKE),   // on charge, gratuitement : le compteur reste à zéro
+            a -> a.queueTile(Tile.DASH),
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.executeTop(),             // l'estoc, posé en dernier, part en premier
+            a -> a.executeTop(),             // puis l'élan
             a -> a.executeTop(),             // et enfin la frappe, posée en premier
     };
 
@@ -228,8 +222,10 @@ public final class ArenaScene implements Scene {
         drawGround();
         drawOccupants();
         drawTacticalMarks();
-        drawQueue();
+        // Le râtelier d'abord : ses repères ne doivent jamais pouvoir recouvrir ceux de la file,
+        // même si les deux bandes venaient à se croiser un jour.
         drawRack();
+        drawQueue();
         painter.color(Color.WHITE);
     }
 
@@ -256,9 +252,9 @@ public final class ArenaScene implements Scene {
             } else {
                 // Un emplacement vide doit rester comptable d'un coup d'œil : la file en a cinq, et
                 // savoir combien il en reste fait partie de la décision. Le contour est là pour ça.
-                painter.spriteTinted(empty, x, HudLayout.QUEUE_Y, SLOT_EMPTY);
+                painter.spriteTinted(empty, x, HudLayout.QUEUE_Y, HudColors.SLOT_EMPTY);
                 painter.outline(x, HudLayout.QUEUE_Y, HudLayout.TILE_SIZE, HudLayout.TILE_SIZE,
-                        SLOT_OUTLINE);
+                        HudColors.SLOT_OUTLINE);
             }
         }
 
@@ -267,24 +263,46 @@ public final class ArenaScene implements Scene {
         }
     }
 
-    /** Repère de la prochaine tuile exécutée : un chevron vers le bas, posé sur elle. */
+    /**
+     * Repère de la prochaine tuile exécutée.
+     *
+     * <p>Trois signes concordants, parce que l'ordre à l'envers est le point le plus
+     * contre-intuitif du jeu : un cadre autour de la tuile, un trait plein sous elle, et un chevron
+     * <b>pointant vers elle</b>. La version précédente n'avait qu'un chevron, orienté à l'envers et
+     * posé dans la bande du râtelier, où les repères de celui-ci l'effaçaient en partie : il se
+     * lisait comme une annotation du râtelier.
+     */
     private void drawNextMarker(int slotX) {
+        painter.outline(slotX - 1, HudLayout.QUEUE_Y - 1,
+                HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HudColors.QUEUE);
+        painter.fill(slotX, HudLayout.QUEUE_MARK_BOTTOM, HudLayout.TILE_SIZE, 2, HudColors.QUEUE);
+
+        // Chevron pointe en bas : la pointe touche la tuile qu'il désigne.
         int centre = slotX + HudLayout.TILE_SIZE / 2;
-        int y = HudLayout.QUEUE_Y + HudLayout.TILE_SIZE + 2;
+        int apex = HudLayout.QUEUE_Y + HudLayout.TILE_SIZE + 1;
         for (int i = 0; i < 4; i++) {
-            painter.fill(centre - 3 + i, y + i, 1, 1, NEXT_MARK);
-            painter.fill(centre + 3 - i, y + i, 1, 1, NEXT_MARK);
+            painter.fill(centre - i, apex + i, 1, 1, HudColors.QUEUE);
+            painter.fill(centre + i, apex + i, 1, 1, HudColors.QUEUE);
         }
-        painter.fill(slotX, HudLayout.QUEUE_Y - 2, HudLayout.TILE_SIZE, 1, NEXT_MARK);
     }
 
     /**
      * Le râtelier : ce que le héros sait faire, et ce qui lui est accessible <em>maintenant</em>.
      *
-     * <p>Trois états, et chacun doit se distinguer sans lire de texte : disponible (pleine
-     * lumière), posée sur la file (éteinte), en recharge (éteinte, avec autant de points que de
-     * tours à attendre). Faire disparaître une tuile indisponible serait plus simple à dessiner et
-     * beaucoup moins utile : le joueur doit voir <em>laquelle</em> lui manque.
+     * <p>Trois états, et chacun se distingue sans lire de texte :
+     * <ul>
+     *   <li><b>disponible</b> — pleine lumière, aucun repère ;</li>
+     *   <li><b>posée sur la file</b> — éteinte, avec un trait or, la couleur de la file : « elle
+     *       est là-bas » ;</li>
+     *   <li><b>en recharge</b> — éteinte, avec autant de points ocre que de tours à attendre.</li>
+     * </ul>
+     *
+     * <p>Il n'y a délibérément <b>aucun repère de disponibilité</b> : la pleine lumière suffit, et
+     * le trait vert qui jouait ce rôle utilisait exactement le vert des tuiles Free-Play. Au repos,
+     * les six tuiles portaient donc du vert — alors que le vert doit vouloir dire une seule chose.
+     *
+     * <p>Faire disparaître une tuile indisponible serait plus simple à dessiner et beaucoup moins
+     * utile : le joueur doit voir <em>laquelle</em> lui manque.
      */
     private void drawRack() {
         List<Tile> tiles = arena.rack().tiles();
@@ -295,14 +313,18 @@ public final class ArenaScene implements Scene {
 
             if (arena.rack().isReady(tile)) {
                 painter.sprite(region, x, HudLayout.RACK_Y);
-                painter.fill(x, HudLayout.RACK_Y - 2, HudLayout.TILE_SIZE, 1, READY_MARK);
             } else {
-                painter.spriteTinted(region, x, HudLayout.RACK_Y, SLOT_DIM);
+                painter.spriteTinted(region, x, HudLayout.RACK_Y, HudColors.DIMMED);
             }
 
             int missing = arena.rack().missingPoints(tile);
-            for (int point = 0; point < missing; point++) {
-                painter.fill(x + 2 + point * 3, HudLayout.RACK_Y - 3, 2, 2, RECHARGE_MARK);
+            if (missing > 0) {
+                for (int point = 0; point < missing; point++) {
+                    painter.fill(x + 2 + point * 3, HudLayout.RACK_MARK_BOTTOM, 2, 2,
+                            HudColors.RECHARGE);
+                }
+            } else if (!arena.rack().holds(tile)) {
+                painter.fill(x, HudLayout.RACK_MARK_BOTTOM, HudLayout.TILE_SIZE, 2, HudColors.QUEUE);
             }
 
             if (hoveredRackSlot == i) {

@@ -20,7 +20,20 @@ public final class HudLayout {
     /** Bord bas de la rangée de la file. */
     public static final int QUEUE_Y = 4;
     /** Bord bas de la rangée du râtelier. */
-    public static final int RACK_Y = 26;
+    public static final int RACK_Y = 32;
+
+    /**
+     * Bandes réservées aux repères, en pixels-monde.
+     *
+     * <p>Elles vivent ici plutôt qu'en constantes cachées dans le rendu, et pour une raison
+     * apprise à la dure : le repère « prochaine tuile » et les repères du râtelier occupaient la
+     * même bande de quatre pixels, si bien que le second effaçait le premier — et rien ne pouvait
+     * l'attraper, puisque ces hauteurs n'étaient nulle part vérifiables sans contexte graphique.
+     */
+    public static final int QUEUE_MARK_BOTTOM = QUEUE_Y - 3;
+    public static final int QUEUE_MARK_TOP = QUEUE_Y + TILE_SIZE + 4;
+    public static final int RACK_MARK_BOTTOM = RACK_Y - 4;
+    public static final int RACK_MARK_TOP = RACK_Y + TILE_SIZE;
 
     private final int worldCentre;
     private final int rackSize;

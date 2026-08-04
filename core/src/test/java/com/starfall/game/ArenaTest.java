@@ -159,13 +159,14 @@ class ArenaTest {
         }
 
         @Test
-        @DisplayName("Sans cible, la capacité le dit au lieu de ne rien faire")
+        @DisplayName("Sans cible, la capacité le dit et ne coûte rien")
         void withoutATargetTheAbilitySaysSo() {
             Arena arena = new Arena(9);
 
             assertEquals(-1, arena.swapTarget());
             assertEquals(ActionResult.NO_TARGET, arena.swapWithTarget());
             assertEquals(4, arena.heroCell());
+            assertEquals(0, arena.turnsTaken(), "une action qui echoue ne coute pas de tour");
         }
 
         @Test
@@ -201,16 +202,42 @@ class ArenaTest {
         }
 
         @Test
-        @DisplayName("Cliquer derrière soi fait d'abord se retourner")
+        @DisplayName("Cliquer derrière soi fait d'abord se retourner, et ça coûte un tour")
         void clickingBehindTurnsFirst() {
             Arena arena = new Arena(9);
 
             assertEquals(ActionResult.TURNED, arena.clickOn(0));
             assertEquals(Direction.LEFT, arena.hero().facing());
             assertEquals(4, arena.heroCell());
+            // Sans cette ligne, le demi-tour a la souris etait gratuit alors que le meme geste au
+            // clavier coutait un tour - ce qui rendait la tuile volte-face sans valeur.
+            assertEquals(1, arena.turnsTaken());
 
             assertEquals(ActionResult.MOVED, arena.clickOn(0));
             assertEquals(3, arena.heroCell());
+            assertEquals(2, arena.turnsTaken());
+        }
+
+        @Test
+        @DisplayName("Souris et clavier facturent le même nombre de tours")
+        void bothInputsChargeTheSameNumberOfTurns() {
+            // C'est la monnaie du jeu : deux chemins qui menent au meme etat doivent couter pareil,
+            // sinon l'un des deux est strictement meilleur et le choix d'entree n'en est plus un.
+            for (int target = 0; target < 9; target++) {
+                Arena byKey = new Arena(9);
+                Arena byMouse = new Arena(9);
+                if (target == byKey.heroCell()) {
+                    continue;
+                }
+                Direction direction = Direction.towards(byKey.heroCell(), target);
+
+                byMouse.clickOn(target);
+                byKey.step(direction);
+
+                assertEquals(byKey.heroCell(), byMouse.heroCell(), "case, cible " + target);
+                assertEquals(byKey.hero().facing(), byMouse.hero().facing(), "regard, cible " + target);
+                assertEquals(byKey.turnsTaken(), byMouse.turnsTaken(), "tours, cible " + target);
+            }
         }
 
         @Test
@@ -255,6 +282,7 @@ class ArenaTest {
             assertEquals(byKeyboard.heroCell(), byMouse.heroCell());
             assertEquals(byKeyboard.hero().facing(), byMouse.hero().facing());
             assertEquals(byKeyboard.grid().occupiedCells(), byMouse.grid().occupiedCells());
+            assertEquals(byKeyboard.turnsTaken(), byMouse.turnsTaken(), "meme cout en tours");
         }
 
         @Test

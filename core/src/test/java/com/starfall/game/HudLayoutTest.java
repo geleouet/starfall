@@ -43,6 +43,32 @@ class HudLayoutTest {
         assertTrue(HudLayout.QUEUE_Y >= 0);
     }
 
+    /**
+     * Les bandes de repères doivent être disjointes. Le repère « prochaine tuile » et les repères
+     * du râtelier partageaient la même bande de quatre pixels : le second effaçait partiellement le
+     * premier, et rien ne pouvait l'attraper puisque ces hauteurs vivaient en constantes cachées
+     * dans le rendu.
+     */
+    @Test
+    @DisplayName("Les bandes de repères de la file et du râtelier ne se recouvrent pas")
+    void theMarkBandsNeverOverlap() {
+        assertTrue(HudLayout.QUEUE_MARK_TOP < HudLayout.RACK_MARK_BOTTOM,
+                "la bande de repères de la file (jusqu'à " + HudLayout.QUEUE_MARK_TOP
+                        + ") mord sur celle du râtelier (à partir de " + HudLayout.RACK_MARK_BOTTOM + ")");
+        assertTrue(HudLayout.QUEUE_MARK_BOTTOM >= 0, "repères de file hors écran par le bas");
+        assertTrue(HudLayout.RACK_MARK_TOP <= ArenaLayout.PICK_BOTTOM,
+                "les repères du râtelier mordent sur la zone de pointage du plateau");
+    }
+
+    @Test
+    @DisplayName("Chaque bande de repères borde bien sa propre rangée")
+    void eachMarkBandHugsItsOwnRow() {
+        assertTrue(HudLayout.QUEUE_MARK_BOTTOM < HudLayout.QUEUE_Y);
+        assertTrue(HudLayout.QUEUE_MARK_TOP > HudLayout.QUEUE_Y + HudLayout.TILE_SIZE);
+        assertTrue(HudLayout.RACK_MARK_BOTTOM < HudLayout.RACK_Y);
+        assertTrue(HudLayout.RACK_MARK_TOP >= HudLayout.RACK_Y);
+    }
+
     @Test
     @DisplayName("Les emplacements s'alignent sans trou ni recouvrement")
     void slotsAreEvenlySpaced() {

@@ -90,7 +90,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1, M3 et M4 revus · M5 construit · review de M5 à faire</b></div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1, M3, M4 et M5 revus et corrigés · prêt pour M6</b></div>
 </header>
 
 <div class="banner warn">
@@ -124,7 +124,7 @@
   <tr><td><span class="pill p-done">revu</span></td><td><b>M2 — Harnais de capture</b><span class="why">Avancé et replié dans M1 : <code>--screenshot &lt;dir&gt; --size WxH --frames N</code> rend puis quitte proprement, sans intervention humaine. Durci après review : refuse désormais de faire croire au succès quand la fenêtre obtenue n'est pas celle demandée, quand une option est mal orthographiée, ou quand les images seraient toutes identiques.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M3 — Pipeline pixel art</b><span class="why">Palette maître en texte, format <code>.sprite</code> (grilles de caractères indexées), générateur d'atlas déterministe branché sur le build, chargement et rendu à l'écran. 5 sprites de démonstration. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 147 tests verts sur 17 suites.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M4 — Grille et héros</b><span class="why">Grille linéaire de 5 à 15 cases, déplacement, orientation, capacité d'échange de place, cadrage caméra. Clavier <b>et</b> souris. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 271 tests verts sur 25 suites.</span></td></tr>
-  <tr><td><span class="pill p-done">construit</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution dernier-entré premier-sorti, recharges en points, tuiles Free-Play, ajout et retrait sans coût de tour. Six tuiles, jouables au clavier et à la souris. 311 tests verts sur 27 suites. <b style="color:var(--gold)">Review indépendante pas encore passée.</b></span></td></tr>
+  <tr><td><span class="pill p-done">revu</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution dernier-entré premier-sorti, recharges en points, tuiles Free-Play, ajout et retrait sans coût de tour. Six tuiles, jouables au clavier et à la souris. <b>Review indépendante passée : « tient avec réserves ».</b> 5 défauts relevés, tous corrigés ; 318 tests verts.</span></td></tr>
   <tr><td><span class="pill p-now">suivant</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">4 archétypes, traits, IA de file, bulles d'intention télégraphiées.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M7 — Résolution du combat</b><span class="why">Dégâts, statuts, collisions et repoussements, combo kills, enchaînement des vagues.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M8 — Interface</b><span class="why">HUD, barre de file, portées d'attaque, PV, infobulles — en français.</span></td></tr>
@@ -134,9 +134,9 @@
 
 <h2>En cours de construction</h2>
 <div class="banner">
-  <span class="k">M5 construit — review indépendante à lancer</span>
+  <span class="k">Prochaine étape — M6, les ennemis</span>
   <p>La boucle centrale tourne. On charge la file gratuitement, puis on la dépile — et elle se vide à l'envers de l'ordre où on l'a remplie. Le temps ne passe qu'en consommant un tour, et c'est le tour qui recharge les tuiles.</p>
-  <p><b>Ensuite :</b> review indépendante de M5, puis M6 — les ennemis et leurs intentions télégraphiées.</p>
+  <p><b>Reste à faire :</b> quatre archétypes d’ennemis, leurs traits, une IA de file, et surtout les <b>intentions télégraphiées</b> — c’est ce qui transforme la file d’un puzzle en solitaire en une lecture d’adversaire.</p>
 </div>
 
 <h3>Les règles de M5</h3>
@@ -186,7 +186,7 @@
 
 <figure class="sheet">
   <img src="captures/m5/starfall-1280x720-frame03.png" alt="Starfall M5, trois tuiles posées sur la file">
-  <figcaption><b>La file chargée : 3 sur 5.</b> On a posé frappe, poussée, volte-face — gratuitement, le compteur de tours est toujours à zéro. Les trois tuiles correspondantes sont éteintes au râtelier, mais restent visibles : le joueur doit voir <i>laquelle</i> lui manque, pas seulement qu'il lui en manque une. Le chevron or marque la <b>volte-face</b> comme prochaine à partir — la dernière posée. C'est le point le plus contre-intuitif du jeu, donc il est signalé plutôt que sous-entendu.</figcaption>
+  <figcaption><b>La file chargée : 3 sur 5, et le compteur de tours toujours à zéro.</b> Poser ne coûte rien. Les trois tuiles correspondantes sont éteintes au râtelier avec un trait crème — « elle est là-bas » — mais restent visibles : le joueur doit voir <i>laquelle</i> lui manque, pas seulement qu'il lui en manque une. Trois signes concordants désignent l'<b>estoc</b>, posé en dernier, comme le prochain à partir : un cadre, un trait sous la tuile, et un chevron qui pointe vers elle. L'exécution à l'envers de l'ordre de pose est le point le plus contre-intuitif du jeu ; un seul repère ne suffisait pas, la première version en avait un et il était illisible.</figcaption>
 </figure>
 
 <figure class="sheet">
@@ -195,13 +195,13 @@
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m4-grille-5/starfall-960x540-frame00.png" alt="Starfall M4, arène 5 cases">
-  <figcaption><b>M4 — la grille la plus étroite, 5 cases.</b> Centrée, avec du décor de part et d'autre.</figcaption>
+  <img src="captures/m5-grille-5/starfall-960x540-frame00.png" alt="Starfall M5, arène 5 cases">
+  <figcaption><b>La grille la plus étroite, 5 cases.</b> Centrée, avec du décor de part et d'autre.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m4-grille-15/starfall-960x540-frame00.png" alt="Starfall M4, arène 15 cases">
-  <figcaption><b>M4 — la grille la plus large, 15 cases.</b> 300 px-monde dans une zone garantie de 320 : aucune case n'est coupée, et il n'a pas fallu changer de zoom entre les deux largeurs. C'est ce que le choix d'une case de 20 px achète.</figcaption>
+  <img src="captures/m5-grille-15/starfall-960x540-frame00.png" alt="Starfall M5, arène 15 cases">
+  <figcaption><b>La grille la plus large, 15 cases.</b> 300 px-monde dans une zone garantie de 320 : aucune case n'est coupée, et il n'a pas fallu changer de zoom entre les deux largeurs. C'est ce que le choix d'une case de 20 px achète.</figcaption>
 </figure>
 
 <p>La mire de calibration porte les deux jalons précédents à la fois : les motifs de contrôle de M1 — damiers d'1 et 2 px, rayures, diagonales, règle graduée — et, adossés à eux, les sprites de M3 chargés depuis l'atlas. Un sprite flou ou décalé se voit immédiatement à côté d'un damier d'1 px. Cinq tailles de fenêtre, dont deux volontairement bâtardes. <b>La première image de chaque capture est cadrée au repos ; les suivantes montrent la caméra en mouvement sur des cibles fractionnaires.</b></p>
@@ -238,10 +238,25 @@
 
 <h2>Journal de review</h2>
 
-<div class="rev">
-  <div class="hd">M5 — <b>Review indépendante : à faire</b></div>
-  <p>Le jalon vient d'être construit ; la review en contexte neuf n'a pas encore été lancée.</p>
-  <p style="color:var(--dim2);font-size:12.5px;margin-bottom:0">Vérifié par mes soins en attendant : build en sortie 0 sans avertissement, <b>311 tests verts sur 27 suites</b>, et aucune régression de grille pixel dans les deux scènes après le déplacement de l'arène. Les tests couvrent en particulier ce qui ne se voit pas à l'œil : que remuer la file cinquante fois ne fait avancer aucune recharge, qu'une tuile reprise ne part pas en recharge, qu'une tuile dont l'effet échoue est consommée sans coûter de tour, et que la volte-face donne bien gratuitement ce que le clavier fait payer.</p>
+<div class="rev fail">
+  <div class="hd">M5 &mdash; passe 1 &mdash; <b>Verdict : tient avec r&eacute;serves</b></div>
+  <p>Relecteur en contexte neuf. Il a fuzz&eacute; <b>3,2 millions d&rsquo;actions</b> en contr&ocirc;lant les invariants apr&egrave;s chacune, confront&eacute; <code>ActionQueue</code> &agrave; un mod&egrave;le de r&eacute;f&eacute;rence sur 4 millions d&rsquo;op&eacute;rations, balay&eacute; le plan monde au demi-pixel pour les 11 largeurs de grille, et analys&eacute; ses propres captures pixel par pixel.</p>
+
+  <p><b>Ce qu&rsquo;il a confirm&eacute; :</b> le LIFO est strict, y compris &agrave; la reprise au milieu de la file ; l&rsquo;invariant &laquo; une tuile est au r&acirc;telier <i>ou</i> sur la file, jamais les deux, jamais nulle part &raquo; ne casse jamais ; les points de recharge restent dans leurs bornes ; poser et reprendre sont r&eacute;ellement gratuits ; aucun tour ne peut avancer sans action r&eacute;elle ; et les trois zones cliquables ne se recouvrent &agrave; aucune &eacute;chelle. M1, M3 et M4 sont intacts apr&egrave;s le d&eacute;placement vertical de l&rsquo;ar&egrave;ne.</p>
+
+  <p><b>Mais la comptabilit&eacute; des tours avait un trou, et c&rsquo;est une r&eacute;gression que j&rsquo;ai introduite.</b> En ajoutant le comptage des tours, j&rsquo;ai mis <code>consumeTurn()</code> &agrave; trois endroits d&rsquo;<code>Arena</code> et oubli&eacute; le quatri&egrave;me : le demi-tour du clic, qui <i>dupliquait</i> la logique de <code>step()</code> au lieu de la d&eacute;l&eacute;guer. Mesur&eacute; par le relecteur : <b>100 demi-tours &agrave; la souris = 0 tour, 100 au clavier = 100 tours</b>. Pire, cela vidait de sa valeur la volte-face Free-Play &mdash; la vitrine m&ecirc;me du syst&egrave;me &mdash; puisqu&rsquo;un simple clic offrait gratuitement ce que la tuile faisait payer en recharge. <i>Corrig&eacute;</i> en supprimant la duplication : <code>clickOn</code> d&eacute;l&egrave;gue d&eacute;sormais &agrave; <code>step</code>. Une r&egrave;gle &eacute;crite &agrave; deux endroits finit toujours par diverger.</p>
+
+  <p><b>Le rep&egrave;re &laquo; prochaine tuile &raquo; &eacute;tait illisible.</b> Trois d&eacute;fauts cumul&eacute;s, tous v&eacute;rifi&eacute;s au pixel : le chevron pointait vers le <i>haut</i>, donc vers le r&acirc;telier ; il &eacute;tait dessin&eacute; dans la goutti&egrave;re du r&acirc;telier, &agrave; 1 px de celui-ci ; et les rep&egrave;res du r&acirc;telier le repeignaient partiellement, parce qu&rsquo;ils partageaient la m&ecirc;me bande de quatre pixels. <i>Corrig&eacute; :</i> les bandes de rep&egrave;res sont maintenant d&eacute;clar&eacute;es dans <code>HudLayout</code> &mdash; donc v&eacute;rifiables sans contexte graphique &mdash; le r&acirc;telier est descendu, et le rep&egrave;re est devenu triple : cadre autour de la tuile, trait sous elle, et chevron <b>pointant vers elle</b>.</p>
+
+  <p><b>Le vert disait deux choses contradictoires.</b> Le rep&egrave;re de disponibilit&eacute; du r&acirc;telier utilisait exactement le vert des tuiles Free-Play : au repos, les six tuiles portaient un trait vert, alors que la r&egrave;gle affich&eacute;e est &laquo; vert = ne consomme pas de tour &raquo;. Un joueur cherchant le vert trouvait six r&eacute;ponses au lieu de deux. <i>Corrig&eacute; :</i> le rep&egrave;re de disponibilit&eacute; est supprim&eacute; &mdash; la pleine lumi&egrave;re suffit &mdash; et un test relit <code>art/palette.txt</code> pour refuser toute couleur d&rsquo;interface trop proche d&rsquo;une couleur de famille. <b>Ce test en a trouv&eacute; deux autres</b> que le relecteur n&rsquo;avait pas signal&eacute;es : l&rsquo;or de la file et l&rsquo;ocre des recharges &eacute;taient les couleurs exactes de la famille &laquo; placement &raquo;.</p>
+
+  <p style="margin-bottom:0"><b>Deux autres :</b> le sc&eacute;nario de capture posait une volte-face au milieu de la file, si bien que les deux tuiles suivantes visaient une case vide &mdash; aucune capture livr&eacute;e ne montrait donc un tour consomm&eacute; ni une recharge qui descend, c&rsquo;est-&agrave;-dire ni la monnaie ni le m&eacute;canisme du jalon ; et quatre figures du tableau de bord pointaient vers des dossiers de captures que M5 avait renomm&eacute;s.</p>
+</div>
+
+<div class="rev pass">
+  <div class="hd">M5 &mdash; passe 2 &mdash; <b>Contre-v&eacute;rification, par mes soins</b></div>
+  <p>Rejou&eacute; les mesures du relecteur : <b>100 demi-tours &agrave; la souris donnent maintenant 100 tours, comme au clavier</b> ; &laquo; se retourner puis frapper &raquo; co&ucirc;te 2 tours par les deux entr&eacute;es ; et la volte-face retrouve son avantage &mdash; 0 tour contre 1 pour un clic.</p>
+  <p style="margin-bottom:0">Le nouveau sc&eacute;nario de capture encha&icirc;ne estoc, &eacute;lan et frappe : les trois touchent, le compteur de tours monte, et les points de recharge descendent d&rsquo;une image &agrave; l&rsquo;autre. Les trous de test les plus graves sont combl&eacute;s &mdash; <b>et le trou de fond aussi</b> : il n&rsquo;existait aucun test d&rsquo;invariant global, seulement des tests ponctuels. Il y en a maintenant un qui rejoue 80 000 actions al&eacute;atoires en v&eacute;rifiant apr&egrave;s chacune que le h&eacute;ros est unique, qu&rsquo;aucune tuile n&rsquo;est perdue ni dupliqu&eacute;e, que les recharges restent born&eacute;es, et qu&rsquo;aucun tour n&rsquo;est consomm&eacute; sans que l&rsquo;&eacute;tat du jeu change.</p>
 </div>
 
 <div class="rev pass">
