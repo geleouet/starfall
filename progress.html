@@ -90,7 +90,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 à M8 revus et corrigés · 388 tests verts · prêt pour M9</b></div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M9 livré, review indépendante en cours · 400 tests verts</b></div>
 </header>
 
 <div class="banner warn">
@@ -128,16 +128,27 @@
   <tr><td><span class="pill p-done">revu</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">Quatre archétypes aux silhouettes distinctes, quatre traits, et surtout le <b>télégraphe</b> : ce qui est annoncé est ce qui est joué. <b>Review indépendante passée : refusée en l’état, puis corrigée.</b> 8 défauts relevés, tous traités ; 346 tests verts.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M7 — Résolution du combat</b><span class="why">Points de vie, dégâts, collisions qui blessent et étourdissent, combo kills, trois vagues enchaînées, victoire et défaite. <b>Review indépendante passée : refusée en l’état, puis corrigée.</b> 8 défauts relevés, tous traités ; 366 tests verts.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M8 — Interface</b><span class="why">L'interface quitte le bandeau de diagnostic et passe en pixels-monde : bandeau d'état, panneau d'information, <b>portées d'attaque</b>, infobulles, aide en français. Au cœur, le <b>préavis</b> : il n'accompagne pas le code d'exécution, il <i>est</i> le code d'exécution, si bien que ce que l'interface annonce d'une tuile ne peut pas s'écarter de ce que la tuile fait. <b>Review indépendante passée : « tient avec réserves ».</b> 11 défauts relevés, tous traités ; 388 tests verts.</span></td></tr>
-  <tr><td><span class="pill p-now">suivant</span></td><td><b>M9 — Boss</b><span class="why">Rencontre finale de la tranche : invocations, combo charge + frappe.</span></td></tr>
+  <tr><td><span class="pill p-now">à relire</span></td><td><b>M9 — Boss</b><span class="why">Le <b>souverain</b>, cinquième archétype et quatrième vague. Deux verbes nouveaux : la <b>ruée</b> — charge, frappe et repousse — et l'<b>invocation</b>, annoncée case par case et refusable. Il renverse la question de toutes les vagues précédentes : contre lui, s'éloigner n'est pas se mettre à l'abri. 400 tests verts. <b>Review indépendante en cours.</b></span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M10 — Équilibrage file de 5</b><span class="why">Réaccordage complet des recharges et de la pression ennemie autour de la file élargie.</span></td></tr>
 </table>
 
 <h2>En cours de construction</h2>
 <div class="banner">
-  <span class="k">Prochaine étape — M9, le boss</span>
-  <p>L'interface a quitté le coin de la fenêtre. Tout ce qui concerne le jeu vit maintenant en pixels-monde, sur la même grille de pixels que le plateau : bandeau d'état, panneau d'information, repères de portée sous les dalles, infobulles au survol, aide en <code>F1</code>. Et le jeu répond enfin à la question qu'il ne savait pas poser : <b>qu'est-ce qui part si j'appuie ?</b></p>
-  <p><b>Reste à faire :</b> la rencontre finale de la tranche — invocations, combo charge + frappe — puis le réaccordage complet autour de la file de cinq.</p>
+  <span class="k">Prochaine étape — M10, l'équilibrage</span>
+  <p>La tranche est complète : quatre vagues, cinq archétypes, six tuiles, et une rencontre finale qui retourne la question que les trois premières vagues avaient appris à poser. Le souverain ne frappe pas plus fort que les autres — il frappe pour un point, comme tout le monde. Ce qu'il fait, c'est <b>déplacer</b> : il vous ramène au contact quand vous fuyez, et il remplit le plateau derrière vous quand vous restez loin.</p>
+  <p><b>Reste à faire :</b> le réaccordage complet — recharges, pression ennemie, points de vie — autour de la file de cinq. C'est le jalon où tous les nombres provisoires de M7, M8 et M9 seront repris ensemble, parce qu'ils ne veulent rien dire séparément.</p>
 </div>
+
+<h3>Les règles de M9</h3>
+<table>
+  <tr><td>Le souverain</td><td>Cinq points de vie, portée 1, et il agit à chaque phase. <b>Au contact il frappe pour un point</b> — c'est sa forme la moins dangereuse.<span class="why">Un boss qui frappe plus fort ne pose pas de question nouvelle, il rallonge la même. Celui-ci coûte cher en <i>placement</i>, pas en dégâts : la seule chose qu'il fait mieux que les autres, c'est décider où vous êtes.</span></td></tr>
+  <tr><td>La ruée</td><td>Il fonce jusqu'au contact, frappe une fois, et <b>repousse</b> d'une case.<span class="why">C'est la combinaison « charge + frappe » que le cadrage réclamait, faite de verbes que le jeu possédait déjà. La poussée <b>ne blesse pas</b>, même contre un mur, et ce n'est pas de la clémence : un dégât conditionnel à la géométrie ne peut pas être annoncé un tour à l'avance sans risquer de sur-promettre — le joueur peut toujours quitter le mur entre l'annonce et l'exécution. Le compte des coups affiché doit rester exactement le compte des coups reçus.</span></td></tr>
+  <tr><td>L'invocation</td><td>Une case est annoncée <b>derrière le héros</b>, du côté opposé au souverain ; un sabreur s'y lève au tour suivant. <b>Deux invocations</b>, pas une de plus.<span class="why">Elle prend en tenaille plutôt que d'ajouter du matériel. Et comme la case est montrée un tour à l'avance, elle se <b>refuse</b> : s'y placer annule l'invocation — et la consomme. Une invocation refusée ne revient pas, sans quoi refuser ne ferait que retarder, et retarder n'est pas décider.</span></td></tr>
+  <tr><td>Une phase sur deux</td><td>Dès qu'on s'écarte, il alterne : une phase il invoque, la suivante il fonce.<span class="why">Le rythme n'est pas un ornement, c'est ce qui rend la rencontre jouable — et il a fallu jouer pour le voir. La première version laissait la seule distance décider ; comme la ruée <i>repousse</i> le héros à deux cases, elle recréait exactement les conditions d'une nouvelle ruée. Le souverain fonçait à chaque tour, n'invoquait <b>jamais</b>, et sa mécanique vedette était injouable. C'est le défaut que M7 avait payé sur la table des vagues, sous une autre forme.</span></td></tr>
+  <tr><td>Une invocation ne menace pas</td><td>Elle se marque au sol d'un <b>losange</b>, et ne compte pas dans le nombre de coups annoncés.<span class="why">Rien ne tombe sur cette case : l'ajouter au compteur ferait mentir le nombre que le bandeau affiche et que le joueur lit pour décider s'il reste. Deux dangers différents, deux comptes différents, deux formes différentes — comme le chevron creux qui distingue un ennemi qui avance d'un ennemi qui frappe.</span></td></tr>
+  <tr><td>Il n'est pas rouge</td><td>Pourpre et magenta, avec une couronne d'or qui dépasse la ligne des têtes.<span class="why">La palette réserve ces teintes aux « accents : effets, boss », et c'est exactement l'usage. Quatre archétypes rouges qu'on apprend à distinguer par la silhouette, et une cinquième figure qu'on reconnaît avant même d'avoir regardé sa forme. La couronne est le seul élément du jeu qui monte au-dessus des têtes : on le repère dans une mêlée sans compter les cases.</span></td></tr>
+  <tr><td><code>--wave N</code></td><td>La ligne de commande permet de démarrer à une vague donnée.<span class="why">La rencontre est la quatrième : l'atteindre demandait d'en gagner trois. Ni une capture reproductible ni un relecteur ne peuvent se le permettre — et une mécanique qu'on ne peut pas montrer est une mécanique qu'on ne relit pas.</span></td></tr>
+</table>
 
 <h3>Les règles de M8</h3>
 <table>
@@ -201,14 +212,30 @@
 <table>
   <tr><td>Jouer</td><td><code>run.bat</code> (double-clic) ou <code>gradlew.bat :lwjgl3:run</code></td></tr>
   <tr><td>Autre grille</td><td><code>run.bat --grid 15</code> — de 5 à 15 cases</td></tr>
+  <tr><td>Aller voir le boss</td><td><code>run.bat --wave 4</code> — démarrer à une vague donnée<span class="why">La rencontre du souverain est la quatrième : l'atteindre demandait d'en gagner trois. Une mécanique qu'on ne peut ni capturer ni faire relire sans jouer une partie complète est une mécanique qu'on ne relit pas.</span></td></tr>
   <tr><td>Mire de contrôle</td><td><code>run.bat --scene calibration</code><span class="why">Les motifs de non-régression des jalons M1 et M3. Ils ne servent pas au joueur, mais les perdre reviendrait à perdre la preuve que la grille de pixels et le pipeline d'art sont intacts.</span></td></tr>
   <tr><td>Capturer</td><td><code>run.bat --screenshot captures\m1 --size 1280x720 --frames 2</code><span class="why">Image 0 au repos, images suivantes caméra en mouvement. Reproductible d'une exécution à l'autre.</span></td></tr>
   <tr><td>Aide</td><td><code>run.bat --help</code></td></tr>
-  <tr><td>Contrôles</td><td>Espace : défilement · Échap : quitter · F11 : plein écran</td></tr>
+  <tr><td>Contrôles</td><td>Flèches ou A/D : se tourner puis avancer · 1-6 : poser une tuile · Espace : exécuter le sommet · Retour arrière : reprendre · E : échanger · Clic : tout, à la souris · <b>F1 : aide</b> · Échap : quitter · F11 : plein écran</td></tr>
   <tr><td>Codes de sortie</td><td><b>0</b> succès · <b>1</b> plantage · <b>2</b> ligne de commande invalide · <b>3</b> capture non conforme à la taille demandée<span class="why">Tout ce qui n'est pas 0 doit faire échouer la boucle de review, jamais passer inaperçu.</span></td></tr>
 </table>
 
 <h2>Planches-contact</h2>
+
+<figure class="sheet">
+  <img src="captures/m9/starfall-1280x720-frame01.png" alt="Starfall M9, le souverain annonce sa ru&eacute;e">
+  <figcaption><b>M9 &mdash; la rencontre finale, et la seule figure du jeu qui ne soit pas rouge.</b> Pourpre, magenta, et une couronne d&rsquo;or qui d&eacute;passe la ligne des t&ecirc;tes : c&rsquo;est le seul sprite qu&rsquo;on rep&egrave;re dans une m&ecirc;l&eacute;e sans compter les cases. Son glyphe annonce la <b>ru&eacute;e</b> &mdash; la double pointe de la charge, plus une barre derri&egrave;re la cible pour le d&eacute;placement subi. <code>MENACE 2</code> : un coup de lui, un de l&rsquo;archer.</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/m9/starfall-1280x720-frame04.png" alt="Starfall M9, une invocation annonc&eacute;e">
+  <figcaption><b>Une invocation annonc&eacute;e : losange au-dessus de la t&ecirc;te, losange sur la case.</b> Une forme qu&rsquo;aucune attaque n&rsquo;utilise, et surtout un rep&egrave;re qui <b>ne compte pas</b> dans le nombre de coups &mdash; rien ne tombera l&agrave;, quelqu&rsquo;un s&rsquo;y l&egrave;vera. La case est derri&egrave;re le h&eacute;ros, du c&ocirc;t&eacute; oppos&eacute; au souverain : elle prend en tenaille. Et comme elle est montr&eacute;e un tour &agrave; l&rsquo;avance, s&rsquo;y placer la refuse &mdash; au prix de tourner le dos au souverain.</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/m9/starfall-1280x720-frame05.png" alt="Starfall M9, le sbire invoqu&eacute; est arriv&eacute;">
+  <figcaption><b>L&rsquo;invocation non refus&eacute;e : le sbire est l&agrave;.</b> Le souverain a d&eacute;pens&eacute; l&rsquo;une de ses deux invocations, et l&rsquo;infobulle les compte &agrave; rebours. &Eacute;puis&eacute;, il redevient un ennemi de plus : c&rsquo;est ce qui rend la fin de la rencontre lisible, l&agrave; o&ugrave; une invocation sans plafond aurait transform&eacute; un jeu de placement en course contre la montre.</figcaption>
+</figure>
 
 <figure class="sheet">
   <img src="captures/m8/starfall-1280x720-frame00.png" alt="Starfall M8, l&rsquo;aide &agrave; l&rsquo;ouverture">
@@ -246,6 +273,12 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev">
+  <div class="hd">M9 &mdash; <b>Review ind&eacute;pendante : en cours</b></div>
+  <p style="margin-bottom:0">Ce qu&rsquo;il faudra chercher en priorit&eacute; : une invocation qui &eacute;choue pour une raison dont le joueur n&rsquo;est pas responsable ; une ru&eacute;e qui co&ucirc;te plus que le coup annonc&eacute; ; un blocage o&ugrave; le souverain ne fait plus rien d&rsquo;int&eacute;ressant ; le cas des grilles &eacute;troites, o&ugrave; la case d&rsquo;invocation manque de place ; et la question de fond &mdash; la rencontre est-elle <i>jouable</i>, ou seulement gagnable ? L&rsquo;&eacute;quilibre reste explicitement l&rsquo;affaire du jalon suivant, mais il faut savoir de combien on est loin.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">M8 &mdash; <b>Verdict : tient avec r&eacute;serves</b></div>

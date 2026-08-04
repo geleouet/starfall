@@ -23,10 +23,13 @@ public final class Enemy implements Occupant {
     private Intention intention = Intention.of(Intention.Kind.WAIT);
     /** Vrai quand un lancier a pris son élan et chargera à sa prochaine activation. */
     private boolean windingUp;
+    /** Invocations qu'il lui reste. Zéro pour tout le monde sauf le souverain. */
+    private int summonsLeft;
 
     public Enemy(EnemyKind kind, Trait... traits) {
         this.kind = kind;
         this.health = kind.health();
+        this.summonsLeft = kind.summons();
         this.traits = traits.length == 0
                 ? Collections.emptySet()
                 : Collections.unmodifiableSet(EnumSet.of(traits[0], traits));
@@ -114,6 +117,16 @@ public final class Enemy implements Occupant {
     /** Nombre de coups qu'une de ses frappes portera. Sert à l'infobulle. */
     public int blowsPerAttack() {
         return strikesPerAttack();
+    }
+
+    /** Invocations restantes. L'interface les affiche : un compte à rebours se joue autrement. */
+    public int summonsLeft() {
+        return summonsLeft;
+    }
+
+    /** Consomme une invocation. Appelé à l'<b>exécution</b>, jamais à la décision. */
+    void spendSummon() {
+        summonsLeft--;
     }
 
     @Override

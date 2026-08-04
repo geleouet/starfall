@@ -90,7 +90,7 @@ public final class ArenaScene implements Scene {
         this.font = context.font();
 
         int gridWidth = context.options().gridWidth;
-        arena = ArenaSetup.trainingArena(gridWidth);
+        arena = ArenaSetup.trainingArena(gridWidth, context.options().startWave);
         layout = new ArenaLayout(gridWidth, StarfallGame.MIN_WORLD_WIDTH / 2);
         hud = new HudLayout(StarfallGame.MIN_WORLD_WIDTH / 2, arena.rack().tiles().size());
     }
@@ -163,7 +163,7 @@ public final class ArenaScene implements Scene {
         if (frameIndex == scriptedFrame) {
             return;
         }
-        arena = ArenaSetup.trainingArena(layout.gridWidth());
+        arena = ArenaSetup.trainingArena(layout.gridWidth(), context.options().startWave);
 
         for (int i = 0; i < frameIndex && i < SCRIPT.length; i++) {
             lastResult = SCRIPT[i].applyTo(arena);
@@ -747,6 +747,13 @@ public final class ArenaScene implements Scene {
      */
     private void drawThreats() {
         for (int cell = 0; cell < layout.gridWidth(); cell++) {
+            if (arena.summonsAt(cell)) {
+                // Une invocation ne fait tomber aucun coup : elle a sa forme à elle, un losange
+                // creux, et surtout elle ne compte pas dans les barres. Un joueur qui lit
+                // « deux coups » doit en recevoir deux.
+                drawDiamond(layout.cellLeft(cell) + ArenaLayout.CELL_WIDTH / 2 - 2,
+                        ArenaLayout.GROUND_Y + 1, HudColors.THREAT);
+            }
             int blows = arena.threatCount(cell);
             if (blows == 0) {
                 continue;
@@ -791,6 +798,17 @@ public final class ArenaScene implements Scene {
                     drawSpike(centre - step * 3, y, step, HudColors.THREAT);
                     drawSpike(centre + step, y, step, HudColors.THREAT);
                 }
+                // Ruée : la double pointe de la charge, doublée d'un chevron de poussée derrière la
+                // cible. La forme dit les deux temps de la combinaison — il vient, puis il déplace.
+                case RUSH -> {
+                    int step = directionTo(cell, intention.targetCell());
+                    drawSpike(centre - step * 3, y, step, HudColors.THREAT);
+                    drawSpike(centre + step, y, step, HudColors.THREAT);
+                    painter.fill(centre + step * 5, y, 1, ArenaLayout.INTENT_HEIGHT, HudColors.THREAT);
+                }
+                // Invocation : un losange creux, une forme qu'aucune attaque n'utilise. Rien ne
+                // tombera sur cette case — mais quelqu'un s'y lèvera.
+                case SUMMON -> drawDiamond(centre, y, HudColors.THREAT);
                 // Deux barres : il se charge, on a un tour pour réagir.
                 case WIND_UP -> {
                     painter.fill(centre - 3, y, 2, ArenaLayout.INTENT_HEIGHT, HudColors.THREAT);
@@ -827,6 +845,17 @@ public final class ArenaScene implements Scene {
         for (int i = 0; i < 3; i++) {
             int height = 6 - 2 * i;
             painter.fill(centre + step * i, y + (6 - height) / 2, 1, height, color);
+        }
+    }
+
+    /** Losange creux : l'invocation, seule intention qui ne fait tomber aucun coup. */
+    private void drawDiamond(int centre, int y, Color color) {
+        int middle = y + ArenaLayout.INTENT_HEIGHT / 2;
+        for (int i = 0; i < 3; i++) {
+            painter.fill(centre - 2 + i, middle - i, 1, 1, color);
+            painter.fill(centre + 2 - i, middle - i, 1, 1, color);
+            painter.fill(centre - 2 + i, middle + i, 1, 1, color);
+            painter.fill(centre + 2 - i, middle + i, 1, 1, color);
         }
     }
 

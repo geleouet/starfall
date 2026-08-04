@@ -18,9 +18,21 @@ public final class ArenaSetup {
      * le terrain se vide.
      */
     public static Arena trainingArena(int gridWidth) {
+        return trainingArena(gridWidth, 1);
+    }
+
+    /**
+     * Même chose, mais en démarrant à une vague donnée.
+     *
+     * <p>La rencontre finale est la quatrième : l'atteindre demande d'en gagner trois. Une mécanique
+     * qu'on ne peut ni capturer ni faire relire sans jouer une partie complète est une mécanique
+     * qu'on ne relit pas.
+     */
+    public static Arena trainingArena(int gridWidth, int startWave) {
         Arena arena = new Arena(gridWidth);
         arena.enableWaves();
-        WaveTable.spawn(arena, 1);
+        arena.startAtWave(startWave);
+        WaveTable.spawn(arena, startWave);
         // Les intentions doivent être visibles avant même le premier geste du joueur : c'est tout
         // l'intérêt du télégraphe.
         arena.announceIntentions();

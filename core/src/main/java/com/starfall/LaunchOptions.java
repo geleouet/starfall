@@ -1,5 +1,6 @@
 package com.starfall;
 
+import com.starfall.game.Arena;
 import com.starfall.game.Grid;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Locale;
  *   --frames &lt;N&gt;             nombre d'images à rendre en mode capture (défaut 2)
  *   --scene &lt;nom&gt;            arena (défaut) ou calibration
  *   --grid &lt;N&gt;               largeur de la grille, de 5 à 15 cases (défaut 9)
+ *   --wave &lt;N&gt;               vague de départ, pour aller voir directement la fin (défaut 1)
  *   --help                   affiche l'aide et quitte
  * </pre>
  *
@@ -40,17 +42,27 @@ public final class LaunchOptions {
     public final String scene;
     /** Largeur de la grille de combat, en cases. Bornée par {@code Grid}, pas ici. */
     public final int gridWidth;
+    /**
+     * Vague à laquelle la partie commence.
+     *
+     * <p>Elle existe pour une raison pratique : la rencontre du souverain est la quatrième et
+     * dernière, donc l'atteindre demande de gagner trois vagues. Ni une capture reproductible ni un
+     * relecteur ne peuvent se le permettre — et une mécanique qu'on ne peut pas montrer est une
+     * mécanique qu'on ne relit pas.
+     */
+    public final int startWave;
     /** Vrai si l'aide a été demandée : le lanceur l'affiche puis s'arrête sans ouvrir de fenêtre. */
     public final boolean helpRequested;
 
     private LaunchOptions(String screenshotDir, int width, int height, int frames,
-                          String scene, int gridWidth, boolean helpRequested) {
+                          String scene, int gridWidth, int startWave, boolean helpRequested) {
         this.screenshotDir = screenshotDir;
         this.width = width;
         this.height = height;
         this.frames = frames;
         this.scene = scene;
         this.gridWidth = gridWidth;
+        this.startWave = startWave;
         this.helpRequested = helpRequested;
     }
 
@@ -65,6 +77,7 @@ public final class LaunchOptions {
         int frames = DEFAULT_FRAMES;
         String scene = DEFAULT_SCENE;
         int gridWidth = DEFAULT_GRID_WIDTH;
+        int startWave = 1;
         boolean helpRequested = false;
 
         if (args != null) {
@@ -108,6 +121,16 @@ public final class LaunchOptions {
                         }
                         break;
                     }
+                    case "--wave": {
+                        // Mêmes bornes vérifiées ICI qu'ailleurs : une ligne de commande invalide
+                        // doit sortir en 2 sans ouvrir de fenêtre, jamais planter une fois ouverte.
+                        startWave = requirePositive(requireValue(args, ++i, arg), arg);
+                        if (startWave > Arena.WAVE_COUNT) {
+                            throw new IllegalArgumentException("--wave attend de 1 à "
+                                    + Arena.WAVE_COUNT + ", reçu : " + startWave);
+                        }
+                        break;
+                    }
                     case "--help":
                     case "-h":
                         helpRequested = true;
@@ -118,7 +141,8 @@ public final class LaunchOptions {
             }
         }
 
-        return new LaunchOptions(screenshotDir, width, height, frames, scene, gridWidth, helpRequested);
+        return new LaunchOptions(screenshotDir, width, height, frames, scene, gridWidth,
+                startWave, helpRequested);
     }
 
     /**
@@ -156,6 +180,8 @@ public final class LaunchOptions {
                 + "  --size <L>x<H>           taille de la fenêtre (défaut " + DEFAULT_WIDTH + "x" + DEFAULT_HEIGHT + ")\n"
                 + "  --frames <N>             images à capturer en mode capture (défaut " + DEFAULT_FRAMES + ")\n"
                 + "  --scene <nom>            " + String.join(" ou ", SCENES) + " (défaut " + DEFAULT_SCENE + ")\n"
+                + "  --wave <N>               vague de départ, 1 à " + Arena.WAVE_COUNT
+                + " (défaut 1)\n"
                 + "  --grid <N>               largeur de la grille, " + Grid.MIN_WIDTH + " à "
                 + Grid.MAX_WIDTH + " cases (défaut " + DEFAULT_GRID_WIDTH + ")\n"
                 + "  --help                   affiche cette aide\n";
@@ -167,6 +193,6 @@ public final class LaunchOptions {
                 + ", size=" + width + "x" + height
                 + ", frames=" + frames
                 + ", scene=" + scene
-                + ", grid=" + gridWidth + '}';
+                + ", grid=" + gridWidth + ", wave=" + startWave + '}';
     }
 }

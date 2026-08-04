@@ -151,3 +151,47 @@ KKrrrrrrrrrrrrKK
 .KgggK....KgggK.
 KKgggKK..KKgggKK
 ................
+
+# Le souverain : la rencontre finale de la tranche.
+#
+# Il est le seul a ne pas etre rouge. La palette reserve le pourpre et le
+# magenta aux "accents : effets, boss", et c'est exactement l'usage : quatre
+# archetypes rouges qu'on apprend a distinguer par la silhouette, et une
+# cinquieme figure qu'on reconnait avant meme d'avoir regarde sa forme.
+#
+# La couronne est ce qui depasse : c'est le seul sprite du jeu dont la
+# silhouette monte au-dessus de la ligne des tetes, donc le seul qu'on
+# repere dans une melee sans compter les cases.
+@sprite enemy/souverain
+................
+.....y.y.y......
+....KyKyKyK.....
+....KyyyyyK.....
+....KKKKKKK.....
+...KKppppKK.....
+...KpmyympK.....
+...KKppppKK.....
+.KKKKppppKKKKK..
+KKppppppppppppKK
+KpppmmmmmmmmpppK
+KpppmmmmmmmmpppK
+KppppppppppppppK
+KKppppppppppppKK
+.KppppyyyyppppK.
+.KppppppppppppK.
+.KppppppppppppK.
+.KKppppppppppKK.
+..KppppppppppK..
+..KppppppppppK..
+..KppppppppppK..
+..KKppppppppKK..
+..KppppKKppppK..
+..KpppK..KpppK..
+..KpppK..KpppK..
+..KpppK..KpppK..
+..KpppK..KpppK..
+.KKpppK..KpppKK.
+.KgggK....KgggK.
+.KgggK....KgggK.
+KKgggKK..KKgggKK
+................

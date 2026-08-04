@@ -23,6 +23,27 @@ public record Intention(Kind kind, int targetCell) {
         WIND_UP("prend son élan"),
         /** Charger en ligne droite et frapper ce qui se trouve au bout. */
         CHARGE("charge"),
+        /**
+         * Charger, frapper, <b>et repousser</b> : la combinaison du souverain.
+         *
+         * <p>Elle vaut d'être une intention à part et non un trait posé sur la charge : ce qu'elle
+         * ajoute n'est pas de la puissance mais un <em>déplacement subi</em>, et dans un jeu de
+         * placement c'est une catégorie de menace différente. Le joueur doit pouvoir la lire comme
+         * telle, donc elle a son propre glyphe.
+         *
+         * <p>La poussée ne blesse pas, même contre un mur. C'est délibéré : le compte des coups
+         * annoncés doit rester exactement le compte des coups reçus, et un dégât conditionnel à la
+         * géométrie ne peut pas être annoncé un tour à l'avance sans risquer de sur-promettre.
+         */
+        RUSH("ruée"),
+        /**
+         * Faire apparaître un ennemi sur une case annoncée.
+         *
+         * <p>Elle ne <b>menace</b> pas au sens du compteur de coups : rien ne tombe sur cette case,
+         * et la mêler aux frappes fausserait le nombre que le bandeau affiche. Elle se marque donc
+         * au sol d'une forme à elle.
+         */
+        SUMMON("invoque"),
         /** Ne rien faire. */
         WAIT("attend");
 
@@ -37,9 +58,16 @@ public record Intention(Kind kind, int targetCell) {
             return label;
         }
 
-        /** Vrai si l'intention menace une case : c'est ce qui se marque au sol. */
+        /**
+         * Vrai si l'intention fait tomber un coup sur une case.
+         *
+         * <p>C'est ce qui alimente le compteur de coups du bandeau, donc la liste doit contenir
+         * <b>exactement</b> ce qui blesse : une invocation se marque au sol elle aussi, mais ne
+         * frappe personne, et l'y ajouter ferait mentir un nombre que le joueur lit pour décider
+         * s'il reste.
+         */
         public boolean threatens() {
-            return this == ATTACK || this == CHARGE;
+            return this == ATTACK || this == CHARGE || this == RUSH;
         }
     }
 
@@ -58,6 +86,15 @@ public record Intention(Kind kind, int targetCell) {
 
     public static Intention charge(int targetCell) {
         return new Intention(Kind.CHARGE, targetCell);
+    }
+
+    public static Intention rush(int targetCell) {
+        return new Intention(Kind.RUSH, targetCell);
+    }
+
+    /** @param cell case où l'ennemi invoqué apparaîtra */
+    public static Intention summon(int cell) {
+        return new Intention(Kind.SUMMON, cell);
     }
 
     /** Vrai si cette intention menace la case donnée. */

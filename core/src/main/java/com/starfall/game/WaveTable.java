@@ -10,7 +10,9 @@ package com.starfall.game;
  *   <li>un sabreur et un archer — apprendre que l'un veut qu'on s'éloigne et l'autre qu'on
  *       s'approche ;</li>
  *   <li>on ajoute le lancier, dont la menace est décalée d'un tour ;</li>
- *   <li>on ajoute le colosse explosif, qui vaut autant comme arme que comme obstacle.</li>
+ *   <li>on ajoute le colosse explosif, qui vaut autant comme arme que comme obstacle ;</li>
+ *   <li>le souverain, qui renverse la question de toutes les précédentes — contre lui, s'éloigner
+ *       n'est pas se mettre à l'abri, c'est lui laisser remplir le plateau.</li>
  * </ol>
  */
 final class WaveTable {
@@ -32,6 +34,13 @@ final class WaveTable {
                     new Enemy(EnemyKind.LANCIER, Trait.FONCEUR),
                     new Enemy(EnemyKind.COLOSSE, Trait.EXPLOSIF),
             },
+            {
+                    // Le souverain vient presque seul. Il n'a pas besoin d'escorte : il en fabrique,
+                    // et c'est justement ce que la rencontre demande de gérer. Un seul archer avec
+                    // lui, pour que rester au loin ne soit pas confortable non plus.
+                    new Enemy(EnemyKind.SOUVERAIN),
+                    new Enemy(EnemyKind.ARCHER),
+            },
     };
 
     private WaveTable() {
@@ -39,6 +48,17 @@ final class WaveTable {
 
     static int count() {
         return WAVES.length;
+    }
+
+    /**
+     * Effectif d'une vague.
+     *
+     * <p>Il n'est pas monotone : la dernière n'en compte que deux, dont le souverain, parce qu'elle
+     * fabrique ses propres renforts. Un test avait encodé « la vague N compte N+1 ennemis », ce qui
+     * était vrai par coïncidence et se lisait comme une règle.
+     */
+    static int size(int wave) {
+        return WAVES[Math.min(wave, WAVES.length) - 1].length;
     }
 
     /**

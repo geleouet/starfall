@@ -130,6 +130,25 @@ public final class Arena {
         this.wavesEnabled = true;
     }
 
+    /**
+     * Démarre la partie à une vague donnée, plutôt qu'à la première.
+     *
+     * <p>Sert à aller voir la fin sans jouer le début : la rencontre du souverain est la quatrième,
+     * et ni une capture reproductible ni un relecteur ne peuvent gagner trois vagues d'abord.
+     */
+    void startAtWave(int startWave) {
+        this.wave = Math.max(1, Math.min(startWave, WaveTable.count()));
+    }
+
+    /**
+     * Nombre de vagues d'une tranche.
+     *
+     * <p>Public pour que la ligne de commande puisse borner son option, et <b>dérivé</b> de la table
+     * des vagues plutôt que recopié : un nombre écrit à deux endroits finit toujours par n'en
+     * décrire qu'un seul.
+     */
+    public static final int WAVE_COUNT = WaveTable.count();
+
     public boolean isDefeat() {
         return hero.health() == 0;
     }
@@ -265,20 +284,35 @@ public final class Arena {
                 enemy.announce(Intention.of(Intention.Kind.WAIT));
                 continue;
             }
-            if (!enemy.isWindingUp()) {
+            if (!claimsGround(enemy)) {
                 continue;
             }
-            Intention charge = EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell, reserved);
-            enemy.announce(charge);
-            reserveChargePath(reserved, grid.indexOf(enemy), charge);
+            Intention claim = EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell,
+                    reserved, phaseIndex);
+            enemy.announce(claim);
+            reserve(reserved, grid.indexOf(enemy), claim);
         }
 
         for (Enemy enemy : enemies) {
-            if (!willAct(enemy) || enemy.isWindingUp()) {
+            if (!willAct(enemy) || claimsGround(enemy)) {
                 continue;
             }
-            enemy.announce(EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell, reserved));
+            enemy.announce(EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell,
+                    reserved, phaseIndex));
         }
+    }
+
+    /**
+     * Vrai si cet ennemi annonce quelque chose qui <b>réclame du terrain</b> : un couloir de charge,
+     * ou la case où son invocation apparaîtra.
+     *
+     * <p>Ceux-là s'annoncent d'abord, et leur emprise est ensuite interdite aux autres. Sans cela un
+     * allié pouvait se poser dans le couloir d'une charge — le coup promis ne tombait jamais — ou
+     * sur la case d'une invocation, qui échouait alors sans que le joueur y soit pour rien. Dans les
+     * deux cas, l'annonce cesse d'être un engagement.
+     */
+    private static boolean claimsGround(Enemy enemy) {
+        return enemy.isWindingUp() || enemy.kind().summons() > 0;
     }
 
     /** Vrai si l'ennemi jouera réellement à la phase à venir. */
@@ -286,9 +320,13 @@ public final class Arena {
         return !enemy.isStunned() && enemy.kind().actsThisPhase(phaseIndex);
     }
 
-    /** Marque les cases qu'une charge traversera, bornes comprises. */
-    private static void reserveChargePath(boolean[] reserved, int from, Intention intention) {
-        if (intention.kind() != Intention.Kind.CHARGE) {
+    /** Marque le terrain qu'une intention réclame : un couloir de charge, ou une case d'invocation. */
+    private static void reserve(boolean[] reserved, int from, Intention intention) {
+        if (intention.kind() == Intention.Kind.SUMMON) {
+            mark(reserved, intention.targetCell());
+            return;
+        }
+        if (intention.kind() != Intention.Kind.CHARGE && intention.kind() != Intention.Kind.RUSH) {
             return;
         }
         int step = Integer.signum(intention.targetCell() - from);
@@ -296,9 +334,13 @@ public final class Arena {
             return;
         }
         for (int cell = from; cell != intention.targetCell(); cell += step) {
-            if (cell >= 0 && cell < reserved.length) {
-                reserved[cell] = true;
-            }
+            mark(reserved, cell);
+        }
+    }
+
+    private static void mark(boolean[] reserved, int cell) {
+        if (cell >= 0 && cell < reserved.length) {
+            reserved[cell] = true;
         }
     }
 
@@ -327,9 +369,67 @@ public final class Arena {
             }
             case WIND_UP -> enemy.setWindingUp(true);
             case CHARGE -> charge(enemy, cell, intention.targetCell());
+            case RUSH -> rush(enemy, cell, intention.targetCell());
+            case SUMMON -> summon(enemy, intention.targetCell());
             case WAIT -> {
             }
         }
+    }
+
+    /**
+     * La ruée du souverain : il vient au contact, frappe une fois, et <b>repousse</b>.
+     *
+     * <p>Elle réutilise le déplacement de la charge — donc elle s'arrête au premier obstacle et ne
+     * frappe pas si on s'interpose, comme toute charge. Ce qu'elle ajoute est le déplacement subi :
+     * dans un jeu où l'on gagne en plaçant, être déplacé sans l'avoir choisi coûte souvent plus
+     * cher que le point de vie.
+     *
+     * <p><b>La poussée ne blesse pas</b>, même contre un mur, et c'est une contrainte du télégraphe
+     * plus qu'un choix d'équilibre : un dégât conditionnel à la géométrie ne peut pas être annoncé
+     * un tour à l'avance sans risquer de sur-promettre, et le nombre de coups affiché doit rester
+     * exactement le nombre de coups reçus.
+     */
+    private void rush(Enemy enemy, int from, int target) {
+        int step = Integer.signum(target - from);
+        if (step == 0) {
+            return;
+        }
+        int landing = target - step;
+        int cell = from;
+        while (cell != landing && grid.isFree(cell + step)) {
+            grid.move(cell, cell + step);
+            cell += step;
+        }
+        if (cell != landing || grid.occupantAt(target) == null) {
+            return; // interceptée, ou la cible s'est écartée : c'est ainsi qu'on esquive
+        }
+        strike(target);
+        // Le poussé n'est déplacé que si la place est libre. Buter ne coûte rien de plus : le
+        // joueur qui se colle au mur perd sa mobilité, pas ses points de vie.
+        int pushed = target + step;
+        if (grid.isFree(pushed) && grid.occupantAt(target) != null) {
+            grid.move(target, pushed);
+        }
+    }
+
+    /**
+     * L'invocation : un sabreur apparaît sur la case annoncée.
+     *
+     * <p>Rien si la case n'est plus libre — et c'est la réponse du joueur, pas un raté : la case est
+     * montrée un tour à l'avance, s'y placer refuse l'invocation. Le coût est réel, puisque s'y
+     * placer signifie souvent tourner le dos au souverain.
+     *
+     * <p>L'invocation est consommée <b>dans tous les cas</b>. Une invocation refusée est une
+     * invocation perdue, sans quoi refuser ne ferait que retarder, et retarder n'est pas décider.
+     */
+    private void summon(Enemy enemy, int cell) {
+        enemy.spendSummon();
+        if (!grid.isFree(cell)) {
+            return;
+        }
+        Enemy minion = new Enemy(EnemyKind.SABREUR);
+        grid.place(cell, minion);
+        minion.announce(Intention.of(Intention.Kind.WAIT));
     }
 
     /**
@@ -507,6 +607,24 @@ public final class Arena {
     /** Ennemis encore en vie, de gauche à droite. */
     public List<Enemy> enemies() {
         return enemiesLeftToRight();
+    }
+
+    /**
+     * Vrai si une invocation annoncée fera apparaître quelqu'un sur cette case.
+     *
+     * <p>Séparé du compteur de coups, et pas par commodité : rien ne <em>tombe</em> sur cette case,
+     * donc l'y mêler ferait mentir le nombre que le bandeau affiche et que le joueur lit pour
+     * décider s'il reste. Deux dangers différents, deux comptes différents, deux formes différentes
+     * au sol.
+     */
+    public boolean summonsAt(int cell) {
+        for (Enemy enemy : enemiesLeftToRight()) {
+            if (enemy.intention().kind() == Intention.Kind.SUMMON
+                    && enemy.intention().targetCell() == cell) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Vrai si une case est menacée par l'intention annoncée d'au moins un ennemi. */

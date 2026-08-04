@@ -244,6 +244,11 @@ public final class HudText {
         if (enemy.blowsPerAttack() > 1) {
             line.append(" - ").append(enemy.blowsPerAttack()).append(" COUPS PAR FRAPPE");
         }
+        if (enemy.summonsLeft() > 0) {
+            // Le compte à rebours des invocations se joue autrement qu'une menace ordinaire : deux
+            // invocations refusées, et le souverain n'est plus qu'un ennemi de plus.
+            line.append(" - ").append(enemy.summonsLeft()).append(" INVOCATIONS");
+        }
         if (enemy.has(com.starfall.game.Trait.EXPLOSIF)) {
             line.append(" - EXPLOSE EN MOURANT");
         }

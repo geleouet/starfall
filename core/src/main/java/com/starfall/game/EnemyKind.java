@@ -67,6 +67,39 @@ public enum EnemyKind {
         boolean actsThisPhase(int phaseIndex) {
             return phaseIndex % 2 == 0;
         }
+    },
+
+    /**
+     * Le souverain : la rencontre finale de la tranche.
+     *
+     * <p>Il ne se distingue pas des autres par un chiffre plus gros mais par <b>la façon dont la
+     * distance décide de ce qu'il fait</b> — c'est la même grammaire que les quatre archétypes, en
+     * trois réponses au lieu d'une :
+     *
+     * <ul>
+     *   <li><b>au contact</b>, il frappe, une fois, pour un point. C'est sa forme la moins
+     *       dangereuse ;</li>
+     *   <li><b>à deux cases</b>, il fait sa {@link Intention.Kind#RUSH ruée} : il vient au contact,
+     *       frappe, et <em>repousse</em>. Le coup vaut un point comme les autres ; ce qui coûte,
+     *       c'est de se retrouver déplacé sans l'avoir choisi ;</li>
+     *   <li><b>au loin</b>, il {@link Intention.Kind#SUMMON invoque} — et il invoque
+     *       <em>derrière</em> le héros.</li>
+     * </ul>
+     *
+     * <p>Le renversement est là : contre les quatre autres, la bonne réponse est presque toujours
+     * de garder ses distances. Contre lui, s'éloigner est ce qui remplit le plateau. Et rester
+     * collé, c'est accepter d'être pris en tenaille par ce qu'on a laissé apparaître.
+     */
+    SOUVERAIN("souverain", "enemy/souverain", 1, 5) {
+        @Override
+        boolean actsThisPhase(int phaseIndex) {
+            return true;
+        }
+
+        @Override
+        int summons() {
+            return 2;
+        }
     };
 
     private final String label;
@@ -117,5 +150,17 @@ public enum EnemyKind {
     /** Vrai si l'archétype recule quand sa cible est au contact. */
     boolean retreatsWhenAdjacent() {
         return false;
+    }
+
+    /**
+     * Nombre d'ennemis que l'archétype peut faire apparaître au cours de sa vie.
+     *
+     * <p>Fini, et volontairement petit. Une invocation sans plafond ne pose aucune question au
+     * joueur : elle transforme une rencontre en course contre la montre, où la seule réponse est de
+     * tuer vite — c'est-à-dire exactement le contraire d'un jeu de placement. Avec deux, chaque
+     * invocation qu'on refuse est une invocation qui ne reviendra pas.
+     */
+    int summons() {
+        return 0;
     }
 }

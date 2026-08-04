@@ -247,9 +247,14 @@ class CombatTest {
                 java.util.Set<EnemyKind> seen = new java.util.HashSet<>();
 
                 for (int wave = 1; wave <= arena.waveCount(); wave++) {
-                    assertTrue(arena.enemies().size() >= wave + 1,
+                    // On compare a l'effectif declare de la vague, et non a une formule. La version
+                    // precedente attendait « N+1 ennemis a la vague N », ce qui etait vrai par
+                    // coincidence sur les trois premieres et se lisait comme une regle : la vague
+                    // du souverain n'en compte que deux, puisqu'elle fabrique ses renforts.
+                    assertTrue(arena.enemies().size() >= WaveTable.size(wave),
                             "vague " + wave + " amputee sur une grille de " + width
-                                    + " : " + arena.enemies().size() + " ennemis");
+                                    + " : " + arena.enemies().size() + " ennemis pour "
+                                    + WaveTable.size(wave) + " attendus");
                     for (Enemy enemy : arena.enemies()) {
                         seen.add(enemy.kind());
                     }

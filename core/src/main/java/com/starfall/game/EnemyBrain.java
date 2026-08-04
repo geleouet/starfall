@@ -19,13 +19,14 @@ final class EnemyBrain {
      * @param heroCell  case du héros
      */
     static Intention decide(Grid grid, Enemy enemy, int enemyCell, int heroCell) {
-        return decide(grid, enemy, enemyCell, heroCell, new boolean[0]);
+        return decide(grid, enemy, enemyCell, heroCell, new boolean[0], 0);
     }
 
     /**
      * @param reserved cases qu'une charge déjà annoncée traversera, et où personne ne doit se poser
      */
-    static Intention decide(Grid grid, Enemy enemy, int enemyCell, int heroCell, boolean[] reserved) {
+    static Intention decide(Grid grid, Enemy enemy, int enemyCell, int heroCell,
+                            boolean[] reserved, int phaseIndex) {
         Direction toward = Direction.towards(enemyCell, heroCell);
         if (toward == null) {
             // Le héros ne peut pas être sur la case de l'ennemi ; par prudence, on n'invente rien.
@@ -40,6 +41,10 @@ final class EnemyBrain {
         if (enemy.isWindingUp()) {
             return Intention.charge(heroCell);
         }
+        if (kind.summons() > 0) {
+            return decideSovereign(grid, enemy, enemyCell, heroCell, toward, distance, reserved,
+                    phaseIndex);
+        }
         if (kind.retreatsWhenAdjacent() && distance == 1) {
             int back = enemyCell - toward.step();
             return grid.isFree(back) && !isReserved(reserved, back)
@@ -53,6 +58,75 @@ final class EnemyBrain {
             return Intention.of(Intention.Kind.WIND_UP);
         }
         return approach(grid, enemy, enemyCell, heroCell, toward, reserved);
+    }
+
+    /**
+     * Le souverain : trois réponses au lieu d'une, et c'est la distance qui choisit.
+     *
+     * <p>Au contact il frappe, une fois, pour un point : c'est sa forme la moins dangereuse. Dès
+     * qu'on s'écarte, il alterne — une phase il <b>invoque</b> derrière le héros, la suivante il
+     * <b>fonce</b> et repousse. Contre lui, s'éloigner n'est donc pas se mettre à l'abri : c'est
+     * lui laisser remplir le plateau, puis se faire ramener au contact.
+     *
+     * <p>Le rythme n'est pas un ornement, c'est ce qui rend la rencontre jouable. La première
+     * version laissait la seule distance décider — invocation au loin, ruée à deux cases — et comme
+     * la ruée <em>repousse</em> le héros à deux cases, elle recréait exactement les conditions
+     * d'une nouvelle ruée : le souverain fonçait à chaque tour, n'invoquait jamais, et sa mécanique
+     * vedette était injouable. C'est le défaut que le jalon précédent avait payé sur la table des
+     * vagues, sous une autre forme.
+     *
+     * <p>Quand il ne lui reste plus d'invocation, il ne fait plus que foncer : le compte à rebours
+     * est aussi ce qui rend la fin de la rencontre lisible. Un boss qui annoncerait une invocation
+     * impossible mentirait, et l'annonce est un engagement.
+     */
+    private static Intention decideSovereign(Grid grid, Enemy enemy, int enemyCell, int heroCell,
+                                             Direction toward, int distance, boolean[] reserved,
+                                             int phaseIndex) {
+        if (distance <= effectiveRange(enemy)) {
+            return Intention.attack(heroCell);
+        }
+        // Une phase sur deux il invoque, l'autre il fonce. Le rythme est la seule chose qui rende
+        // la rencontre jouable : la premiere version faisait dependre son choix de la seule
+        // distance, et comme la ruee repousse le heros a deux cases, elle recreait exactement les
+        // conditions d'une nouvelle ruee. Le souverain fonçait a chaque tour, n'invoquait jamais,
+        // et sa mecanique vedette etait injouable - le defaut que M7 avait paye sur les vagues.
+        if (enemy.summonsLeft() > 0 && phaseIndex % 2 == 1) {
+            int cell = summonCell(grid, enemyCell, heroCell, toward, reserved);
+            if (cell >= 0) {
+                return Intention.summon(cell);
+            }
+        }
+        if (hasClearLine(grid, enemyCell, heroCell)) {
+            return Intention.rush(heroCell);
+        }
+        return approach(grid, enemy, enemyCell, heroCell, toward, reserved);
+    }
+
+    /**
+     * Où l'invocation apparaîtra : <b>derrière le héros</b>, du côté opposé au souverain.
+     *
+     * <p>C'est ce qui fait de l'invocation une menace de placement et non un simple ajout de
+     * matériel : elle prend en tenaille. Et comme la case est annoncée un tour à l'avance, le
+     * joueur peut la refuser — en s'y mettant, ou en se plaçant de sorte qu'elle sorte de la
+     * grille. Une invocation refusée est une invocation perdue.
+     *
+     * <p>À défaut — bord de grille, case occupée —, on se rabat derrière le souverain lui-même.
+     * Sinon la mécanique vedette de la rencontre disparaîtrait sur les grilles étroites, ce qui est
+     * exactement le défaut que le jalon précédent a payé sur la table des vagues.
+     *
+     * @return la case, ou {@code -1} si aucune ne convient
+     */
+    private static int summonCell(Grid grid, int enemyCell, int heroCell, Direction toward,
+                                  boolean[] reserved) {
+        int behindHero = heroCell + toward.step();
+        if (grid.isFree(behindHero) && !isReserved(reserved, behindHero)) {
+            return behindHero;
+        }
+        int behindSelf = enemyCell - toward.step();
+        if (grid.isFree(behindSelf) && !isReserved(reserved, behindSelf)) {
+            return behindSelf;
+        }
+        return -1;
     }
 
     /**
