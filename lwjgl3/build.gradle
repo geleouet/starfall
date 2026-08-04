@@ -1,4 +1,4 @@
-// Desktop launcher (LWJGL3 backend).
+// Lanceur bureau (backend LWJGL3).
 
 apply plugin: 'application'
 
@@ -20,12 +20,12 @@ configurations.configureEach {
     }
 }
 
-// Allow: gradlew :lwjgl3:run --args="--screenshot captures/m1 --size 1280x720"
+// Permet : gradlew :lwjgl3:run --args="--screenshot captures/m1 --size 1280x720"
 tasks.named('run', JavaExec) {
     standardInput = System.in
     ignoreExitValue = false
     jvmArgs '--enable-native-access=ALL-UNNAMED'
-    // Relative paths (e.g. --screenshot captures/m1) resolve against the project root.
+    // Les chemins relatifs (ex. --screenshot captures/m1) partent de la racine du projet.
     workingDir = rootProject.projectDir
 }
 

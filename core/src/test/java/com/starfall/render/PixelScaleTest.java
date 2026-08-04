@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-/** Unit tests for the pixel-perfect viewport maths. No GL context required. */
+/** Tests de l'arithmétique du viewport pixel-perfect. Aucun contexte GL requis. */
 class PixelScaleTest {
 
     private static final int MIN_W = 320;
@@ -19,11 +19,32 @@ class PixelScaleTest {
         return PixelScale.compute(windowWidth, windowHeight, MIN_W, MIN_H);
     }
 
+    /**
+     * L'invariant central, et celui qui manquait : la zone sûre doit tenir <b>entièrement</b> dans
+     * les pixels de la fenêtre. Les anciens tests ne vérifiaient que {@code worldWidth >= 320},
+     * c'est-à-dire que le monde <em>calculé</em> contenait la zone garantie — jamais qu'elle était
+     * réellement affichée en entier. C'est par ce trou que passait le défaut de la version
+     * précédente, où le bord gauche de la zone garantie n'était rendu qu'à moitié en 1281x720.
+     */
+    private static void assertSafeAreaFullyOnScreen(PixelScale s, int windowWidth, int windowHeight) {
+        int safeScreenX = s.screenX + s.bleedX * s.scale;
+        int safeScreenY = s.screenY + s.bleedY * s.scale;
+
+        assertTrue(safeScreenX >= 0,
+                () -> "la zone sûre déborde à gauche : " + s + " en " + windowWidth + "x" + windowHeight);
+        assertTrue(safeScreenY >= 0,
+                () -> "la zone sûre déborde en bas : " + s + " en " + windowWidth + "x" + windowHeight);
+        assertTrue(safeScreenX + s.safeWorldWidth * s.scale <= windowWidth,
+                () -> "la zone sûre déborde à droite : " + s + " en " + windowWidth + "x" + windowHeight);
+        assertTrue(safeScreenY + s.safeWorldHeight * s.scale <= windowHeight,
+                () -> "la zone sûre déborde en haut : " + s + " en " + windowWidth + "x" + windowHeight);
+    }
+
     @Nested
-    @DisplayName("Exact multiples of the minimum world size")
+    @DisplayName("Multiples exacts de la taille de monde minimale")
     class ExactMultiples {
 
-        @ParameterizedTest(name = "{0}x{1} -> scale {2}")
+        @ParameterizedTest(name = "{0}x{1} -> échelle {2}")
         @CsvSource({
                 "320,180,1",
                 "640,360,2",
@@ -37,74 +58,103 @@ class PixelScaleTest {
             PixelScale s = at(width, height);
 
             assertEquals(expectedScale, s.scale);
-            assertEquals(MIN_W, s.worldWidth, "no expansion needed on an exact multiple");
-            assertEquals(MIN_H, s.worldHeight, "no expansion needed on an exact multiple");
+            assertEquals(MIN_W, s.safeWorldWidth, "aucun élargissement nécessaire sur un multiple exact");
+            assertEquals(MIN_H, s.safeWorldHeight, "aucun élargissement nécessaire sur un multiple exact");
+            assertEquals(0, s.bleedX, "un ajustement exact n'a aucune gouttière à boucher");
+            assertEquals(0, s.bleedY, "un ajustement exact n'a aucune gouttière à boucher");
+            assertEquals(MIN_W, s.worldWidth);
+            assertEquals(MIN_H, s.worldHeight);
             assertEquals(width, s.screenWidth);
             assertEquals(height, s.screenHeight);
-            assertEquals(0, s.screenX, "an exact fit needs no overscan");
-            assertEquals(0, s.screenY, "an exact fit needs no overscan");
+            assertEquals(0, s.screenX);
+            assertEquals(0, s.screenY);
+            assertSafeAreaFullyOnScreen(s, width, height);
         }
     }
 
     @Nested
-    @DisplayName("Windows that are not a multiple of the minimum world size")
+    @DisplayName("Fenêtres qui ne sont pas un multiple de la taille de monde minimale")
     class NonMultiples {
 
         @Test
-        @DisplayName("800x450 - scale 2, world expands to 400x225")
+        @DisplayName("800x450 - échelle 2, le monde s'élargit à 400x225 sans débordement")
         void expandsRatherThanLetterboxes() {
             PixelScale s = at(800, 450);
 
             assertEquals(2, s.scale);
-            assertEquals(400, s.worldWidth);
-            assertEquals(225, s.worldHeight);
+            assertEquals(400, s.safeWorldWidth);
+            assertEquals(225, s.safeWorldHeight);
+            assertEquals(0, s.bleedX);
+            assertEquals(0, s.bleedY);
             assertEquals(800, s.screenWidth);
             assertEquals(450, s.screenHeight);
             assertEquals(0, s.screenX);
             assertEquals(0, s.screenY);
+            assertSafeAreaFullyOnScreen(s, 800, 450);
         }
 
         @Test
-        @DisplayName("1000x543 - awkward size, world rounds up and overscans by <1 world pixel")
-        void roundsWorldSizeUpAndOverscans() {
+        @DisplayName("1000x543 - taille bâtarde : zone sûre entière, gouttière bouchée par le débordement")
+        void awkwardSizeKeepsTheSafeAreaIntact() {
             PixelScale s = at(1000, 543);
 
             assertEquals(3, s.scale);
-            assertEquals(334, s.worldWidth);   // ceil(1000 / 3)
-            assertEquals(181, s.worldHeight);  // ceil(543 / 3)
-            assertEquals(1002, s.screenWidth);
-            assertEquals(543, s.screenHeight);
-            assertEquals(-1, s.screenX, "the 2px surplus is split, bleeding off both edges");
+            assertEquals(333, s.safeWorldWidth);   // floor(1000 / 3)
+            assertEquals(181, s.safeWorldHeight);  // 543 / 3, exact
+            assertEquals(1, s.bleedX, "1 px de reliquat horizontal : une colonne de débordement de chaque côté");
+            assertEquals(0, s.bleedY, "la hauteur tombe juste");
+            assertEquals(335, s.worldWidth);
+            assertEquals(181, s.worldHeight);
+            assertEquals(-3, s.screenX);
             assertEquals(0, s.screenY);
+            assertSafeAreaFullyOnScreen(s, 1000, 543);
         }
 
         @Test
-        @DisplayName("1365x767 - odd surplus is still split with an integer offset")
-        void oddSurplusStaysOnTheScreenPixelGrid() {
-            PixelScale s = at(1365, 767);
+        @DisplayName("1281x720 - la régression : le bord de la zone garantie n'est plus coupé")
+        void theGuaranteedEdgeIsNoLongerClipped() {
+            PixelScale s = at(1281, 720);
 
             assertEquals(4, s.scale);
-            assertEquals(342, s.worldWidth);   // ceil(1365 / 4)
-            assertEquals(192, s.worldHeight);  // ceil(767 / 4)
-            assertEquals(1368, s.screenWidth);
-            assertEquals(768, s.screenHeight);
-            assertEquals(-2, s.screenX);       // floor(-3 / 2)
-            assertEquals(-1, s.screenY);       // floor(-1 / 2)
+            assertEquals(320, s.safeWorldWidth, "320 colonnes entières tiennent dans 1281 px à l'échelle 4");
+            assertEquals(180, s.safeWorldHeight);
+            assertEquals(1, s.bleedX);
+            assertEquals(0, s.bleedY);
+
+            // La zone sûre commence pile au pixel écran 0 et se termine à 1280 : les 320 colonnes
+            // occupent 4 px chacune, y compris la toute première. C'est exactement ce qui était faux.
+            assertEquals(0, s.screenX + s.bleedX * s.scale);
+            assertEquals(1280, s.safeWorldWidth * s.scale);
+            assertSafeAreaFullyOnScreen(s, 1281, 720);
         }
 
         @Test
-        @DisplayName("The scale never goes fractional: 1279x719 stays at 3, not 3.99")
+        @DisplayName("1281x721 - reliquat sur les deux axes en même temps")
+        void leftoverOnBothAxes() {
+            PixelScale s = at(1281, 721);
+
+            assertEquals(4, s.scale);
+            assertEquals(1, s.bleedX);
+            assertEquals(1, s.bleedY);
+            assertEquals(320, s.safeWorldWidth);
+            assertEquals(180, s.safeWorldHeight);
+            assertSafeAreaFullyOnScreen(s, 1281, 721);
+        }
+
+        @Test
+        @DisplayName("L'échelle ne devient jamais fractionnaire : 1279x719 reste à 3, pas 3,99")
         void neverUsesAFractionalScale() {
             PixelScale s = at(1279, 719);
 
             assertEquals(3, s.scale);
-            assertTrue(s.worldWidth >= MIN_W);
-            assertTrue(s.worldHeight >= MIN_H);
+            assertTrue(s.safeWorldWidth >= MIN_W);
+            assertTrue(s.safeWorldHeight >= MIN_H);
+            assertSafeAreaFullyOnScreen(s, 1279, 719);
         }
     }
 
     @Nested
-    @DisplayName("Very small windows")
+    @DisplayName("Très petites fenêtres")
     class SmallWindows {
 
         @ParameterizedTest(name = "{0}x{1}")
@@ -118,13 +168,14 @@ class PixelScaleTest {
         void scaleNeverDropsBelowOne(int width, int height) {
             PixelScale s = at(width, height);
 
-            assertEquals(1, s.scale, "sub-minimum windows show less world rather than shrinking pixels");
-            assertEquals(width, s.worldWidth);
-            assertEquals(height, s.worldHeight);
+            assertEquals(1, s.scale, "sous le minimum, on montre moins de monde plutôt que de rétrécir les pixels");
+            assertEquals(width, s.safeWorldWidth);
+            assertEquals(height, s.safeWorldHeight);
             assertEquals(width, s.screenWidth);
             assertEquals(height, s.screenHeight);
             assertEquals(0, s.screenX);
             assertEquals(0, s.screenY);
+            assertSafeAreaFullyOnScreen(s, width, height);
         }
 
         @ParameterizedTest(name = "{0}x{1}")
@@ -133,115 +184,186 @@ class PixelScaleTest {
             PixelScale s = at(width, height);
 
             assertEquals(1, s.scale);
-            assertTrue(s.worldWidth >= 1);
-            assertTrue(s.worldHeight >= 1);
+            assertTrue(s.safeWorldWidth >= 1);
+            assertTrue(s.safeWorldHeight >= 1);
         }
 
         @Test
-        @DisplayName("A 1x1 minimum world is legal")
+        @DisplayName("Un monde minimal de 1x1 est légal")
         void supportsATinyMinimumWorld() {
             PixelScale s = PixelScale.compute(100, 100, 1, 1);
 
             assertEquals(100, s.scale);
-            assertEquals(1, s.worldWidth);
-            assertEquals(1, s.worldHeight);
+            assertEquals(1, s.safeWorldWidth);
+            assertEquals(1, s.safeWorldHeight);
+            assertSafeAreaFullyOnScreen(s, 100, 100);
+        }
+
+        @Test
+        @DisplayName("Un monde minimal de 1x1 sur une fenêtre bâtarde garde sa zone sûre entière")
+        void tinyMinimumWorldOnAnAwkwardWindow() {
+            PixelScale s = PixelScale.compute(101, 100, 1, 1);
+
+            assertEquals(100, s.scale);
+            assertEquals(1, s.safeWorldWidth);
+            assertEquals(1, s.bleedX);
+            assertSafeAreaFullyOnScreen(s, 101, 100);
         }
     }
 
     @Nested
-    @DisplayName("Extreme aspect ratios")
+    @DisplayName("Ratios extrêmes")
     class ExtremeAspectRatios {
 
         @Test
-        @DisplayName("Ultra wide - the limiting axis is the height")
+        @DisplayName("Ultra-large - c'est la hauteur qui limite")
         void ultraWideExpandsHorizontally() {
             PixelScale s = at(3840, 200);
 
-            assertEquals(1, s.scale, "height only allows a scale of 1");
-            assertEquals(3840, s.worldWidth, "the extra width shows more world");
-            assertEquals(200, s.worldHeight);
-            assertTrue(s.worldWidth >= MIN_W);
-            assertTrue(s.worldHeight >= MIN_H);
+            assertEquals(1, s.scale, "la hauteur n'autorise qu'une échelle de 1");
+            assertEquals(3840, s.safeWorldWidth, "la largeur en trop montre plus de monde");
+            assertEquals(200, s.safeWorldHeight);
+            assertSafeAreaFullyOnScreen(s, 3840, 200);
         }
 
         @Test
-        @DisplayName("Ultra tall - the limiting axis is the width")
+        @DisplayName("Ultra-haut - c'est la largeur qui limite")
         void ultraTallExpandsVertically() {
             PixelScale s = at(400, 2000);
 
             assertEquals(1, s.scale);
-            assertEquals(400, s.worldWidth);
-            assertEquals(2000, s.worldHeight);
+            assertEquals(400, s.safeWorldWidth);
+            assertEquals(2000, s.safeWorldHeight);
+            assertSafeAreaFullyOnScreen(s, 400, 2000);
         }
 
         @Test
-        @DisplayName("A wide window at a high scale keeps square pixels on both axes")
+        @DisplayName("Une fenêtre large à forte échelle garde des pixels carrés sur les deux axes")
         void wideWindowKeepsASingleScaleForBothAxes() {
             PixelScale s = at(5120, 1440);
 
             assertEquals(8, s.scale, "min(5120/320, 1440/180) = min(16, 8)");
-            assertEquals(640, s.worldWidth);
-            assertEquals(180, s.worldHeight);
+            assertEquals(640, s.safeWorldWidth);
+            assertEquals(180, s.safeWorldHeight);
+            assertSafeAreaFullyOnScreen(s, 5120, 1440);
         }
 
         @Test
-        @DisplayName("Letterbox-shaped windows never produce black bars")
+        @DisplayName("Une fenêtre en forme de boîte aux lettres ne produit jamais de bandes noires")
         void noLetterboxing() {
             PixelScale s = at(2560, 600);
 
-            assertTrue(s.screenWidth >= 2560, "viewport covers the whole window width");
-            assertTrue(s.screenHeight >= 600, "viewport covers the whole window height");
+            assertTrue(s.screenWidth >= 2560, "le viewport couvre toute la largeur de la fenêtre");
+            assertTrue(s.screenHeight >= 600, "le viewport couvre toute la hauteur de la fenêtre");
         }
     }
 
     @Nested
-    @DisplayName("Invariants across a wide sweep of window sizes")
+    @DisplayName("Invariants sur un balayage exhaustif des tailles de fenêtre")
     class Invariants {
 
+        /**
+         * Balayage au pas de 1 sur les deux axes. L'ancien test avançait de 7 en largeur et de 11 en
+         * hauteur, ce qui ne visitait ni 1281 ni 1281x721 — les deux tailles qui révélaient le
+         * défaut. Un invariant qui n'est vrai qu'aux tailles échantillonnées ne prouve rien.
+         */
         @Test
         void holdForEveryWindowSizeInRange() {
-            for (int w = 1; w <= 4000; w += 7) {
-                for (int h = 1; h <= 2400; h += 11) {
+            for (int w = 1; w <= 2000; w++) {
+                for (int h = 1; h <= 1200; h++) {
                     PixelScale s = at(w, h);
 
-                    assertTrue(s.scale >= 1, () -> "scale must stay whole and positive");
+                    assertTrue(s.scale >= 1, "l'échelle reste entière et positive");
 
-                    // The world is a whole number of world pixels and the viewport an exact multiple.
+                    // Le monde est un nombre entier de pixels-monde et le viewport un multiple exact.
                     assertEquals(s.worldWidth * s.scale, s.screenWidth);
                     assertEquals(s.worldHeight * s.scale, s.screenHeight);
 
-                    // No letterboxing: the viewport always covers the window...
-                    assertTrue(s.screenWidth >= w);
-                    assertTrue(s.screenHeight >= h);
-                    // ...and never wastes more than one world pixel doing so.
-                    assertTrue(s.screenWidth - w < s.scale);
-                    assertTrue(s.screenHeight - h < s.scale);
-
-                    // The overscan is centred, integral, and under one world pixel per edge.
+                    // Pas de bandes noires : le viewport couvre toujours la fenêtre...
                     assertTrue(s.screenX <= 0 && s.screenY <= 0);
-                    assertTrue(-s.screenX < s.scale);
-                    assertTrue(-s.screenY < s.scale);
+                    assertTrue(s.screenX + s.screenWidth >= w);
+                    assertTrue(s.screenY + s.screenHeight >= h);
 
-                    // The guaranteed area is honoured whenever the window is big enough for it.
+                    // ...et le débordement ne dépasse jamais une colonne / une ligne par bord.
+                    assertTrue(s.bleedX == 0 || s.bleedX == 1);
+                    assertTrue(s.bleedY == 0 || s.bleedY == 1);
+                    assertEquals(s.safeWorldWidth + 2 * s.bleedX, s.worldWidth);
+                    assertEquals(s.safeWorldHeight + 2 * s.bleedY, s.worldHeight);
+
+                    // L'affirmation du projet, vérifiée en pixels écran et non en pixels calculés.
+                    assertSafeAreaFullyOnScreen(s, w, h);
+
+                    // La zone garantie est honorée dès que la fenêtre est assez grande pour elle.
                     if (w >= MIN_W && h >= MIN_H) {
-                        assertTrue(s.worldWidth >= MIN_W);
-                        assertTrue(s.worldHeight >= MIN_H);
+                        assertTrue(s.safeWorldWidth >= MIN_W);
+                        assertTrue(s.safeWorldHeight >= MIN_H);
                     }
                 }
             }
         }
 
+        /**
+         * À échelle constante, élargir la fenêtre montre plus de monde. Franchir un palier d'échelle
+         * est le seul cas où la zone sûre rétrécit : le zoom augmente d'un cran, donc on voit moins
+         * de monde mais plus gros. C'est voulu — et c'est précisément pour cela que la monotonie ne
+         * peut être affirmée qu'<em>à l'intérieur</em> d'un palier.
+         */
         @Test
-        @DisplayName("Growing the window never shrinks the visible world")
-        void visibleWorldGrowsMonotonicallyWithinAScaleStep() {
-            for (int scaleStep = 1; scaleStep <= 6; scaleStep++) {
-                int width = MIN_W * scaleStep;
-                PixelScale exact = at(width, MIN_H * scaleStep);
-                PixelScale wider = at(width + MIN_W / 2, MIN_H * scaleStep);
-
-                assertEquals(exact.scale, wider.scale);
-                assertTrue(wider.worldWidth > exact.worldWidth);
+        @DisplayName("À échelle constante, agrandir la fenêtre ne réduit jamais la zone sûre")
+        void safeAreaGrowsMonotonicallyWithinAScaleStep() {
+            int previousScale = -1;
+            int previousWidth = 0;
+            for (int w = MIN_W; w <= 4000; w++) {
+                PixelScale s = at(w, 1080);
+                if (s.scale == previousScale) {
+                    assertTrue(s.safeWorldWidth >= previousWidth,
+                            "la zone sûre a rétréci à échelle constante en passant à " + w + " px : " + s);
+                }
+                previousScale = s.scale;
+                previousWidth = s.safeWorldWidth;
             }
+        }
+
+        /**
+         * Le corollaire qui compte réellement au franchissement d'un palier : quoi qu'il arrive à la
+         * zone sûre, elle ne descend jamais sous la zone garantie.
+         */
+        @Test
+        @DisplayName("Franchir un palier d'échelle ne fait jamais passer sous la zone garantie")
+        void crossingAScaleStepNeverBreachesTheGuaranteedArea() {
+            for (int w = MIN_W; w <= 4000; w++) {
+                PixelScale s = at(w, 1080);
+                assertTrue(s.safeWorldWidth >= MIN_W, () -> "zone sûre sous le minimum : " + s);
+            }
+            for (int h = MIN_H; h <= 2400; h++) {
+                PixelScale s = at(3840, h);
+                assertTrue(s.safeWorldHeight >= MIN_H, () -> "zone sûre sous le minimum : " + s);
+            }
+        }
+
+        @Test
+        @DisplayName("Les tailles absurdes sont bornées au lieu de déborder en entier négatif")
+        void absurdSizesAreClampedInsteadOfOverflowing() {
+            for (int[] size : new int[][]{
+                    {Integer.MAX_VALUE, Integer.MAX_VALUE},
+                    {Integer.MAX_VALUE, 1080},
+                    {1920, Integer.MAX_VALUE},
+            }) {
+                PixelScale s = PixelScale.compute(size[0], size[1], MIN_W, MIN_H);
+
+                assertTrue(s.scale >= 1, () -> "échelle négative : " + s);
+                assertTrue(s.worldWidth >= 1, () -> "largeur de monde négative : " + s);
+                assertTrue(s.worldHeight >= 1, () -> "hauteur de monde négative : " + s);
+                assertTrue(s.screenWidth >= 1, () -> "largeur de viewport négative : " + s);
+                assertTrue(s.screenHeight >= 1, () -> "hauteur de viewport négative : " + s);
+                assertEquals(s.worldWidth * s.scale, s.screenWidth);
+                assertEquals(s.worldHeight * s.scale, s.screenHeight);
+            }
+
+            PixelScale huge = PixelScale.compute(4000, 2400, Integer.MAX_VALUE, Integer.MAX_VALUE);
+            assertEquals(1, huge.scale, "un monde minimal absurde retombe à l'échelle 1");
+            assertTrue(huge.worldWidth >= 1);
+            assertTrue(huge.worldHeight >= 1);
         }
     }
 }

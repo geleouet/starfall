@@ -1,5 +1,5 @@
-// Starfall - root build script.
-// Two modules: `core` (engine-agnostic game code) and `lwjgl3` (desktop launcher).
+// Starfall - script de build racine.
+// Deux modules : `core` (code de jeu indépendant du moteur) et `lwjgl3` (lanceur bureau).
 
 subprojects {
     apply plugin: 'java-library'

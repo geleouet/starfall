@@ -90,7 +90,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 construit et vérifié · review indépendante à faire · session en pause</b></div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 revu, corrigé et re-vérifié · prêt pour M3</b></div>
 </header>
 
 <div class="banner warn">
@@ -119,8 +119,8 @@
 <h2>Jalons</h2>
 <table>
   <tr><th>État</th><th>Jalon</th></tr>
-  <tr><td><span class="pill p-done">construit</span></td><td><b>M1 — Squelette et amorçage</b><span class="why">libGDX 1.14.2, Gradle 9.6.1, toolchain Java 25, viewport à échelle entière, scène de test, capture PNG automatisée. Build vérifié indépendamment : sortie 0, 26 tests verts sur 5 suites. <b style="color:var(--gold)">Review indépendante pas encore passée.</b></span></td></tr>
-  <tr><td><span class="pill p-done">construit</span></td><td><b>M2 — Harnais de capture</b><span class="why">Avancé et replié dans M1 : <code>--screenshot &lt;dir&gt; --size WxH --frames N</code> rend puis quitte proprement, sans intervention humaine. C'est la base de toute la boucle de review.</span></td></tr>
+  <tr><td><span class="pill p-done">revu</span></td><td><b>M1 — Squelette et amorçage</b><span class="why">libGDX 1.14.2, Gradle 9.6.1, toolchain Java 25, viewport à échelle entière, scène de test, capture PNG automatisée. <b>Review indépendante passée : elle a conclu « M1 ne tient pas ».</b> Défaut central corrigé, 85 tests verts sur 12 suites (contre 26 sur 5). Voir le journal de review.</span></td></tr>
+  <tr><td><span class="pill p-done">revu</span></td><td><b>M2 — Harnais de capture</b><span class="why">Avancé et replié dans M1 : <code>--screenshot &lt;dir&gt; --size WxH --frames N</code> rend puis quitte proprement, sans intervention humaine. Durci après review : refuse désormais de faire croire au succès quand la fenêtre obtenue n'est pas celle demandée, quand une option est mal orthographiée, ou quand les images seraient toutes identiques.</span></td></tr>
   <tr><td><span class="pill p-now">suivant</span></td><td><b>M3 — Pipeline pixel art</b><span class="why">Format source des sprites, palette, générateur d'atlas, rendu à l'écran.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M4 — Grille et héros</b><span class="why">Grille 5–15, déplacement, orientation, capacité spéciale, cadrage caméra selon la largeur.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution LIFO, recharges, Free-Play, ajout / retrait sans coût de tour.</span></td></tr>
@@ -133,48 +133,79 @@
 
 <h2>En cours de construction</h2>
 <div class="banner">
-  <span class="k">Session en pause — à ta demande</span>
-  <p>M1 a rendu la main, tout est commité et poussé sur <code>asblack</code>. Rien ne tourne : le démon Gradle a été arrêté proprement, donc le redémarrage du PC ne risque pas de corrompre le cache <code>.gradle/</code>.</p>
-  <p><b>Reprise :</b> lancer la review indépendante de M1 (contexte neuf, aucun lien avec l'agent qui l'a écrit), puis enchaîner sur M3 — pipeline pixel art.</p>
+  <span class="k">Prochaine étape — M3, pipeline pixel art</span>
+  <p>La review indépendante de M1 est passée et ses objections sont traitées. Le socle est désormais digne de confiance : la garantie d'affichage est vérifiée en pixels écran et non plus seulement sur le papier, et le harnais de capture échoue bruyamment au lieu de rendre une image trompeuse en sortie 0.</p>
+  <p><b>Reste à faire :</b> format source des sprites, palette, générateur d'atlas, rendu à l'écran.</p>
 </div>
 
 <h3>Comment le lancer</h3>
 <table>
   <tr><td>Jouer</td><td><code>run.bat</code> (double-clic) ou <code>gradlew.bat :lwjgl3:run</code></td></tr>
-  <tr><td>Capturer</td><td><code>run.bat --screenshot captures\m1 --size 1280x720 --frames 2</code></td></tr>
+  <tr><td>Capturer</td><td><code>run.bat --screenshot captures\m1 --size 1280x720 --frames 2</code><span class="why">Image 0 au repos, images suivantes caméra en mouvement. Reproductible d'une exécution à l'autre.</span></td></tr>
+  <tr><td>Aide</td><td><code>run.bat --help</code></td></tr>
   <tr><td>Contrôles</td><td>Espace : défilement · Échap : quitter · F11 : plein écran</td></tr>
+  <tr><td>Codes de sortie</td><td><b>0</b> succès · <b>1</b> plantage · <b>2</b> ligne de commande invalide · <b>3</b> capture non conforme à la taille demandée<span class="why">Tout ce qui n'est pas 0 doit faire échouer la boucle de review, jamais passer inaperçu.</span></td></tr>
 </table>
 
 <h2>Planches-contact</h2>
-<p>M1 — même scène de test à quatre tailles de fenêtre, dont une volontairement bâtarde (1000×543) pour prouver que l'échelle reste entière.</p>
+<p>M1 — même scène de test à cinq tailles de fenêtre, dont deux volontairement bâtardes. Toutes les images ont été régénérées après correction. <b>La première image de chaque capture est cadrée au repos ; les suivantes montrent la caméra en mouvement sur des cibles fractionnaires</b> — auparavant les <code>--frames N</code> étaient N copies bit à bit du même rendu.</p>
 
 <figure class="sheet">
-  <img src="captures/m1/starfall-800x450-frame01.png" alt="Starfall M1 à 800x450, échelle x2">
-  <figcaption><b>800×450 → échelle ×2, monde visible 400×225.</b> Le cadre or délimite la zone garantie de 320×180 ; il est nettement en retrait, avec du monde supplémentaire visible autour (trame de points). C'est la preuve que le viewport <i>élargit la vue</i> au lieu d'étirer l'image.</figcaption>
+  <img src="captures/m1/starfall-1281x720-frame00.png" alt="Starfall M1 à 1281x720, échelle x4">
+  <figcaption><b>1281×720 → échelle ×4, zone sûre 320×180. La taille qui a fait tomber la première version.</b> La largeur impaire laisse 1 px de reliquat. Avant correction, le bord gauche du cadre or — le bord même de la zone garantie — n'était rendu que sur 2 px au lieu de 4. Mesuré sur cette image : les plages de couleur au niveau du cadre valent <code>(0,4) (424,4) (556,4) …</code>, toutes exactement 4 px, la première comprise.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m1/starfall-1000x543-frame01.png" alt="Starfall M1 à 1000x543, échelle x3">
-  <figcaption><b>1000×543 → échelle ×3, monde visible 334×181.</b> Le cas le plus dur : taille non multiple. Damiers réguliers, rayures d'un pixel toutes identiques, diagonales à marches égales, texte accentué lisible. Aucun pixel plus large que son voisin.</figcaption>
+  <img src="captures/m1/starfall-1000x543-frame00.png" alt="Starfall M1 à 1000x543, échelle x3">
+  <figcaption><b>1000×543 → échelle ×3, zone sûre 333×181.</b> Taille non multiple sur la largeur. Damiers réguliers, rayures d'un pixel toutes identiques, diagonales à marches égales, texte accentué lisible. Sur 11 459 plages de couleur mesurées sous le bandeau, aucune n'est un non-multiple de 3.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m1/starfall-1920x1080-frame01.png" alt="Starfall M1 à 1920x1080, échelle x6">
-  <figcaption><b>1920×1080 → échelle ×6, ajustement exact.</b> Bordure or de 6 px sur les quatre côtés, identique partout.</figcaption>
+  <img src="captures/m1/starfall-800x450-frame01.png" alt="Starfall M1 à 800x450, caméra en mouvement">
+  <figcaption><b>800×450 → échelle ×2, caméra décalée.</b> Deuxième image de la série : la cible de caméra est fractionnaire, et c'est précisément ce que l'alignement sur la grille doit absorber. Le cadre or de la zone garantie se décale d'un bloc entier, jamais d'un demi-pixel.</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/m1/starfall-1920x1080-frame00.png" alt="Starfall M1 à 1920x1080, échelle x6">
+  <figcaption><b>1920×1080 → échelle ×6, ajustement exact.</b> Aucun reliquat, donc aucun débordement : bordure or de 6 px sur les quatre côtés, identique partout.</figcaption>
 </figure>
 
 <h2>Journal de review</h2>
-<div class="rev">
-  <div class="hd">M1 — <b>Review indépendante : à faire</b></div>
-  <p>Pas encore lancée : la session s'arrête ici à ta demande. C'est la première chose à la reprise.</p>
-  <p style="color:var(--dim2);font-size:12.5px;margin-bottom:0">Ce qui a quand même été vérifié par mes soins, sans faire confiance au rapport de l'agent : build Gradle en sortie 0, 26 tests verts sur 5 suites (multiples exacts, tailles non multiples, très petites fenêtres, ratios extrêmes, invariants sur balayage large), et inspection visuelle directe des PNG ci-dessus.</p>
+
+<div class="rev fail">
+  <div class="hd">M1 — passe 1 — <b>Verdict : M1 ne tient pas</b></div>
+  <p>Relecteur en contexte neuf, aucun lien avec l'agent qui a écrit le code. Il a relu tous les fichiers, rejoué le build et les tests, écrit ses propres sondes, décodé les PNG livrés pixel par pixel et relancé le harnais à plusieurs tailles. <b>12 défauts confirmés</b>, dont deux qui contredisaient frontalement ce que M1 affichait.</p>
+
+  <p><b>1. La zone garantie 320×180 était rognée.</b> Le monde était arrondi vers le haut puis centré, ce qui coupait en deux la colonne de pixels de chaque bord — sans rien garantir sur le fait que la colonne coupée soit <i>en dehors</i> de la zone garantie. En 1281×720, la colonne monde x=0 n'était affichée que sur 2 pixels écran au lieu de 4. Les quatre captures livrées passaient toutes à côté du cas.</p>
+  <p style="color:var(--dim2);font-size:12.5px">Vérifié moi-même avant d'accepter l'objection : échelle 4, monde arrondi à 321, origine écran −2, caméra à 0 — la zone garantie se retrouvait plaquée contre le bord coupé. <b>Corrigé</b> en séparant la <i>zone sûre</i> (entièrement visible, jamais rognée) de la <i>zone dessinée</i> (qui déborde d'une colonne de chaque côté uniquement pour boucher les gouttières). Le test qui manquait vérifie désormais la garantie <b>en pixels écran</b> et non en pixels calculés — c'est exactement par ce trou que le défaut passait.</p>
+
+  <p><b>2. Le harnais de capture pouvait mentir en sortie 0.</b> Une demande de 3000×2000 produisait un PNG en 2884×1770 sans un mot, code de retour 0. Une faute de frappe (<code>--frame</code> au lieu de <code>--frames</code>) était signalée sur stderr puis ignorée, et produisait 2 images au lieu de 5, toujours en sortie 0.</p>
+  <p style="color:var(--dim2);font-size:12.5px"><b>Corrigé :</b> l'analyse de la ligne de commande est stricte (toute option inconnue, valeur manquante ou valeur absurde est fatale, code 2) et le harnais compare la fenêtre obtenue à la fenêtre demandée (code 3 et message explicite en cas d'écart). Pour une boucle de review automatisée, un faux positif silencieux est le pire défaut possible.</p>
+
+  <p><b>Les dix autres, tous corrigés :</b> le panneau d'interface recouvrait 48 % de la zone garantie à 320×180 — la taille minimale que le lanceur impose lui-même — alors qu'un commentaire affirmait le contraire ; <code>--frames N</code> écrivait N copies bit à bit de la même image ; les PNG n'étaient pas opaques (42 % des pixels à alpha 217, donc d'apparence variable selon le fond du visualiseur) ; écrasement et fichiers périmés silencieux ; débordement entier sur les tailles absurdes ; caméra non initialisée par le constructeur ; <code>--help</code> affichait l'aide puis ouvrait quand même une fenêtre ; API dépréciée ; double calcul de projection dont un sans garde-fou ; et <b>les commentaires étaient en anglais alors que la convention du projet les veut en français</b> — seul point de la convention qui était inversé, maintenant rétabli sur tous les fichiers.</p>
+
+  <p style="margin-bottom:0"><b>Trous de test comblés.</b> Le rapport notait que <code>PixelViewport</code>, <code>LaunchOptions</code> et <code>PixelFont</code> n'avaient <i>aucun</i> test, et que le balayage d'invariants avançait de 7 en largeur et de 11 en hauteur — il ne visitait donc ni 1281 ni 1281×721. On passe de <b>26 tests sur 5 suites à 85 sur 12</b>, avec un balayage au pas de 1 sur 2000×1200 tailles de fenêtre.</p>
+</div>
+
+<div class="rev pass">
+  <div class="hd">M1 — passe 2 — <b>Contre-vérification, par mes soins</b></div>
+  <p>Je n'ai pas pris le rapport pour argent comptant, et je n'ai pas non plus pris mes propres correctifs pour acquis. Ce qui a été re-mesuré sur les images produites après correction :</p>
+  <ul>
+    <li><b>Le défaut central est bien mort.</b> En 1281×720, le bord gauche du cadre or passe de 2 px à 4 px. Sur ~40 000 plages de couleur mesurées dans la zone de jeu (images au repos <i>et</i> caméra en mouvement, en ×3 et en ×4), <b>zéro</b> n'est un non-multiple de l'échelle.</li>
+    <li><b>Opacité :</b> les captures ne contiennent plus que de l'alpha 255.</li>
+    <li><b>Images distinctes mais reproductibles :</b> les 3 images d'une série ont 3 empreintes différentes, et deux exécutions successives donnent des empreintes identiques deux à deux.</li>
+    <li><b>Panneau d'interface à 320×180 :</b> le damier d'1 px est de nouveau visible sur toute sa hauteur (y=62 à 109) ; il était masqué à partir de y=94.</li>
+    <li><b>Bout en bout :</b> taille non tenue → code 3 et message d'erreur ; option mal orthographiée → code 2, aucune image écrite ; <code>--help</code> → aide puis arrêt, sans fenêtre.</li>
+    <li><b>Fenêtre réelle</b> ouverte et fermée pour de vrai — pas seulement les captures. Elle n'avait jamais été inspectée.</li>
+  </ul>
+  <p style="margin-bottom:0">Build propre en sortie 0, sans avertissement de compilation, 85 tests verts sur 12 suites.</p>
 </div>
 
 <h2>Besoin de ton avis</h2>
 <table>
   <tr><td><span class="pill p-block">à trancher</span></td><td><b>File de 5 : conséquence mécanique</b><span class="why">Passer de 3 à 5 emplacements change beaucoup l'économie de tours : plafond de combo bien plus haut, engagement plus long, et davantage de tours passés à charger la file en étant vulnérable. Je vais recalibrer les recharges et la pression ennemie autour de ça plutôt que de reprendre les chiffres de la référence — mais si tu voulais 5 emplacements <i>avec</i> l'équilibrage d'origine, dis-le maintenant, ça change le jalon M10.</span></td></tr>
-  <tr><td><span class="pill p-wait">signalé</span></td><td><b>M1 — points non couverts</b><span class="why">Aucun n'est bloquant, mais autant que tu les saches : le plein écran (F11) est implémenté mais n'a jamais été testé automatiquement ; la fenêtre de jeu en conditions réelles n'a pas été inspectée visuellement (seulement les captures) ; LWJGL est épinglé en 3.3.6 au lieu du 3.3.3 livré par libGDX, pour supprimer un avertissement JNI sous JDK 25 ; et aux tailles non multiples, moins d'un pixel-monde déborde de chaque bord au lieu d'afficher des bandes noires — choix délibéré, verrouillé par les tests.</span></td></tr>
-  <tr><td><span class="pill p-block">à trancher</span></td><td><b>Français dans le code</b><span class="why">J'ai supposé : textes joueur en français, identifiants de code en anglais. Si tu veux aussi les identifiants en français, il faut le décider avant M4 — après, c'est un renommage massif.</span></td></tr>
+  <tr><td><span class="pill p-wait">signalé</span></td><td><b>M1 — points non couverts</b><span class="why">Aucun n'est bloquant, mais autant que tu les saches : le plein écran (F11) est implémenté mais n'a jamais été testé automatiquement ; LWJGL est épinglé en 3.3.6 au lieu du 3.3.3 livré par libGDX, pour supprimer un avertissement JNI sous JDK 25 ; aux tailles non multiples, une colonne de débordement de moins d'un pixel-monde est visible sur les bords au lieu d'afficher des bandes noires — choix délibéré, et désormais explicitement <i>en dehors</i> de la zone garantie ; enfin <code>run.bat</code> renvoie le code 1 de Gradle et non le code 3 du jeu quand une capture n'est pas conforme (le message d'erreur, lui, est explicite).</span></td></tr>
+  <tr><td><span class="pill p-block">à trancher</span></td><td><b>Français dans le code</b><span class="why">La review a relevé que 100 % des commentaires étaient en anglais alors que la convention annoncée les veut en français : c'est corrigé, tous les fichiers sont repassés en français. <b>Reste ta décision sur les identifiants</b>, que j'ai laissés en anglais (convention Java) : <code>PixelViewport</code>, <code>safeWorldWidth</code>, <code>drawWorld()</code>… Si tu les veux en français, il faut le dire avant M4 — après, c'est un renommage massif.</span></td></tr>
 </table>
 
 <footer>

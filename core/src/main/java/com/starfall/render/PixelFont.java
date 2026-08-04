@@ -11,27 +11,28 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * A tiny built-in bitmap font, generated at runtime - no external asset files.
+ * Petite police bitmap intégrée, générée à l'exécution — aucun fichier d'asset externe.
  *
- * <p>Glyphs are 5x7 pixels inside an 11 pixel tall cell that reserves two rows above for French
- * accents and two rows below for descenders. Everything is drawn on the pixel grid at an integer
- * scale, so the overlay text stays as crisp as the rest of the scene.
+ * <p>Les glyphes font 5x7 pixels dans une cellule haute de 11 pixels, qui réserve deux lignes
+ * au-dessus pour les accents français et deux lignes en dessous pour les jambages. Tout est dessiné
+ * sur la grille de pixels à une échelle entière, donc le texte de l'interface reste aussi net que le
+ * reste de la scène.
  *
- * <p>Uppercase only: incoming text is upper-cased, which keeps the glyph table small while still
- * covering accented French.
+ * <p>Capitales uniquement : le texte reçu est passé en majuscules, ce qui garde une table de
+ * glyphes réduite tout en couvrant le français accentué.
  */
 public final class PixelFont implements Disposable {
 
-    /** Width of a glyph, in font pixels. */
+    /** Largeur d'un glyphe, en pixels de police. */
     public static final int GLYPH_WIDTH = 5;
-    /** Height of a glyph cell (accent zone + body + descender zone), in font pixels. */
+    /** Hauteur d'une cellule (zone d'accents + corps + zone de jambages), en pixels de police. */
     public static final int CELL_HEIGHT = 11;
-    /** Horizontal step between two characters, in font pixels. */
+    /** Pas horizontal entre deux caractères, en pixels de police. */
     public static final int ADVANCE = 6;
-    /** Vertical step between two lines, in font pixels. */
+    /** Pas vertical entre deux lignes, en pixels de police. */
     public static final int LINE_HEIGHT = 13;
 
-    private static final int BODY_TOP = 2;   // row of the cell where the 5x7 body starts
+    private static final int BODY_TOP = 2;   // ligne de la cellule où commence le corps 5x7
     private static final int BODY_ROWS = 7;
 
     private static final String[] ACUTE = {"...#.", "..#.."};
@@ -106,20 +107,20 @@ public final class PixelFont implements Disposable {
         glyph('>', ".#...", "..#..", "...#.", "....#", "...#.", "..#..", ".#...");
         glyph('#', ".#.#.", ".#.#.", "#####", ".#.#.", "#####", ".#.#.", ".#.#.");
 
-        // Accented French capitals, composed from a base glyph plus a mark.
-        accented('É', 'E', ACUTE);          // E acute
-        accented('È', 'E', GRAVE);          // E grave
-        accented('Ê', 'E', CIRCUMFLEX);     // E circumflex
-        accented('Ë', 'E', DIAERESIS);      // E diaeresis
-        accented('À', 'A', GRAVE);          // A grave
-        accented('Â', 'A', CIRCUMFLEX);     // A circumflex
-        accented('Î', 'I', CIRCUMFLEX);     // I circumflex
-        accented('Ï', 'I', DIAERESIS);      // I diaeresis
-        accented('Ô', 'O', CIRCUMFLEX);     // O circumflex
-        accented('Ù', 'U', GRAVE);          // U grave
-        accented('Û', 'U', CIRCUMFLEX);     // U circumflex
-        accented('Ü', 'U', DIAERESIS);      // U diaeresis
-        cedilla('Ç', 'C');                  // C cedilla
+        // Capitales accentuées, composées d'un glyphe de base et d'une marque.
+        accented('É', 'E', ACUTE);
+        accented('È', 'E', GRAVE);
+        accented('Ê', 'E', CIRCUMFLEX);
+        accented('Ë', 'E', DIAERESIS);
+        accented('À', 'A', GRAVE);
+        accented('Â', 'A', CIRCUMFLEX);
+        accented('Î', 'I', CIRCUMFLEX);
+        accented('Ï', 'I', DIAERESIS);
+        accented('Ô', 'O', CIRCUMFLEX);
+        accented('Ù', 'U', GRAVE);
+        accented('Û', 'U', CIRCUMFLEX);
+        accented('Ü', 'U', DIAERESIS);
+        cedilla('Ç', 'C');
     }
 
     private final Texture texture;
@@ -154,14 +155,14 @@ public final class PixelFont implements Disposable {
     }
 
     /**
-     * Draws a single line of text.
+     * Dessine une ligne de texte.
      *
-     * @param x     left edge, in the batch's current units (should be a whole pixel)
-     * @param yTop  top edge of the glyph cell, in the batch's current units
-     * @param scale integer magnification
+     * @param x     bord gauche, dans les unités courantes du batch (de préférence un pixel entier)
+     * @param yTop  bord supérieur de la cellule, dans les unités courantes du batch
+     * @param scale grossissement entier
      */
     public void draw(SpriteBatch batch, CharSequence text, float x, float yTop, int scale) {
-        String upper = text.toString().toUpperCase(Locale.FRENCH);
+        String upper = normalise(text);
         float cursor = x;
         float y = yTop - CELL_HEIGHT * scale;
         for (int i = 0; i < upper.length(); i++) {
@@ -178,10 +179,46 @@ public final class PixelFont implements Disposable {
         }
     }
 
-    /** Width in pixels a line of text will occupy at the given scale. */
+    /** Largeur en pixels qu'occupera une ligne de texte à l'échelle donnée. */
     public int width(CharSequence text, int scale) {
-        int length = text.length();
+        return widthOf(text, scale);
+    }
+
+    /**
+     * Même calcul que {@link #width}, mais sans instance : la mesure ne dépend que de la table de
+     * glyphes, ce qui la rend testable sans contexte GL.
+     *
+     * <p>La longueur est mesurée sur le texte <em>normalisé</em>, celui que {@link #draw} dessine
+     * réellement — passer en majuscules peut changer le nombre de caractères pour certains
+     * caractères Unicode, et une mesure faite sur le texte d'origine décalerait la mise en page.
+     */
+    public static int widthOf(CharSequence text, int scale) {
+        int length = normalise(text).length();
         return length == 0 ? 0 : (length * ADVANCE - 1) * scale;
+    }
+
+    /** Vrai si un glyphe existe pour ce caractère exact, sans normalisation préalable. */
+    public static boolean hasGlyph(char character) {
+        return GLYPHS.containsKey(character);
+    }
+
+    /**
+     * Premier caractère de {@code text} que {@link #draw} serait incapable de dessiner, ou
+     * {@code -1} si la ligne entière est couverte. La normalisation est appliquée d'abord, comme au
+     * rendu : un caractère inconnu est sauté en silence, donc mieux vaut pouvoir le détecter.
+     */
+    public static int firstUndrawableCharacter(CharSequence text) {
+        String normalised = normalise(text);
+        for (int i = 0; i < normalised.length(); i++) {
+            if (!hasGlyph(normalised.charAt(i))) {
+                return normalised.charAt(i);
+            }
+        }
+        return -1;
+    }
+
+    private static String normalise(CharSequence text) {
+        return text.toString().toUpperCase(Locale.FRENCH);
     }
 
     @Override
@@ -189,13 +226,13 @@ public final class PixelFont implements Disposable {
         texture.dispose();
     }
 
-    // ---------------------------------------------------------------- glyph table helpers
+    // ---------------------------------------------------------------- table de glyphes
 
-    /** Registers a glyph from 7 body rows, optionally followed by up to 2 descender rows. */
+    /** Enregistre un glyphe à partir de 7 lignes de corps, suivies d'au plus 2 lignes de jambage. */
     private static void glyph(char character, String... rows) {
         String[] cell = blankCell();
         for (int i = 0; i < rows.length; i++) {
-            int target = BODY_TOP + i; // rows past the body spill into the descender zone
+            int target = BODY_TOP + i; // les lignes au-delà du corps débordent dans la zone de jambage
             if (target < CELL_HEIGHT) {
                 cell[target] = rows[i];
             }

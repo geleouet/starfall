@@ -1,13 +1,20 @@
 package com.starfall;
 
+import java.util.Locale;
+
 /**
- * Command line options, shared by the launcher and the game.
+ * Options de ligne de commande, partagées par le lanceur et le jeu.
  *
  * <pre>
- *   --screenshot &lt;outputDir&gt;   render a few frames, write a PNG each, then exit(0)
- *   --size &lt;W&gt;x&lt;H&gt;             initial window size (default 1280x720)
- *   --frames &lt;N&gt;               number of frames to render in screenshot mode (default 2)
+ *   --screenshot &lt;dossier&gt;   rend quelques images, écrit un PNG par image, puis quitte
+ *   --size &lt;L&gt;x&lt;H&gt;           taille initiale de la fenêtre (défaut 1280x720)
+ *   --frames &lt;N&gt;             nombre d'images à rendre en mode capture (défaut 2)
+ *   --help                   affiche l'aide et quitte
  * </pre>
+ *
+ * <p>L'analyse est <b>stricte</b> : toute option inconnue, mal orthographiée ou sans valeur est une
+ * erreur fatale. La boucle de review du projet est automatisée, et une faute de frappe qui produit
+ * silencieusement le mauvais résultat en sortie 0 est exactement le faux positif à proscrire.
  */
 public final class LaunchOptions {
 
@@ -15,17 +22,20 @@ public final class LaunchOptions {
     public static final int DEFAULT_HEIGHT = 720;
     public static final int DEFAULT_FRAMES = 2;
 
-    /** Output directory for screenshots, or {@code null} when running normally. */
+    /** Dossier de sortie des captures, ou {@code null} en fonctionnement normal. */
     public final String screenshotDir;
     public final int width;
     public final int height;
     public final int frames;
+    /** Vrai si l'aide a été demandée : le lanceur l'affiche puis s'arrête sans ouvrir de fenêtre. */
+    public final boolean helpRequested;
 
-    private LaunchOptions(String screenshotDir, int width, int height, int frames) {
+    private LaunchOptions(String screenshotDir, int width, int height, int frames, boolean helpRequested) {
         this.screenshotDir = screenshotDir;
         this.width = width;
         this.height = height;
         this.frames = frames;
+        this.helpRequested = helpRequested;
     }
 
     public boolean isScreenshotMode() {
@@ -37,6 +47,7 @@ public final class LaunchOptions {
         int width = DEFAULT_WIDTH;
         int height = DEFAULT_HEIGHT;
         int frames = DEFAULT_FRAMES;
+        boolean helpRequested = false;
 
         if (args != null) {
             for (int i = 0; i < args.length; i++) {
@@ -46,44 +57,66 @@ public final class LaunchOptions {
                         screenshotDir = requireValue(args, ++i, arg);
                         break;
                     case "--size": {
-                        String value = requireValue(args, ++i, arg).toLowerCase(java.util.Locale.ROOT);
+                        String value = requireValue(args, ++i, arg).toLowerCase(Locale.ROOT);
                         int x = value.indexOf('x');
                         if (x <= 0 || x == value.length() - 1) {
-                            throw new IllegalArgumentException("--size expects WxH, got: " + value);
+                            throw new IllegalArgumentException("--size attend LxH, reçu : " + value);
                         }
-                        width = Math.max(1, Integer.parseInt(value.substring(0, x).trim()));
-                        height = Math.max(1, Integer.parseInt(value.substring(x + 1).trim()));
+                        width = requirePositive(value.substring(0, x), arg);
+                        height = requirePositive(value.substring(x + 1), arg);
                         break;
                     }
                     case "--frames":
-                        frames = Math.max(1, Integer.parseInt(requireValue(args, ++i, arg)));
+                        frames = requirePositive(requireValue(args, ++i, arg), arg);
                         break;
                     case "--help":
                     case "-h":
-                        System.out.println(usage());
+                        helpRequested = true;
                         break;
                     default:
-                        System.err.println("[Starfall] Unknown argument ignored: " + arg);
-                        break;
+                        throw new IllegalArgumentException("Argument inconnu : " + arg);
                 }
             }
         }
 
-        return new LaunchOptions(screenshotDir, width, height, frames);
+        return new LaunchOptions(screenshotDir, width, height, frames, helpRequested);
     }
 
+    /**
+     * Lit la valeur qui suit une option. Une valeur qui ressemble elle-même à une option est
+     * refusée : {@code --screenshot --size 800x450} créerait sinon un dossier nommé « --size ».
+     */
     private static String requireValue(String[] args, int index, String option) {
         if (index >= args.length) {
-            throw new IllegalArgumentException(option + " requires a value");
+            throw new IllegalArgumentException(option + " attend une valeur");
         }
-        return args[index];
+        String value = args[index];
+        if (value.startsWith("--")) {
+            throw new IllegalArgumentException(option + " attend une valeur, mais a reçu l'option " + value);
+        }
+        return value;
+    }
+
+    private static int requirePositive(String raw, String option) {
+        String text = raw.trim();
+        int value;
+        try {
+            value = Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(option + " attend un entier, reçu : " + text);
+        }
+        if (value < 1) {
+            throw new IllegalArgumentException(option + " attend un entier strictement positif, reçu : " + value);
+        }
+        return value;
     }
 
     public static String usage() {
         return "Starfall\n"
-                + "  --screenshot <dir>   render frames to PNG in <dir> then exit\n"
-                + "  --size <W>x<H>       window size (default " + DEFAULT_WIDTH + "x" + DEFAULT_HEIGHT + ")\n"
-                + "  --frames <N>         frames to capture in screenshot mode (default " + DEFAULT_FRAMES + ")\n";
+                + "  --screenshot <dossier>   rend des images en PNG dans <dossier> puis quitte\n"
+                + "  --size <L>x<H>           taille de la fenêtre (défaut " + DEFAULT_WIDTH + "x" + DEFAULT_HEIGHT + ")\n"
+                + "  --frames <N>             images à capturer en mode capture (défaut " + DEFAULT_FRAMES + ")\n"
+                + "  --help                   affiche cette aide\n";
     }
 
     @Override
