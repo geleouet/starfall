@@ -1,0 +1,28 @@
+// Starfall - root build script.
+// Two modules: `core` (engine-agnostic game code) and `lwjgl3` (desktop launcher).
+
+subprojects {
+    apply plugin: 'java-library'
+
+    repositories {
+        mavenCentral()
+        maven { url = uri('https://oss.sonatype.org/content/repositories/releases/') }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(javaToolchainVersion as Integer)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+        testLogging {
+            events 'passed', 'skipped', 'failed'
+        }
+    }
+}

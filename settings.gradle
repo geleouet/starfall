@@ -1,0 +1,4 @@
+rootProject.name = 'Starfall'
+
+include 'core'
+include 'lwjgl3'
