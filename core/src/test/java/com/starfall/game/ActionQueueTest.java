@@ -15,8 +15,17 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests de la file d'actions.
  *
- * <p>L'essentiel tient en une phrase : <b>on exécute à l'envers de l'ordre où l'on a posé</b>. Tout
- * le reste du jeu s'appuie là-dessus, et une inversion silencieuse ne se verrait qu'à l'usage.
+ * <p>L'essentiel tient en deux phrases. <b>On exécute à l'envers de l'ordre où l'on a posé</b> —
+ * tout le reste du jeu s'appuie là-dessus, et une inversion silencieuse ne se verrait qu'à l'usage.
+ * Et <b>charger coûte un tour par tuile, lâcher la salve en coûte un seul</b> : c'est l'économie qui
+ * donne son sens à la file.
+ *
+ * <p>Cette seconde phrase est arrivée au jalon d'équilibrage, et elle a renversé la moitié de ces
+ * tests. Jusque-là, poser était gratuit et chaque exécution coûtait un tour : cinq tuiles coûtaient
+ * cinq tours, exactement comme cinq actions jouées une à une. La file n'était qu'une contrainte
+ * d'ordre sans contrepartie, et aucun enchaînement ne pouvait en sortir puisque chaque exécution
+ * était une action à elle seule — alors que le tableau de bord promettait depuis M5 « trois effets
+ * pendant que les ennemis n'avancent que d'un cran ».
  */
 class ActionQueueTest {
 
@@ -59,19 +68,40 @@ class ActionQueueTest {
         }
 
         @Test
-        @DisplayName("Vider la file la vide dans l'ordre inverse de la pose")
-        void emptyingTheQueueUnwindsIt() {
+        @DisplayName("La salve part en entier, du sommet vers le bas")
+        void theVolleyFiresTopDown() {
             Arena arena = new Arena(15, 0);
             arena.queueTile(Tile.STRIKE);
             arena.queueTile(Tile.PUSH);
             arena.queueTile(Tile.DASH);
 
-            arena.executeTop();
-            assertEquals(Tile.PUSH, arena.queue().top());
-            arena.executeTop();
-            assertEquals(Tile.STRIKE, arena.queue().top());
-            arena.executeTop();
-            assertTrue(arena.queue().isEmpty());
+            arena.unleash();
+
+            assertTrue(arena.queue().isEmpty(), "la salve emporte toute la file");
+        }
+
+        /**
+         * L'ordre se mesure par ses effets, pas par l'état de la file : depuis que la salve part en
+         * entier, on ne peut plus l'observer au sommet entre deux coups.
+         *
+         * <p>Le montage sépare les deux ordres possibles : la volte-face avant l'élan renvoie le
+         * héros à son point de départ, l'élan avant la volte-face l'envoie au bout.
+         */
+        @Test
+        @DisplayName("Le dernier posé agit le premier, et ça change le résultat")
+        void theLastQueuedActsFirstAndItShows() {
+            Arena runThenTurn = new Arena(15, 0);
+            runThenTurn.queueTile(Tile.PIVOT);   // posé en premier, donc joué en dernier
+            runThenTurn.queueTile(Tile.DASH);
+            runThenTurn.unleash();
+
+            Arena turnThenRun = new Arena(15, 0);
+            turnThenRun.queueTile(Tile.DASH);
+            turnThenRun.queueTile(Tile.PIVOT);   // posé en dernier, donc joué en premier
+            turnThenRun.unleash();
+
+            assertEquals(14, runThenTurn.heroCell(), "l'elan a joue avant la volte-face");
+            assertEquals(0, turnThenRun.heroCell(), "la volte-face a joue avant l'elan");
         }
     }
 
@@ -104,41 +134,95 @@ class ActionQueueTest {
             }
 
             assertTrue(arena.queue().isFull());
+            int turns = arena.turnsTaken();
             assertEquals(ActionResult.QUEUE_FULL, arena.queueTile(tiles[ActionQueue.CAPACITY]));
+            assertEquals(turns, arena.turnsTaken(), "un refus ne coute pas de tour");
 
             assertEquals(ActionQueue.CAPACITY, arena.queue().size(), "la file n'a pas deborde");
             assertTrue(arena.rack().holds(tiles[ActionQueue.CAPACITY]),
                     "la tuile refusee doit rester au rateleir");
-            assertEquals(0, arena.turnsTaken(), "un refus ne consomme rien");
         }
     }
 
     @Nested
-    @DisplayName("Poser et reprendre sont gratuits")
-    class FreeHandling {
+    @DisplayName("Charger coûte, lâcher coûte une fois")
+    class TurnEconomy {
 
+        /**
+         * Le cœur de l'économie : charger est le moment vulnérable.
+         *
+         * <p>C'est ce qui donne un prix à la file. Sans lui, cinq tuiles coûtaient cinq tours comme
+         * cinq actions séparées et la file ne servait à rien.
+         */
         @Test
-        @DisplayName("Poser une tuile ne consomme pas de tour")
-        void queueingCostsNoTurn() {
+        @DisplayName("Poser une tuile consomme un tour")
+        void queueingCostsATurn() {
             Arena arena = arena();
             int before = arena.turnsTaken();
 
             assertEquals(ActionResult.QUEUED, arena.queueTile(Tile.STRIKE));
             assertEquals(ActionResult.QUEUED, arena.queueTile(Tile.PUSH));
 
-            assertEquals(before, arena.turnsTaken(), "preparer la file ne doit jamais punir");
+            assertEquals(before + 2, arena.turnsTaken(), "charger est le moment vulnerable");
         }
 
+        /**
+         * Et la contrepartie : cinq effets pendant que les ennemis n'avancent que d'un cran. C'est
+         * mot pour mot ce que le tableau de bord promettait depuis M5.
+         */
         @Test
-        @DisplayName("Reprendre une tuile ne consomme pas de tour et ne la met pas en recharge")
-        void unqueueingCostsNothingAtAll() {
+        @DisplayName("Une salve de cinq ne coûte qu'un tour")
+        void aVolleyOfFiveCostsOneTurn() {
+            Arena arena = new Arena(15, 7);
+            arena.grid().place(8, new Pawn("cible"));
+            for (Tile tile : new Tile[]{Tile.STRIKE, Tile.THRUST, Tile.PUSH, Tile.DASH, Tile.PIVOT}) {
+                arena.queueTile(tile);
+            }
+            int before = arena.turnsTaken();
+
+            arena.unleash();
+
+            assertEquals(before + 1, arena.turnsTaken(),
+                    "cinq effets doivent tomber pendant que les ennemis n'avancent que d'un cran");
+            assertTrue(arena.queue().isEmpty());
+        }
+
+        /**
+         * Une salve dont rien ne porte est déjà punie : les tuiles sont dépensées et partent en
+         * recharge. On ne fait pas payer deux fois une décision déjà punie — c'est la règle de M5,
+         * transposée à la salve entière.
+         */
+        @Test
+        @DisplayName("Une salve qui ne porte sur rien ne coûte pas de tour")
+        void avolleyThatConnectsWithNothingCostsNoTurn() {
+            Arena arena = new Arena(15, 7);
+            arena.queueTile(Tile.STRIKE);   // personne devant
+            arena.queueTile(Tile.THRUST);   // personne a deux cases non plus
+            int before = arena.turnsTaken();
+
+            arena.unleash();
+
+            assertEquals(before, arena.turnsTaken(), "rien n'a porte : rien de plus a payer");
+            assertFalse(arena.rack().isReady(Tile.STRIKE), "mais les tuiles sont bien depensees");
+        }
+
+        /**
+         * Reprendre reste le seul geste gratuit — mais il ne rend pas le tour dépensé.
+         *
+         * <p>Le joueur paie son engagement, pas le fait de changer d'avis sur une tuile qui n'a rien
+         * fait. Il n'y a donc rien à gagner à remuer la file : juste de quoi ne pas être puni deux
+         * fois pour une main qui a glissé.
+         */
+        @Test
+        @DisplayName("Reprendre ne coûte rien, mais ne rend pas le tour dépensé")
+        void unqueueingIsFreeButGivesNothingBack() {
             Arena arena = arena();
             arena.queueTile(Tile.STRIKE);
             int before = arena.turnsTaken();
 
             assertEquals(ActionResult.UNQUEUED, arena.unqueueAt(0));
 
-            assertEquals(before, arena.turnsTaken());
+            assertEquals(before, arena.turnsTaken(), "reprendre ne fait pas passer le temps");
             assertTrue(arena.rack().isReady(Tile.STRIKE), "la tuile n'a pas servi : elle reste prete");
             assertTrue(arena.queue().isEmpty());
         }
@@ -189,7 +273,7 @@ class ActionQueueTest {
         void anExecutedTileGoesOnCooldown() {
             Arena arena = new Arena(15, 0);
             arena.queueTile(Tile.DASH);
-            arena.executeTop();
+            arena.unleash();
 
             // L'execution consomme un tour, qui accorde deja un point de recharge.
             assertEquals(Tile.DASH.rechargeCost() - 1, arena.rack().missingPoints(Tile.DASH));
@@ -202,8 +286,7 @@ class ActionQueueTest {
             Arena arena = new Arena(15, 0);
             arena.queueTile(Tile.STRIKE);
             arena.queueTile(Tile.DASH);
-            arena.executeTop();  // DASH : le heros charge, un tour consomme
-            arena.executeTop();  // STRIKE : personne devant, aucun tour consomme
+            arena.unleash();  // la salve entiere part, un tour consomme
 
             int dashBefore = arena.rack().missingPoints(Tile.DASH);
             int strikeBefore = arena.rack().missingPoints(Tile.STRIKE);
@@ -218,7 +301,7 @@ class ActionQueueTest {
         void aRechargingTileCannotBeQueued() {
             Arena arena = new Arena(15, 0);
             arena.queueTile(Tile.DASH);
-            arena.executeTop();
+            arena.unleash();
 
             assertEquals(ActionResult.NOT_READY, arena.queueTile(Tile.DASH));
         }
@@ -228,7 +311,7 @@ class ActionQueueTest {
         void afterEnoughTurnsTheTileComesBack() {
             Arena arena = new Arena(15, 0);
             arena.queueTile(Tile.DASH);
-            arena.executeTop();
+            arena.unleash();
 
             int guard = 0;
             while (!arena.rack().isReady(Tile.DASH) && guard++ < 20) {
@@ -239,21 +322,27 @@ class ActionQueueTest {
             assertEquals(ActionResult.QUEUED, arena.queueTile(Tile.DASH));
         }
 
+        /**
+         * Reprendre en boucle ne fait rien avancer : c'est ce qui reste de la promesse « se préparer
+         * ne doit jamais punir » une fois que poser est devenu payant.
+         */
         @Test
-        @DisplayName("Poser et reprendre en boucle ne fait avancer aucune recharge")
-        void shufflingTheQueueNeverAdvancesTime() {
+        @DisplayName("Reprendre en boucle ne fait avancer aucune recharge")
+        void takingBackNeverAdvancesTime() {
             Arena arena = arena();
             arena.queueTile(Tile.STRIKE);
-            arena.executeTop();
+            arena.unleash();
             int missing = arena.rack().missingPoints(Tile.STRIKE);
+            int turns = arena.turnsTaken();
 
+            arena.queueTile(Tile.PUSH);
             for (int i = 0; i < 50; i++) {
-                arena.queueTile(Tile.PUSH);
                 arena.unqueueAt(0);
             }
 
-            assertEquals(missing, arena.rack().missingPoints(Tile.STRIKE),
-                    "remuer la file ne doit pas faire passer le temps");
+            assertEquals(missing - 1, arena.rack().missingPoints(Tile.STRIKE),
+                    "un seul tour a passe, celui de la pose");
+            assertEquals(turns + 1, arena.turnsTaken(), "et un seul");
         }
     }
 
@@ -261,17 +350,51 @@ class ActionQueueTest {
     @DisplayName("Free-Play")
     class FreePlay {
 
+        /**
+         * La soupape a suivi le coût.
+         *
+         * <p>Free-Play voulait dire « s'exécute sans consommer de tour » quand l'exécution était le
+         * moment payant. Maintenant que c'est le chargement, une tuile Free-Play <b>se pose</b>
+         * gratuitement — et une salve qui ne contient qu'elles ne coûte rien non plus. Se
+         * repositionner sans offrir un tour reste possible, ce qui était toute leur raison d'être.
+         */
         @Test
-        @DisplayName("Une tuile Free-Play ne consomme pas de tour")
-        void aFreePlayTileCostsNoTurn() {
+        @DisplayName("Poser une tuile Free-Play ne consomme pas de tour")
+        void queueingAFreePlayTileCostsNoTurn() {
             Arena arena = arena();
+            int before = arena.turnsTaken();
+
+            assertEquals(ActionResult.QUEUED, arena.queueTile(Tile.SIDESTEP));
+
+            assertEquals(before, arena.turnsTaken(), "la soupape se charge gratuitement");
+            assertTrue(Tile.SIDESTEP.isFreePlay());
+        }
+
+        @Test
+        @DisplayName("Une salve entièrement Free-Play ne coûte rien non plus")
+        void anAllFreePlayVolleyCostsNothing() {
+            Arena arena = arena();
+            arena.queueTile(Tile.PIVOT);
             arena.queueTile(Tile.SIDESTEP);
             int before = arena.turnsTaken();
 
-            assertEquals(ActionResult.MOVED, arena.executeTop());
+            arena.unleash();
 
-            assertEquals(before, arena.turnsTaken());
-            assertTrue(Tile.SIDESTEP.isFreePlay());
+            assertEquals(before, arena.turnsTaken(), "se repositionner ne doit rien offrir");
+        }
+
+        @Test
+        @DisplayName("Mais une seule tuile payante suffit à faire coûter la salve")
+        void oneCostlyTileMakesTheWholeVolleyCost() {
+            Arena arena = new Arena(9, 4);
+            arena.grid().place(5, new Pawn("cible"));
+            arena.queueTile(Tile.PIVOT);
+            arena.queueTile(Tile.STRIKE);
+            int before = arena.turnsTaken();
+
+            arena.unleash();
+
+            assertEquals(before + 1, arena.turnsTaken());
         }
 
         @Test
@@ -279,7 +402,7 @@ class ActionQueueTest {
         void butItStillGoesOnCooldown() {
             Arena arena = arena();
             arena.queueTile(Tile.SIDESTEP);
-            arena.executeTop();
+            arena.unleash();
 
             assertFalse(arena.rack().isReady(Tile.SIDESTEP));
             assertEquals(Tile.SIDESTEP.rechargeCost(), arena.rack().missingPoints(Tile.SIDESTEP),
@@ -296,7 +419,7 @@ class ActionQueueTest {
 
             byKey.step(byKey.hero().facing().opposite());
             byTile.queueTile(Tile.PIVOT);
-            byTile.executeTop();
+            byTile.unleash();
 
             assertEquals(byKey.hero().facing(), byTile.hero().facing(), "meme resultat");
             assertEquals(1, byKey.turnsTaken(), "au clavier, le demi-tour coute un tour");
@@ -311,7 +434,7 @@ class ActionQueueTest {
             Direction facing = arena.hero().facing();
 
             arena.queueTile(Tile.SIDESTEP);
-            arena.executeTop();
+            arena.unleash();
 
             assertEquals(start - facing.step(), arena.heroCell());
             assertEquals(facing, arena.hero().facing(), "reculer ne fait pas se retourner");
@@ -327,7 +450,7 @@ class ActionQueueTest {
         void executingAnEmptyQueueSaysSo() {
             Arena arena = arena();
 
-            assertEquals(ActionResult.EMPTY_QUEUE, arena.executeTop());
+            assertEquals(ActionResult.EMPTY_QUEUE, arena.unleash());
             assertEquals(0, arena.turnsTaken());
         }
 
@@ -338,7 +461,7 @@ class ActionQueueTest {
             arena.queueTile(Tile.STRIKE); // personne devant
             int before = arena.turnsTaken();
 
-            assertEquals(ActionResult.NO_TARGET, arena.executeTop());
+            assertEquals(ActionResult.NO_TARGET, arena.unleash());
 
             assertTrue(arena.queue().isEmpty(), "la tuile est bien consommee");
             assertFalse(arena.rack().isReady(Tile.STRIKE), "et bien mise en recharge");
@@ -355,7 +478,7 @@ class ActionQueueTest {
             arena.announceIntentions();
 
             arena.queueTile(Tile.STRIKE);
-            assertEquals(ActionResult.STRUCK, arena.executeTop());
+            assertEquals(ActionResult.STRUCK, arena.unleash());
 
             assertEquals(1, victim.health(), "entame, pas tue");
             assertFalse(arena.grid().isFree(target), "il tient encore sa case");
@@ -370,7 +493,7 @@ class ActionQueueTest {
             arena.announceIntentions();
 
             arena.queueTile(Tile.STRIKE);
-            assertEquals(ActionResult.STRUCK, arena.executeTop());
+            assertEquals(ActionResult.STRUCK, arena.unleash());
 
             assertTrue(arena.grid().isFree(target));
         }
@@ -384,7 +507,7 @@ class ActionQueueTest {
             arena.grid().place(target, victim);
 
             arena.queueTile(Tile.PUSH);
-            assertEquals(ActionResult.PUSHED, arena.executeTop());
+            assertEquals(ActionResult.PUSHED, arena.unleash());
 
             assertTrue(arena.grid().isFree(target));
             assertSame(victim, arena.grid().occupantAt(target + 1));
@@ -401,7 +524,7 @@ class ActionQueueTest {
             arena.announceIntentions();
 
             arena.queueTile(Tile.PUSH);
-            assertEquals(ActionResult.COLLIDED, arena.executeTop());
+            assertEquals(ActionResult.COLLIDED, arena.unleash());
 
             assertEquals(victim.maxHealth() - Arena.COLLISION_DAMAGE, victim.health());
         }
@@ -413,13 +536,16 @@ class ActionQueueTest {
             // On ne peut donc pas l'observer apres coup, seulement constater qu'aucun coup n'est
             // parti alors qu'un coup etait annonce.
             Arena arena = new Arena(9, 7);
+            // On charge AVANT de poser l'ennemi : depuis que charger consomme un tour, le faire
+            // sous le feu offrirait a l'ennemi une frappe qui n'a rien a voir avec ce qu'on mesure.
+            arena.queueTile(Tile.PUSH);
+
             Enemy victim = new Enemy(EnemyKind.SABREUR);
             arena.grid().place(8, victim);
             arena.announceIntentions();
             assertEquals(1, arena.threatCount(7), "le sabreur annonce bien une frappe");
 
-            arena.queueTile(Tile.PUSH);
-            arena.executeTop();
+            arena.unleash();
 
             assertEquals(0, arena.heroHits(), "l'ennemi etourdi n'a pas frappe");
         }
@@ -431,7 +557,7 @@ class ActionQueueTest {
             arena.grid().place(6, new Pawn("obstacle"));
 
             arena.queueTile(Tile.DASH);
-            assertEquals(ActionResult.DASHED, arena.executeTop());
+            assertEquals(ActionResult.DASHED, arena.unleash());
 
             assertEquals(5, arena.heroCell(), "arrete juste avant l'obstacle");
         }
@@ -442,7 +568,7 @@ class ActionQueueTest {
             Arena arena = new Arena(9, 8);
 
             arena.queueTile(Tile.DASH);
-            assertEquals(ActionResult.BLOCKED, arena.executeTop());
+            assertEquals(ActionResult.BLOCKED, arena.unleash());
             assertEquals(8, arena.heroCell());
         }
     }

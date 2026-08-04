@@ -53,7 +53,7 @@ class ArenaInvariantTest {
             case 2 -> arena.clickOn(random.nextInt(arena.grid().width() + 4) - 2);
             case 3 -> arena.queueTile(tiles.get(random.nextInt(tiles.size())));
             case 4 -> arena.unqueueAt(random.nextInt(ActionQueue.CAPACITY + 1) - 1);
-            default -> arena.executeTop();
+            default -> arena.unleash();
         }
     }
 

@@ -192,11 +192,11 @@ public final class ArenaScene implements Scene {
             a -> a.queueTile(Tile.THRUST),   // l'estoc porte à deux cases : c'est la portée utile
             a -> a.queueTile(Tile.STRIKE),   // charger la file ne coûte rien : le tour reste à zéro
             a -> a.unqueueAt(1),             // on se ravise, gratuitement aussi
-            a -> a.executeTop(),             // l'estoc tombe sur l'ennemi de droite
+            a -> a.unleash(),             // l'estoc tombe sur l'ennemi de droite
             a -> a.step(Direction.LEFT),     // demi-tour vers l'archer
             a -> a.step(Direction.LEFT),     // on avance : les ennemis jouent, la vie descend
             a -> a.queueTile(Tile.STRIKE),
-            a -> a.executeTop(),             // et la vague bascule quand le terrain se vide
+            a -> a.unleash(),             // et la vague bascule quand le terrain se vide
             a -> a.step(Direction.RIGHT),    // on va au contact du premier de la vague suivante
             a -> a.queueTile(Tile.PUSH),     // la poussée annonce sa trajectoire, case par case
             a -> a.queueTile(Tile.STRIKE),
@@ -296,7 +296,7 @@ public final class ArenaScene implements Scene {
             applied(arena.swapWithTarget());
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
                 || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            applied(arena.executeTop());
+            applied(arena.unleash());
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)
                 || Gdx.input.isKeyJustPressed(Input.Keys.FORWARD_DEL)) {
             applied(arena.unqueueAt(arena.queue().size() - 1));

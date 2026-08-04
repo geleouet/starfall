@@ -14,7 +14,7 @@ public final class Hero implements Occupant {
      * <p>Cinq, c'est-à-dire assez pour se tromper deux ou trois fois et assez peu pour que chaque
      * coup encaissé se sente. Le chiffre sera réaccordé au jalon d'équilibrage.
      */
-    public static final int MAX_HEALTH = 5;
+    public static final int MAX_HEALTH = 8;
 
     private int health = MAX_HEALTH;
     private Direction facing = Direction.RIGHT;

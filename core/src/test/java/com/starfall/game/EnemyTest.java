@@ -308,10 +308,12 @@ class EnemyTest {
         @DisplayName("Un ennemi tué en cours de phase ne joue pas")
         void anEnemyKilledMidPhaseDoesNotAct() {
             Arena arena = bare(9, 4);
+            // Charger d'abord, sur un plateau vide : poser coute un tour, et ce test porte sur la
+            // phase ou l'ennemi meurt, pas sur celle d'avant.
+            arena.queueTile(Tile.STRIKE);
             place(arena, 5, EnemyKind.SABREUR);
 
-            arena.queueTile(Tile.STRIKE);
-            arena.executeTop(); // le tue, et consomme le tour
+            arena.unleash(); // le tue, et consomme le tour
 
             assertEquals(0, arena.heroHits(), "un mort ne frappe pas");
             assertTrue(arena.enemies().isEmpty());

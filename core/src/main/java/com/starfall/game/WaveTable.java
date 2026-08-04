@@ -43,6 +43,16 @@ final class WaveTable {
             },
     };
 
+    /**
+     * Distance à laquelle une vague cherche d'abord à se poser.
+     *
+     * <p>Trois, et non deux : depuis que charger une tuile consomme un tour, arriver à deux cases
+     * ne laissait aucun tour pour préparer quoi que ce soit avant le contact. La distance de
+     * départ est devenue un paramètre d'équilibrage à part entière, au même titre que les points
+     * de vie — c'est elle qui décide de combien de tours on dispose pour armer la première salve.
+     */
+    static final int PREFERRED_DISTANCE = 3;
+
     private WaveTable() {
     }
 
@@ -86,12 +96,16 @@ final class WaveTable {
         int width = grid.width();
 
         int placed = 0;
-        for (int distance = 2; distance <= width && placed < pattern.length; distance++) {
+        // On cherche loin d'abord, puis on se rapproche, jusqu'au contact s'il le faut. La
+        // distance préférée est passée de deux à trois au jalon d'équilibrage : depuis que charger
+        // une tuile consomme un tour, arriver à deux cases ne laissait <b>aucun</b> tour pour
+        // préparer quoi que ce soit avant le contact.
+        for (int distance = PREFERRED_DISTANCE; distance <= width && placed < pattern.length; distance++) {
             placed = placeAtDistance(grid, pattern, hero, distance, placed);
         }
-        // Dernier recours : au contact. Mieux vaut une vague complète et serrée qu'une vague
-        // amputée de ses archétypes les plus intéressants.
-        placed = placeAtDistance(grid, pattern, hero, 1, placed);
+        for (int distance = PREFERRED_DISTANCE - 1; distance >= 1 && placed < pattern.length; distance--) {
+            placed = placeAtDistance(grid, pattern, hero, distance, placed);
+        }
 
         if (placed < pattern.length) {
             System.out.println("[Starfall] vague " + wave + " : " + placed + " ennemis sur "

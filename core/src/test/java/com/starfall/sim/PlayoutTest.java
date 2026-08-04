@@ -36,7 +36,7 @@ class PlayoutTest {
                     "poser " + Tile.THRUST.label(),
                     "poser " + Tile.STRIKE.label(),
                     "pas droite",
-                    "exécuter " + Tile.STRIKE.label(),
+                    "salve",
                     "pas gauche"));
 
             String reference = signature(Playout.replay(width, 1, history));

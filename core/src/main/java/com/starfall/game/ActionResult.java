@@ -39,8 +39,16 @@ public enum ActionResult {
 
     // ------------------------------------------------------------------ file d'actions
 
-    /** Une tuile a été posée sur la file. Gratuit : aucun tour consommé. */
+    /** Une tuile a été posée sur la file. Coûte un tour, sauf si elle est Free-Play. */
     QUEUED("tuile posée"),
+    /**
+     * Toute la file est partie d'un coup.
+     *
+     * <p>C'est le geste que le jeu attendait depuis M5 : cinq effets pendant que les ennemis
+     * n'avancent que d'un cran. Il porte son propre nom parce que ce n'est plus « exécuter une
+     * tuile » — le joueur ne choisit plus quoi lancer, il a déjà choisi en chargeant.
+     */
+    UNLEASHED("salve"),
     /** Une tuile a été reprise de la file. Gratuit aussi. */
     UNQUEUED("tuile reprise"),
     /** La file porte déjà ses cinq tuiles. */

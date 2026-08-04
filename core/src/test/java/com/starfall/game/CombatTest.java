@@ -62,7 +62,7 @@ class CombatTest {
             assertEquals(ActionResult.BLOCKED, arena.step(Direction.LEFT), "deplacement");
             assertEquals(ActionResult.BLOCKED, arena.swapWithTarget(), "echange de place");
             assertEquals(ActionResult.BLOCKED, arena.clickOn(0), "clic");
-            assertEquals(ActionResult.BLOCKED, arena.executeTop(), "execution de tuile");
+            assertEquals(ActionResult.BLOCKED, arena.unleash(), "execution de tuile");
             assertEquals(ActionResult.BLOCKED, arena.queueTile(Tile.STRIKE), "pose de tuile");
             assertEquals(ActionResult.BLOCKED, arena.unqueueAt(0), "reprise de tuile");
 
@@ -92,7 +92,7 @@ class CombatTest {
             Enemy victim = place(arena, 5, EnemyKind.COLOSSE);
 
             arena.queueTile(Tile.PUSH);
-            assertEquals(ActionResult.PUSHED, arena.executeTop());
+            assertEquals(ActionResult.PUSHED, arena.unleash());
 
             assertEquals(victim.maxHealth(), victim.health(), "aucun degat sans collision");
             assertEquals(6, arena.grid().indexOf(victim));
@@ -106,7 +106,7 @@ class CombatTest {
             Enemy wall = place(arena, 6, EnemyKind.COLOSSE);
 
             arena.queueTile(Tile.PUSH);
-            assertEquals(ActionResult.COLLIDED, arena.executeTop());
+            assertEquals(ActionResult.COLLIDED, arena.unleash());
 
             assertEquals(pushed.maxHealth() - Arena.COLLISION_DAMAGE, pushed.health());
             assertEquals(wall.maxHealth() - Arena.COLLISION_DAMAGE, wall.health());
@@ -121,7 +121,7 @@ class CombatTest {
             place(arena, 6, EnemyKind.SABREUR);
 
             arena.queueTile(Tile.PUSH);
-            arena.executeTop();
+            arena.unleash();
 
             assertTrue(arena.grid().isFree(5), "le pousse est mort");
             assertTrue(arena.grid().isFree(6), "et celui qu'il a percute aussi");
@@ -140,7 +140,7 @@ class CombatTest {
             place(arena, 5, EnemyKind.SABREUR);
 
             arena.queueTile(Tile.STRIKE);
-            assertEquals(ActionResult.STRUCK, arena.executeTop());
+            assertEquals(ActionResult.STRUCK, arena.unleash());
             assertEquals(1, arena.lastCombo());
         }
 
@@ -166,7 +166,7 @@ class CombatTest {
             place(arena, 6, EnemyKind.SABREUR);
 
             arena.queueTile(Tile.PUSH);
-            arena.executeTop();
+            arena.unleash();
             assertEquals(2, arena.bestCombo());
 
             // Une action suivante sans mort ne doit pas effacer le record.
@@ -330,7 +330,7 @@ class CombatTest {
                         case 1 -> arena.swapWithTarget();
                         case 2 -> arena.queueTile(
                                 arena.rack().tiles().get(random.nextInt(arena.rack().tiles().size())));
-                        default -> arena.executeTop();
+                        default -> arena.unleash();
                     }
 
                     assertTrue(arena.hero().health() >= 0 && arena.hero().health() <= Hero.MAX_HEALTH,

@@ -57,9 +57,13 @@ class TilePreviewTest {
                 }
 
                 TilePreview preview = arena.previewTop();
-                ActionResult result = arena.executeTop();
+                boolean single = arena.queue().size() == 1;
+                ActionResult result = arena.unleash();
 
-                if (result == preview.outcome()) {
+                // Le préavis ne décrit que la PREMIÈRE tuile de la salve, et il ne peut pas faire
+                // mieux : ce que la deuxième trouvera devant elle dépend de ce que la première aura
+                // fait. On ne confronte donc l'annonce au résultat que lorsqu'une seule tuile part.
+                if (!single || result == preview.outcome()) {
                     continue;
                 }
                 if (!TilePreview.isConsequence(result)) {

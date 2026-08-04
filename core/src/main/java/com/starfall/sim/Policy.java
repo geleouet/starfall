@@ -80,7 +80,7 @@ public interface Policy {
             public int choose(Arena arena, List<Move> moves, Trial trial, Random random) {
                 TilePreview top = arena.previewTop();
                 for (int i = 0; i < moves.size(); i++) {
-                    if (moves.get(i).label().startsWith("exécuter") && top != null && top.connects()) {
+                    if (moves.get(i).label().equals("salve") && top != null && top.connects()) {
                         return i;
                     }
                 }

@@ -108,7 +108,7 @@ class HudTextTest {
                 collect(arena, panel, banner);
                 switch (random.nextInt(4)) {
                     case 0 -> arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
-                    case 1 -> arena.executeTop();
+                    case 1 -> arena.unleash();
                     case 2 -> arena.swapWithTarget();
                     default -> {
                         List<Tile> rack = arena.rack().tiles();

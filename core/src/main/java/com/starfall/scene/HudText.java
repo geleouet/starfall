@@ -156,7 +156,16 @@ public final class HudText {
         if (preview == null) {
             return "FILE VIDE - POSEZ UNE TUILE (1-6 OU CLIC)";
         }
-        return "SOMMET : " + preview.tile().label().toUpperCase() + " - " + effectOf(arena, preview);
+        // Le préavis ne décrit que la PREMIÈRE tuile de la salve, et il ne peut pas faire mieux :
+        // ce que la deuxième trouvera devant elle dépend de ce que la première aura fait, et le
+        // jeu ne sait pas se dupliquer pour le calculer. Annoncer toute la salve demanderait de
+        // deviner — exactement ce que ce projet interdit depuis M6. Le compte des tuiles dit le
+        // reste : le joueur sait combien part, et il voit ce que la première fera.
+        int queued = arena.queue().size();
+        String head = queued > 1
+                ? "SALVE " + queued + " - " + preview.tile().label().toUpperCase()
+                : "SALVE : " + preview.tile().label().toUpperCase();
+        return head + " - " + effectOf(arena, preview);
     }
 
     /**
@@ -283,8 +292,8 @@ public final class HudText {
         return List.of(
                 "AIDE - STARFALL",
                 "FLÈCHES OU A/D : SE TOURNER, PUIS AVANCER",
-                "1 À 6 : POSER UNE TUILE SUR LA FILE (GRATUIT)",
-                "ESPACE : EXÉCUTER LE SOMMET, POSÉ EN DERNIER",
+                "1 À 6 : CHARGER UNE TUILE - UN TOUR CHACUNE",
+                "ESPACE : LANCER LA SALVE - TOUTE LA FILE, UN TOUR",
                 "RETOUR ARRIÈRE OU CLIC SUR LA FILE : REPRENDRE",
                 "E : ÉCHANGER DE PLACE AVEC LA CIBLE VISÉE",
                 "SURVOL : PORTÉE ET DÉTAIL   CLIC : TOUT",
@@ -334,8 +343,12 @@ public final class HudText {
         if (blocker == null) {
             return "LE MUR";
         }
-        return blocker instanceof Enemy enemy
-                ? "LE " + enemy.kind().label().toUpperCase()
-                : blocker.label().toUpperCase();
+        if (!(blocker instanceof Enemy enemy)) {
+            return blocker.label().toUpperCase();
+        }
+        // « LE ARCHER » : l'article élidé n'est pas un raffinement, c'est la différence entre une
+        // interface écrite en français et une interface qui concatène des chaînes.
+        String label = enemy.kind().label().toUpperCase();
+        return "AEIOUÉÈÊ".indexOf(label.charAt(0)) >= 0 ? "L'" + label : "LE " + label;
     }
 }

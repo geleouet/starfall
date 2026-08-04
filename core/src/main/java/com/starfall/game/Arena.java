@@ -51,7 +51,7 @@ public final class Arena {
      * donc la deuxième arrivait avec ce qui restait de la première. Le réaccordage complet est
      * l'affaire du jalon d'équilibrage.
      */
-    public static final int WAVE_RESPITE = 1;
+    public static final int WAVE_RESPITE = 2;
 
     private int turnsTaken;
     /** Numéro de la phase ennemie, qui sert aux archétypes n'agissant qu'une phase sur deux. */
@@ -800,14 +800,26 @@ public final class Arena {
         if (!rack.isReady(tile)) {
             return ActionResult.NOT_READY;
         }
+        beginAction();
         rack.take(tile);
         queue.push(tile);
-        return ActionResult.QUEUED;
+        // C'est ICI que le temps passe désormais. Charger est le moment vulnérable : plus on
+        // prépare, plus on encaisse avant de frapper. Une tuile Free-Play se glisse dans la file
+        // sans rien coûter — le rôle de la soupape a suivi le coût, qui a changé de place.
+        if (!tile.isFreePlay()) {
+            consumeTurn();
+        }
+        return settle(ActionResult.QUEUED);
     }
 
     /**
      * Reprend une tuile de la file, désignée par sa position d'affichage — de la plus ancienne à la
-     * plus récente. <b>Gratuit</b> aussi, et la tuile ne part pas en recharge : elle n'a pas servi.
+     * plus récente. <b>Gratuit</b>, et la tuile ne part pas en recharge : elle n'a pas servi.
+     *
+     * <p>Poser coûte un tour ; reprendre n'en rend pas un. C'est le seul geste resté gratuit, et il
+     * le reste : le joueur paie son engagement, pas le fait de changer d'avis sur une tuile qui n'a
+     * rien fait. Reprendre ne récupère pas le tour dépensé, donc il n'y a rien à y gagner — juste de
+     * quoi ne pas être puni deux fois pour une main qui a glissé.
      */
     public ActionResult unqueueAt(int indexFromOldest) {
         if (isOver()) {
@@ -822,14 +834,27 @@ public final class Arena {
     }
 
     /**
-     * Exécute la tuile du sommet — la dernière posée.
+     * Lance la <b>salve</b> : toute la file part, du sommet vers le bas, pour un seul tour.
      *
-     * <p>La tuile part en recharge et le tour est consommé, <b>sauf</b> si elle est Free-Play. Une
-     * tuile dont l'effet échoue — personne à frapper, poussée bloquée — est tout de même consommée
-     * et rechargée : c'est le prix de l'avoir jouée. En revanche elle ne consomme pas de tour, pour
-     * ne pas faire payer deux fois une décision déjà punie.
+     * <h2>Le décalage, enfin</h2>
+     *
+     * <p>C'est le geste qui donne son sens à la file, et il a manqué neuf jalons. Tant que poser
+     * était gratuit et qu'exécuter coûtait un tour par tuile, cinq tuiles coûtaient cinq tours —
+     * exactement comme cinq actions jouées une à une. La file n'était qu'une contrainte d'ordre
+     * sans contrepartie, et aucun enchaînement ne pouvait en sortir puisque chaque exécution était
+     * une action à elle seule.
+     *
+     * <p>Maintenant, <b>charger est le risque et lâcher est la récompense</b> : on paie un tour par
+     * tuile posée, en encaissant tout ce que les ennemis annoncent pendant ce temps, puis les cinq
+     * effets tombent alors qu'ils n'avancent que d'un cran. C'est aussi ce qui rend les
+     * enchaînements possibles — toute la salve est <em>une seule action</em>, donc plusieurs morts
+     * y comptent comme un combo.
+     *
+     * <p>Une salve dont <b>rien</b> ne porte ne coûte pas de tour : les tuiles sont dépensées et
+     * partent en recharge, ce qui est déjà le prix de les avoir jouées, mais on ne fait pas payer
+     * deux fois une décision déjà punie. C'est la règle de M5, transposée à la salve entière.
      */
-    public ActionResult executeTop() {
+    public ActionResult unleash() {
         if (isOver()) {
             return ActionResult.BLOCKED;
         }
@@ -837,15 +862,34 @@ public final class Arena {
         if (queue.isEmpty()) {
             return ActionResult.EMPTY_QUEUE;
         }
-        Tile tile = queue.pop();
-        ActionResult result = tile.applyTo(this);
-        rack.giveBackSpent(tile);
 
-        boolean effective = result != ActionResult.NO_TARGET && result != ActionResult.BLOCKED;
-        if (effective && !tile.isFreePlay()) {
+        boolean costly = false;
+        ActionResult last = ActionResult.EMPTY_QUEUE;
+        int fired = 0;
+        while (!queue.isEmpty()) {
+            Tile tile = queue.pop();
+            ActionResult result = tile.applyTo(this);
+            rack.giveBackSpent(tile);
+            fired++;
+            last = result;
+            boolean connected = result != ActionResult.NO_TARGET && result != ActionResult.BLOCKED;
+            // La soupape a suivi le coût. Free-Play voulait dire « s'exécute sans consommer de
+            // tour » quand l'exécution était le moment payant ; maintenant que c'est le chargement,
+            // une tuile Free-Play se pose gratuitement — et une salve qui ne contient qu'elles ne
+            // coûte rien non plus. Se repositionner sans offrir un tour reste possible, ce qui
+            // était toute la raison d'être de ces deux tuiles.
+            costly |= connected && !tile.isFreePlay();
+            if (isDefeat()) {
+                break; // une salve ne continue pas après la mort de celle qui la lance
+            }
+        }
+
+        if (costly) {
             consumeTurn();
         }
-        return settle(result);
+        // Une seule tuile partie garde son propre résultat : « salve » pour un coup unique se
+        // lirait comme une grandiloquence, et le joueur veut savoir ce que sa tuile a fait.
+        return settle(fired > 1 ? ActionResult.UNLEASHED : last);
     }
 
     /**

@@ -45,16 +45,17 @@ public record Move(String label, boolean free, Function<Arena, ActionResult> act
         if (arena.swapTarget() >= 0) {
             moves.add(new Move("échange", false, Arena::swapWithTarget));
         }
-        Tile top = arena.queue().top();
-        if (top != null) {
-            // Exécuter une tuile Free-Play ne consomme pas de tour : c'est un geste gratuit, et la
-            // distinction compte pour la politique comme pour le compte des tours.
-            moves.add(new Move("exécuter " + top.label(), top.isFreePlay(), Arena::executeTop));
+        if (!arena.queue().isEmpty()) {
+            moves.add(new Move("salve", false, Arena::unleash));
         }
         if (!arena.queue().isFull()) {
             for (Tile tile : arena.rack().tiles()) {
                 if (arena.rack().isReady(tile)) {
-                    moves.add(new Move("poser " + tile.label(), true, a -> a.queueTile(tile)));
+                    // Poser coûte un tour, sauf pour une tuile Free-Play : c'est là que le temps
+                    // passe désormais, et la distinction compte pour la politique autant que pour
+                    // le compte des tours.
+                    moves.add(new Move("poser " + tile.label(), tile.isFreePlay(),
+                            a -> a.queueTile(tile)));
                 }
             }
         }
