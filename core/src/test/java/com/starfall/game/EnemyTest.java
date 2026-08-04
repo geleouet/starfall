@@ -180,7 +180,7 @@ class EnemyTest {
     class Traits {
 
         @Test
-        @DisplayName("Un ennemi rapide agit deux fois par phase")
+        @DisplayName("Un ennemi rapide avance de deux cases en une seule intention")
         void aFastEnemyActsTwice() {
             Arena normal = bare(15, 0);
             Enemy slow = place(normal, 10, EnemyKind.SABREUR);
@@ -191,7 +191,8 @@ class EnemyTest {
             passTurn(fast);
 
             assertEquals(9, normal.grid().indexOf(slow));
-            assertEquals(8, fast.grid().indexOf(quick), "deux activations, donc deux cases");
+            assertEquals(8, fast.grid().indexOf(quick),
+                    "une seule intention annoncee, mais de deux cases");
         }
 
         @Test

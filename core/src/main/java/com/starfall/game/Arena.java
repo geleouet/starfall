@@ -121,10 +121,25 @@ public final class Arena {
         return enemies;
     }
 
-    /** Fait recalculer son intention à chaque ennemi encore en vie. */
-    public void announceIntentions() {
+    /**
+     * Fait recalculer son intention à chaque ennemi encore en vie.
+     *
+     * <p><b>Un ennemi qui n'agira pas à la phase à venir annonce qu'il attend.</b> Le colosse
+     * n'agissant qu'une phase sur deux, il annonçait sinon une frappe qu'il ne portait pas : la case
+     * du héros était cerclée de rouge, le glyphe montrait une attaque, et rien ne partait. C'est
+     * exactement le mensonge que le télégraphe existe pour interdire — et il touchait un archétype
+     * sur quatre.
+     *
+     * <p>{@code phaseIndex} a déjà été incrémenté quand cette méthode est appelée : il désigne donc
+     * la phase <em>à venir</em>, celle que l'annonce doit décrire.
+     */
+    void announceIntentions() {
         int heroCell = heroCell();
         for (Enemy enemy : enemiesLeftToRight()) {
+            if (!enemy.kind().actsThisPhase(phaseIndex)) {
+                enemy.announce(Intention.of(Intention.Kind.WAIT));
+                continue;
+            }
             enemy.announce(EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell));
         }
     }
@@ -153,16 +168,41 @@ public final class Arena {
                 }
             }
             case WIND_UP -> enemy.setWindingUp(true);
-            case CHARGE -> {
-                enemy.setWindingUp(false);
-                int landing = intention.targetCell() - enemy.facing().step();
-                if (landing != cell && grid.isFree(landing)) {
-                    grid.move(cell, landing);
-                }
-                strike(intention.targetCell());
-            }
+            case CHARGE -> charge(enemy, cell, intention.targetCell());
             case WAIT -> {
             }
+        }
+    }
+
+    /**
+     * Une charge avance case par case et <b>s'arrête au premier obstacle</b>.
+     *
+     * <p>La version précédente ne testait que la case d'arrivée : un lancier traversait allègrement
+     * le héros et ses propres camarades pour aller se poser derrière eux. Outre l'absurdité, cela
+     * contredisait la doctrine écrite pour le fonceur — « un ennemi qui traverserait ses camarades
+     * serait illisible ».
+     *
+     * <p>Une charge interceptée ne frappe pas : <b>s'interposer l'arrête</b>. C'est la contrepartie
+     * du télégraphe — il annonce une case un tour à l'avance, donc on doit pouvoir y répondre
+     * autrement qu'en s'écartant.
+     */
+    private void charge(Enemy enemy, int from, int target) {
+        enemy.setWindingUp(false);
+        int step = Integer.signum(target - from);
+        if (step == 0) {
+            return;
+        }
+        int landing = target - step;
+        int cell = from;
+        while (cell != landing && grid.isFree(cell + step)) {
+            grid.move(cell, cell + step);
+            cell += step;
+        }
+        if (cell != landing) {
+            return; // interceptée en chemin : la charge s'arrête là et ne frappe pas
+        }
+        for (int blow = 0; blow < enemy.strikesPerAttack(); blow++) {
+            strike(target);
         }
     }
 
@@ -225,12 +265,24 @@ public final class Arena {
 
     /** Vrai si une case est menacée par l'intention annoncée d'au moins un ennemi. */
     public boolean isThreatened(int cell) {
+        return threatCount(cell) > 0;
+    }
+
+    /**
+     * Nombre de coups qui tomberont sur une case si personne ne bouge.
+     *
+     * <p>Deux ennemis qui visent la même case, ou un ennemi rapide qui frappe deux fois, ne
+     * produisaient qu'un seul cerclage : le joueur voyait « danger » sans voir « deux fois plus de
+     * danger », et le compteur de coups reçus le surprenait après coup.
+     */
+    public int threatCount(int cell) {
+        int count = 0;
         for (Enemy enemy : enemiesLeftToRight()) {
             if (enemy.intention().threatens(cell)) {
-                return true;
+                count += enemy.strikesPerAttack();
             }
         }
-        return false;
+        return count;
     }
 
     /** Case du héros. Toujours valide : le héros ne quitte jamais la grille. */

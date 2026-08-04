@@ -93,6 +93,19 @@ public final class ArenaLayout {
         return centreX;
     }
 
+    /**
+     * Bande où s'affichent les glyphes d'intention, au-dessus des têtes.
+     *
+     * <p>Ces hauteurs vivent ici et non en constantes cachées dans le rendu, pour la même raison
+     * qu'en M5 : elles doivent être confrontables au budget du bandeau d'interface sans contexte
+     * graphique. Codées en dur dans la scène, elles ne l'étaient pas — et le bandeau effaçait les
+     * glyphes à certaines tailles de fenêtre, exactement le défaut que M5 avait déjà corrigé
+     * ailleurs.
+     */
+    public static final int INTENT_Y = FIGURE_Y + FIGURE_HEIGHT + 2;
+    public static final int INTENT_HEIGHT = 6;
+    public static final int INTENT_TOP = INTENT_Y + INTENT_HEIGHT;
+
     /** Bord bas de la bande sensible au pointage : un peu sous les dalles, pour viser large. */
     public static final int PICK_BOTTOM = GROUND_Y - 8;
     /** Bord haut de la bande sensible : au-dessus des têtes, sans plus. */

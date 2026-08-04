@@ -13,6 +13,7 @@ import com.starfall.game.ArenaSetup;
 import com.starfall.game.Direction;
 import com.starfall.game.Enemy;
 import com.starfall.game.HudLayout;
+import com.starfall.game.Intention;
 import com.starfall.game.Occupant;
 import com.starfall.game.Tile;
 import com.starfall.render.PixelPainter;
@@ -399,13 +400,18 @@ public final class ArenaScene implements Scene {
      */
     private void drawThreats() {
         for (int cell = 0; cell < layout.gridWidth(); cell++) {
-            if (!arena.isThreatened(cell)) {
+            int blows = arena.threatCount(cell);
+            if (blows == 0) {
                 continue;
             }
             painter.outline(layout.cellLeft(cell), ArenaLayout.GROUND_Y,
                     ArenaLayout.CELL_WIDTH, ArenaLayout.GROUND_HEIGHT, HudColors.THREAT);
-            painter.fill(layout.cellLeft(cell) + 1, ArenaLayout.GROUND_Y + ArenaLayout.GROUND_HEIGHT - 3,
-                    ArenaLayout.CELL_WIDTH - 2, 2, HudColors.THREAT);
+            // Autant de barres que de coups qui tomberont : « danger » et « deux fois plus de
+            // danger » ne doivent pas se ressembler.
+            for (int blow = 0; blow < blows && blow < 3; blow++) {
+                painter.fill(layout.cellLeft(cell) + 2 + blow * 6,
+                        ArenaLayout.GROUND_Y + ArenaLayout.GROUND_HEIGHT - 3, 4, 2, HudColors.THREAT);
+            }
         }
     }
 
@@ -420,31 +426,65 @@ public final class ArenaScene implements Scene {
         for (Enemy enemy : arena.enemies()) {
             int cell = arena.grid().indexOf(enemy);
             int centre = layout.cellLeft(cell) + ArenaLayout.CELL_WIDTH / 2;
-            int y = ArenaLayout.FIGURE_Y + ArenaLayout.FIGURE_HEIGHT + 2;
-            int step = enemy.facing().step();
+            int y = ArenaLayout.INTENT_Y;
+            Intention intention = enemy.intention();
 
-            switch (enemy.intention().kind()) {
-                case ATTACK, CHARGE -> {
-                    // Une flèche pleine vers la cible : le geste est décidé, il partira.
-                    painter.fill(centre - 3, y + 1, 7, 2, HudColors.THREAT);
-                    for (int i = 0; i < 3; i++) {
-                        painter.fill(centre + step * (3 - i), y + 2 - i, 1, 1 + 2 * i, HudColors.THREAT);
-                    }
+            switch (intention.kind()) {
+                // Pointe pleine : un coup part sur une case précise.
+                case ATTACK -> drawSpike(centre, y, directionTo(cell, intention.targetCell()),
+                        HudColors.THREAT);
+                // Double pointe : il vient de loin, et il vient sur toi.
+                case CHARGE -> {
+                    int step = directionTo(cell, intention.targetCell());
+                    drawSpike(centre - step * 3, y, step, HudColors.THREAT);
+                    drawSpike(centre + step, y, step, HudColors.THREAT);
                 }
+                // Deux barres : il se charge, on a un tour pour réagir.
                 case WIND_UP -> {
-                    // Deux barres : il se charge, on a un tour pour réagir.
-                    painter.fill(centre - 2, y, 2, 5, HudColors.THREAT);
-                    painter.fill(centre + 1, y, 2, 5, HudColors.THREAT);
+                    painter.fill(centre - 3, y, 2, ArenaLayout.INTENT_HEIGHT, HudColors.THREAT);
+                    painter.fill(centre + 2, y, 2, ArenaLayout.INTENT_HEIGHT, HudColors.THREAT);
                 }
-                case ADVANCE -> {
+                // Chevron creux : il se déplace, il ne frappe pas. La forme diffère de la pointe
+                // pleine, pour que la lecture ne repose pas seulement sur la couleur.
+                case ADVANCE -> drawChevron(centre, y, directionTo(cell, intention.targetCell()),
+                        HudColors.SLOT_EMPTY);
+                case WAIT -> {
                     painter.fill(centre - 2, y + 2, 5, 1, HudColors.SLOT_EMPTY);
-                    for (int i = 0; i < 2; i++) {
-                        painter.fill(centre + step * (2 - i), y + 2 - i, 1, 1 + 2 * i,
-                                HudColors.SLOT_EMPTY);
-                    }
                 }
-                case WAIT -> painter.fill(centre - 1, y + 1, 2, 2, HudColors.SLOT_EMPTY);
             }
+        }
+    }
+
+    /**
+     * Sens d'un repère, déduit de la case visée et non de l'orientation de l'ennemi.
+     *
+     * <p>Un archer qui recule reste tourné vers le héros : la flèche suivait son regard et disait
+     * donc « il vient sur moi » alors qu'il s'éloignait.
+     */
+    private static int directionTo(int from, int target) {
+        return target < 0 ? 1 : Integer.signum(target - from);
+    }
+
+    /**
+     * Pointe pleine, tournée vers {@code step}.
+     *
+     * <p>Elle s'<b>affine</b> vers la cible. La première version s'élargissait dans le sens de la
+     * marche, ce qui la faisait lire à l'envers : un ennemi à droite du héros semblait viser la
+     * droite.
+     */
+    private void drawSpike(int centre, int y, int step, Color color) {
+        painter.fill(centre - step * 3, y + 2, 3, 2, color);
+        for (int i = 0; i < 3; i++) {
+            int height = 6 - 2 * i;
+            painter.fill(centre + step * i, y + (6 - height) / 2, 1, height, color);
+        }
+    }
+
+    /** Chevron creux, pointe tournée vers {@code step}. */
+    private void drawChevron(int centre, int y, int step, Color color) {
+        for (int i = 0; i < 3; i++) {
+            painter.fill(centre + step * (1 - i), y + 2 - i, 1, 1, color);
+            painter.fill(centre + step * (1 - i), y + 2 + i, 1, 1, color);
         }
     }
 
@@ -524,8 +564,9 @@ public final class ArenaScene implements Scene {
 
     @Override
     public int contentTopWorldY() {
-        // Le bandeau ne doit pas mordre sur la tête des figures, le contenu le plus haut.
-        return ArenaLayout.FIGURE_Y + ArenaLayout.FIGURE_HEIGHT + 2;
+        // Les glyphes d'intention sont le contenu le plus haut, pas les têtes : c'est leur bande
+        // que le bandeau d'interface ne doit jamais mordre.
+        return ArenaLayout.INTENT_TOP + 1;
     }
 
     @Override
