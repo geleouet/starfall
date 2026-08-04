@@ -20,3 +20,6 @@ desktop.ini
 # Build output
 *.class
 *.log
+
+# Pipeline pixel art : atlas genere depuis art/, jamais edite a la main.
+assets/generated/

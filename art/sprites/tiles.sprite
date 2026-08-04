@@ -1,0 +1,42 @@
+# Tuiles de la file d'actions. 16x16 pixels-monde.
+# Deux tuiles suffisent a M3 : une pleine et une vide. Le contenu reel
+# viendra avec M5, quand la file sera implementee.
+#
+# Ces sprites ont une taille differente des personnages : c'est voulu, le
+# rangement dans l'atlas doit gerer plusieurs gabarits.
+
+@sprite tile/slash
+KKKKKKKKKKKKKKKK
+KbbbbbbbbbbbwcbK
+KbbbbbbbbbbwcbbK
+KbbbbbbbbbwcbbbK
+KbbbbbbbbwcbbbbK
+KbbbbbbbwcbbbbbK
+KbbbbbbwcbbbbbbK
+KbbbbbwcbbbbbbbK
+KbbbbwcbbbbbbbbK
+KbbbwcbbbbbbbbbK
+KbbwcbbbbbbbbbbK
+KbwcbbbbbbbbbbbK
+KwcbbbbbbbbbbbbK
+KcbbbbbbbbbbbbbK
+KbbbbbbbbbbbbbbK
+KKKKKKKKKKKKKKKK
+
+@sprite tile/empty
+KKKKKKKKKKKKKKKK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkgggkkkkkK
+KkkkkkkgggkkkkkK
+KkkkkkkgggkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KKKKKKKKKKKKKKKK

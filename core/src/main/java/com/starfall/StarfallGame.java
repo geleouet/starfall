@@ -8,14 +8,23 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.starfall.render.PixelFont;
 import com.starfall.render.PixelViewport;
+import com.starfall.render.SpriteAtlas;
 
 /**
- * Scène de test du jalon M1 : tout ce qui est à l'écran est là pour qu'une simple capture suffise à
- * juger si la grille de pixels est intacte.
+ * Scène de test des jalons M1 à M3.
+ *
+ * <p>Deux choses y cohabitent, et chacune a sa raison d'être sur la même capture :
+ * <ul>
+ *   <li>les motifs de contrôle de M1 — damiers d'1 et 2 px, rayures, diagonales, règle graduée —
+ *       qui permettent de juger d'un coup d'œil si la grille de pixels est intacte ;</li>
+ *   <li>les sprites de M3, chargés depuis l'atlas produit par l'étape de build, posés juste à côté.
+ *       Un sprite flou ou décalé se voit immédiatement quand il est adossé à un damier d'1 px.</li>
+ * </ul>
  *
  * <p>L'unité de monde est le pixel-monde — la résolution à laquelle les sprites sont dessinés. Un
  * personnage fait {@link #CHARACTER_HEIGHT} pixels-monde de haut.
@@ -63,6 +72,13 @@ public class StarfallGame extends ApplicationAdapter {
     private static final int CHECKER2_W = 80;
     private static final int CHECKER2_H = 40;
 
+    // Vitrine des sprites de l'atlas. Elle occupe la bande libre entre la règle graduée (qui monte
+    // jusqu'à y=17) et le damier d'1 px (qui commence à y=62), à gauche des diagonales (x >= 76).
+    private static final int SHOWCASE_X = 8;
+    private static final int SHOWCASE_GROUND_Y = 18;
+    private static final int SHOWCASE_FIGURE_Y = 26;
+    private static final int SHOWCASE_COLUMN = 20;
+
     private final LaunchOptions options;
 
     private SpriteBatch batch;
@@ -70,6 +86,7 @@ public class StarfallGame extends ApplicationAdapter {
     private Texture checker;
     private Texture checker2;
     private PixelFont font;
+    private SpriteAtlas atlas;
     private PixelViewport viewport;
     private final Matrix4 uiProjection = new Matrix4();
 
@@ -96,6 +113,9 @@ public class StarfallGame extends ApplicationAdapter {
         checker = checkerTexture(CHECKER_W, CHECKER_H, 1);
         checker2 = checkerTexture(CHECKER2_W, CHECKER2_H, 2);
         font = new PixelFont();
+        // Volontairement sans filet : si l'atlas manque ou ne correspond pas à son index, le jeu
+        // s'arrête avec un message clair plutôt que d'afficher une scène amputée.
+        atlas = SpriteAtlas.load();
 
         viewport = new PixelViewport(MIN_WORLD_WIDTH, MIN_WORLD_HEIGHT);
         viewport.setCameraTarget(MIN_WORLD_WIDTH / 2f, MIN_WORLD_HEIGHT / 2f);
@@ -217,7 +237,7 @@ public class StarfallGame extends ApplicationAdapter {
         drawStripes();
         drawNestedRectangles();
         drawDiagonals();
-        drawCharacters();
+        drawSpriteShowcase();
         drawRuler();
         drawCrosshair();
 
@@ -274,16 +294,32 @@ public class StarfallGame extends ApplicationAdapter {
         line(204, 20, 220, 54, ACCENT);     // pente raide
     }
 
-    /** Silhouettes de référence à la taille de personnage retenue (16x32 pixels-monde). */
-    private void drawCharacters() {
-        int y = 22;
-        for (int i = 0; i < 3; i++) {
-            int x = 8 + i * 22;
-            fill(x, y, CHARACTER_WIDTH, CHARACTER_HEIGHT, CHECKER_B);
-            outline(x, y, CHARACTER_WIDTH, CHARACTER_HEIGHT, i == 1 ? HOT : ACCENT);
-            fill(x + 4, y + CHARACTER_HEIGHT - 8, 3, 3, CHECKER_A);   // yeux : 3x3 pixels-monde
-            fill(x + 9, y + CHARACTER_HEIGHT - 8, 3, 3, CHECKER_A);
-        }
+    /**
+     * Vitrine du pipeline pixel art : les sprites viennent de l'atlas généré, pas de rectangles
+     * dessinés à la main. Ils remplacent les silhouettes bouchon de M1, qui tenaient exactement
+     * cette place en attendant.
+     *
+     * <p>Les figures sont posées sur des dalles de sol, et les tuiles de file d'actions à côté :
+     * trois gabarits différents (16x32, 16x16, 16x8), ce qui vérifie au passage que le rangement de
+     * l'atlas ne suppose rien sur les tailles.
+     */
+    private void drawSpriteShowcase() {
+        batch.setColor(Color.WHITE);
+
+        drawSprite("ground/plain", SHOWCASE_X, SHOWCASE_GROUND_Y);
+        drawSprite("ground/plain", SHOWCASE_X + SHOWCASE_COLUMN, SHOWCASE_GROUND_Y);
+        drawSprite("hero/idle", SHOWCASE_X, SHOWCASE_FIGURE_Y);
+        drawSprite("enemy/melee", SHOWCASE_X + SHOWCASE_COLUMN, SHOWCASE_FIGURE_Y);
+
+        int tilesX = SHOWCASE_X + 2 * SHOWCASE_COLUMN;
+        drawSprite("tile/empty", tilesX, SHOWCASE_FIGURE_Y + 16);
+        drawSprite("tile/slash", tilesX, SHOWCASE_FIGURE_Y);
+    }
+
+    /** Dessine un sprite de l'atlas, coin bas-gauche en coordonnées monde. */
+    private void drawSprite(String name, int x, int y) {
+        TextureRegion region = atlas.region(name);
+        batch.draw(region, x, y, region.getRegionWidth(), region.getRegionHeight());
     }
 
     /** Une règle graduée d'1 px tous les 4 pixels-monde, en bas de la zone garantie. */
@@ -308,14 +344,16 @@ public class StarfallGame extends ApplicationAdapter {
     private void drawOverlay(int screenWidth, int screenHeight) {
         int s = viewport.getScale();
         String[] lines = {
-                "STARFALL - JALON M1 - VUE PIXEL PARFAITE",
+                "STARFALL - JALON M3 - PIPELINE PIXEL ART",
                 "FENÊTRE : " + screenWidth + " x " + screenHeight + " PX ÉCRAN",
                 "ÉCHELLE ENTIÈRE : x" + s + "   (1 PX-MONDE = " + s + "x" + s + " PX ÉCRAN)",
                 "ZONE SÛRE : " + viewport.getSafeWorldWidth() + " x " + viewport.getSafeWorldHeight()
                         + " PX-MONDE   ZONE GARANTIE : " + MIN_WORLD_WIDTH + " x " + MIN_WORLD_HEIGHT + " (CADRE OR)",
+                "ATLAS : " + atlas.names().size() + " SPRITES EN "
+                        + atlas.atlasWidth() + "x" + atlas.atlasHeight()
+                        + "   SOURCES TEXTE : ART/   PERSONNAGE : " + CHARACTER_WIDTH + "x" + CHARACTER_HEIGHT,
                 "CAMÉRA : X=" + viewport.getSafeLeft() + " Y=" + viewport.getSafeBottom()
-                        + "   DAMIERS : 1 ET 2 PX-MONDE   PERSONNAGE : "
-                        + CHARACTER_WIDTH + "x" + CHARACTER_HEIGHT,
+                        + "   DAMIERS : 1 ET 2 PX-MONDE",
                 "ESPACE : DÉFILEMENT   ÉCHAP : QUITTER   F11 : PLEIN ÉCRAN",
         };
 
@@ -463,6 +501,9 @@ public class StarfallGame extends ApplicationAdapter {
         }
         if (font != null) {
             font.dispose();
+        }
+        if (atlas != null) {
+            atlas.dispose();
         }
     }
 }

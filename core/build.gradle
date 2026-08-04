@@ -7,3 +7,28 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
+
+// Pipeline pixel art : les sources de verite sont les fichiers texte de art/,
+// l'atlas PNG n'est qu'un produit derive, regenere a chaque build et jamais
+// edite a la main. Voir com.starfall.art.AtlasBuilder.
+//
+// La tache vit ici, et pas a la racine, parce qu'elle a besoin du classpath de
+// ce module : Gradle interdit desormais de resoudre la configuration d'un autre
+// projet depuis le script racine.
+tasks.register('generateAtlas', JavaExec) {
+    group = 'starfall'
+    description = "Convertit les sources texte de art/ en atlas PNG + index"
+
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.starfall.art.AtlasBuilder'
+
+    def artDir = rootProject.layout.projectDirectory.dir('art')
+    def outputDir = rootProject.layout.projectDirectory.dir('assets/generated')
+    args artDir.asFile.absolutePath, outputDir.asFile.absolutePath
+
+    // Sans ces declarations, Gradle relancerait la tache a chaque build et,
+    // pire, ne la relancerait pas apres une modification d'un .sprite.
+    inputs.dir(artDir).withPropertyName('art')
+    outputs.dir(outputDir).withPropertyName('atlas')
+}

@@ -1,0 +1,34 @@
+# Starfall - palette maitre.
+#
+# Une ligne par couleur :  <code> <nom> <RRGGBB[AA]>
+# Le code est le caractere utilise dans les grilles .sprite.
+# « . » est reserve au transparent et ne se declare pas ici.
+#
+# La palette est volontairement courte. Une palette large donne des sprites
+# qui se ressemblent tous en moyenne ; une palette courte force des choix
+# nets, et c'est la lisibilite tactique qui compte : reconnaitre d'un coup
+# d'oeil qui va frapper quoi.
+
+# --- neutres : contours, ombres, decor
+K  encre           0d0b14
+k  ombre-froide    1b2036
+b  bleu-nuit       2c3a5e
+B  bleu-acier      4a6b9a
+c  cyan-pale       8fd3e8
+w  blanc-os        f2ece0
+g  gris-pierre     6f6a63
+G  gris-clair      a89f92
+
+# --- chauds : menace, degats, ennemis
+r  rouge-sang      8e2b34
+R  rouge-vif       d4453f
+o  ocre            c98a3c
+y  or-pale         f0c05a
+
+# --- froids : soin, allie, capacite
+v  vert-jade       4f7d5c
+V  vert-clair      8bc47f
+
+# --- accents : effets, boss
+p  pourpre         5b3a6b
+m  magenta-poussie a35b7a

@@ -1,0 +1,12 @@
+# Sol d'une case de grille. 16x8 pixels-monde : un gabarit encore different,
+# pour verifier que le rangement de l'atlas ne suppose rien sur les tailles.
+
+@sprite ground/plain
+GGGGGGGGGGGGGGGG
+gGgggGggggGgggGg
+gggggggggggggggg
+kgkkkgkkkkkgkkkk
+kkkkkkkkkkkkkkkk
+kkKkkkkKkkkkkKkk
+KkkkkKkkkkKkkkkk
+KKKKKKKKKKKKKKKK
