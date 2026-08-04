@@ -90,7 +90,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1, M3 et M4 revus et corrigés · prêt pour M5</b></div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1, M3 et M4 revus · M5 construit · review de M5 à faire</b></div>
 </header>
 
 <div class="banner warn">
@@ -124,8 +124,8 @@
   <tr><td><span class="pill p-done">revu</span></td><td><b>M2 — Harnais de capture</b><span class="why">Avancé et replié dans M1 : <code>--screenshot &lt;dir&gt; --size WxH --frames N</code> rend puis quitte proprement, sans intervention humaine. Durci après review : refuse désormais de faire croire au succès quand la fenêtre obtenue n'est pas celle demandée, quand une option est mal orthographiée, ou quand les images seraient toutes identiques.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M3 — Pipeline pixel art</b><span class="why">Palette maître en texte, format <code>.sprite</code> (grilles de caractères indexées), générateur d'atlas déterministe branché sur le build, chargement et rendu à l'écran. 5 sprites de démonstration. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 147 tests verts sur 17 suites.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M4 — Grille et héros</b><span class="why">Grille linéaire de 5 à 15 cases, déplacement, orientation, capacité d'échange de place, cadrage caméra. Clavier <b>et</b> souris. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 271 tests verts sur 25 suites.</span></td></tr>
-  <tr><td><span class="pill p-now">suivant</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution LIFO, recharges, Free-Play, ajout / retrait sans coût de tour.</span></td></tr>
-  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">4 archétypes, traits, IA de file, bulles d'intention télégraphiées.</span></td></tr>
+  <tr><td><span class="pill p-done">construit</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution dernier-entré premier-sorti, recharges en points, tuiles Free-Play, ajout et retrait sans coût de tour. Six tuiles, jouables au clavier et à la souris. 311 tests verts sur 27 suites. <b style="color:var(--gold)">Review indépendante pas encore passée.</b></span></td></tr>
+  <tr><td><span class="pill p-now">suivant</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">4 archétypes, traits, IA de file, bulles d'intention télégraphiées.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M7 — Résolution du combat</b><span class="why">Dégâts, statuts, collisions et repoussements, combo kills, enchaînement des vagues.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M8 — Interface</b><span class="why">HUD, barre de file, portées d'attaque, PV, infobulles — en français.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M9 — Boss</b><span class="why">Rencontre finale de la tranche : invocations, combo charge + frappe.</span></td></tr>
@@ -134,10 +134,20 @@
 
 <h2>En cours de construction</h2>
 <div class="banner">
-  <span class="k">Prochaine étape — M5, la file d'actions</span>
-  <p>Le jeu existe. Une grille linéaire, un héros qui s'y déplace, s'y oriente et échange sa place avec le premier occupant devant lui. Jouable au clavier comme à la souris, relu en contexte neuf et corrigé.</p>
-  <p><b>Reste à faire :</b> file de 5 tuiles, exécution dernier-entré premier-sorti, recharges en points, tuiles Free-Play, ajout et retrait sans coût de tour.</p>
+  <span class="k">M5 construit — review indépendante à lancer</span>
+  <p>La boucle centrale tourne. On charge la file gratuitement, puis on la dépile — et elle se vide à l'envers de l'ordre où on l'a remplie. Le temps ne passe qu'en consommant un tour, et c'est le tour qui recharge les tuiles.</p>
+  <p><b>Ensuite :</b> review indépendante de M5, puis M6 — les ennemis et leurs intentions télégraphiées.</p>
 </div>
+
+<h3>Les règles de M5</h3>
+<table>
+  <tr><td>La file</td><td><b>5 emplacements</b>, exécution dernier entré premier sorti.<span class="why">Poser trois tuiles coûte trois tours de vulnérabilité, mais les exécuter enchaîne trois effets pendant que les ennemis n'avancent que d'un cran. Toute la tension du jeu est dans ce décalage.</span></td></tr>
+  <tr><td>Poser, reprendre</td><td><b>Gratuits.</b> Ni l'un ni l'autre ne consomme de tour, et reprendre ne met pas la tuile en recharge : elle n'a pas servi.<span class="why">Se préparer ne doit jamais punir. On peut remuer la file autant qu'on veut sans que le temps passe — un test le vérifie sur 50 allers-retours.</span></td></tr>
+  <tr><td>Recharges</td><td>Une tuile exécutée réclame de 2 à 3 <b>points</b>. Chaque tour consommé donne un point à toutes les tuiles en recharge.<span class="why">C'est ce qui donne son prix au temps : la seule façon de récupérer ses tuiles est d'en dépenser.</span></td></tr>
+  <tr><td>Free-Play</td><td>Deux tuiles s'exécutent <b>sans consommer de tour</b> : pas de côté et volte-face.<span class="why">La soupape du système. Sans elle, se repositionner coûterait toujours un tour et la file ne serait qu'une punition. La volte-face vaut particulièrement cher ici, puisque se retourner coûte normalement un tour.</span></td></tr>
+  <tr><td>Six tuiles</td><td>Frappe et estoc (portée 1 et 2), poussée et élan, pas de côté et volte-face.<span class="why">Il en faut plus que d'emplacements de file : une tuile est soit au râtelier, soit sur la file, jamais les deux. Avec cinq tuiles ou moins, la file ne pourrait jamais être pleine.</span></td></tr>
+  <tr><td>Échec</td><td>Une tuile dont l'effet échoue est <b>consommée et rechargée, mais ne coûte pas de tour</b>.<span class="why">C'est le prix de l'avoir jouée — sans faire payer deux fois une décision déjà punie.</span></td></tr>
+</table>
 
 <h3>Les règles de M4</h3>
 <table>
@@ -170,18 +180,18 @@
 <h2>Planches-contact</h2>
 
 <figure class="sheet">
-  <img src="captures/m4/starfall-1280x720-frame00.png" alt="Starfall M4, arène 9 cases, héros tourné à droite">
-  <figcaption><b>M4 — l'arène, 9 cases. Le héros regarde à droite.</b> Deux lectures indépendantes le disent : la silhouette elle-même — capuche pointue, visage cyan au bord avant, cape qui traîne derrière — et la bande de repères sous les dalles. Celle-ci tient toute la lecture tactique sur une seule ligne : le repère du héros <i>est</i> la flèche de son orientation, un trait le relie à la cible de sa capacité, un repère or marque cette cible. Regroupés, ils se lisent comme une phrase, « moi, jusqu'à là ».</figcaption>
+  <img src="captures/m5/starfall-1280x720-frame00.png" alt="Starfall M5, arène 9 cases, file vide">
+  <figcaption><b>M5 — l'arène au repos, file vide.</b> Trois lectures superposées, du haut vers le bas : le plateau ; la bande de repères tactiques sous les dalles — le repère du héros <i>est</i> la flèche de son orientation, un trait le relie à la cible de sa capacité ; puis les cinq emplacements de la file, vides et contourés pour rester comptables ; et enfin le râtelier, six tuiles avec leur trait vert de disponibilité. La couleur des tuiles dit la famille : cyan pour les attaques, or pour le placement, <b>vert pour ce qui ne coûte pas de tour</b>.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m4/starfall-1280x720-frame02.png" alt="Starfall M4, héros tourné à gauche après un échange">
-  <figcaption><b>Le même héros, deux actions plus tard : il regarde à gauche.</b> Il a d'abord échangé sa place avec le mannequin de la case 7 — celui-ci se retrouve case 5 — puis fait demi-tour. La silhouette est retournée sans ambiguïté. <b>C'est ce que la première version ne faisait pas :</b> l'ancien sprite ne différait de son miroir que par 16 pixels sur 512, tous dans les chaussures, et le retournement ne se voyait pas.</figcaption>
+  <img src="captures/m5/starfall-1280x720-frame03.png" alt="Starfall M5, trois tuiles posées sur la file">
+  <figcaption><b>La file chargée : 3 sur 5.</b> On a posé frappe, poussée, volte-face — gratuitement, le compteur de tours est toujours à zéro. Les trois tuiles correspondantes sont éteintes au râtelier, mais restent visibles : le joueur doit voir <i>laquelle</i> lui manque, pas seulement qu'il lui en manque une. Le chevron or marque la <b>volte-face</b> comme prochaine à partir — la dernière posée. C'est le point le plus contre-intuitif du jeu, donc il est signalé plutôt que sous-entendu.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m4-etroit/starfall-400x240-frame00.png" alt="Starfall M4, grille de 15 dans une fenêtre 400x240">
-  <figcaption><b>Le cas le plus contraint : 15 cases dans une fenêtre de 400×240.</b> Échelle ×1, et le décor couvre toute la fenêtre. Auparavant l'arène n'était peinte que sur 320×180 : sur toute fenêtre qui n'est pas en 16:9, elle flottait dans un rectangle noir à arête franche, plus proche du défaut d'affichage que du décor.</figcaption>
+  <img src="captures/m5-etroit/starfall-400x240-frame00.png" alt="Starfall M5, grille de 15 dans une fenêtre 400x240">
+  <figcaption><b>Le cas le plus contraint : 15 cases dans une fenêtre de 400×240, échelle ×1.</b> Plateau, repères, file et râtelier tiennent tous dans les 180 pixels-monde de haut, sans se recouvrir — un test le verrouille plutôt que de s'en remettre au coup d'œil.</figcaption>
 </figure>
 
 <figure class="sheet">
@@ -227,6 +237,12 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev">
+  <div class="hd">M5 — <b>Review indépendante : à faire</b></div>
+  <p>Le jalon vient d'être construit ; la review en contexte neuf n'a pas encore été lancée.</p>
+  <p style="color:var(--dim2);font-size:12.5px;margin-bottom:0">Vérifié par mes soins en attendant : build en sortie 0 sans avertissement, <b>311 tests verts sur 27 suites</b>, et aucune régression de grille pixel dans les deux scènes après le déplacement de l'arène. Les tests couvrent en particulier ce qui ne se voit pas à l'œil : que remuer la file cinquante fois ne fait avancer aucune recharge, qu'une tuile reprise ne part pas en recharge, qu'une tuile dont l'effet échoue est consommée sans coûter de tour, et que la volte-face donne bien gratuitement ce que le clavier fait payer.</p>
+</div>
 
 <div class="rev pass">
   <div class="hd">M4 — pré-review — <b>Deux défauts trouvés en pilotant la vraie fenêtre</b></div>

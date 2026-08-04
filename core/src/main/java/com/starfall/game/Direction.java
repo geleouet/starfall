@@ -26,6 +26,11 @@ public enum Direction {
         return step;
     }
 
+    /** Direction opposée. Sert au recul, qui ne change pas l'orientation du héros. */
+    public Direction opposite() {
+        return this == LEFT ? RIGHT : LEFT;
+    }
+
     /** Nom affichable, en français comme tout ce que voit le joueur. */
     public String label() {
         return label;

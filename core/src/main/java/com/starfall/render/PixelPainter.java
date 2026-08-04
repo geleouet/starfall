@@ -92,6 +92,18 @@ public final class PixelPainter implements Disposable {
     }
 
     /**
+     * Dessine un sprite teinté.
+     *
+     * <p>Sert à éteindre une tuile indisponible sans la faire disparaître : le joueur doit
+     * continuer à voir <em>quelle</em> tuile lui manque, pas seulement qu'il lui en manque une.
+     */
+    public void spriteTinted(TextureRegion region, int x, int y, Color tint) {
+        batch.setColor(tint);
+        batch.draw(region, x, y, region.getRegionWidth(), region.getRegionHeight());
+        batch.setColor(Color.WHITE);
+    }
+
+    /**
      * Dessine un sprite en le retournant horizontalement.
      *
      * <p>Le retournement se fait sur la région, pas sur les coordonnées : la position du coin reste

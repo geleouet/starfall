@@ -1,27 +1,131 @@
-# Tuiles de la file d'actions. 16x16 pixels-monde.
-# Deux tuiles suffisent a M3 : une pleine et une vide. Le contenu reel
-# viendra avec M5, quand la file sera implementee.
+# Tuiles de la file d'actions. 16x16 pixels-monde chacune.
 #
-# Ces sprites ont une taille differente des personnages : c'est voulu, le
-# rangement dans l'atlas doit gerer plusieurs gabarits.
+# La couleur dit la FAMILLE, la forme dit LAQUELLE. A 16 px, six icones
+# distinctes par la seule silhouette seraient illisibles ; regroupees par
+# couleur, il n'y en a plus que deux a distinguer dans chaque famille.
+#
+#   cyan (c)       : attaques        - frappe, estoc
+#   or-pale (y)    : placement       - poussee, elan
+#   vert-clair (V) : Free-Play       - pas de cote, volte-face
+#
+# Le vert vaut donc "ne consomme pas de tour", ce qui est l'information la
+# plus precieuse de la file : elle se lit sans lire le libelle.
+
+# --- attaques -----------------------------------------------------------
 
 @sprite tile/slash
 KKKKKKKKKKKKKKKK
-KbbbbbbbbbbbwcbK
-KbbbbbbbbbbwcbbK
-KbbbbbbbbbwcbbbK
-KbbbbbbbbwcbbbbK
-KbbbbbbbwcbbbbbK
-KbbbbbbwcbbbbbbK
-KbbbbbwcbbbbbbbK
-KbbbbwcbbbbbbbbK
-KbbbwcbbbbbbbbbK
-KbbwcbbbbbbbbbbK
-KbwcbbbbbbbbbbbK
-KwcbbbbbbbbbbbbK
-KcbbbbbbbbbbbbbK
-KbbbbbbbbbbbbbbK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkckkkkkK
+KkkkkkkkkcckkkkK
+KkkkkkkkkccckkkK
+KkkccccccccccbkK
+KkkccccccccccbkK
+KkkkkkkkkccckkkK
+KkkkkkkkkcckkkkK
+KkkkkkkkkckkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
 KKKKKKKKKKKKKKKK
+
+@sprite tile/thrust
+KKKKKKKKKKKKKKKK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkckkkkK
+KkkkkkkkkkcckkkK
+KccccccccccccbkK
+KccccccccccccbkK
+KkkkkkkkkkcckkkK
+KkkkkkkkkkckkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KKKKKKKKKKKKKKKK
+
+# --- placement ----------------------------------------------------------
+
+@sprite tile/push
+KKKKKKKKKKKKKKKK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkyykkkyykkkkK
+KkkkkyykkkyykkkK
+KkkkkkyykkkyykkK
+KkkkkkkyykkkyykK
+KkkkkkyykkkyykkK
+KkkkkyykkkyykkkK
+KkkkyykkkyykkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KKKKKKKKKKKKKKKK
+
+@sprite tile/dash
+KKKKKKKKKKKKKKKK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkyyyyyyykkK
+KkkkkkkkkkkkkkkK
+KkkyyyyyyyyyykkK
+KkkkkkkkkkkkkkkK
+KkyyyyyyyyyyykkK
+KkkkkkkkkkkkkkkK
+KkkyyyyyyyyyykkK
+KkkkkkkkkkkkkkkK
+KkkkkkyyyyyyykkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KKKKKKKKKKKKKKKK
+
+# --- Free-Play ----------------------------------------------------------
+
+@sprite tile/step
+KKKKKKKKKKKKKKKK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkVkkkkkkkkK
+KkkkkVVkkkkkkkkK
+KkkkVVVkkkkkkkkK
+KkkVVVVVVVVVVkkK
+KkkVVVVVVVVVVkkK
+KkkkVVVkkkkkkkkK
+KkkkkVVkkkkkkkkK
+KkkkkkVkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KKKKKKKKKKKKKKKK
+
+@sprite tile/pivot
+KKKKKKKKKKKKKKKK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkVkkkkkK
+KkkVVVVVVVVVkkkK
+KkkVVVVVVVVVkkkK
+KkkkkkkkkVkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkVkkkkkkkkK
+KkkkVVVVVVVVVkkK
+KkkkVVVVVVVVVkkK
+KkkkkkVkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KkkkkkkkkkkkkkkK
+KKKKKKKKKKKKKKKK
+
+# --- emplacement vide de la file ---------------------------------------
 
 @sprite tile/empty
 KKKKKKKKKKKKKKKK

@@ -5,12 +5,15 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector3;
 import com.starfall.StarfallGame;
+import com.starfall.game.ActionQueue;
 import com.starfall.game.ActionResult;
 import com.starfall.game.Arena;
 import com.starfall.game.ArenaLayout;
 import com.starfall.game.ArenaSetup;
 import com.starfall.game.Direction;
+import com.starfall.game.HudLayout;
 import com.starfall.game.Occupant;
+import com.starfall.game.Tile;
 import com.starfall.render.PixelPainter;
 
 import java.util.ArrayList;
@@ -34,6 +37,12 @@ public final class ArenaScene implements Scene {
     private static final Color HERO_MARK = new Color(0x54d6ffff);
     private static final Color TARGET_MARK = new Color(0xffcc33ff);
     private static final Color HOVER_MARK = new Color(0x7be08aff);
+    private static final Color SLOT_EMPTY = new Color(0x9a9aa8ff);
+    private static final Color SLOT_OUTLINE = new Color(0x4a5570ff);
+    private static final Color SLOT_DIM = new Color(0x4a4a55ff);
+    private static final Color READY_MARK = new Color(0x8bc47fff);
+    private static final Color RECHARGE_MARK = new Color(0xc98a3cff);
+    private static final Color NEXT_MARK = new Color(0xf0c05aff);
 
     /** Hauteur, sous les dalles, de la bande où vivent tous les repères tactiques. */
     private static final int MARK_Y = ArenaLayout.GROUND_Y - 4;
@@ -42,8 +51,11 @@ public final class ArenaScene implements Scene {
     private PixelPainter painter;
     private Arena arena;
     private ArenaLayout layout;
+    private HudLayout hud;
 
     private int hoveredCell = -1;
+    private int hoveredQueueSlot = -1;
+    private int hoveredRackSlot = -1;
     private ActionResult lastResult;
 
     @Override
@@ -59,6 +71,7 @@ public final class ArenaScene implements Scene {
         int gridWidth = context.options().gridWidth;
         arena = ArenaSetup.trainingArena(gridWidth);
         layout = new ArenaLayout(gridWidth, StarfallGame.MIN_WORLD_WIDTH / 2);
+        hud = new HudLayout(StarfallGame.MIN_WORLD_WIDTH / 2, arena.rack().tiles().size());
     }
 
     /**
@@ -113,11 +126,18 @@ public final class ArenaScene implements Scene {
         ActionResult applyTo(Arena arena);
     }
 
+    /**
+     * Le scénario montre la file d'actions, parce que c'est ce que le jalon apporte : on charge, on
+     * regarde la file se remplir, puis on la dépile — et l'on voit qu'elle se vide à l'envers de
+     * l'ordre où on l'a remplie.
+     */
     private static final ScriptedAction[] SCRIPT = {
-            a -> a.swapWithTarget(),                 // la capacité, tout de suite : c'est l'intérêt
-            a -> a.step(Direction.LEFT),             // demi-tour
-            a -> a.step(Direction.LEFT),             // puis un pas
-            a -> a.swapWithTarget(),                 // échange dans l'autre sens
+            a -> a.queueTile(Tile.STRIKE),   // on charge...
+            a -> a.queueTile(Tile.PUSH),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.executeTop(),             // ...puis on dépile : la volte-face part en premier
+            a -> a.executeTop(),             // puis la poussée
+            a -> a.executeTop(),             // et enfin la frappe, posée en premier
     };
 
     private int scriptedFrame = -1;
@@ -131,8 +151,23 @@ public final class ArenaScene implements Scene {
         Vector3 world = context.viewport().unproject(
                 new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0f));
         hoveredCell = layout.cellAt(world.x, world.y);
+        hoveredQueueSlot = hud.queueSlotAt(world.x, world.y);
+        hoveredRackSlot = hud.rackSlotAt(world.x, world.y);
 
-        if (Gdx.input.justTouched() && hoveredCell >= 0) {
+        if (!Gdx.input.justTouched()) {
+            return false;
+        }
+        // Les trois zones sont disjointes par construction ; l'ordre ne fait que rendre
+        // l'intention explicite.
+        if (hoveredRackSlot >= 0) {
+            lastResult = arena.queueTile(arena.rack().tiles().get(hoveredRackSlot));
+            return true;
+        }
+        if (hoveredQueueSlot >= 0) {
+            lastResult = arena.unqueueAt(hoveredQueueSlot);
+            return true;
+        }
+        if (hoveredCell >= 0) {
             lastResult = arena.clickOn(hoveredCell);
             return true;
         }
@@ -157,9 +192,33 @@ public final class ArenaScene implements Scene {
         } else if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)
                 || Gdx.input.isKeyJustPressed(Input.Keys.D)) {
             lastResult = arena.step(Direction.RIGHT);
-        } else if (Gdx.input.isKeyJustPressed(Input.Keys.E)
-                || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
             lastResult = arena.swapWithTarget();
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
+                || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+            lastResult = arena.executeTop();
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)
+                || Gdx.input.isKeyJustPressed(Input.Keys.FORWARD_DEL)) {
+            lastResult = arena.unqueueAt(arena.queue().size() - 1);
+        } else {
+            readTileKeys();
+        }
+    }
+
+    /**
+     * Chiffres 1 à 6 : poser la tuile correspondante du râtelier.
+     *
+     * <p>Les touches suivent l'ordre d'affichage du râtelier, pas un ordre interne : le joueur
+     * compte ce qu'il voit.
+     */
+    private void readTileKeys() {
+        List<Tile> tiles = arena.rack().tiles();
+        for (int i = 0; i < tiles.size() && i < 9; i++) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1 + i)
+                    || Gdx.input.isKeyJustPressed(Input.Keys.NUMPAD_1 + i)) {
+                lastResult = arena.queueTile(tiles.get(i));
+                return;
+            }
         }
     }
 
@@ -169,7 +228,88 @@ public final class ArenaScene implements Scene {
         drawGround();
         drawOccupants();
         drawTacticalMarks();
+        drawQueue();
+        drawRack();
         painter.color(Color.WHITE);
+    }
+
+    /**
+     * La file d'actions.
+     *
+     * <p>Elle se lit de gauche à droite dans l'ordre où l'on a posé — mais elle s'exécute à
+     * l'envers. C'est le point le plus contre-intuitif du jeu, donc la <b>flèche de retour</b>
+     * au-dessus de la dernière tuile posée n'est pas décorative : elle dit « c'est celle-là qui
+     * part la première ».
+     */
+    private void drawQueue() {
+        var empty = context.atlas().region("tile/empty");
+        List<Tile> tiles = arena.queue().fromOldest();
+
+        for (int slot = 0; slot < ActionQueue.CAPACITY; slot++) {
+            int x = hud.queueSlotX(slot);
+            if (slot < tiles.size()) {
+                painter.sprite(context.atlas().region(tiles.get(slot).spriteName()), x, HudLayout.QUEUE_Y);
+                if (hoveredQueueSlot == slot) {
+                    painter.outline(x - 1, HudLayout.QUEUE_Y - 1,
+                            HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
+                }
+            } else {
+                // Un emplacement vide doit rester comptable d'un coup d'œil : la file en a cinq, et
+                // savoir combien il en reste fait partie de la décision. Le contour est là pour ça.
+                painter.spriteTinted(empty, x, HudLayout.QUEUE_Y, SLOT_EMPTY);
+                painter.outline(x, HudLayout.QUEUE_Y, HudLayout.TILE_SIZE, HudLayout.TILE_SIZE,
+                        SLOT_OUTLINE);
+            }
+        }
+
+        if (!tiles.isEmpty()) {
+            drawNextMarker(hud.queueSlotX(tiles.size() - 1));
+        }
+    }
+
+    /** Repère de la prochaine tuile exécutée : un chevron vers le bas, posé sur elle. */
+    private void drawNextMarker(int slotX) {
+        int centre = slotX + HudLayout.TILE_SIZE / 2;
+        int y = HudLayout.QUEUE_Y + HudLayout.TILE_SIZE + 2;
+        for (int i = 0; i < 4; i++) {
+            painter.fill(centre - 3 + i, y + i, 1, 1, NEXT_MARK);
+            painter.fill(centre + 3 - i, y + i, 1, 1, NEXT_MARK);
+        }
+        painter.fill(slotX, HudLayout.QUEUE_Y - 2, HudLayout.TILE_SIZE, 1, NEXT_MARK);
+    }
+
+    /**
+     * Le râtelier : ce que le héros sait faire, et ce qui lui est accessible <em>maintenant</em>.
+     *
+     * <p>Trois états, et chacun doit se distinguer sans lire de texte : disponible (pleine
+     * lumière), posée sur la file (éteinte), en recharge (éteinte, avec autant de points que de
+     * tours à attendre). Faire disparaître une tuile indisponible serait plus simple à dessiner et
+     * beaucoup moins utile : le joueur doit voir <em>laquelle</em> lui manque.
+     */
+    private void drawRack() {
+        List<Tile> tiles = arena.rack().tiles();
+        for (int i = 0; i < tiles.size(); i++) {
+            Tile tile = tiles.get(i);
+            int x = hud.rackSlotX(i);
+            var region = context.atlas().region(tile.spriteName());
+
+            if (arena.rack().isReady(tile)) {
+                painter.sprite(region, x, HudLayout.RACK_Y);
+                painter.fill(x, HudLayout.RACK_Y - 2, HudLayout.TILE_SIZE, 1, READY_MARK);
+            } else {
+                painter.spriteTinted(region, x, HudLayout.RACK_Y, SLOT_DIM);
+            }
+
+            int missing = arena.rack().missingPoints(tile);
+            for (int point = 0; point < missing; point++) {
+                painter.fill(x + 2 + point * 3, HudLayout.RACK_Y - 3, 2, 2, RECHARGE_MARK);
+            }
+
+            if (hoveredRackSlot == i) {
+                painter.outline(x - 1, HudLayout.RACK_Y - 1,
+                        HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
+            }
+        }
     }
 
     /**
@@ -305,9 +445,15 @@ public final class ArenaScene implements Scene {
     @Override
     public List<String> overlayLines(int screenWidth, int screenHeight) {
         List<String> lines = new ArrayList<>();
-        lines.add("STARFALL - JALON M4 - GRILLE ET HÉROS");
-        lines.add("GRILLE : " + layout.gridWidth() + " CASES   HÉROS : CASE "
-                + (arena.heroCell() + 1) + "   REGARD : " + arena.hero().facing().label().toUpperCase());
+        lines.add("STARFALL - JALON M5 - FILE D'ACTIONS");
+        lines.add("TOUR " + arena.turnsTaken() + "   GRILLE : " + layout.gridWidth()
+                + " CASES   HÉROS : CASE " + (arena.heroCell() + 1)
+                + "   REGARD : " + arena.hero().facing().label().toUpperCase());
+
+        Tile next = arena.queue().top();
+        lines.add("FILE : " + arena.queue().size() + "/" + ActionQueue.CAPACITY
+                + "   PROCHAINE : " + (next == null ? "AUCUNE"
+                        : next.label().toUpperCase() + (next.isFreePlay() ? " (GRATUITE)" : "")));
 
         int target = arena.swapTarget();
         lines.add("ÉCHANGE : " + (target < 0 ? "AUCUNE CIBLE" : "CASE " + (target + 1)
@@ -316,8 +462,9 @@ public final class ArenaScene implements Scene {
         if (lastResult != null) {
             lines.add("DERNIÈRE ACTION : " + lastResult.label().toUpperCase());
         }
-        lines.add("FLÈCHES OU A/Q ET D : SE TOURNER PUIS AVANCER   E : ÉCHANGE   CLIC : LES DEUX");
-        lines.add("ÉCHAP : QUITTER   F11 : PLEIN ÉCRAN   ESPACE : CAMÉRA DE CONTRÔLE");
+        lines.add("1-6 : POSER   ESPACE : EXÉCUTER LE SOMMET   RETOUR ARRIÈRE : REPRENDRE");
+        lines.add("FLÈCHES OU A/Q ET D : SE TOURNER PUIS AVANCER   E : ÉCHANGE   CLIC : TOUT");
+        lines.add("ÉCHAP : QUITTER   F11 : PLEIN ÉCRAN");
         return lines;
     }
 }

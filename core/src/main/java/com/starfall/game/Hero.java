@@ -25,6 +25,7 @@ public final class Hero implements Occupant {
         return facing;
     }
 
+    /** Change l'orientation. Réservé au paquet : seules les règles décident du sens du regard. */
     void face(Direction direction) {
         this.facing = direction;
     }

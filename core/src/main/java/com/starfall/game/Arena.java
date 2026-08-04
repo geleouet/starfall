@@ -15,19 +15,36 @@ package com.starfall.game;
  * une ressource tactique à part entière plutôt qu'un effet de bord du déplacement — c'est un écart
  * assumé par rapport à la référence, où l'on se retourne et avance dans le même geste, et il est
  * consigné comme tel dans le tableau de bord.
+ *
+ * <h2>Le tour, et ce qui le consomme</h2>
+ *
+ * <p>Un tour est la seule monnaie du jeu : c'est lui qui fait avancer les ennemis (M6) et recharger
+ * les tuiles. Le consomment : un déplacement, un demi-tour, un échange de place, et l'exécution
+ * d'une tuile ordinaire. Ne le consomment pas : poser ou reprendre une tuile, exécuter une tuile
+ * Free-Play, et <b>toute action qui échoue</b>. Une action bloquée qui coûterait un tour serait la
+ * pire des punitions : celle qu'on ne comprend pas.
  */
 public final class Arena {
 
     private final Grid grid;
     private final Hero hero;
+    private final TileRack rack;
+    private final ActionQueue queue = new ActionQueue();
+
+    private int turnsTaken;
 
     public Arena(int gridWidth) {
         this(gridWidth, gridWidth / 2);
     }
 
     public Arena(int gridWidth, int heroStart) {
+        this(gridWidth, heroStart, new TileRack(Tile.values()));
+    }
+
+    public Arena(int gridWidth, int heroStart, TileRack rack) {
         this.grid = new Grid(gridWidth);
         this.hero = new Hero();
+        this.rack = rack;
         grid.place(heroStart, hero);
     }
 
@@ -37,6 +54,30 @@ public final class Arena {
 
     public Hero hero() {
         return hero;
+    }
+
+    public TileRack rack() {
+        return rack;
+    }
+
+    public ActionQueue queue() {
+        return queue;
+    }
+
+    /** Nombre de tours consommés depuis le début du combat. */
+    public int turnsTaken() {
+        return turnsTaken;
+    }
+
+    /**
+     * Consomme un tour : c'est ici, et nulle part ailleurs, que le temps passe.
+     *
+     * <p>Tout centraliser dans une seule méthode est ce qui garantit qu'on ne pourra pas ajouter en
+     * M6 une action qui fait avancer les ennemis en oubliant de recharger les tuiles, ou l'inverse.
+     */
+    private void consumeTurn() {
+        turnsTaken++;
+        rack.gainRechargePoint();
     }
 
     /** Case du héros. Toujours valide : le héros ne quitte jamais la grille. */
@@ -60,6 +101,7 @@ public final class Arena {
         }
         if (hero.facing() != direction) {
             hero.face(direction);
+            consumeTurn();
             return ActionResult.TURNED;
         }
 
@@ -69,6 +111,7 @@ public final class Arena {
             return ActionResult.BLOCKED;
         }
         grid.move(from, to);
+        consumeTurn();
         return ActionResult.MOVED;
     }
 
@@ -86,7 +129,64 @@ public final class Arena {
             return ActionResult.NO_TARGET;
         }
         grid.swap(heroCell(), target);
+        consumeTurn();
         return ActionResult.SWAPPED;
+    }
+
+    // ------------------------------------------------------------------ file d'actions
+
+    /**
+     * Pose une tuile du râtelier sur la file. <b>Gratuit</b> : aucun tour consommé.
+     *
+     * @return {@link ActionResult#QUEUED}, ou {@link ActionResult#QUEUE_FULL} / {@link
+     *         ActionResult#NOT_READY} si le geste est impossible
+     */
+    public ActionResult queueTile(Tile tile) {
+        if (queue.isFull()) {
+            return ActionResult.QUEUE_FULL;
+        }
+        if (!rack.isReady(tile)) {
+            return ActionResult.NOT_READY;
+        }
+        rack.take(tile);
+        queue.push(tile);
+        return ActionResult.QUEUED;
+    }
+
+    /**
+     * Reprend une tuile de la file, désignée par sa position d'affichage — de la plus ancienne à la
+     * plus récente. <b>Gratuit</b> aussi, et la tuile ne part pas en recharge : elle n'a pas servi.
+     */
+    public ActionResult unqueueAt(int indexFromOldest) {
+        Tile removed = queue.removeAt(indexFromOldest);
+        if (removed == null) {
+            return ActionResult.BLOCKED;
+        }
+        rack.giveBack(removed);
+        return ActionResult.UNQUEUED;
+    }
+
+    /**
+     * Exécute la tuile du sommet — la dernière posée.
+     *
+     * <p>La tuile part en recharge et le tour est consommé, <b>sauf</b> si elle est Free-Play. Une
+     * tuile dont l'effet échoue — personne à frapper, poussée bloquée — est tout de même consommée
+     * et rechargée : c'est le prix de l'avoir jouée. En revanche elle ne consomme pas de tour, pour
+     * ne pas faire payer deux fois une décision déjà punie.
+     */
+    public ActionResult executeTop() {
+        if (queue.isEmpty()) {
+            return ActionResult.EMPTY_QUEUE;
+        }
+        Tile tile = queue.pop();
+        ActionResult result = tile.applyTo(this);
+        rack.giveBackSpent(tile);
+
+        boolean effective = result != ActionResult.NO_TARGET && result != ActionResult.BLOCKED;
+        if (effective && !tile.isFreePlay()) {
+            consumeTurn();
+        }
+        return result;
     }
 
     /** Case que la capacité viserait maintenant, ou {@code -1}. Sert aussi à la télégraphier. */

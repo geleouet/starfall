@@ -24,8 +24,14 @@ public final class ArenaLayout {
     public static final int CELL_WIDTH = 20;
     /** Hauteur de la dalle de sol, en pixels-monde. */
     public static final int GROUND_HEIGHT = 8;
-    /** Bord bas des dalles de sol, en pixels-monde. */
-    public static final int GROUND_Y = 40;
+    /**
+     * Bord bas des dalles de sol, en pixels-monde.
+     *
+     * <p>L'arène est haut placée pour laisser sous elle la bande où vivent la file d'actions et le
+     * râtelier. Les deux doivent être visibles <em>en même temps</em> que le plateau : c'est en les
+     * comparant du regard que le joueur décide.
+     */
+    public static final int GROUND_Y = 60;
     /** Bord bas des figures : elles posent les pieds sur la dalle. */
     public static final int FIGURE_Y = GROUND_Y + GROUND_HEIGHT;
     /** Largeur d'une figure, en pixels-monde. */
