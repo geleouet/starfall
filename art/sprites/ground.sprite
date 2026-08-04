@@ -1,12 +1,13 @@
-# Sol d'une case de grille. 16x8 pixels-monde : un gabarit encore different,
-# pour verifier que le rangement de l'atlas ne suppose rien sur les tailles.
+# Dalle de sol d'une case de grille. 20x8 pixels-monde, soit exactement la
+# largeur d'une case : les dalles s'abutent sans laisser de trou, et un
+# personnage de 16 px y tient avec 2 px de marge de chaque cote.
 
 @sprite ground/plain
-GGGGGGGGGGGGGGGG
-gGgggGggggGgggGg
-gggggggggggggggg
-kgkkkgkkkkkgkkkk
-kkkkkkkkkkkkkkkk
-kkKkkkkKkkkkkKkk
-KkkkkKkkkkKkkkkk
-KKKKKKKKKKKKKKKK
+GGGGGGGGGGGGGGGGGGGG
+gGgggGggggGgggGggggG
+gggggggggggggggggggg
+kgkkkgkkkkkgkkkkgkkk
+kkkkkkkkkkkkkkkkkkkk
+kkKkkkkKkkkkkKkkkKkk
+KkkkkKkkkkKkkkkkKkkk
+KKKKKKKKKKKKKKKKKKKK

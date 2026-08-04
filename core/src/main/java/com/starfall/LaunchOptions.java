@@ -1,5 +1,6 @@
 package com.starfall;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -9,6 +10,8 @@ import java.util.Locale;
  *   --screenshot &lt;dossier&gt;   rend quelques images, écrit un PNG par image, puis quitte
  *   --size &lt;L&gt;x&lt;H&gt;           taille initiale de la fenêtre (défaut 1280x720)
  *   --frames &lt;N&gt;             nombre d'images à rendre en mode capture (défaut 2)
+ *   --scene &lt;nom&gt;            arena (défaut) ou calibration
+ *   --grid &lt;N&gt;               largeur de la grille, de 5 à 15 cases (défaut 9)
  *   --help                   affiche l'aide et quitte
  * </pre>
  *
@@ -21,20 +24,31 @@ public final class LaunchOptions {
     public static final int DEFAULT_WIDTH = 1280;
     public static final int DEFAULT_HEIGHT = 720;
     public static final int DEFAULT_FRAMES = 2;
+    public static final String DEFAULT_SCENE = "arena";
+    public static final int DEFAULT_GRID_WIDTH = 9;
+
+    /** Scènes connues. La mire de calibration reste atteignable : c'est une preuve de non-régression. */
+    public static final List<String> SCENES = List.of("arena", "calibration");
 
     /** Dossier de sortie des captures, ou {@code null} en fonctionnement normal. */
     public final String screenshotDir;
     public final int width;
     public final int height;
     public final int frames;
+    public final String scene;
+    /** Largeur de la grille de combat, en cases. Bornée par {@code Grid}, pas ici. */
+    public final int gridWidth;
     /** Vrai si l'aide a été demandée : le lanceur l'affiche puis s'arrête sans ouvrir de fenêtre. */
     public final boolean helpRequested;
 
-    private LaunchOptions(String screenshotDir, int width, int height, int frames, boolean helpRequested) {
+    private LaunchOptions(String screenshotDir, int width, int height, int frames,
+                          String scene, int gridWidth, boolean helpRequested) {
         this.screenshotDir = screenshotDir;
         this.width = width;
         this.height = height;
         this.frames = frames;
+        this.scene = scene;
+        this.gridWidth = gridWidth;
         this.helpRequested = helpRequested;
     }
 
@@ -47,6 +61,8 @@ public final class LaunchOptions {
         int width = DEFAULT_WIDTH;
         int height = DEFAULT_HEIGHT;
         int frames = DEFAULT_FRAMES;
+        String scene = DEFAULT_SCENE;
+        int gridWidth = DEFAULT_GRID_WIDTH;
         boolean helpRequested = false;
 
         if (args != null) {
@@ -69,6 +85,19 @@ public final class LaunchOptions {
                     case "--frames":
                         frames = requirePositive(requireValue(args, ++i, arg), arg);
                         break;
+                    case "--scene": {
+                        scene = requireValue(args, ++i, arg).toLowerCase(Locale.ROOT);
+                        if (!SCENES.contains(scene)) {
+                            throw new IllegalArgumentException("--scene attend " + String.join(" ou ", SCENES)
+                                    + ", reçu : " + scene);
+                        }
+                        break;
+                    }
+                    case "--grid":
+                        // Les bornes 5 à 15 sont celles de Grid : les redire ici les ferait diverger
+                        // le jour où elles bougeraient. On ne verifie que la forme.
+                        gridWidth = requirePositive(requireValue(args, ++i, arg), arg);
+                        break;
                     case "--help":
                     case "-h":
                         helpRequested = true;
@@ -79,7 +108,7 @@ public final class LaunchOptions {
             }
         }
 
-        return new LaunchOptions(screenshotDir, width, height, frames, helpRequested);
+        return new LaunchOptions(screenshotDir, width, height, frames, scene, gridWidth, helpRequested);
     }
 
     /**
@@ -116,6 +145,8 @@ public final class LaunchOptions {
                 + "  --screenshot <dossier>   rend des images en PNG dans <dossier> puis quitte\n"
                 + "  --size <L>x<H>           taille de la fenêtre (défaut " + DEFAULT_WIDTH + "x" + DEFAULT_HEIGHT + ")\n"
                 + "  --frames <N>             images à capturer en mode capture (défaut " + DEFAULT_FRAMES + ")\n"
+                + "  --scene <nom>            " + String.join(" ou ", SCENES) + " (défaut " + DEFAULT_SCENE + ")\n"
+                + "  --grid <N>               largeur de la grille, 5 à 15 cases (défaut " + DEFAULT_GRID_WIDTH + ")\n"
                 + "  --help                   affiche cette aide\n";
     }
 
@@ -123,6 +154,8 @@ public final class LaunchOptions {
     public String toString() {
         return "LaunchOptions{screenshotDir=" + screenshotDir
                 + ", size=" + width + "x" + height
-                + ", frames=" + frames + '}';
+                + ", frames=" + frames
+                + ", scene=" + scene
+                + ", grid=" + gridWidth + '}';
     }
 }

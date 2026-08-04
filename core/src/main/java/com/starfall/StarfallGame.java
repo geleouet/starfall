@@ -5,29 +5,27 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.starfall.render.PixelFont;
+import com.starfall.render.PixelPainter;
 import com.starfall.render.PixelViewport;
 import com.starfall.render.SpriteAtlas;
+import com.starfall.scene.ArenaScene;
+import com.starfall.scene.CalibrationScene;
+import com.starfall.scene.Scene;
+import com.starfall.scene.SceneContext;
+
+import java.util.List;
 
 /**
- * Scène de test des jalons M1 à M3.
+ * Le jeu : la fenêtre, le viewport pixel-perfect, le bandeau d'interface et la capture d'écran.
  *
- * <p>Deux choses y cohabitent, et chacune a sa raison d'être sur la même capture :
- * <ul>
- *   <li>les motifs de contrôle de M1 — damiers d'1 et 2 px, rayures, diagonales, règle graduée —
- *       qui permettent de juger d'un coup d'œil si la grille de pixels est intacte ;</li>
- *   <li>les sprites de M3, chargés depuis l'atlas produit par l'étape de build, posés juste à côté.
- *       Un sprite flou ou décalé se voit immédiatement quand il est adossé à un damier d'1 px.</li>
- * </ul>
+ * <p>Le contenu, lui, appartient à une {@link Scene} — {@link ArenaScene} pour le jeu,
+ * {@link CalibrationScene} pour la mire de contrôle des jalons précédents.
  *
- * <p>L'unité de monde est le pixel-monde — la résolution à laquelle les sprites sont dessinés. Un
- * personnage fait {@link #CHARACTER_HEIGHT} pixels-monde de haut.
+ * <p>L'unité de monde est le pixel-monde, la résolution à laquelle les sprites sont dessinés.
  */
 public class StarfallGame extends ApplicationAdapter {
 
@@ -38,53 +36,24 @@ public class StarfallGame extends ApplicationAdapter {
     public static final int CHARACTER_HEIGHT = 32;
     public static final int CHARACTER_WIDTH = 16;
 
+    /** Bord supérieur des motifs de la mire de calibration, en pixels-monde. */
+    public static final int PATTERN_TOP = 112;
+
     /** Code de sortie signalant une capture qui n'a pas produit ce qui était demandé. */
     public static final int EXIT_CAPTURE_MISMATCH = 3;
 
     /** Pas de temps fixe entre deux images capturées : le mode capture doit rester reproductible. */
     private static final float SCREENSHOT_TIME_STEP = 0.37f;
 
-    private static final Color OUTSIDE = new Color(0x0b1020ff);
-    private static final Color INSIDE = new Color(0x1b2743ff);
+    private static final Color BACKDROP = new Color(0x0b1020ff);
     private static final Color FRAME = new Color(0xffcc33ff);
-    private static final Color CHECKER_A = new Color(0xf4f7ffff);
-    private static final Color CHECKER_B = new Color(0x27324eff);
-    private static final Color ACCENT = new Color(0x54d6ffff);
-    private static final Color HOT = new Color(0xff5c6aff);
-    private static final Color GREEN = new Color(0x7be08aff);
-    private static final Color DOTS = new Color(0x3d5288ff);
     private static final Color PANEL = new Color(0x000000d0);
 
-    /**
-     * Bord supérieur des motifs de test, en pixels-monde. Le panneau d'interface est ancré en haut
-     * de la fenêtre et vit en coordonnées écran : il est explicitement borné pour ne jamais
-     * descendre sous cette ligne, quitte à afficher moins de lignes de texte.
-     */
-    private static final int PATTERN_TOP = 112;
-
-    // Disposition de la scène, en pixels-monde.
-    private static final int CHECKER_X = 8;
-    private static final int CHECKER_Y = 62;
-    private static final int CHECKER_W = 96;
-    private static final int CHECKER_H = 48;
-    private static final int CHECKER2_X = 232;
-    private static final int CHECKER2_Y = 20;
-    private static final int CHECKER2_W = 80;
-    private static final int CHECKER2_H = 40;
-
-    // Vitrine des sprites de l'atlas. Elle occupe la bande libre entre la règle graduée (qui monte
-    // jusqu'à y=17) et le damier d'1 px (qui commence à y=62), à gauche des diagonales (x >= 76).
-    private static final int SHOWCASE_X = 8;
-    private static final int SHOWCASE_GROUND_Y = 18;
-    private static final int SHOWCASE_FIGURE_Y = 26;
-    private static final int SHOWCASE_COLUMN = 20;
-
     private final LaunchOptions options;
+    private final Scene scene;
 
     private SpriteBatch batch;
-    private Texture white;
-    private Texture checker;
-    private Texture checker2;
+    private PixelPainter painter;
     private PixelFont font;
     private SpriteAtlas atlas;
     private PixelViewport viewport;
@@ -99,6 +68,17 @@ public class StarfallGame extends ApplicationAdapter {
 
     public StarfallGame(LaunchOptions options) {
         this.options = options;
+        this.scene = sceneFor(options.scene);
+    }
+
+    private static Scene sceneFor(String name) {
+        // La ligne de commande a déjà refusé tout autre nom ; ce défaut n'existe que pour qu'un
+        // ajout de scène oublié ici échoue bruyamment plutôt que d'afficher la mauvaise.
+        return switch (name) {
+            case "arena" -> new ArenaScene();
+            case "calibration" -> new CalibrationScene();
+            default -> throw new IllegalArgumentException("Scène inconnue : " + name);
+        };
     }
 
     /** Code de sortie à propager au processus. Zéro tant que rien n'a échoué. */
@@ -109,9 +89,7 @@ public class StarfallGame extends ApplicationAdapter {
     @Override
     public void create() {
         batch = new SpriteBatch();
-        white = solidTexture();
-        checker = checkerTexture(CHECKER_W, CHECKER_H, 1);
-        checker2 = checkerTexture(CHECKER2_W, CHECKER2_H, 2);
+        painter = new PixelPainter(batch);
         font = new PixelFont();
         // Volontairement sans filet : si l'atlas manque ou ne correspond pas à son index, le jeu
         // s'arrête avec un message clair plutôt que d'afficher une scène amputée.
@@ -121,6 +99,8 @@ public class StarfallGame extends ApplicationAdapter {
         viewport.setCameraTarget(MIN_WORLD_WIDTH / 2f, MIN_WORLD_HEIGHT / 2f);
         viewport.update(Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), false);
 
+        scene.create(new SceneContext(batch, painter, atlas, viewport, options));
+
         if (options.isScreenshotMode()) {
             recorder = new ScreenshotRecorder(options.screenshotDir, options.frames, options.width, options.height);
         }
@@ -129,6 +109,7 @@ public class StarfallGame extends ApplicationAdapter {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, false);
+        scene.resize(width, height);
     }
 
     @Override
@@ -136,16 +117,19 @@ public class StarfallGame extends ApplicationAdapter {
         int screenWidth = Math.max(1, Gdx.graphics.getBackBufferWidth());
         int screenHeight = Math.max(1, Gdx.graphics.getBackBufferHeight());
 
-        handleInput();
+        boolean interactive = !options.isScreenshotMode();
+        handleWindowInput(interactive);
+        updateTime();
+        scene.act(time, interactive);
         updateCamera();
 
-        Gdx.gl.glClearColor(OUTSIDE.r, OUTSIDE.g, OUTSIDE.b, 1f);
+        Gdx.gl.glClearColor(BACKDROP.r, BACKDROP.g, BACKDROP.b, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);
         batch.begin();
-        drawWorld();
+        scene.drawWorld();
         batch.end();
 
         // Le viewport du monde déborde de la fenêtre ; l'interface, elle, veut la fenêtre réelle.
@@ -171,11 +155,8 @@ public class StarfallGame extends ApplicationAdapter {
     /**
      * En mode capture, le temps avance d'un pas fixe par image écrite plutôt qu'au rythme réel :
      * les images restent reproductibles d'une exécution à l'autre, mais elles diffèrent entre elles.
-     * La première est cadrée au repos — c'est la planche de référence — et les suivantes montrent la
-     * caméra en mouvement sur des cibles fractionnaires, ce qui est justement ce que l'alignement sur
-     * la grille doit absorber.
      */
-    private void updateCamera() {
+    private void updateTime() {
         if (options.isScreenshotMode()) {
             int frame = recorder == null ? 0 : recorder.framesCaptured();
             scrolling = frame > 0;
@@ -183,7 +164,14 @@ public class StarfallGame extends ApplicationAdapter {
         } else if (scrolling) {
             time += Gdx.graphics.getDeltaTime();
         }
+    }
 
+    /**
+     * La caméra suit le centre de la zone garantie. Le défilement de démonstration ne sert qu'à la
+     * mire de calibration : il prouve que l'alignement sur la grille absorbe des cibles
+     * fractionnaires.
+     */
+    private void updateCamera() {
         if (scrolling) {
             viewport.setCameraTarget(
                     MIN_WORLD_WIDTH / 2f + MathUtils.sin(time * 0.6f) * 24f,
@@ -193,8 +181,9 @@ public class StarfallGame extends ApplicationAdapter {
         }
     }
 
-    private void handleInput() {
-        if (options.isScreenshotMode()) {
+    /** Entrées qui appartiennent à la fenêtre, pas à la scène. */
+    private void handleWindowInput(boolean interactive) {
+        if (!interactive) {
             return; // images déterministes
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
@@ -212,164 +201,26 @@ public class StarfallGame extends ApplicationAdapter {
         }
     }
 
-    // ------------------------------------------------------------------ monde
-
-    private void drawWorld() {
-        // On couvre la zone dessinée, débordement compris, pour qu'aucune gouttière ne reste noire.
-        int left = viewport.getDrawnLeft();
-        int bottom = viewport.getDrawnBottom();
-        int right = left + viewport.getDrawnWorldWidth();
-        int top = bottom + viewport.getDrawnWorldHeight();
-
-        // La zone garantie a son propre fond, pour que l'élargissement adaptatif se voie.
-        fill(0, 0, MIN_WORLD_WIDTH, MIN_WORLD_HEIGHT, INSIDE);
-
-        // Trame de points d'1 px sur tout le monde visible, dedans comme dehors : chaque point doit
-        // être un carré de taille identique, où qu'il tombe.
-        batch.setColor(DOTS);
-        for (int x = MathUtils.floor(left / 8f) * 8; x <= right; x += 8) {
-            for (int y = MathUtils.floor(bottom / 8f) * 8; y <= top; y += 8) {
-                batch.draw(white, x, y, 1, 1);
-            }
-        }
-
-        drawCheckerboards();
-        drawStripes();
-        drawNestedRectangles();
-        drawDiagonals();
-        drawSpriteShowcase();
-        drawRuler();
-        drawCrosshair();
-
-        // Contour d'1 px cadrant exactement la zone garantie minimale.
-        outline(0, 0, MIN_WORLD_WIDTH, MIN_WORLD_HEIGHT, FRAME);
-
-        batch.setColor(Color.WHITE);
-    }
-
-    /**
-     * Le test de référence : un damier dont les cases font exactement un pixel-monde, à côté d'un
-     * damier à deux. Si un pixel-monde était mis à l'échelle de travers, le damier d'1 px ferait
-     * immédiatement apparaître des lignes ou des colonnes d'une autre largeur.
-     */
-    private void drawCheckerboards() {
-        batch.setColor(Color.WHITE);
-        batch.draw(checker, CHECKER_X, CHECKER_Y, CHECKER_W, CHECKER_H);
-        outline(CHECKER_X - 2, CHECKER_Y - 2, CHECKER_W + 4, CHECKER_H + 4, ACCENT);
-
-        batch.setColor(Color.WHITE);
-        batch.draw(checker2, CHECKER2_X, CHECKER2_Y, CHECKER2_W, CHECKER2_H);
-        outline(CHECKER2_X - 2, CHECKER2_Y - 2, CHECKER2_W + 4, CHECKER2_H + 4, GREEN);
-    }
-
-    /** Rayures d'1 px, verticales puis horizontales : le détecteur classique d'échelle inégale. */
-    private void drawStripes() {
-        int y0 = 66;
-        int x0 = 108;
-        for (int i = 0; i < 30; i += 2) {
-            fill(x0 + i, y0, 1, 40, ACCENT);
-        }
-        int x1 = 182;
-        for (int i = 0; i < 40; i += 2) {
-            fill(x1, y0 + i, 30, 1, GREEN);
-        }
-        outline(x0 - 2, y0 - 2, 34, 44, FRAME);
-        outline(x1 - 2, y0 - 2, 34, 44, FRAME);
-    }
-
-    private void drawNestedRectangles() {
-        int cx = 270;
-        int cy = 86;
-        int[] sizes = {48, 38, 28, 18, 8};
-        Color[] colors = {FRAME, ACCENT, HOT, GREEN, CHECKER_A};
-        for (int i = 0; i < sizes.length; i++) {
-            int size = sizes[i];
-            outline(cx - size / 2, cy - size / 2, size, size, colors[i]);
-        }
-    }
-
-    private void drawDiagonals() {
-        line(76, 20, 112, 56, HOT);         // 45 degrés : un pixel par pas
-        line(118, 20, 198, 40, GREEN);      // 4:1 - longues séries régulières, un raté se voit
-        line(204, 20, 220, 54, ACCENT);     // pente raide
-    }
-
-    /**
-     * Vitrine du pipeline pixel art : les sprites viennent de l'atlas généré, pas de rectangles
-     * dessinés à la main. Ils remplacent les silhouettes bouchon de M1, qui tenaient exactement
-     * cette place en attendant.
-     *
-     * <p>Les figures sont posées sur des dalles de sol, et les tuiles de file d'actions à côté :
-     * trois gabarits différents (16x32, 16x16, 16x8), ce qui vérifie au passage que le rangement de
-     * l'atlas ne suppose rien sur les tailles.
-     */
-    private void drawSpriteShowcase() {
-        batch.setColor(Color.WHITE);
-
-        drawSprite("ground/plain", SHOWCASE_X, SHOWCASE_GROUND_Y);
-        drawSprite("ground/plain", SHOWCASE_X + SHOWCASE_COLUMN, SHOWCASE_GROUND_Y);
-        drawSprite("hero/idle", SHOWCASE_X, SHOWCASE_FIGURE_Y);
-        drawSprite("enemy/melee", SHOWCASE_X + SHOWCASE_COLUMN, SHOWCASE_FIGURE_Y);
-
-        int tilesX = SHOWCASE_X + 2 * SHOWCASE_COLUMN;
-        drawSprite("tile/empty", tilesX, SHOWCASE_FIGURE_Y + 16);
-        drawSprite("tile/slash", tilesX, SHOWCASE_FIGURE_Y);
-    }
-
-    /** Dessine un sprite de l'atlas, coin bas-gauche en coordonnées monde. */
-    private void drawSprite(String name, int x, int y) {
-        TextureRegion region = atlas.region(name);
-        batch.draw(region, x, y, region.getRegionWidth(), region.getRegionHeight());
-    }
-
-    /** Une règle graduée d'1 px tous les 4 pixels-monde, en bas de la zone garantie. */
-    private void drawRuler() {
-        int baseY = 8;
-        fill(8, baseY, MIN_WORLD_WIDTH - 16, 1, FRAME);
-        for (int x = 8; x < MIN_WORLD_WIDTH - 8; x += 4) {
-            int height = (x % 32 == 8) ? 9 : (x % 16 == 8 ? 6 : 3);
-            fill(x, baseY + 1, 1, height, x % 32 == 8 ? HOT : ACCENT);
-        }
-    }
-
-    private void drawCrosshair() {
-        int cx = MIN_WORLD_WIDTH / 2;
-        int cy = MIN_WORLD_HEIGHT / 2;
-        fill(cx - 6, cy, 13, 1, CHECKER_A);
-        fill(cx, cy - 6, 1, 13, CHECKER_A);
-    }
-
     // ------------------------------------------------------------------ interface
 
     private void drawOverlay(int screenWidth, int screenHeight) {
-        int s = viewport.getScale();
-        String[] lines = {
-                "STARFALL - JALON M3 - PIPELINE PIXEL ART",
-                "FENÊTRE : " + screenWidth + " x " + screenHeight + " PX ÉCRAN",
-                "ÉCHELLE ENTIÈRE : x" + s + "   (1 PX-MONDE = " + s + "x" + s + " PX ÉCRAN)",
-                "ZONE SÛRE : " + viewport.getSafeWorldWidth() + " x " + viewport.getSafeWorldHeight()
-                        + " PX-MONDE   ZONE GARANTIE : " + MIN_WORLD_WIDTH + " x " + MIN_WORLD_HEIGHT + " (CADRE OR)",
-                "ATLAS : " + atlas.names().size() + " SPRITES EN "
-                        + atlas.atlasWidth() + "x" + atlas.atlasHeight()
-                        + "   SOURCES TEXTE : ART/   PERSONNAGE : " + CHARACTER_WIDTH + "x" + CHARACTER_HEIGHT,
-                "CAMÉRA : X=" + viewport.getSafeLeft() + " Y=" + viewport.getSafeBottom()
-                        + "   DAMIERS : 1 ET 2 PX-MONDE",
-                "ESPACE : DÉFILEMENT   ÉCHAP : QUITTER   F11 : PLEIN ÉCRAN",
-        };
+        List<String> lines = scene.overlayLines(screenWidth, screenHeight);
+        if (lines.isEmpty()) {
+            return;
+        }
 
         int textScale = MathUtils.clamp(screenHeight / 300, 1, 3);
         int margin = 4 * textScale;
         int lineStep = PixelFont.LINE_HEIGHT * textScale;
 
-        // Budget vertical : le panneau ne doit jamais mordre sur les motifs de test, qui vivent en
-        // coordonnées monde. On convertit leur bord supérieur en pixels écran et on n'affiche que le
-        // nombre de lignes qui tient au-dessus. Sans cela, à 320x180 - la taille minimale que le
-        // lanceur impose lui-même - le panneau recouvrait près de la moitié de la zone garantie.
-        int patternTopScreen = viewport.getScreenY()
-                + (PATTERN_TOP - viewport.getDrawnBottom()) * viewport.getScale();
-        int verticalBudget = screenHeight - Math.max(0, patternTopScreen);
+        // Budget vertical : le bandeau ne doit jamais mordre sur le contenu de la scène, qui vit en
+        // coordonnées monde. On convertit son bord supérieur en pixels écran et on n'affiche que le
+        // nombre de lignes qui tient au-dessus.
+        int contentTopScreen = viewport.getScreenY()
+                + (scene.contentTopWorldY() - viewport.getDrawnBottom()) * viewport.getScale();
+        int verticalBudget = screenHeight - Math.max(0, contentTopScreen);
 
-        int lineCount = lines.length;
+        int lineCount = lines.size();
         while (lineCount > 0 && lineCount * lineStep + 2 * margin > verticalBudget) {
             lineCount--;
         }
@@ -385,20 +236,18 @@ public class StarfallGame extends ApplicationAdapter {
 
         int widest = 0;
         for (int i = 0; i < lineCount; i++) {
-            widest = Math.max(widest, font.width(truncate(lines[i], maxChars), textScale));
+            widest = Math.max(widest, font.width(truncate(lines.get(i), maxChars), textScale));
         }
         int panelWidth = Math.min(screenWidth, widest + 2 * margin);
         int panelHeight = lineCount * lineStep + 2 * margin;
 
-        batch.setColor(PANEL);
-        batch.draw(white, 0, screenHeight - panelHeight, panelWidth, panelHeight);
-        batch.setColor(FRAME);
-        batch.draw(white, 0, screenHeight - panelHeight, panelWidth, textScale);
+        painter.fill(0, screenHeight - panelHeight, panelWidth, panelHeight, PANEL);
+        painter.fill(0, screenHeight - panelHeight, panelWidth, textScale, FRAME);
 
         int y = screenHeight - margin;
         for (int i = 0; i < lineCount; i++) {
             batch.setColor(i == 0 ? FRAME : Color.WHITE);
-            font.draw(batch, truncate(lines[i], maxChars), margin, y, textScale);
+            font.draw(batch, truncate(lines.get(i), maxChars), margin, y, textScale);
             y -= lineStep;
         }
         batch.setColor(Color.WHITE);
@@ -408,102 +257,22 @@ public class StarfallGame extends ApplicationAdapter {
         return line.length() <= maxChars ? line : line.substring(0, maxChars);
     }
 
-    // ------------------------------------------------------------------ primitives
-
-    private void fill(int x, int y, int width, int height, Color color) {
-        batch.setColor(color);
-        batch.draw(white, x, y, width, height);
-    }
-
-    /** Contour de rectangle large d'un pixel-monde. */
-    private void outline(int x, int y, int width, int height, Color color) {
-        if (width < 1 || height < 1) {
-            return;
-        }
-        batch.setColor(color);
-        batch.draw(white, x, y, width, 1);
-        if (height < 2) {
-            return; // un rectangle d'une seule ligne est déjà entièrement dessiné
-        }
-        batch.draw(white, x, y + height - 1, width, 1);
-        if (height > 2) {
-            batch.draw(white, x, y + 1, 1, height - 2);
-            batch.draw(white, x + width - 1, y + 1, 1, height - 2);
-        }
-    }
-
-    /** Ligne de Bresenham tracée un pixel-monde à la fois - pas de rastérisation GL. */
-    private void line(int x0, int y0, int x1, int y1, Color color) {
-        batch.setColor(color);
-        int dx = Math.abs(x1 - x0);
-        int dy = -Math.abs(y1 - y0);
-        int sx = x0 < x1 ? 1 : -1;
-        int sy = y0 < y1 ? 1 : -1;
-        int err = dx + dy;
-        int x = x0;
-        int y = y0;
-        while (true) {
-            batch.draw(white, x, y, 1, 1);
-            if (x == x1 && y == y1) {
-                break;
-            }
-            int e2 = 2 * err;
-            if (e2 >= dy) {
-                err += dy;
-                x += sx;
-            }
-            if (e2 <= dx) {
-                err += dx;
-                y += sy;
-            }
-        }
-    }
-
-    private static Texture solidTexture() {
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(Color.WHITE);
-        pixmap.fill();
-        Texture texture = new Texture(pixmap);
-        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-        pixmap.dispose();
-        return texture;
-    }
-
-    private static Texture checkerTexture(int width, int height, int cell) {
-        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
-        pixmap.setBlending(Pixmap.Blending.None);
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                boolean even = ((x / cell + y / cell) & 1) == 0;
-                pixmap.setColor(even ? CHECKER_A : CHECKER_B);
-                pixmap.drawPixel(x, y);
-            }
-        }
-        Texture texture = new Texture(pixmap);
-        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-        pixmap.dispose();
-        return texture;
-    }
-
     @Override
     public void dispose() {
-        if (batch != null) {
-            batch.dispose();
+        if (scene != null) {
+            scene.dispose();
         }
-        if (white != null) {
-            white.dispose();
-        }
-        if (checker != null) {
-            checker.dispose();
-        }
-        if (checker2 != null) {
-            checker2.dispose();
+        if (painter != null) {
+            painter.dispose();
         }
         if (font != null) {
             font.dispose();
         }
         if (atlas != null) {
             atlas.dispose();
+        }
+        if (batch != null) {
+            batch.dispose();
         }
     }
 }
