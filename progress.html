@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Starfall — État du projet</title>
+<style>
+  :root{
+    --bg:#12100e; --bg2:#1a1714; --line:#2e2823; --line2:#3d352d;
+    --ink:#e8dfd2; --dim:#9b8f80; --dim2:#6f6558;
+    --gold:#d9a441; --jade:#7fa87a; --rust:#c25b45; --sky:#6f93b5;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.6 var(--mono);
+    padding:36px 20px 90px;
+  }
+  .wrap{max-width:1040px;margin:0 auto}
+
+  header{border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:34px}
+  h1{font-size:30px;margin:0 0 6px;letter-spacing:.14em;color:var(--gold);font-weight:600}
+  .sub{color:var(--dim);font-size:13px;letter-spacing:.05em}
+  .stamp{color:var(--dim2);font-size:12px;margin-top:10px}
+
+  h2{
+    font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+    margin:44px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--line);font-weight:600;
+  }
+  h3{font-size:14px;margin:26px 0 10px;color:var(--ink);font-weight:600}
+  p{margin:0 0 12px}
+  a{color:var(--sky)}
+
+  .banner{
+    border:1px solid var(--line2);border-left:3px solid var(--gold);
+    background:var(--bg2);padding:16px 20px;border-radius:3px;
+  }
+  .banner .k{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:7px}
+  .banner.warn{border-left-color:var(--rust)}
+  .banner.warn .k{color:var(--rust)}
+  .banner p:last-child{margin-bottom:0}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{
+    text-align:left;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim2);font-weight:600;padding:0 14px 9px 0;border-bottom:1px solid var(--line);
+  }
+  td{padding:11px 14px 11px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  td:first-child{color:var(--dim);white-space:nowrap;width:1%;padding-right:26px}
+  tr:last-child td{border-bottom:none}
+  .why{color:var(--dim2);font-size:12.5px;display:block;margin-top:4px}
+
+  .pill{
+    display:inline-block;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+    padding:3px 9px;border-radius:2px;border:1px solid;white-space:nowrap;
+  }
+  .p-done{color:var(--jade);border-color:#3c5239;background:#1b241a}
+  .p-now {color:var(--gold);border-color:#5a4522;background:#241d12}
+  .p-wait{color:var(--dim2);border-color:var(--line2);background:transparent}
+  .p-block{color:var(--rust);border-color:#5a2f26;background:#241614}
+
+  ul{margin:0 0 12px;padding-left:20px}
+  li{margin-bottom:7px}
+  li::marker{color:var(--dim2)}
+  code{background:var(--bg2);border:1px solid var(--line);padding:1.5px 6px;border-radius:2px;font-size:12.5px;color:var(--gold)}
+
+  .empty{
+    border:1px dashed var(--line2);border-radius:3px;padding:30px;
+    text-align:center;color:var(--dim2);font-size:13px;
+  }
+
+  .sheet{border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-bottom:22px;background:var(--bg2)}
+  .sheet img{display:block;width:100%;image-rendering:pixelated;background:#000}
+  .sheet figcaption{padding:11px 15px;font-size:12.5px;color:var(--dim);border-top:1px solid var(--line)}
+
+  .rev{border:1px solid var(--line);border-left:3px solid var(--line2);border-radius:3px;padding:16px 20px;margin-bottom:16px;background:var(--bg2)}
+  .rev.fail{border-left-color:var(--rust)}
+  .rev.pass{border-left-color:var(--jade)}
+  .rev .hd{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim2);margin-bottom:9px}
+  .rev .hd b{color:var(--ink);letter-spacing:.05em;text-transform:none;font-size:13px}
+
+  footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);color:var(--dim2);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>STARFALL</h1>
+  <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">Phase : cadrage terminé, mise en place du projet</b></div>
+</header>
+
+<div class="banner warn">
+  <span class="k">Changement de direction — validé par toi</span>
+  <p>La consigne initiale demandait de juger chaque livrable sur un critère <i>« poétique et onirique »</i>, et de relancer une passe de raffinement dès que le résultat dérivait vers du <i>générique / réaliste / agressif</i>.</p>
+  <p><b>Tu as explicitement abandonné ce critère</b> au profit d'un hommage direct à Shogun Showdown. La barre de review devient donc : <b>lisibilité tactique et clarté de lecture</b> — est-ce qu'on comprend d'un coup d'œil qui va frapper quoi, où, et quand. L'agent de review juge sur ce critère, pas sur l'évocation.</p>
+</div>
+
+<h2>Décisions verrouillées</h2>
+<table>
+  <tr><td>Identité</td><td>Hommage assumé à Shogun Showdown. Pas de réinterprétation onirique.</td></tr>
+  <tr><td>Périmètre</td><td>Tranche verticale finie : 1 héros, 1 biome, 3–5 vagues puis 1 boss, ~10–12 tuiles, ~4 types d'ennemis.<span class="why">Tout ce qui est dedans est terminé au niveau de la barre de review — plutôt que beaucoup de contenu brouillon.</span></td></tr>
+  <tr><td>Moteur</td><td>libGDX, Java 25 (Temurin détecté), LWJGL3 desktop, wrapper Gradle embarqué.</td></tr>
+  <tr><td>Art</td><td>Pixel art authorié comme <b>source texte</b> : grilles de caractères indexées sur une palette, converties en atlas PNG par une étape de build.<span class="why">Versionnable, relisable, et modifiable entre deux passes de review — contrairement à des PNG opaques.</span></td></tr>
+  <tr><td>Résolution</td><td>Taille de pixel fixe (personnages 32 px), viewport qui s'adapte. Pixels carrés et nets à toute taille de fenêtre ; fenêtre redimensionnable et plein écran.</td></tr>
+  <tr><td>Entrées</td><td>Clavier <b>et</b> souris, les deux de plein droit.</td></tr>
+  <tr><td>Grille</td><td>Largeur configurable de 5 à 15 cases.</td></tr>
+  <tr><td>File d'actions</td><td><b>5 tuiles</b> (au lieu de 3 dans la référence). Exécution dernier-entré → premier-sorti.<span class="why">Seul écart mécanique délibéré vis-à-vis de la référence. Voir « Points d'attention » plus bas.</span></td></tr>
+  <tr><td>Fidélité</td><td>Boucle centrale exacte : file LIFO, recharges en points, tuiles Free-Play, intentions ennemies télégraphiées, traits (Agressif / Rapide / Explosif / Fonceur), combo kills.<br>Contenu original, mais archétypes calqués sur la référence : héros de type Vagabonde (échange de place), ennemis mêlée / chargeur / distance / agressif, boss qui invoque et charge.</td></tr>
+  <tr><td>Audio</td><td>Aucun.</td></tr>
+  <tr><td>Langue</td><td>Textes et interface en français. <i>Hypothèse à confirmer :</i> identifiants de code en anglais (convention Java), commentaires et docs en français.</td></tr>
+  <tr><td>Boucle de review</td><td>Agent de review indépendant, contexte neuf, aucun lien avec l'agent qui a produit le code. Maximum <b>3 passes</b> par item, puis l'objection non résolue est consignée dans « Besoin de ton avis » et on avance.</td></tr>
+  <tr><td>Versionnement</td><td>Branche <code>asblack</code> sur <a href="https://github.com/geleouet/starfall">github.com/geleouet/starfall</a>, commit à chaque jalon revu.<span class="why">main était vide (« Start over: main reset to an empty state ») — la branche part donc d'une base propre.</span></td></tr>
+</table>
+
+<h2>Jalons</h2>
+<table>
+  <tr><th>État</th><th>Jalon</th></tr>
+  <tr><td><span class="pill p-now">en cours</span></td><td><b>M1 — Squelette et amorçage</b><span class="why">Wrapper Gradle, projet libGDX, fenêtre LWJGL3, viewport à pixel fixe, rendu de test net et sans scintillement au redimensionnement.</span></td></tr>
+  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M2 — Harnais de capture</b><span class="why">Lancement scripté qui joue une séquence déterministe et exporte des PNG, puis assemble une planche-contact. Construit tôt : chaque review en dépend.</span></td></tr>
+  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M3 — Pipeline pixel art</b><span class="why">Format source des sprites, palette, générateur d'atlas, rendu à l'écran.</span></td></tr>
+  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M4 — Grille et héros</b><span class="why">Grille 5–15, déplacement, orientation, capacité spéciale, cadrage caméra selon la largeur.</span></td></tr>
+  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution LIFO, recharges, Free-Play, ajout / retrait sans coût de tour.</span></td></tr>
+  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">4 archétypes, traits, IA de file, bulles d'intention télégraphiées.</span></td></tr>
+  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M7 — Résolution du combat</b><span class="why">Dégâts, statuts, collisions et repoussements, combo kills, enchaînement des vagues.</span></td></tr>
+  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M8 — Interface</b><span class="why">HUD, barre de file, portées d'attaque, PV, infobulles — en français.</span></td></tr>
+  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M9 — Boss</b><span class="why">Rencontre finale de la tranche : invocations, combo charge + frappe.</span></td></tr>
+  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M10 — Équilibrage file de 5</b><span class="why">Réaccordage complet des recharges et de la pression ennemie autour de la file élargie.</span></td></tr>
+</table>
+
+<h2>En cours de construction</h2>
+<div class="banner">
+  <span class="k">M1 — Squelette et amorçage</span>
+  <p>Amorçage du wrapper Gradle (Gradle n'est pas installé sur la machine, seulement le JDK 25), création du projet libGDX desktop, et mise en place du viewport à taille de pixel fixe.</p>
+  <p>Critère de sortie : la fenêtre s'ouvre, une mire de test s'affiche avec des pixels parfaitement carrés, et le redimensionnement de la fenêtre ne produit ni déformation ni scintillement.</p>
+</div>
+
+<h2>Planches-contact</h2>
+<div class="empty">Aucune capture pour l'instant — la première arrive avec M1.</div>
+
+<h2>Journal de review</h2>
+<div class="empty">Aucune passe de review effectuée pour l'instant.</div>
+
+<h2>Besoin de ton avis</h2>
+<table>
+  <tr><td><span class="pill p-block">à trancher</span></td><td><b>File de 5 : conséquence mécanique</b><span class="why">Passer de 3 à 5 emplacements change beaucoup l'économie de tours : plafond de combo bien plus haut, engagement plus long, et davantage de tours passés à charger la file en étant vulnérable. Je vais recalibrer les recharges et la pression ennemie autour de ça plutôt que de reprendre les chiffres de la référence — mais si tu voulais 5 emplacements <i>avec</i> l'équilibrage d'origine, dis-le maintenant, ça change le jalon M10.</span></td></tr>
+  <tr><td><span class="pill p-block">à trancher</span></td><td><b>Français dans le code</b><span class="why">J'ai supposé : textes joueur en français, identifiants de code en anglais. Si tu veux aussi les identifiants en français, il faut le décider avant M4 — après, c'est un renommage massif.</span></td></tr>
+</table>
+
+<footer>
+  Fichier statique autonome. Aucun serveur, aucune étape de build — ouvrir directement dans un navigateur.<br>
+  Mis à jour à chaque passe de construction et de review.
+</footer>
+
+</div>
+</body>
+</html>
