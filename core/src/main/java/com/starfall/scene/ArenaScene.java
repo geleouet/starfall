@@ -12,6 +12,7 @@ import com.starfall.game.ArenaLayout;
 import com.starfall.game.ArenaSetup;
 import com.starfall.game.Direction;
 import com.starfall.game.Enemy;
+import com.starfall.game.Hero;
 import com.starfall.game.HudLayout;
 import com.starfall.game.Intention;
 import com.starfall.game.Occupant;
@@ -128,11 +129,12 @@ public final class ArenaScene implements Scene {
      * l'ordre où on l'a remplie.
      */
     private static final ScriptedAction[] SCRIPT = {
-            a -> a.queueTile(Tile.STRIKE),   // on charge, gratuitement : le compteur reste à zéro
-            a -> a.queueTile(Tile.THRUST),   // et les ennemis n'avancent pas pendant ce temps
-            a -> a.executeTop(),             // l'estoc, posé en dernier, part en premier
-            a -> a.executeTop(),             // puis la frappe — et les intentions ont changé
-            a -> a.step(Direction.LEFT),     // demi-tour : un tour de plus pour les ennemis
+            a -> a.queueTile(Tile.PUSH),     // on charge la file, gratuitement
+            a -> a.queueTile(Tile.STRIKE),
+            a -> a.executeTop(),             // la frappe, posée en dernier, part en premier
+            a -> a.step(Direction.RIGHT),    // on avance : les ennemis jouent, la vie descend
+            a -> a.executeTop(),             // la poussée : collision, dégâts, étourdissement
+            a -> a.step(Direction.LEFT),     // demi-tour
     };
 
     private int scriptedFrame = -1;
@@ -372,6 +374,21 @@ public final class ArenaScene implements Scene {
         }
     }
 
+    /**
+     * Points de vie, en pastilles sous chaque figure.
+     *
+     * <p>Des pastilles et non une barre : &agrave; cette &eacute;chelle, compter trois carr&eacute;s est plus rapide que
+     * mesurer une longueur, et la diff&eacute;rence entre « il lui en reste deux » et « il lui en reste
+     * trois » est exactement la d&eacute;cision que le joueur doit prendre.
+     */
+    private void drawHealth(int cell, int health, int maxHealth, Color color) {
+        int left = layout.cellLeft(cell) + (ArenaLayout.CELL_WIDTH - (maxHealth * 3 - 1)) / 2;
+        for (int point = 0; point < maxHealth; point++) {
+            painter.fill(left + point * 3, ArenaLayout.HEALTH_Y, 2, ArenaLayout.HEALTH_HEIGHT,
+                    point < health ? color : HudColors.DIMMED);
+        }
+    }
+
     private void drawOccupants() {
         for (int cell : arena.grid().occupiedCells()) {
             Occupant occupant = arena.grid().occupantAt(cell);
@@ -387,6 +404,12 @@ public final class ArenaScene implements Scene {
                 painter.spriteFlipped(region, x, ArenaLayout.FIGURE_Y);
             } else {
                 painter.sprite(region, x, ArenaLayout.FIGURE_Y);
+            }
+
+            if (occupant == arena.hero()) {
+                drawHealth(cell, arena.hero().health(), Hero.MAX_HEALTH, HERO_MARK);
+            } else if (occupant instanceof Enemy enemy) {
+                drawHealth(cell, enemy.health(), enemy.maxHealth(), HudColors.THREAT);
             }
         }
     }
@@ -572,10 +595,19 @@ public final class ArenaScene implements Scene {
     @Override
     public List<String> overlayLines(int screenWidth, int screenHeight) {
         List<String> lines = new ArrayList<>();
-        lines.add("STARFALL - JALON M6 - ENNEMIS ET INTENTIONS");
-        lines.add("TOUR " + arena.turnsTaken() + "   GRILLE : " + layout.gridWidth()
-                + " CASES   HÉROS : CASE " + (arena.heroCell() + 1)
+        lines.add("STARFALL - JALON M7 - RÉSOLUTION DU COMBAT");
+        lines.add("VAGUE " + arena.wave() + "/" + arena.waveCount()
+                + "   TOUR " + arena.turnsTaken()
+                + "   VIE : " + arena.hero().health() + "/" + Hero.MAX_HEALTH
+                + "   HÉROS : CASE " + (arena.heroCell() + 1)
                 + "   REGARD : " + arena.hero().facing().label().toUpperCase());
+
+        if (arena.isVictory()) {
+            lines.add("VICTOIRE - LES " + arena.waveCount() + " VAGUES SONT TOMBÉES"
+                    + "   MEILLEUR ENCHAÎNEMENT : " + arena.bestCombo());
+        } else if (arena.isDefeat()) {
+            lines.add("DÉFAITE - LA VAGABONDE EST TOMBÉE AU TOUR " + arena.turnsTaken());
+        }
 
         Tile next = arena.queue().top();
         lines.add("FILE : " + arena.queue().size() + "/" + ActionQueue.CAPACITY
@@ -585,7 +617,8 @@ public final class ArenaScene implements Scene {
         int target = arena.swapTarget();
         lines.add("ÉCHANGE : " + (target < 0 ? "AUCUNE CIBLE" : "CASE " + (target + 1)
                 + " (" + arena.grid().occupantAt(target).label().toUpperCase() + ")")
-                + "   TOUCHÉ : " + arena.heroHits() + " FOIS");
+                + "   ENCHAÎNEMENT : " + arena.lastCombo()
+                + (arena.bestCombo() > 1 ? " (RECORD " + arena.bestCombo() + ")" : ""));
 
         StringBuilder threats = new StringBuilder();
         for (Enemy enemy : arena.enemies()) {
@@ -593,7 +626,8 @@ public final class ArenaScene implements Scene {
                 threats.append("   ");
             }
             threats.append(enemy.label().toUpperCase()).append(" : ")
-                    .append(enemy.intention().kind().label().toUpperCase());
+                    .append(enemy.isStunned() ? "ÉTOURDI"
+                            : enemy.intention().kind().label().toUpperCase());
         }
         if (threats.length() > 0) {
             lines.add(threats.toString());

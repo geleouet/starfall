@@ -102,9 +102,19 @@ public final class ArenaLayout {
      * glyphes à certaines tailles de fenêtre, exactement le défaut que M5 avait déjà corrigé
      * ailleurs.
      */
-    public static final int INTENT_Y = FIGURE_Y + FIGURE_HEIGHT + 2;
+    public static final int INTENT_Y = FIGURE_Y + FIGURE_HEIGHT + 6;
     public static final int INTENT_HEIGHT = 6;
     public static final int INTENT_TOP = INTENT_Y + INTENT_HEIGHT;
+
+    /**
+     * Bande des points de vie, juste au-dessus des têtes.
+     *
+     * <p>Elle a sa propre hauteur, et ce n'est pas un détail : les pastilles étaient d'abord posées
+     * sous les figures, c'est-à-dire exactement sur la ligne des barres de menace. Deux
+     * informations vitales au même pixel, chacune effaçant l'autre selon l'ordre de dessin.
+     */
+    public static final int HEALTH_Y = FIGURE_Y + FIGURE_HEIGHT + 1;
+    public static final int HEALTH_HEIGHT = 2;
 
     /** Bord bas de la bande sensible au pointage : un peu sous les dalles, pour viser large. */
     public static final int PICK_BOTTOM = GROUND_Y - 8;

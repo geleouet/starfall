@@ -26,6 +26,14 @@ public enum ActionResult {
     STRUCK("frappe"),
     /** Une tuile a repoussé sa cible d'une case. */
     PUSHED("poussée"),
+    /** La poussée a butté : les deux encaissent, et le poussé est étourdi. */
+    COLLIDED("collision"),
+    /** Plusieurs ennemis sont tombés d'un seul geste. */
+    COMBO("combo"),
+    /** La dernière vague est tombée. */
+    VICTORY("victoire"),
+    /** Le héros est tombé. */
+    DEFEAT("défaite"),
     /** Le héros a chargé jusqu'à être arrêté. */
     DASHED("élan"),
 

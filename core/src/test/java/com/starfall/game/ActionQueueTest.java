@@ -346,11 +346,28 @@ class ActionQueueTest {
         }
 
         @Test
-        @DisplayName("La frappe retire l'occupant juste devant")
-        void theStrikeRemovesTheOccupantAhead() {
+        @DisplayName("La frappe entame la cible sans la tuer si elle a plusieurs points de vie")
+        void theStrikeDamagesWithoutKilling() {
             Arena arena = arena();
             int target = arena.heroCell() + 1;
-            arena.grid().place(target, new Pawn("cible"));
+            Enemy victim = new Enemy(EnemyKind.LANCIER); // deux points de vie
+            arena.grid().place(target, victim);
+            arena.announceIntentions();
+
+            arena.queueTile(Tile.STRIKE);
+            assertEquals(ActionResult.STRUCK, arena.executeTop());
+
+            assertEquals(1, victim.health(), "entame, pas tue");
+            assertFalse(arena.grid().isFree(target), "il tient encore sa case");
+        }
+
+        @Test
+        @DisplayName("Une cible à un seul point de vie tombe du premier coup")
+        void aOneHitEnemyFallsAtOnce() {
+            Arena arena = arena();
+            int target = arena.heroCell() + 1;
+            arena.grid().place(target, new Enemy(EnemyKind.SABREUR));
+            arena.announceIntentions();
 
             arena.queueTile(Tile.STRIKE);
             assertEquals(ActionResult.STRUCK, arena.executeTop());
@@ -374,14 +391,37 @@ class ActionQueueTest {
         }
 
         @Test
-        @DisplayName("Une poussée contre un mur ou un autre occupant est bloquée")
-        void aPushIntoSomethingIsBlocked() {
+        @DisplayName("Une poussée contre un mur blesse au lieu d'être bloquée")
+        void aPushIntoAWallHurts() {
+            // C'est la regle de M7 : une poussee qui aboutit deplace, une poussee qui butte blesse.
+            // Le mur devient une arme, et la position de l'ennemi compte autant que sa sante.
             Arena arena = new Arena(9, 7);
-            arena.grid().place(8, new Pawn("au bord"));
+            Enemy victim = new Enemy(EnemyKind.COLOSSE);
+            arena.grid().place(8, victim);
+            arena.announceIntentions();
 
             arena.queueTile(Tile.PUSH);
-            assertEquals(ActionResult.BLOCKED, arena.executeTop());
-            assertNull(arena.grid().occupantAt(9));
+            assertEquals(ActionResult.COLLIDED, arena.executeTop());
+
+            assertEquals(victim.maxHealth() - Arena.COLLISION_DAMAGE, victim.health());
+        }
+
+        @Test
+        @DisplayName("Une poussée contre un mur prive l'ennemi de son action")
+        void aPushIntoAWallDeniesTheEnemyItsTurn() {
+            // L'etourdissement est pose et consomme dans le meme geste : c'est tout son interet.
+            // On ne peut donc pas l'observer apres coup, seulement constater qu'aucun coup n'est
+            // parti alors qu'un coup etait annonce.
+            Arena arena = new Arena(9, 7);
+            Enemy victim = new Enemy(EnemyKind.SABREUR);
+            arena.grid().place(8, victim);
+            arena.announceIntentions();
+            assertEquals(1, arena.threatCount(7), "le sabreur annonce bien une frappe");
+
+            arena.queueTile(Tile.PUSH);
+            arena.executeTop();
+
+            assertEquals(0, arena.heroHits(), "l'ennemi etourdi n'a pas frappe");
         }
 
         @Test

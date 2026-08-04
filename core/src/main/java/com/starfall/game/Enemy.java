@@ -15,6 +15,10 @@ public final class Enemy implements Occupant {
     private final EnemyKind kind;
     private final Set<Trait> traits;
 
+    private int health;
+    /** Étourdi : il passera sa prochaine activation. */
+    private boolean stunned;
+
     private Direction facing = Direction.LEFT;
     private Intention intention = Intention.of(Intention.Kind.WAIT);
     /** Vrai quand un lancier a pris son élan et chargera à sa prochaine activation. */
@@ -22,6 +26,7 @@ public final class Enemy implements Occupant {
 
     public Enemy(EnemyKind kind, Trait... traits) {
         this.kind = kind;
+        this.health = kind.health();
         this.traits = traits.length == 0
                 ? Collections.emptySet()
                 : Collections.unmodifiableSet(EnumSet.of(traits[0], traits));
@@ -62,6 +67,30 @@ public final class Enemy implements Occupant {
 
     void setWindingUp(boolean windingUp) {
         this.windingUp = windingUp;
+    }
+
+    /** Points de vie restants. À zéro, l'ennemi meurt. */
+    public int health() {
+        return health;
+    }
+
+    public int maxHealth() {
+        return kind.health();
+    }
+
+    /** Retire des points de vie. Renvoie vrai si l'ennemi vient de tomber. */
+    boolean damage(int amount) {
+        health = Math.max(0, health - amount);
+        return health == 0;
+    }
+
+    /** Vrai s'il passera sa prochaine activation. */
+    public boolean isStunned() {
+        return stunned;
+    }
+
+    void setStunned(boolean stunned) {
+        this.stunned = stunned;
     }
 
     /** Nombre de coups portés par une frappe. Un ennemi rapide en porte deux. */

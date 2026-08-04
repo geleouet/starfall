@@ -90,7 +90,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 à M6 revus et corrigés · prêt pour M7</b></div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 à M6 revus · M7 construit · review de M7 à faire</b></div>
 </header>
 
 <div class="banner warn">
@@ -126,18 +126,27 @@
   <tr><td><span class="pill p-done">revu</span></td><td><b>M4 — Grille et héros</b><span class="why">Grille linéaire de 5 à 15 cases, déplacement, orientation, capacité d'échange de place, cadrage caméra. Clavier <b>et</b> souris. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 271 tests verts sur 25 suites.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution dernier-entré premier-sorti, recharges en points, tuiles Free-Play, ajout et retrait sans coût de tour. Six tuiles, jouables au clavier et à la souris. <b>Review indépendante passée : « tient avec réserves ».</b> 5 défauts relevés, tous corrigés ; 318 tests verts.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">Quatre archétypes aux silhouettes distinctes, quatre traits, et surtout le <b>télégraphe</b> : ce qui est annoncé est ce qui est joué. <b>Review indépendante passée : refusée en l’état, puis corrigée.</b> 8 défauts relevés, tous traités ; 346 tests verts.</span></td></tr>
-  <tr><td><span class="pill p-now">suivant</span></td><td><b>M7 — Résolution du combat</b><span class="why">Dégâts, statuts, collisions et repoussements, combo kills, enchaînement des vagues.</span></td></tr>
-  <tr><td><span class="pill p-wait">à venir</span></td><td><b>M8 — Interface</b><span class="why">HUD, barre de file, portées d'attaque, PV, infobulles — en français.</span></td></tr>
+  <tr><td><span class="pill p-done">construit</span></td><td><b>M7 — Résolution du combat</b><span class="why">Points de vie, dégâts, collisions qui blessent et étourdissent, combo kills, trois vagues enchaînées, victoire et défaite. 362 tests verts. <b style="color:var(--gold)">Review indépendante pas encore passée.</b></span></td></tr>
+  <tr><td><span class="pill p-now">suivant</span></td><td><b>M8 — Interface</b><span class="why">HUD, barre de file, portées d'attaque, PV, infobulles — en français.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M9 — Boss</b><span class="why">Rencontre finale de la tranche : invocations, combo charge + frappe.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M10 — Équilibrage file de 5</b><span class="why">Réaccordage complet des recharges et de la pression ennemie autour de la file élargie.</span></td></tr>
 </table>
 
 <h2>En cours de construction</h2>
 <div class="banner">
-  <span class="k">Prochaine étape — M7, la résolution du combat</span>
-  <p>Les ennemis existent, et surtout ils <b>annoncent</b>. Chaque ennemi affiche ce qu'il fera à sa prochaine activation, et l'exécute ensuite <i>tel quel</i> — même si le joueur s'est déplacé entre-temps. C'est cette dernière clause qui fait le jeu : on esquive en quittant la case annoncée.</p>
-  <p><b>Reste à faire :</b> points de vie, statuts, collisions et repoussements, combo kills, enchaînement des vagues.</p>
+  <span class="k">M7 construit — review indépendante à lancer</span>
+  <p>Le combat se résout. Le héros et les ennemis ont des points de vie, une poussée qui butte blesse et étourdit, plusieurs morts d'un même geste comptent comme un enchaînement, et trois vagues s'enchaînent jusqu'à la victoire — ou jusqu'à ce que la Vagabonde tombe.</p>
+  <p><b>Ensuite :</b> review indépendante de M7, puis M8 — le HUD, les portées d'attaque, les infobulles.</p>
 </div>
+
+<h3>Les règles de M7</h3>
+<table>
+  <tr><td>Points de vie</td><td>Héros 5, sabreur et archer 1, lancier 2, colosse 3.<span class="why">Ils suivent la lenteur : le colosse en a trois et n'agit qu'une phase sur deux. <b>Ce qui est difficile à tuer doit être facile à éviter</b>, sans quoi il n'y a pas de décision à prendre.</span></td></tr>
+  <tr><td>Le mur est une arme</td><td>Une poussée qui aboutit déplace. Une poussée qui <b>butte</b> — sur un bord ou sur quelqu'un — blesse le poussé, blesse ce qu'il a percuté, et l'étourdit.<span class="why">C'est ce qui fait d'une tuile de placement une tuile de dégâts quand on l'utilise bien. La Vagabonde ne frappe qu'un point : elle ne gagne pas en frappant fort, elle gagne en plaçant.</span></td></tr>
+  <tr><td>Étourdissement</td><td>L'ennemi passe sa prochaine activation, et son intention devient <b>immédiatement</b> « attend ».<span class="why">Indispensable : l'étourdissement est provoqué par le joueur pendant son propre tour, donc l'affichage doit cesser sur-le-champ de promettre un coup qui ne partira plus. Le télégraphe reste vrai à chaque instant, et pas seulement au début du tour.</span></td></tr>
+  <tr><td>Combos</td><td>Plusieurs morts d'un même geste comptent comme un enchaînement, et le record est retenu.<span class="why">Une explosion en chaîne, une poussée qui tue les deux : c'est la récompense du placement, et rien d'autre à l'écran ne la nomme.</span></td></tr>
+  <tr><td>Vagues</td><td>Trois, et chacune pose une question que la précédente ne posait pas.<span class="why">Un sabreur et un archer d'abord — l'un veut qu'on s'éloigne, l'autre qu'on s'approche. Puis le lancier, dont la menace est décalée d'un tour. Puis le colosse explosif, qui vaut autant comme arme que comme obstacle. Personne n'apparaît jamais au contact : on a toujours un tour pour lire la vague avant de la subir.</span></td></tr>
+</table>
 
 <h3>Les règles de M6</h3>
 <table>
@@ -189,32 +198,32 @@
 <h2>Planches-contact</h2>
 
 <figure class="sheet">
-  <img src="captures/m6/starfall-1280x720-frame00.png" alt="Starfall M6, quatre ennemis et leurs intentions">
+  <img src="captures/m7/starfall-1280x720-frame00.png" alt="Starfall M6, quatre ennemis et leurs intentions">
   <figcaption><b>M6 — quatre archétypes, et ce qu'ils ont annoncé.</b> De gauche à droite : colosse explosif, archer, héros, sabreur rapide, lancier. Les silhouettes se distinguent sans lire un mot — le colosse occupe toute la largeur, l'archer porte son arc, le lancier sa lance à l'horizontale. Au-dessus de chaque tête, un glyphe dit ce qu'il fera : flèche grise pour avancer, flèche rouge pour frapper. <b>La case du héros est cerclée de rouge</b> : l'archer l'a annoncée. La réponse est peinte là où se pose la question — « est-ce que je peux rester là ».</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m6/starfall-1280x720-frame05.png" alt="Starfall M6, deux tours plus tard">
+  <img src="captures/m7/starfall-1280x720-frame05.png" alt="Starfall M6, deux tours plus tard">
   <figcaption><b>Deux tours plus tard.</b> Le sabreur rapide est mort — estoc puis frappe — le héros a fait demi-tour, et il a encaissé deux coups. Le lancier, lui, a pris son élan et affiche maintenant <b>charge</b> : il traversera toute la ligne au prochain tour. Le colosse attend, bloqué par l'archer devant lui. Deux tuiles se rechargent, points ocre à l'appui.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m6/starfall-1280x720-frame02.png" alt="Starfall M5, trois tuiles posées sur la file">
+  <img src="captures/m7/starfall-1280x720-frame02.png" alt="Starfall M5, trois tuiles posées sur la file">
   <figcaption><b>La file chargée : 3 sur 5, et le compteur de tours toujours à zéro.</b> Poser ne coûte rien. Les trois tuiles correspondantes sont éteintes au râtelier avec un trait crème — « elle est là-bas » — mais restent visibles : le joueur doit voir <i>laquelle</i> lui manque, pas seulement qu'il lui en manque une. Trois signes concordants désignent l'<b>estoc</b>, posé en dernier, comme le prochain à partir : un cadre, un trait sous la tuile, et un chevron qui pointe vers elle. L'exécution à l'envers de l'ordre de pose est le point le plus contre-intuitif du jeu ; un seul repère ne suffisait pas, la première version en avait un et il était illisible.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m6-etroit/starfall-400x240-frame00.png" alt="Starfall M5, grille de 15 dans une fenêtre 400x240">
+  <img src="captures/m7-etroit/starfall-400x240-frame00.png" alt="Starfall M5, grille de 15 dans une fenêtre 400x240">
   <figcaption><b>Le cas le plus contraint : 15 cases dans une fenêtre de 400×240, échelle ×1.</b> Plateau, repères, file et râtelier tiennent tous dans les 180 pixels-monde de haut, sans se recouvrir — un test le verrouille plutôt que de s'en remettre au coup d'œil.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m6-grille-5/starfall-960x540-frame00.png" alt="Starfall M5, arène 5 cases">
+  <img src="captures/m7-grille-5/starfall-960x540-frame00.png" alt="Starfall M5, arène 5 cases">
   <figcaption><b>La grille la plus étroite, 5 cases.</b> Centrée, avec du décor de part et d'autre.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m6-grille-15/starfall-960x540-frame00.png" alt="Starfall M5, arène 15 cases">
+  <img src="captures/m7-grille-15/starfall-960x540-frame00.png" alt="Starfall M5, arène 15 cases">
   <figcaption><b>La grille la plus large, 15 cases.</b> 300 px-monde dans une zone garantie de 320 : aucune case n'est coupée, et il n'a pas fallu changer de zoom entre les deux largeurs. C'est ce que le choix d'une case de 20 px achète.</figcaption>
 </figure>
 
@@ -251,6 +260,12 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev">
+  <div class="hd">M7 — <b>Review indépendante : à faire</b></div>
+  <p>Le jalon vient d'être construit ; la review en contexte neuf n'a pas encore été lancée.</p>
+  <p style="color:var(--dim2);font-size:12.5px;margin-bottom:0">Trois défauts attrapés par mes soins en cours de route, tous du même genre — une règle nouvelle qui heurte une règle ancienne. L'enchaînement des vagues se déclenchait sur <i>toute</i> arène sans ennemi, y compris un plateau d'essai : la campagne de vagues est désormais une couche explicitement enclenchée, pas une propriété du plateau. Les pastilles de points de vie tombaient exactement sur la ligne des barres de menace — deux informations vitales au même pixel — et ont maintenant leur propre bande, verrouillée par un test. Et un occupant sans points de vie absorbait les frappes en silence, ce qui faisait mentir le résultat rendu.</p>
+</div>
 
 <div class="rev fail">
   <div class="hd">M6 &mdash; passe 1 &mdash; <b>Verdict : &agrave; refuser en l&rsquo;&eacute;tat</b></div>

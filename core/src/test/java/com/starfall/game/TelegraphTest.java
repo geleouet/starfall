@@ -214,6 +214,13 @@ class TelegraphTest {
         assertTrue(ArenaLayout.INTENT_TOP < com.starfall.StarfallGame.MIN_WORLD_HEIGHT,
                 "les glyphes doivent tenir dans la zone garantie");
         assertEquals(ArenaLayout.INTENT_Y + ArenaLayout.INTENT_HEIGHT, ArenaLayout.INTENT_TOP);
+
+        // Les points de vie ont leur propre bande : ils etaient d'abord poses sur la ligne des
+        // barres de menace, deux informations vitales au meme pixel.
+        assertTrue(ArenaLayout.HEALTH_Y + ArenaLayout.HEALTH_HEIGHT <= ArenaLayout.INTENT_Y,
+                "la bande de vie mord sur celle des intentions");
+        assertTrue(ArenaLayout.HEALTH_Y > ArenaLayout.GROUND_Y + ArenaLayout.GROUND_HEIGHT,
+                "la bande de vie mord sur les dalles et donc sur les barres de menace");
     }
 
     @Test

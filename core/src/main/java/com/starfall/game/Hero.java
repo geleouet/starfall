@@ -8,7 +8,27 @@ package com.starfall.game;
  */
 public final class Hero implements Occupant {
 
+    /**
+     * Points de vie de départ.
+     *
+     * <p>Cinq, c'est-à-dire assez pour se tromper deux ou trois fois et assez peu pour que chaque
+     * coup encaissé se sente. Le chiffre sera réaccordé au jalon d'équilibrage.
+     */
+    public static final int MAX_HEALTH = 5;
+
+    private int health = MAX_HEALTH;
     private Direction facing = Direction.RIGHT;
+
+    /** Points de vie restants. À zéro, la partie est perdue. */
+    public int health() {
+        return health;
+    }
+
+    /** Retire des points de vie. Renvoie vrai si le héros vient de tomber. */
+    boolean damage(int amount) {
+        health = Math.max(0, health - amount);
+        return health == 0;
+    }
 
     @Override
     public String spriteName() {

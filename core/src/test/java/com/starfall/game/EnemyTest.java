@@ -244,8 +244,10 @@ class EnemyTest {
         @DisplayName("Un explosif emporte ses voisins, et la chaîne se propage")
         void anExplosiveTakesItsNeighboursWithIt() {
             Arena arena = bare(15, 0);
-            Enemy first = new Enemy(EnemyKind.COLOSSE, Trait.EXPLOSIF);
-            Enemy second = new Enemy(EnemyKind.COLOSSE, Trait.EXPLOSIF);
+            // Des archetypes legers : une explosion inflige deux points, donc elle les emporte et
+            // la chaine se propage. Un colosse a pleine sante l'arreterait, et c'est voulu.
+            Enemy first = new Enemy(EnemyKind.SABREUR, Trait.EXPLOSIF);
+            Enemy second = new Enemy(EnemyKind.SABREUR, Trait.EXPLOSIF);
             Enemy third = new Enemy(EnemyKind.SABREUR);
             arena.grid().place(5, first);
             arena.grid().place(6, second);
@@ -263,12 +265,13 @@ class EnemyTest {
         @DisplayName("Une explosion au contact du héros le touche")
         void anExplosionNextToTheHeroHitsHim() {
             Arena arena = bare(9, 4);
-            arena.grid().place(5, new Enemy(EnemyKind.COLOSSE, Trait.EXPLOSIF));
+            arena.grid().place(5, new Enemy(EnemyKind.SABREUR, Trait.EXPLOSIF));
             arena.announceIntentions();
 
             arena.kill(5);
 
             assertEquals(1, arena.heroHits());
+            assertEquals(Hero.MAX_HEALTH - Arena.EXPLOSION_DAMAGE, arena.hero().health());
         }
     }
 

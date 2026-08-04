@@ -34,10 +34,27 @@ public final class Arena {
     private final TileRack rack;
     private final ActionQueue queue = new ActionQueue();
 
+    /**
+     * Dégâts d'une explosion. Deux points : de quoi emporter d'un coup les archétypes légers et
+     * n'entamer que les lourds. C'est ce qui rend la chaîne d'explosions possible sans la rendre
+     * automatique — un colosse à pleine santé l'arrête.
+     */
+    public static final int EXPLOSION_DAMAGE = 2;
+    /** Dégâts d'une collision. Un point, comme une frappe : le mur vaut une lame, pas davantage. */
+    public static final int COLLISION_DAMAGE = 1;
+
     private int turnsTaken;
     /** Numéro de la phase ennemie, qui sert aux archétypes n'agissant qu'une phase sur deux. */
     private int phaseIndex;
     private int heroHits;
+    /** Morts provoquées par l'action en cours : c'est la base du combo. */
+    private int killsThisAction;
+    private int lastCombo;
+    private int bestCombo;
+    private int wave = 1;
+    private boolean victory;
+    /** Vrai quand cette arène joue une campagne de vagues, et non un plateau isolé. */
+    private boolean wavesEnabled;
 
     public Arena(int gridWidth) {
         this(gridWidth, gridWidth / 2);
@@ -64,6 +81,83 @@ public final class Arena {
 
     public TileRack rack() {
         return rack;
+    }
+
+    // ------------------------------------------------------------------ combos et vagues
+
+    /** Ennemis tombés du dernier geste du joueur. Deux ou plus, c'est un combo. */
+    public int lastCombo() {
+        return lastCombo;
+    }
+
+    /** Meilleur enchaînement de la partie. */
+    public int bestCombo() {
+        return bestCombo;
+    }
+
+    /** Numéro de la vague en cours, à partir de 1. */
+    public int wave() {
+        return wave;
+    }
+
+    public int waveCount() {
+        return WaveTable.count();
+    }
+
+    public boolean isVictory() {
+        return victory;
+    }
+
+    /**
+     * Enclenche l'enchaînement des vagues.
+     *
+     * <p>Une arène est un plateau de combat ; la campagne de vagues est une couche au-dessus. Sans
+     * cette distinction, tout plateau sans ennemi — un plateau d'essai, une situation construite à
+     * la main — déclenchait une vague dès la première action, ce qui rendait toute mise en place
+     * ciblée impossible.
+     */
+    void enableWaves() {
+        this.wavesEnabled = true;
+    }
+
+    public boolean isDefeat() {
+        return hero.health() == 0;
+    }
+
+    /** Vrai quand la partie est finie, gagnée ou perdue. */
+    public boolean isOver() {
+        return victory || isDefeat();
+    }
+
+    /**
+     * Clôt une action du joueur : compte le combo, enchaîne la vague si le terrain est vide.
+     *
+     * <p>Un seul point de passage, appelé par chaque action, plutôt qu'un appel dispersé dans chaque
+     * tuile — la même raison qui a fait centraliser la consommation de tour, et la même leçon : une
+     * règle écrite à plusieurs endroits finit par diverger.
+     *
+     * @return le résultat à afficher, éventuellement remplacé par un événement plus important
+     */
+    private ActionResult settle(ActionResult result) {
+        lastCombo = killsThisAction;
+        bestCombo = Math.max(bestCombo, lastCombo);
+        killsThisAction = 0;
+
+        if (isDefeat()) {
+            return ActionResult.DEFEAT;
+        }
+        if (wavesEnabled && enemiesLeftToRight().isEmpty()) {
+            if (wave >= WaveTable.count()) {
+                victory = true;
+                return ActionResult.VICTORY;
+            }
+            wave++;
+            WaveTable.spawn(this, wave);
+            announceIntentions();
+        }
+        // Un combo mérite d'être nommé : c'est la récompense du placement, et rien d'autre à
+        // l'écran ne la désigne.
+        return lastCombo >= 2 ? ActionResult.COMBO : result;
     }
 
     public ActionQueue queue() {
@@ -101,6 +195,10 @@ public final class Arena {
      */
     private void enemyPhase() {
         for (Enemy enemy : enemiesLeftToRight()) {
+            if (enemy.isStunned()) {
+                enemy.setStunned(false);
+                continue;
+            }
             if (!enemy.kind().actsThisPhase(phaseIndex)) {
                 continue;
             }
@@ -136,7 +234,7 @@ public final class Arena {
     void announceIntentions() {
         int heroCell = heroCell();
         for (Enemy enemy : enemiesLeftToRight()) {
-            if (!enemy.kind().actsThisPhase(phaseIndex)) {
+            if (enemy.isStunned() || !enemy.kind().actsThisPhase(phaseIndex)) {
                 enemy.announce(Intention.of(Intention.Kind.WAIT));
                 continue;
             }
@@ -210,6 +308,33 @@ public final class Arena {
     private void strike(int cell) {
         if (grid.occupantAt(cell) == hero) {
             heroHits++;
+            hero.damage(1);
+        }
+    }
+
+    /**
+     * Inflige des dégâts à ce qui occupe une case, et tue si les points de vie tombent à zéro.
+     *
+     * <p>Tout ce qui blesse passe par ici, et tout ce qui tue passe par {@link #kill} : c'est ce qui
+     * garantit qu'une mort déclenche toujours son explosion et compte toujours dans le combo, quel
+     * que soit ce qui l'a provoquée — une tuile, une collision, ou une autre explosion.
+     */
+    void damage(int cell, int amount) {
+        Occupant victim = grid.occupantAt(cell);
+        if (victim == null) {
+            return;
+        }
+        if (victim == hero) {
+            heroHits++;
+            hero.damage(amount);
+        } else if (victim instanceof Enemy enemy) {
+            if (enemy.damage(amount)) {
+                kill(cell);
+            }
+        } else {
+            // Un occupant sans points de vie — décor, obstacle — tombe du premier coup. L'alternative
+            // serait qu'il absorbe les frappes en silence, ce qui ferait mentir le résultat rendu.
+            kill(cell);
         }
     }
 
@@ -222,8 +347,11 @@ public final class Arena {
      */
     void kill(int cell) {
         Occupant victim = grid.clear(cell);
-        if (victim instanceof Enemy enemy && enemy.has(Trait.EXPLOSIF)) {
-            explode(cell);
+        if (victim instanceof Enemy enemy) {
+            killsThisAction++;
+            if (enemy.has(Trait.EXPLOSIF)) {
+                explode(cell);
+            }
         }
     }
 
@@ -238,13 +366,55 @@ public final class Arena {
     private void explode(int centre) {
         for (int step : new int[]{-1, 1}) {
             int neighbour = centre + step;
-            Occupant victim = grid.occupantAt(neighbour);
-            if (victim == hero) {
-                heroHits++;
-            } else if (victim instanceof Enemy) {
-                kill(neighbour);
+            if (grid.occupantAt(neighbour) != null) {
+                damage(neighbour, EXPLOSION_DAMAGE);
             }
         }
+    }
+
+    /**
+     * Repousse un occupant, et résout la collision s'il y en a une.
+     *
+     * <p>Une poussée qui aboutit ne fait que déplacer. Une poussée qui <b>butte</b> — sur un bord ou
+     * sur quelqu'un — blesse le poussé, blesse ce qu'il a percuté, et l'étourdit. C'est ce qui fait
+     * d'une tuile de placement une tuile de dégâts quand on l'utilise bien : le mur devient une
+     * arme, et la position de l'ennemi compte autant que ses points de vie.
+     *
+     * @return le résultat à afficher
+     */
+    ActionResult shove(int from, Direction direction) {
+        Occupant pushed = grid.occupantAt(from);
+        if (pushed == null) {
+            return ActionResult.NO_TARGET;
+        }
+        int landing = from + direction.step();
+        if (grid.isFree(landing)) {
+            grid.move(from, landing);
+            return ActionResult.PUSHED;
+        }
+
+        // Collision : le poussé encaisse, et ce qu'il percute aussi s'il y a quelqu'un.
+        if (grid.contains(landing)) {
+            damage(landing, COLLISION_DAMAGE);
+        }
+        damage(from, COLLISION_DAMAGE);
+        if (grid.occupantAt(from) instanceof Enemy enemy) {
+            stun(enemy);
+        }
+        return ActionResult.COLLIDED;
+    }
+
+    /**
+     * Étourdit un ennemi : il passera sa prochaine activation.
+     *
+     * <p>Son intention est <b>immédiatement</b> remplacée par « attend ». C'est indispensable :
+     * l'étourdissement est provoqué par le joueur pendant son propre tour, donc l'affichage doit
+     * cesser de promettre un coup qui ne partira plus. Le télégraphe reste vrai à chaque instant, et
+     * pas seulement au début du tour.
+     */
+    void stun(Enemy enemy) {
+        enemy.setStunned(true);
+        enemy.announce(Intention.of(Intention.Kind.WAIT));
     }
 
     /**
@@ -304,10 +474,13 @@ public final class Arena {
         if (direction == null) {
             throw new IllegalArgumentException("Direction nulle : aucune action à jouer");
         }
+        if (isOver()) {
+            return ActionResult.BLOCKED;
+        }
         if (hero.facing() != direction) {
             hero.face(direction);
             consumeTurn();
-            return ActionResult.TURNED;
+            return settle(ActionResult.TURNED);
         }
 
         int from = heroCell();
@@ -317,7 +490,7 @@ public final class Arena {
         }
         grid.move(from, to);
         consumeTurn();
-        return ActionResult.MOVED;
+        return settle(ActionResult.MOVED);
     }
 
     /**
@@ -335,7 +508,7 @@ public final class Arena {
         }
         grid.swap(heroCell(), target);
         consumeTurn();
-        return ActionResult.SWAPPED;
+        return settle(ActionResult.SWAPPED);
     }
 
     // ------------------------------------------------------------------ file d'actions
@@ -380,6 +553,9 @@ public final class Arena {
      * ne pas faire payer deux fois une décision déjà punie.
      */
     public ActionResult executeTop() {
+        if (isOver()) {
+            return ActionResult.BLOCKED;
+        }
         if (queue.isEmpty()) {
             return ActionResult.EMPTY_QUEUE;
         }
@@ -391,7 +567,7 @@ public final class Arena {
         if (effective && !tile.isFreePlay()) {
             consumeTurn();
         }
-        return result;
+        return settle(result);
     }
 
     /** Case que la capacité viserait maintenant, ou {@code -1}. Sert aussi à la télégraphier. */

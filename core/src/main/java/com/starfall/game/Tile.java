@@ -21,9 +21,9 @@ package com.starfall.game;
  *
  * <h2>Portée des effets à ce jalon</h2>
  *
- * <p>{@code FRAPPE} retire purement et simplement sa cible de la grille. Ce n'est pas la règle
- * définitive : les points de vie, les statuts et les combos arrivent avec la résolution du combat
- * (M7). Ici, seule compte la mécanique de la file.
+ * <p>Les tuiles n'infligent qu'un point de dégât. La Vagabonde ne gagne pas en frappant fort, elle
+ * gagne en plaçant : une poussée contre un mur fait autant de mal qu'une frappe, et étourdit en
+ * plus.
  */
 public enum Tile {
 
@@ -35,9 +35,7 @@ public enum Tile {
             if (arena.grid().occupantAt(target) == null) {
                 return ActionResult.NO_TARGET;
             }
-            // Passe par arena.kill : c'est ce qui déclenche l'explosion d'un ennemi explosif.
-            // Les points de vie et les statuts restent l'affaire de M7.
-            arena.kill(target);
+            arena.damage(target, DAMAGE);
             return ActionResult.STRUCK;
         }
     },
@@ -55,7 +53,7 @@ public enum Tile {
             if (arena.grid().occupantAt(target) == null) {
                 return ActionResult.NO_TARGET;
             }
-            arena.kill(target);
+            arena.damage(target, DAMAGE);
             return ActionResult.STRUCK;
         }
     },
@@ -64,17 +62,8 @@ public enum Tile {
     PUSH("poussée", "tile/push", 2, false) {
         @Override
         ActionResult applyTo(Arena arena) {
-            int step = arena.hero().facing().step();
-            int target = arena.heroCell() + step;
-            if (arena.grid().occupantAt(target) == null) {
-                return ActionResult.NO_TARGET;
-            }
-            int landing = target + step;
-            if (!arena.grid().isFree(landing)) {
-                return ActionResult.BLOCKED;
-            }
-            arena.grid().move(target, landing);
-            return ActionResult.PUSHED;
+            return arena.shove(arena.heroCell() + arena.hero().facing().step(),
+                    arena.hero().facing());
         }
     },
 
@@ -125,6 +114,9 @@ public enum Tile {
             return ActionResult.TURNED;
         }
     };
+
+    /** Dégâts d'une frappe. Un point : la Vagabonde ne frappe pas fort, elle se replace. */
+    public static final int DAMAGE = 1;
 
     private final String label;
     private final String spriteName;
