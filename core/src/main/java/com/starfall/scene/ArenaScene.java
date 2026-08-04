@@ -155,9 +155,9 @@ public final class ArenaScene implements Scene {
      * contact, et une planche qui ne montre pas ce qu'elle légende vaut moins que pas de planche.
      */
     private void replayScript(int frameIndex) {
-        hoveredCell = frameIndex < HOVER_CELL_SCRIPT.length ? HOVER_CELL_SCRIPT[frameIndex] : -1;
+        hoveredCell = CaptureScript.cellAt(frameIndex);
         hoveredQueueSlot = -1;
-        hoveredRackSlot = frameIndex < HOVER_SCRIPT.length ? HOVER_SCRIPT[frameIndex] : -1;
+        hoveredRackSlot = CaptureScript.rackSlotAt(frameIndex);
         helpVisible = frameIndex == 0;
 
         if (frameIndex == scriptedFrame) {
@@ -165,77 +165,19 @@ public final class ArenaScene implements Scene {
         }
         arena = ArenaSetup.trainingArena(layout.gridWidth(), context.options().startWave);
 
-        for (int i = 0; i < frameIndex && i < SCRIPT.length; i++) {
-            lastResult = SCRIPT[i].applyTo(arena);
+        ActionResult replayed = CaptureScript.replayInto(arena, frameIndex);
+        if (replayed != null) {
+            lastResult = replayed;
         }
-        if (frameIndex > SCRIPT.length && !exhaustionReported) {
+        if (frameIndex > CaptureScript.ACTIONS.size() && !exhaustionReported) {
             // Le dire plutôt que de laisser un relecteur croire que deux images identiques
             // signalent un rendu figé.
-            System.out.println("[Starfall] le scénario de capture compte " + SCRIPT.length
+            System.out.println("[Starfall] le scénario de capture compte " + CaptureScript.ACTIONS.size()
                     + " actions ; les images suivantes répètent l'état final");
             exhaustionReported = true;
         }
         scriptedFrame = frameIndex;
     }
-
-    /** Une action du scénario de capture. */
-    private interface ScriptedAction {
-        ActionResult applyTo(Arena arena);
-    }
-
-    /**
-     * Le scénario montre la file d'actions et les portées : on charge, on regarde la file se
-     * remplir, puis on la dépile — et l'on voit qu'elle se vide à l'envers de l'ordre où on l'a
-     * remplie, la ligne d'annonce disant à chaque étape ce qui partira.
-     */
-    private static final ScriptedAction[] SCRIPT = {
-            // On charge sous le feu : chaque pose coûte un tour, et les ennemis se rapprochent
-            // pendant ce temps. C'est toute la tension de la nouvelle économie, et il fallait que
-            // les planches la montrent — les précédentes mouraient en vague 1 sans qu'aucune file
-            // ne dépasse une tuile.
-            a -> a.queueTile(Tile.THRUST),
-            a -> a.queueTile(Tile.STRIKE),
-            a -> a.queueTile(Tile.PUSH),
-            a -> a.unleash(),                // la salve : trois effets pour un seul tour
-            a -> a.step(Direction.LEFT),     // demi-tour vers ce qui reste
-            a -> a.queueTile(Tile.DASH),
-            a -> a.unleash(),
-            a -> a.queueTile(Tile.STRIKE),
-            a -> a.unleash(),                // et la vague bascule quand le terrain se vide
-            a -> a.queueTile(Tile.THRUST),
-            a -> a.queueTile(Tile.PUSH),
-    };
-
-    /**
-     * Tuile du râtelier survolée à chaque image de la capture, ou {@code -1}.
-     *
-     * <p>L'ordre du râtelier est celui de {@code ArenaSetup} : frappe, estoc, poussée, élan, pas de
-     * côté, volte-face.
-     */
-    private static final int[] HOVER_SCRIPT = {
-            -1,  // image 0 : l'aide, telle qu'un joueur la découvre
-            1,   // l'estoc et sa portée 2
-            -1,  // rien de survolé : le préavis résolu du sommet, et il annonce un coup dans le vide
-            2,   // la poussée
-            3,   // l'élan, dont la portée dépend du terrain
-            -1,
-            4,   // le pas de côté, tuile Free-Play
-            -1,
-            -1,
-            -1,  // le préavis résolu d'une poussée : sa trajectoire et son arrivée
-            5,   // la volte-face, qui ne vise aucune case
-    };
-
-    /**
-     * Case du plateau survolée à chaque image, ou {@code -1}.
-     *
-     * <p>Elle sert à montrer l'infobulle d'ennemi, qui existe pour la raison exacte qui a fait
-     * écrire celles des tuiles : la portée de l'archer et celle du trait agressif n'étaient
-     * écrites nulle part, et on les apprenait en prenant des coups.
-     */
-    private static final int[] HOVER_CELL_SCRIPT = {
-            -1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1,
-    };
 
     private int scriptedFrame = -1;
     private boolean exhaustionReported;
