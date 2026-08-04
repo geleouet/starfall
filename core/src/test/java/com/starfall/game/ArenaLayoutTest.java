@@ -80,7 +80,7 @@ class ArenaLayoutTest {
     }
 
     @ParameterizedTest(name = "grille de {0} cases")
-    @ValueSource(ints = {5, 9, 15})
+    @ValueSource(ints = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15})
     @DisplayName("Le pointage retrouve exactement la case sous le curseur")
     void pickingFindsTheCellUnderTheCursor(int gridWidth) {
         ArenaLayout layout = layout(gridWidth);
@@ -138,11 +138,42 @@ class ArenaLayoutTest {
         assertTrue(ArenaLayout.PICK_BOTTOM >= 0);
     }
 
+    /**
+     * La version précédente de ce test assénait {@code assertEquals(CENTRE, layout(width, CENTRE)
+     * .cameraTargetX())} — c'est-à-dire {@code CENTRE == CENTRE}. Elle ne prouvait rien, et surtout
+     * elle ne prouvait pas ce qui compte : que la cible de caméra est <b>au milieu de la grille</b>,
+     * quel que soit l'endroit où celle-ci est posée.
+     */
     @Test
-    @DisplayName("La caméra reste calée sur le centre de la grille, quelle que soit sa largeur")
-    void theCameraStaysOnTheGridCentre() {
+    @DisplayName("La cible de caméra tombe au milieu de la grille, où qu'elle soit posée")
+    void theCameraTargetIsTheGridMidpoint() {
         for (int width = Grid.MIN_WIDTH; width <= Grid.MAX_WIDTH; width++) {
-            assertEquals(CENTRE, layout(width).cameraTargetX());
+            for (int centre : new int[]{CENTRE, 0, 40, 500, -120}) {
+                ArenaLayout layout = new ArenaLayout(width, centre);
+
+                assertEquals((layout.left() + layout.right()) / 2, layout.cameraTargetX(),
+                        "grille de " + width + " posee en " + centre);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Cadrée sur sa cible, toute grille tient dans la zone garantie")
+    void framedOnItsTargetEveryGridFitsInTheGuaranteedArea() {
+        // Le lien réel entre la caméra et la grille : on part de la cible de caméra, on en déduit
+        // la fenêtre garantie autour d'elle, et on vérifie que la grille y tient. C'est ce que la
+        // scène fait à l'exécution.
+        for (int w = Grid.MIN_WIDTH; w <= Grid.MAX_WIDTH; w++) {
+            final int width = w;
+            ArenaLayout layout = new ArenaLayout(width, CENTRE);
+            int target = layout.cameraTargetX();
+            final int safeLeft = target - StarfallGame.MIN_WORLD_WIDTH / 2;
+            final int safeRight = target + StarfallGame.MIN_WORLD_WIDTH / 2;
+
+            assertTrue(layout.left() >= safeLeft,
+                    () -> "grille de " + width + " : bord gauche " + layout.left() + " < " + safeLeft);
+            assertTrue(layout.right() <= safeRight,
+                    () -> "grille de " + width + " : bord droit " + layout.right() + " > " + safeRight);
         }
     }
 

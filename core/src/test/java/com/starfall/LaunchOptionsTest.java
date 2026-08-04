@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.starfall.game.Grid;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -55,13 +57,23 @@ class LaunchOptionsTest {
 
         @Test
         void parsesEveryOption() {
-            LaunchOptions options = parse("--screenshot", "captures/m1", "--size", "1000x543", "--frames", "3");
+            LaunchOptions options = parse("--screenshot", "captures/m1", "--size", "1000x543",
+                    "--frames", "3", "--scene", "calibration", "--grid", "15");
 
             assertTrue(options.isScreenshotMode());
             assertEquals("captures/m1", options.screenshotDir);
             assertEquals(1000, options.width);
             assertEquals(543, options.height);
             assertEquals(3, options.frames);
+            assertEquals("calibration", options.scene);
+            assertEquals(15, options.gridWidth);
+        }
+
+        @Test
+        @DisplayName("Le nom de scène est accepté quelle que soit la casse")
+        void theSceneNameIsCaseInsensitive() {
+            assertEquals("arena", parse("--scene", "ARENA").scene);
+            assertEquals("calibration", parse("--scene", "Calibration").scene);
         }
 
         @Test
@@ -125,6 +137,40 @@ class LaunchOptionsTest {
         void nonPositiveSizeIsRejected() {
             assertThrows(IllegalArgumentException.class, () -> parse("--size", "0x720"));
             assertThrows(IllegalArgumentException.class, () -> parse("--size", "1280x0"));
+        }
+
+        @ParameterizedTest(name = "--grid {0}")
+        @ValueSource(strings = {"4", "16", "0", "-3", "100", "neuf", "9.5", ""})
+        @DisplayName("Une largeur de grille hors bornes est fatale à l'analyse, pas au démarrage")
+        void anOutOfRangeGridWidthIsRejectedAtParseTime(String value) {
+            // Ne verifier que la forme laissait « --grid 20 » ouvrir la fenetre puis planter dans le
+            // constructeur de Grid, avec le code 1 (« plantage ») au lieu de 2 (« ligne de commande
+            // invalide ») - exactement le faux positif que l'analyse stricte doit proscrire.
+            assertThrows(IllegalArgumentException.class, () -> parse("--grid", value),
+                    "aurait du refuser : " + value);
+        }
+
+        @ParameterizedTest(name = "--grid {0}")
+        @ValueSource(ints = {5, 9, 15})
+        @DisplayName("Les largeurs de grille légales passent")
+        void legalGridWidthsAreAccepted(int value) {
+            assertEquals(value, parse("--grid", String.valueOf(value)).gridWidth);
+        }
+
+        @ParameterizedTest(name = "--scene {0}")
+        @ValueSource(strings = {"arene", "menu", "combat", "", "arena2"})
+        @DisplayName("Un nom de scène inconnu est refusé")
+        void anUnknownSceneIsRejected(String value) {
+            assertThrows(IllegalArgumentException.class, () -> parse("--scene", value),
+                    "aurait du refuser : " + value);
+        }
+
+        @Test
+        @DisplayName("Les bornes annoncées par l'aide sont celles que le jeu applique")
+        void theUsageTextMatchesTheRealBounds() {
+            // Une aide qui annonce d'autres bornes que celles appliquees est un piege a elle seule.
+            assertTrue(LaunchOptions.usage().contains(Grid.MIN_WIDTH + " à " + Grid.MAX_WIDTH),
+                    LaunchOptions.usage());
         }
     }
 }

@@ -63,7 +63,6 @@ public class StarfallGame extends ApplicationAdapter {
     private boolean finished;
     private int exitCode;
 
-    private boolean scrolling;
     private float time;
 
     public StarfallGame(LaunchOptions options) {
@@ -120,8 +119,11 @@ public class StarfallGame extends ApplicationAdapter {
         boolean interactive = !options.isScreenshotMode();
         handleWindowInput(interactive);
         updateTime();
-        scene.act(time, interactive);
-        updateCamera();
+        // La caméra est mise à jour AVANT que la scène n'agisse : sinon le pointage de la souris
+        // déprojette avec la caméra de l'image précédente.
+        viewport.setCameraTarget(scene.cameraTargetX(), scene.cameraTargetY());
+        scene.act(time, frameIndex(), interactive);
+        viewport.setCameraTarget(scene.cameraTargetX(), scene.cameraTargetY());
 
         Gdx.gl.glClearColor(BACKDROP.r, BACKDROP.g, BACKDROP.b, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -152,32 +154,20 @@ public class StarfallGame extends ApplicationAdapter {
         }
     }
 
+    /** Numéro de l'image capturée, ou 0 hors mode capture. */
+    private int frameIndex() {
+        return recorder == null ? 0 : recorder.framesCaptured();
+    }
+
     /**
      * En mode capture, le temps avance d'un pas fixe par image écrite plutôt qu'au rythme réel :
      * les images restent reproductibles d'une exécution à l'autre, mais elles diffèrent entre elles.
      */
     private void updateTime() {
         if (options.isScreenshotMode()) {
-            int frame = recorder == null ? 0 : recorder.framesCaptured();
-            scrolling = frame > 0;
-            time = frame * SCREENSHOT_TIME_STEP;
-        } else if (scrolling) {
-            time += Gdx.graphics.getDeltaTime();
-        }
-    }
-
-    /**
-     * La caméra suit le centre de la zone garantie. Le défilement de démonstration ne sert qu'à la
-     * mire de calibration : il prouve que l'alignement sur la grille absorbe des cibles
-     * fractionnaires.
-     */
-    private void updateCamera() {
-        if (scrolling) {
-            viewport.setCameraTarget(
-                    MIN_WORLD_WIDTH / 2f + MathUtils.sin(time * 0.6f) * 24f,
-                    MIN_WORLD_HEIGHT / 2f + MathUtils.cos(time * 0.4f) * 10f);
+            time = frameIndex() * SCREENSHOT_TIME_STEP;
         } else {
-            viewport.setCameraTarget(MIN_WORLD_WIDTH / 2f, MIN_WORLD_HEIGHT / 2f);
+            time += Gdx.graphics.getDeltaTime();
         }
     }
 
@@ -185,9 +175,6 @@ public class StarfallGame extends ApplicationAdapter {
     private void handleWindowInput(boolean interactive) {
         if (!interactive) {
             return; // images déterministes
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            scrolling = !scrolling;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             Gdx.app.exit();

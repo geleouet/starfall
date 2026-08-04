@@ -52,6 +52,12 @@ public final class Arena {
      *         occupant l'en empêchait
      */
     public ActionResult step(Direction direction) {
+        // La seule fabrique de Direction du projet, Direction.towards, peut rendre null quand les
+        // deux cases sont les mêmes. Accepter null ici posait une orientation nulle sans rien dire,
+        // et le premier calcul de cible suivant partait en NullPointerException.
+        if (direction == null) {
+            throw new IllegalArgumentException("Direction nulle : aucune action à jouer");
+        }
         if (hero.facing() != direction) {
             hero.face(direction);
             return ActionResult.TURNED;

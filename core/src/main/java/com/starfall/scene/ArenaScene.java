@@ -8,6 +8,7 @@ import com.starfall.StarfallGame;
 import com.starfall.game.ActionResult;
 import com.starfall.game.Arena;
 import com.starfall.game.ArenaLayout;
+import com.starfall.game.ArenaSetup;
 import com.starfall.game.Direction;
 import com.starfall.game.Occupant;
 import com.starfall.render.PixelPainter;
@@ -25,14 +26,6 @@ import java.util.List;
  * nettes.
  */
 public final class ArenaScene implements Scene {
-
-    /** Occupants inertes de M4 : ils n'ont aucun comportement, ils occupent. */
-    private record Dummy(String label) implements Occupant {
-        @Override
-        public String spriteName() {
-            return "enemy/melee";
-        }
-    }
 
     private static final Color SKY = new Color(0x141a2eff);
     private static final Color WALL = new Color(0x1c2440ff);
@@ -64,47 +57,86 @@ public final class ArenaScene implements Scene {
         this.painter = context.painter();
 
         int gridWidth = context.options().gridWidth;
-        arena = new Arena(gridWidth);
+        arena = ArenaSetup.trainingArena(gridWidth);
         layout = new ArenaLayout(gridWidth, StarfallGame.MIN_WORLD_WIDTH / 2);
-
-        placeDummies(gridWidth);
     }
 
     /**
-     * Quelques occupants inertes, posés pour que la capacité d'échange ait quelque chose à viser.
-     * Ils disparaîtront au profit de vrais ennemis en M6 ; leur position est calculée à partir de la
-     * largeur pour rester sensée de 5 à 15 cases.
+     * Scénario joué en mode capture, une action par image.
+     *
+     * <p>Les entrées sont coupées en capture, donc sans cela toutes les images d'une série seraient
+     * identiques. Rejouer un scénario court les rend différentes <em>et</em> utiles : la planche de
+     * contact montre l'échange de place à l'œuvre au lieu de trois copies de la position de départ.
      */
-    private void placeDummies(int gridWidth) {
-        int hero = arena.heroCell();
-        int[] wanted = {hero + 2, hero - 3, gridWidth - 1};
-        int index = 1;
-        for (int cell : wanted) {
-            if (arena.grid().isFree(cell)) {
-                arena.grid().place(cell, new Dummy("mannequin " + index++));
-            }
-        }
-    }
-
     @Override
-    public void act(float time, boolean interactive) {
+    public void act(float time, int frameIndex, boolean interactive) {
         if (!interactive) {
-            // En mode capture, aucune entrée n'est lue : les images doivent rester reproductibles.
             hoveredCell = -1;
+            replayScript(frameIndex);
             return;
         }
-        readMouse();
-        readKeyboard();
+        // Une seule action par image, quelle qu'en soit la source. La souris respectait déjà la
+        // règle, le clavier non : trois « if » indépendants laissaient D et E dans la même image
+        // produire un déplacement PUIS un échange, soit deux tours consommés d'un coup.
+        if (!readMouse()) {
+            readKeyboard();
+        }
     }
 
-    private void readMouse() {
+    /**
+     * Rejoue les {@code frameIndex} premières actions du scénario depuis un état neuf.
+     *
+     * <p>Rejouer depuis le début plutôt qu'appliquer une action de plus est ce qui garde la capture
+     * reproductible : {@code act} est appelée à chaque image rendue, pas une fois par image écrite.
+     */
+    private void replayScript(int frameIndex) {
+        if (frameIndex == scriptedFrame) {
+            return;
+        }
+        arena = ArenaSetup.trainingArena(layout.gridWidth());
+
+        for (int i = 0; i < frameIndex && i < SCRIPT.length; i++) {
+            lastResult = SCRIPT[i].applyTo(arena);
+        }
+        if (frameIndex > SCRIPT.length && !exhaustionReported) {
+            // Le dire plutôt que de laisser un relecteur croire que deux images identiques
+            // signalent un rendu figé.
+            System.out.println("[Starfall] le scénario de capture compte " + SCRIPT.length
+                    + " actions ; les images suivantes répètent l'état final");
+            exhaustionReported = true;
+        }
+        scriptedFrame = frameIndex;
+    }
+
+    /** Une action du scénario de capture. */
+    private interface ScriptedAction {
+        ActionResult applyTo(Arena arena);
+    }
+
+    private static final ScriptedAction[] SCRIPT = {
+            a -> a.swapWithTarget(),                 // la capacité, tout de suite : c'est l'intérêt
+            a -> a.step(Direction.LEFT),             // demi-tour
+            a -> a.step(Direction.LEFT),             // puis un pas
+            a -> a.swapWithTarget(),                 // échange dans l'autre sens
+    };
+
+    private int scriptedFrame = -1;
+    private boolean exhaustionReported;
+
+    /**
+     * @return vrai si une action a été déclenchée ; la souris et le clavier se partagent la règle
+     *         « une action par image »
+     */
+    private boolean readMouse() {
         Vector3 world = context.viewport().unproject(
                 new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0f));
         hoveredCell = layout.cellAt(world.x, world.y);
 
         if (Gdx.input.justTouched() && hoveredCell >= 0) {
             lastResult = arena.clickOn(hoveredCell);
+            return true;
         }
+        return false;
     }
 
     /**
@@ -122,11 +154,11 @@ public final class ArenaScene implements Scene {
                 || Gdx.input.isKeyJustPressed(Input.Keys.A)
                 || Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
             lastResult = arena.step(Direction.LEFT);
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)
+                || Gdx.input.isKeyJustPressed(Input.Keys.D)) {
             lastResult = arena.step(Direction.RIGHT);
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.E) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+        } else if (Gdx.input.isKeyJustPressed(Input.Keys.E)
+                || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             lastResult = arena.swapWithTarget();
         }
     }
@@ -144,12 +176,22 @@ public final class ArenaScene implements Scene {
      * Trois bandes horizontales seulement : le ciel, le mur derrière la grille, et le vide sous
      * elle. Le décor n'a rien à raconter tant que la lecture tactique n'est pas nette — et une
      * bande unie sous les dalles donne aux repères un fond sur lequel ils tranchent.
+     *
+     * <p>Les bandes couvrent <b>toute la zone dessinée</b>, pas seulement les 320x180 garantis.
+     * Peindre uniquement la zone garantie laissait, sur toute fenêtre qui n'est pas en 16:9, des
+     * bandes de couleur d'effacement à arête franche autour de l'arène : à 400x240, un îlot cerné
+     * de noir qui ressemble à un défaut d'affichage plus qu'à un décor.
      */
     private void drawBackdrop() {
-        painter.fill(0, 0, StarfallGame.MIN_WORLD_WIDTH, StarfallGame.MIN_WORLD_HEIGHT, SKY);
-        painter.fill(0, ArenaLayout.GROUND_Y + ArenaLayout.GROUND_HEIGHT,
-                StarfallGame.MIN_WORLD_WIDTH, 48, WALL);
-        painter.fill(0, 0, StarfallGame.MIN_WORLD_WIDTH, ArenaLayout.GROUND_Y, PIT);
+        var viewport = context.viewport();
+        int left = viewport.getDrawnLeft();
+        int bottom = viewport.getDrawnBottom();
+        int width = viewport.getDrawnWorldWidth();
+        int height = viewport.getDrawnWorldHeight();
+
+        painter.fill(left, bottom, width, height, SKY);
+        painter.fill(left, ArenaLayout.GROUND_Y + ArenaLayout.GROUND_HEIGHT, width, 48, WALL);
+        painter.fill(left, bottom, width, ArenaLayout.GROUND_Y - bottom, PIT);
     }
 
     private void drawGround() {
@@ -166,11 +208,8 @@ public final class ArenaScene implements Scene {
     }
 
     private void drawOccupants() {
-        for (int cell = 0; cell < layout.gridWidth(); cell++) {
+        for (int cell : arena.grid().occupiedCells()) {
             Occupant occupant = arena.grid().occupantAt(cell);
-            if (occupant == null) {
-                continue;
-            }
             var region = context.atlas().region(occupant.spriteName());
             int x = layout.figureLeft(cell);
             // Le héros est retourné selon son orientation ; c'est la lecture la plus immédiate de
@@ -240,6 +279,21 @@ public final class ArenaScene implements Scene {
             int height = 8 - 2 * i;
             painter.fill(tip + step * i, MARK_Y + 1 - height / 2, 1, height, HERO_MARK);
         }
+    }
+
+    /**
+     * La caméra reste calée sur le centre de la grille, quelle que soit sa largeur. La valeur vient
+     * de {@link ArenaLayout} et non d'une constante recopiée : sans cela, le couplage entre la
+     * caméra et la grille ne reposait que sur deux constantes qui se trouvaient coïncider.
+     */
+    @Override
+    public float cameraTargetX() {
+        return layout.cameraTargetX();
+    }
+
+    @Override
+    public float cameraTargetY() {
+        return StarfallGame.MIN_WORLD_HEIGHT / 2f;
     }
 
     @Override

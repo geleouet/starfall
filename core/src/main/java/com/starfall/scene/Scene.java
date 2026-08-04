@@ -29,10 +29,24 @@ public interface Scene {
      * Fait avancer la scène.
      *
      * @param time        temps écoulé, en secondes ; déterministe en mode capture
+     * @param frameIndex  numéro de l'image capturée, ou 0 hors mode capture ; permet à une scène de
+     *                    faire varier ce qu'elle montre sans cesser d'être reproductible
      * @param interactive faux en mode capture : la scène ne doit alors lire aucune entrée, sinon
      *                    les images cesseraient d'être reproductibles
      */
-    void act(float time, boolean interactive);
+    void act(float time, int frameIndex, boolean interactive);
+
+    /**
+     * Point que la caméra doit viser, en pixels-monde.
+     *
+     * <p>C'est la scène qui décide, et non le jeu : le défilement de démonstration hérité de M1 est
+     * une mire de non-régression, et le laisser piloter la caméra de l'arène y faisait sortir des
+     * cases de l'écran — une grille de 15 n'a que 10 px-monde de marge de chaque côté, contre une
+     * amplitude de défilement de 24.
+     */
+    float cameraTargetX();
+
+    float cameraTargetY();
 
     /** Dessine le contenu, en coordonnées monde, entre un {@code begin()} et un {@code end()}. */
     void drawWorld();

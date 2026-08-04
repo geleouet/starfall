@@ -2,11 +2,14 @@ package com.starfall.game;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** Tests des règles du combat : déplacement, orientation, capacité spéciale. */
 class ArenaTest {
@@ -37,8 +40,9 @@ class ArenaTest {
         }
 
         @Test
-        @DisplayName("Le milieu d'une grille paire penche à gauche, et c'est stable")
+        @DisplayName("Le milieu d'une grille paire penche à droite, et c'est stable")
         void theMiddleOfAnEvenGridIsWellDefined() {
+            // Grille de 6 : indices 0..5, milieux 2 et 3 ; on prend 3, donc a droite.
             assertEquals(3, new Arena(6).heroCell());
             assertEquals(5, new Arena(10).heroCell());
         }
@@ -233,9 +237,10 @@ class ArenaTest {
         }
 
         @Test
-        @DisplayName("Clavier et souris mènent au même état")
-        void mouseAndKeyboardAgree() {
-            // Les deux entrees sont de plein droit : elles doivent produire exactement le meme jeu.
+        @DisplayName("Une même intention se joue au clavier comme à la souris")
+        void thesameIntentIsReachableWithEitherInput() {
+            // Les deux entrees sont de plein droit : « avancer d'une case puis echanger » doit se
+            // jouer avec l'une comme avec l'autre, et donner le meme etat.
             Arena byKeyboard = new Arena(9);
             Arena byMouse = new Arena(9);
             byKeyboard.grid().place(7, pawn("cible"));
@@ -251,20 +256,74 @@ class ArenaTest {
             assertEquals(byKeyboard.hero().facing(), byMouse.hero().facing());
             assertEquals(byKeyboard.grid().occupiedCells(), byMouse.grid().occupiedCells());
         }
+
+        @Test
+        @DisplayName("Clic et flèche ne sont pas interchangeables sur une case occupée, et c'est voulu")
+        void clickingAnOccupiedNeighbourIsNotTheSameAsSteppingIntoIt() {
+            // Il serait faux d'affirmer que les deux entrees font toujours la meme chose : sur un
+            // voisin occupe, la fleche se cogne alors que le clic designe une intention sans
+            // ambiguite - « je veux aller la » - et la seule facon d'y aller est l'echange.
+            Arena byKey = new Arena(9);
+            Arena byClick = new Arena(9);
+            byKey.grid().place(5, pawn("voisin"));
+            byClick.grid().place(5, pawn("voisin"));
+
+            assertEquals(ActionResult.BLOCKED, byKey.step(Direction.RIGHT));
+            assertEquals(4, byKey.heroCell());
+
+            assertEquals(ActionResult.SWAPPED, byClick.clickOn(5));
+            assertEquals(5, byClick.heroCell());
+        }
     }
 
     @Nested
-    @DisplayName("Résultats d'action")
-    class Results {
+    @DisplayName("Garde-fous d'API")
+    class Guards {
 
         @Test
-        @DisplayName("Seules les actions qui changent l'état le déclarent")
-        void onlyRealActionsChangeState() {
-            assertTrue(ActionResult.MOVED.changedState());
-            assertTrue(ActionResult.TURNED.changedState());
-            assertTrue(ActionResult.SWAPPED.changedState());
-            assertTrue(!ActionResult.BLOCKED.changedState());
-            assertTrue(!ActionResult.NO_TARGET.changedState());
+        @DisplayName("Une direction nulle est refusée au lieu de corrompre l'orientation")
+        void aNullDirectionIsRejected() {
+            // Direction.towards peut rendre null ; l'accepter posait une orientation nulle en
+            // silence, et le premier calcul de cible suivant partait en NullPointerException.
+            Arena arena = new Arena(9);
+
+            assertThrows(IllegalArgumentException.class, () -> arena.step(null));
+            assertEquals(Direction.RIGHT, arena.hero().facing(), "l'orientation doit etre intacte");
+            assertEquals(-1, arena.swapTarget(), "et l'arene doit rester utilisable");
+        }
+    }
+
+    @Nested
+    @DisplayName("Mise en place d'entraînement")
+    class Setup2 {
+
+        @ParameterizedTest(name = "grille de {0} cases")
+        @ValueSource(ints = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15})
+        @DisplayName("Il y a toujours un mannequin de chaque côté du héros")
+        void thereIsAlwaysATargetOnBothSides(int gridWidth) {
+            // Sans ca, la capacite d'echange n'est essayable que dans un sens - c'etait le cas a
+            // 5 cases, ou les deux mannequins se retrouvaient du meme cote.
+            Arena arena = ArenaSetup.trainingArena(gridWidth);
+            int hero = arena.heroCell();
+
+            assertTrue(arena.grid().firstOccupied(hero, Direction.LEFT) >= 0,
+                    "aucune cible a gauche sur une grille de " + gridWidth);
+            assertTrue(arena.grid().firstOccupied(hero, Direction.RIGHT) >= 0,
+                    "aucune cible a droite sur une grille de " + gridWidth);
+        }
+
+        @ParameterizedTest(name = "grille de {0} cases")
+        @ValueSource(ints = {5, 6, 9, 15})
+        @DisplayName("Les mannequins ne recouvrent jamais le héros")
+        void dummiesNeverOverlapTheHero(int gridWidth) {
+            Arena arena = ArenaSetup.trainingArena(gridWidth);
+
+            assertSame(arena.hero(), arena.grid().occupantAt(arena.heroCell()));
+            // Trois mannequins, sauf sur la plus petite grille où deux des emplacements visés se
+            // confondent — deux suffisent, l'essentiel étant qu'il y en ait un de chaque côté.
+            int expectedDummies = gridWidth == 5 ? 2 : 3;
+            assertEquals(expectedDummies + 1, arena.grid().occupiedCells().size(),
+                    expectedDummies + " mannequins et le heros");
         }
     }
 }

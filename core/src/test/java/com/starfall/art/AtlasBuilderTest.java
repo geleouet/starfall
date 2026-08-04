@@ -246,6 +246,45 @@ class AtlasBuilderTest {
         assertTrue(error.getMessage().contains("UTF-8"), error.getMessage());
     }
 
+    /**
+     * Le héros est dessiné tourné vers la droite et le jeu le retourne pour la gauche : s'il est
+     * symétrique, le retournement ne se voit pas et l'orientation — une mécanique verrouillée du
+     * jeu — ne repose plus que sur un trait de 2 px sous la dalle.
+     *
+     * <p>La première version du sprite ne différait de son miroir que par 16 pixels sur 512, tous
+     * dans les chaussures. Rien ne l'épinglait.
+     */
+    @Test
+    @DisplayName("Le héros est franchement asymétrique, sinon son retournement ne se voit pas")
+    void theHeroSpriteIsVisiblyDirectional(@TempDir Path dir) throws IOException {
+        AtlasBuilder.Result result = AtlasBuilder.build(locateArtDirectory(), dir.resolve("out"));
+        BufferedImage image = ImageIO.read(result.image().toFile());
+        AtlasIndex index = AtlasIndex.parse("index",
+                Files.readAllLines(result.index(), StandardCharsets.UTF_8));
+        AtlasLayout.Placement hero = index.region("hero/idle");
+
+        int differing = 0;
+        java.util.Set<Integer> rows = new java.util.HashSet<>();
+        for (int y = 0; y < hero.height(); y++) {
+            for (int x = 0; x < hero.width(); x++) {
+                int left = image.getRGB(hero.x() + x, hero.y() + y);
+                int mirrored = image.getRGB(hero.x() + hero.width() - 1 - x, hero.y() + y);
+                if (left != mirrored) {
+                    differing++;
+                    rows.add(y);
+                }
+            }
+        }
+
+        int total = hero.width() * hero.height();
+        assertTrue(differing > total / 5,
+                "le heros ne differe de son miroir que par " + differing + " pixels sur " + total
+                        + " : son retournement sera invisible");
+        assertTrue(rows.size() > hero.height() / 2,
+                "l'asymetrie ne porte que sur " + rows.size() + " lignes sur " + hero.height()
+                        + " : elle doit se lire sur toute la silhouette, pas seulement sur les pieds");
+    }
+
     @Test
     @DisplayName("Deux sources différentes donnent deux atlas différents")
     void differentSourcesGiveDifferentAtlases(@TempDir Path dir) throws IOException {

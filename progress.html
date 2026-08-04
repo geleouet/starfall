@@ -90,7 +90,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 et M3 revus · M4 construit · review de M4 à faire</b></div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1, M3 et M4 revus et corrigés · prêt pour M5</b></div>
 </header>
 
 <div class="banner warn">
@@ -109,6 +109,7 @@
   <tr><td>Entrées</td><td>Clavier <b>et</b> souris, les deux de plein droit.</td></tr>
   <tr><td>Grille</td><td>Largeur configurable de 5 à 15 cases.</td></tr>
   <tr><td>File d'actions</td><td><b>5 tuiles</b> (au lieu de 3 dans la référence). Exécution dernier-entré → premier-sorti.<span class="why">Seul écart mécanique délibéré vis-à-vis de la référence. Voir « Points d'attention » plus bas.</span></td></tr>
+  <tr><td>Orientation</td><td>Se retourner <b>coûte une action</b> : appuyer vers une direction que l'on ne regarde pas fait pivoter sans avancer.<span class="why">Tranché le 4 août 2026. Deuxième écart mécanique délibéré vis-à-vis de la référence, où l'on se retourne et avance d'un même geste. L'orientation devient une décision tactique à part entière, ce qui va de pair avec une file d'actions où chaque tour compte.</span></td></tr>
   <tr><td>Fidélité</td><td>Boucle centrale exacte : file LIFO, recharges en points, tuiles Free-Play, intentions ennemies télégraphiées, traits (Agressif / Rapide / Explosif / Fonceur), combo kills.<br>Contenu original, mais archétypes calqués sur la référence : héros de type Vagabonde (échange de place), ennemis mêlée / chargeur / distance / agressif, boss qui invoque et charge.</td></tr>
   <tr><td>Audio</td><td>Aucun.</td></tr>
   <tr><td>Langue</td><td>Textes et interface en français, commentaires et docs en français, <b>identifiants de code en anglais</b> (convention Java).<span class="why">Tranché le 4 août 2026 : le code appelle en permanence une API anglaise, et mélanger <code>grille.tuileEn(x)</code> avec <code>batch.draw(...)</code> se lit mal. Ce n'est plus une hypothèse.</span></td></tr>
@@ -122,7 +123,7 @@
   <tr><td><span class="pill p-done">revu</span></td><td><b>M1 — Squelette et amorçage</b><span class="why">libGDX 1.14.2, Gradle 9.6.1, toolchain Java 25, viewport à échelle entière, scène de test, capture PNG automatisée. <b>Review indépendante passée : elle a conclu « M1 ne tient pas ».</b> Défaut central corrigé, 85 tests verts sur 12 suites (contre 26 sur 5). Voir le journal de review.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M2 — Harnais de capture</b><span class="why">Avancé et replié dans M1 : <code>--screenshot &lt;dir&gt; --size WxH --frames N</code> rend puis quitte proprement, sans intervention humaine. Durci après review : refuse désormais de faire croire au succès quand la fenêtre obtenue n'est pas celle demandée, quand une option est mal orthographiée, ou quand les images seraient toutes identiques.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M3 — Pipeline pixel art</b><span class="why">Palette maître en texte, format <code>.sprite</code> (grilles de caractères indexées), générateur d'atlas déterministe branché sur le build, chargement et rendu à l'écran. 5 sprites de démonstration. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 147 tests verts sur 17 suites.</span></td></tr>
-  <tr><td><span class="pill p-done">construit</span></td><td><b>M4 — Grille et héros</b><span class="why">Grille linéaire de 5 à 15 cases, déplacement, orientation, capacité d'échange de place, cadrage caméra. Clavier <b>et</b> souris, vérifiés en pilotant la vraie fenêtre. 227 tests verts sur 24 suites. <b style="color:var(--gold)">Review indépendante pas encore passée.</b></span></td></tr>
+  <tr><td><span class="pill p-done">revu</span></td><td><b>M4 — Grille et héros</b><span class="why">Grille linéaire de 5 à 15 cases, déplacement, orientation, capacité d'échange de place, cadrage caméra. Clavier <b>et</b> souris. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 271 tests verts sur 25 suites.</span></td></tr>
   <tr><td><span class="pill p-now">suivant</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution LIFO, recharges, Free-Play, ajout / retrait sans coût de tour.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">4 archétypes, traits, IA de file, bulles d'intention télégraphiées.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M7 — Résolution du combat</b><span class="why">Dégâts, statuts, collisions et repoussements, combo kills, enchaînement des vagues.</span></td></tr>
@@ -133,15 +134,15 @@
 
 <h2>En cours de construction</h2>
 <div class="banner">
-  <span class="k">M4 construit — review indépendante à lancer</span>
-  <p>Le jeu existe. Une grille linéaire, un héros qui s'y déplace, s'y oriente et échange sa place avec le premier occupant devant lui. Le tout jouable au clavier comme à la souris, et vérifié en pilotant réellement la fenêtre — pas seulement par des tests.</p>
-  <p><b>Ensuite :</b> review indépendante de M4, puis M5 — la file d'actions de 5 tuiles.</p>
+  <span class="k">Prochaine étape — M5, la file d'actions</span>
+  <p>Le jeu existe. Une grille linéaire, un héros qui s'y déplace, s'y oriente et échange sa place avec le premier occupant devant lui. Jouable au clavier comme à la souris, relu en contexte neuf et corrigé.</p>
+  <p><b>Reste à faire :</b> file de 5 tuiles, exécution dernier-entré premier-sorti, recharges en points, tuiles Free-Play, ajout et retrait sans coût de tour.</p>
 </div>
 
 <h3>Les règles de M4</h3>
 <table>
   <tr><td>Grille</td><td>Une ligne de 5 à 15 cases, une case = un occupant au plus.<span class="why">La grille est la seule détentrice des positions : un occupant ne connaît pas la sienne. Deux sources de vérité, c'est une désynchronisation qui attend son heure.</span></td></tr>
-  <tr><td>Orientation</td><td>Appuyer vers là où l'on ne regarde pas <b>fait se retourner, sans avancer</b>. Appuyer vers là où l'on regarde fait avancer.<span class="why">Écart assumé vis-à-vis de la référence, où l'on se retourne et avance d'un même geste. L'orientation devient une ressource tactique — voir « Besoin de ton avis ».</span></td></tr>
+  <tr><td>Orientation</td><td>Appuyer vers là où l'on ne regarde pas <b>fait se retourner, sans avancer</b>. Appuyer vers là où l'on regarde fait avancer.<span class="why">Écart assumé vis-à-vis de la référence, et <b>validé</b> : c'est désormais une décision verrouillée.</span></td></tr>
   <tr><td>Capacité</td><td>La Vagabonde échange sa place avec le <b>premier</b> occupant devant elle, aussi loin soit-il.<span class="why">Elle traverse une ligne au lieu de la subir, et laisse une cible là où elle était.</span></td></tr>
   <tr><td>Souris</td><td>Un clic ne déclenche <b>jamais plus d'une action</b> : le seul pas qui rapproche de la case visée.<span class="why">Sinon un clic à l'autre bout enchaînerait plusieurs tours d'un coup, ce qui n'a aucun sens au tour par tour et rendrait la souris moins précise que le clavier.</span></td></tr>
   <tr><td>Cadrage</td><td>Caméra calée sur le centre de la grille. Une case fait 20 px-monde, donc 15 cases font 300 px : <b>toute grille tient dans la zone garantie de 320</b>, quelle que soit la fenêtre.<span class="why">Une case de 24 px aurait débordé et forcé la caméra à couper une case selon la partie.</span></td></tr>
@@ -169,8 +170,18 @@
 <h2>Planches-contact</h2>
 
 <figure class="sheet">
-  <img src="captures/m4/starfall-1280x720-frame00.png" alt="Starfall M4, arène 9 cases">
-  <figcaption><b>M4 — l'arène, 9 cases.</b> Toute la lecture tactique tient sur une seule bande sous les dalles : le repère du héros <i>est</i> la flèche qui dit son orientation, un trait la relie à la cible de sa capacité, et un repère or marque cette cible. Regroupés, ils se lisent comme une phrase — « moi, jusqu'à là ». Dispersés — un repère sous les pieds, une ligne au-dessus des têtes — ils obligeaient l'œil à trois allers-retours et à compter les cases ; c'était la première version, elle ne passait pas la barre.</figcaption>
+  <img src="captures/m4/starfall-1280x720-frame00.png" alt="Starfall M4, arène 9 cases, héros tourné à droite">
+  <figcaption><b>M4 — l'arène, 9 cases. Le héros regarde à droite.</b> Deux lectures indépendantes le disent : la silhouette elle-même — capuche pointue, visage cyan au bord avant, cape qui traîne derrière — et la bande de repères sous les dalles. Celle-ci tient toute la lecture tactique sur une seule ligne : le repère du héros <i>est</i> la flèche de son orientation, un trait le relie à la cible de sa capacité, un repère or marque cette cible. Regroupés, ils se lisent comme une phrase, « moi, jusqu'à là ».</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/m4/starfall-1280x720-frame02.png" alt="Starfall M4, héros tourné à gauche après un échange">
+  <figcaption><b>Le même héros, deux actions plus tard : il regarde à gauche.</b> Il a d'abord échangé sa place avec le mannequin de la case 7 — celui-ci se retrouve case 5 — puis fait demi-tour. La silhouette est retournée sans ambiguïté. <b>C'est ce que la première version ne faisait pas :</b> l'ancien sprite ne différait de son miroir que par 16 pixels sur 512, tous dans les chaussures, et le retournement ne se voyait pas.</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/m4-etroit/starfall-400x240-frame00.png" alt="Starfall M4, grille de 15 dans une fenêtre 400x240">
+  <figcaption><b>Le cas le plus contraint : 15 cases dans une fenêtre de 400×240.</b> Échelle ×1, et le décor couvre toute la fenêtre. Auparavant l'arène n'était peinte que sur 320×180 : sur toute fenêtre qui n'est pas en 16:9, elle flottait dans un rectangle noir à arête franche, plus proche du défaut d'affichage que du décor.</figcaption>
 </figure>
 
 <figure class="sheet">
@@ -217,17 +228,34 @@
 
 <h2>Journal de review</h2>
 
-<div class="rev">
-  <div class="hd">M4 — <b>Review indépendante : à faire</b></div>
-  <p>Le jalon vient d'être construit ; la review en contexte neuf n'a pas encore été lancée.</p>
-  <p style="color:var(--dim2);font-size:12.5px">Vérifié par mes soins en attendant : build en sortie 0 sans avertissement, <b>227 tests verts sur 24 suites</b>, et aucune régression de grille pixel après le refactoring en scènes (0 plage de couleur non multiple de l'échelle sur ~16 500 mesurées, dans les deux scènes).</p>
-  <p style="color:var(--dim2);font-size:12.5px;margin-bottom:0"><b>Et surtout : les entrées ont été pilotées pour de vrai.</b> J'ai lancé la fenêtre, déplacé le curseur, cliqué, envoyé des codes de balayage clavier, et relu l'image de la fenêtre pour vérifier que le héros avait bougé à la bonne case. C'est ce qui a mis au jour le défaut AZERTY ci-dessous — un test unitaire ne l'aurait jamais vu.</p>
+<div class="rev pass">
+  <div class="hd">M4 — pré-review — <b>Deux défauts trouvés en pilotant la vraie fenêtre</b></div>
+  <p>Avant même de lancer la review, j'ai piloté la fenêtre pour de vrai : curseur déplacé, clics et codes de balayage clavier envoyés, image de la fenêtre relue pour vérifier que le héros avait bougé à la bonne case.</p>
+  <p><b>1. La touche « A » ne faisait rien sur un clavier français.</b> libGDX rapporte les touches par <em>position physique</em> sur une disposition américaine : <code>Keys.A</code> désigne la touche à l'emplacement du A américain, qui porte la lettre <b>Q</b> sur un AZERTY. Un joueur français appuyant sur la touche marquée A n'obtenait rien. <i>Corrigé :</i> Q est lié en plus de A.</p>
+  <p style="margin-bottom:0"><b>2. Un clic traversait le bandeau d'interface.</b> Le pointage ne tenait compte que de l'abscisse : toute la colonne d'une case était cliquable jusqu'en haut de la fenêtre. <i>Corrigé :</i> le pointage a maintenant une bande verticale.</p>
+</div>
+
+<div class="rev fail">
+  <div class="hd">M4 — passe 1 — <b>Verdict : tient avec réserves</b></div>
+  <p>Relecteur en contexte neuf. Il a fuzzé <b>800 000 actions</b> (4 000 parties × 200 actions, toutes largeurs), rejoué le calcul de cadrage sur 11 largeurs × 18 tailles de fenêtre, analysé 22 captures qu'il a produites, et piloté lui aussi la fenêtre à coups d'injections Win32.</p>
+
+  <p><b>Ce qu'il a confirmé :</b> aucun invariant du modèle en défaut sur 800 000 actions — le héros ne sort jamais de la grille, aucun occupant ne disparaît ni ne se dédouble, aucune case ne porte deux occupants ; le cadrage tient pour toutes les largeurs, vérifié à la fois par le calcul et en localisant la bande de dalles pixel par pixel ; un clic ne fait qu'un pas même bouton maintenu trois secondes ; le bandeau ne se traverse pas ; et <b>le pointage suit bien la caméra</b> — il l'a prouvé en cliquant pendant un défilement, là où un <code>unproject</code> naïf aurait désigné la mauvaise case. M1 et M3 sont intacts : ses captures de la mire sont <b>identiques au pixel près</b> aux références versionnées.</p>
+
+  <p><b>Mais l'affirmation de lisibilité la plus mise en avant du jalon était fausse.</b> J'avais écrit, en commentaire, que le retournement du sprite était « la lecture la plus immédiate de <i>où est-ce que je regarde</i> ». Il a mesuré le sprite du héros contre son propre miroir : <b>16 pixels différents sur 512, tous dans les chaussures</b>, et ces 16-là n'étaient qu'un artefact de gabarit. Le retournement était un no-op visuel. Toute l'orientation — pourtant une mécanique verrouillée — reposait sur un trait de 2 px sous les dalles, invisible pour qui regarde le personnage. <i>Corrigé :</i> le héros a été redessiné franchement directionnel — capuche pointue, visage cyan collé au bord avant, cape qui traîne derrière. Il diffère maintenant de son miroir par <b>188 pixels sur 512, répartis sur 27 lignes sur 32</b>, et un test l'épingle.</p>
+
+  <p><b>2. La caméra de contrôle coupait des cases.</b> Le défilement de démonstration hérité de M1 pilotait la caméra de <i>toutes</i> les scènes, avec une amplitude de 24 px-monde — alors qu'une grille de 15 n'a que 10 px de marge. Sur 55 instants échantillonnés, 40 coupaient la grille ; et comme <code>--frames</code> vaut 2 par défaut, toute capture d'une grille de 15 produisait une deuxième image décadrée. <i>Corrigé :</i> c'est désormais la <b>scène</b> qui dit où la caméra regarde. La mire garde son défilement, l'arène reste calée sur le centre de sa grille. Vérifié : sur 6 images d'une grille de 15, la bande de dalles occupe exactement les mêmes 1200 px.</p>
+
+  <p><b>3. L'arène ne peignait que 320×180.</b> Sur toute fenêtre non 16:9, le reste de la zone sûre restait à la couleur d'effacement, avec une arête franche — à 400×240, un îlot cerné de noir qui ressemble à un bug d'affichage. <i>Corrigé :</i> le fond couvre toute la zone dessinée.</p>
+
+  <p><b>Cinq autres, tous corrigés :</b> <code>--grid 20</code> ouvrait la fenêtre puis plantait avec le code 1 au lieu de sortir en 2 ; le clavier pouvait déclencher trois actions dans une seule image (trois <code>if</code> indépendants) alors que la souris respectait la règle ; <code>step(null)</code> posait une orientation nulle en silence ; le test « la caméra reste calée sur le centre de la grille » était une tautologie, et la méthode qu'il testait n'était appelée nulle part en production — la caméra recopiait une constante ; et deux libellés de test affirmaient le contraire de ce qu'ils prouvaient.</p>
+
+  <p style="margin-bottom:0"><b>Trous de test comblés.</b> <code>--grid</code> et <code>--scene</code>, les deux options ajoutées par M4, n'étaient testées nulle part — c'est ce qui a laissé passer le défaut du code de sortie. On passe de <b>227 à 271 tests</b>, dont un qui compare le héros à son miroir et un autre qui vérifie qu'il y a toujours une cible de chaque côté du héros, à toutes les largeurs.</p>
 </div>
 
 <div class="rev pass">
-  <div class="hd">M4 — <b>Deux défauts trouvés en pilotant la vraie fenêtre</b></div>
-  <p><b>1. La touche « A » ne faisait rien sur un clavier français.</b> libGDX rapporte les touches par <em>position physique</em> sur une disposition américaine : <code>Keys.A</code> désigne la touche à l'emplacement du A américain, qui porte la lettre <b>Q</b> sur un AZERTY. Un joueur français appuyant sur la touche marquée A n'obtenait rien. <i>Corrigé :</i> Q est lié en plus de A. Pour un jeu dont toute l'interface est en français, c'était le genre de défaut qui serait passé jusqu'à la première personne qui essaie.</p>
-  <p style="margin-bottom:0"><b>2. Un clic traversait le bandeau d'interface.</b> Le pointage ne tenait compte que de l'abscisse : toute la colonne d'une case était cliquable du bas de la fenêtre jusqu'en haut, donc cliquer sur le bandeau déplaçait le héros. <i>Corrigé :</i> le pointage a maintenant une bande verticale — généreuse, viser une case ne doit pas demander de la précision, mais bornée.</p>
+  <div class="hd">M4 — passe 2 — <b>Contre-vérification, par mes soins</b></div>
+  <p>Rejoué les scénarios du relecteur : <code>--grid 20</code> sort maintenant en 2 avec l'aide, sans ouvrir de fenêtre ; sur 6 images d'une grille de 15, la bande de dalles est identique au pixel près ; à 400×240 le fond couvre toute la fenêtre.</p>
+  <p style="margin-bottom:0">Et une vérification que je devais à la mire : après avoir déplacé le défilement dans la scène, ses captures diffèrent des anciennes — j'ai localisé <b>toutes</b> les différences dans le rectangle monde x=12..25, y=27..56, c'est-à-dire exactement l'emplacement du héros dans la vitrine. Le changement vient du sprite redessiné, pas d'une régression de caméra.</p>
 </div>
 
 <div class="rev fail">
@@ -287,8 +315,7 @@
 <table>
   <tr><td><span class="pill p-block">à trancher</span></td><td><b>File de 5 : conséquence mécanique</b><span class="why">Passer de 3 à 5 emplacements change beaucoup l'économie de tours : plafond de combo bien plus haut, engagement plus long, et davantage de tours passés à charger la file en étant vulnérable. Je vais recalibrer les recharges et la pression ennemie autour de ça plutôt que de reprendre les chiffres de la référence — mais si tu voulais 5 emplacements <i>avec</i> l'équilibrage d'origine, dis-le maintenant, ça change le jalon M10.</span></td></tr>
   <tr><td><span class="pill p-wait">signalé</span></td><td><b>M1 — points non couverts</b><span class="why">Aucun n'est bloquant, mais autant que tu les saches : le plein écran (F11) est implémenté mais n'a jamais été testé automatiquement ; LWJGL est épinglé en 3.3.6 au lieu du 3.3.3 livré par libGDX, pour supprimer un avertissement JNI sous JDK 25 ; aux tailles non multiples, une colonne de débordement de moins d'un pixel-monde est visible sur les bords au lieu d'afficher des bandes noires — choix délibéré, et désormais explicitement <i>en dehors</i> de la zone garantie ; enfin <code>run.bat</code> renvoie le code 1 de Gradle et non le code 3 du jeu quand une capture n'est pas conforme (le message d'erreur, lui, est explicite).</span></td></tr>
-  <tr><td><span class="pill p-block">à trancher</span></td><td><b>M4 — se retourner coûte-t-il une action ?</b><span class="why">J'ai implémenté : appuyer vers une direction que l'on ne regarde pas <b>fait se retourner sans avancer</b>, et il faut réappuyer pour bouger. L'orientation devient une vraie décision, ce qui va bien avec une file d'actions où chaque tour compte.<br><b>La référence fait l'inverse</b> : on se retourne et on avance d'un même geste. C'est plus fluide, mais l'orientation cesse d'être un choix.<br>Ça change la sensation du jeu et l'équilibrage de M10. Dis-moi si tu préfères la règle de la référence — c'est une ligne à changer aujourd'hui, beaucoup plus après M5.</span></td></tr>
-  <tr><td><span class="pill p-wait">signalé</span></td><td><b>M4 — ce qui reste ouvert</b><span class="why">Les trois occupants posés sur la grille sont des <b>mannequins inertes</b> : aucun comportement, ils occupent une case pour que la capacité d'échange ait quelque chose à viser. Les vrais ennemis arrivent en M6. Par ailleurs le décor se réduit à trois bandes horizontales : tant que la lecture tactique n'est pas jugée nette, y ajouter de l'atmosphère ne ferait que masquer un défaut de lisibilité.</span></td></tr>
+  <tr><td><span class="pill p-wait">signalé</span></td><td><b>M4 — ce qui reste ouvert</b><span class="why">Les occupants posés sur la grille sont des <b>mannequins inertes</b> : aucun comportement, ils occupent une case pour que la capacité d'échange ait quelque chose à viser, et empruntent volontairement le sprite d'ennemi plutôt que d'en avoir un à eux. Les vrais ennemis arrivent en M6.<br>Deux remarques du relecteur que je n'ai pas traitées, et pourquoi : le <b>trait de liaison et le repère de cible ne se distinguent que par l'épaisseur</b> (1 px contre 2), ce qui demande de regarder à ×1 — un marquage sur la dalle cible trancherait mieux, mais il entrerait en concurrence avec le surlignage de survol, et je préfère trancher ça quand M5 aura ajouté ses propres repères ; et le <b>surlignage de survol s'affiche sur des cases qu'un clic ne peut pas atteindre</b>, ce qui reste à revoir avec l'interface de M8. Enfin le décor se réduit à trois bandes horizontales : tant que la lecture tactique n'est pas jugée nette, y ajouter de l'atmosphère ne ferait que masquer un défaut de lisibilité.</span></td></tr>
   <tr><td><span class="pill p-wait">signalé</span></td><td><b>M3 — ce qui reste ouvert</b><span class="why">Le format ne porte pour l'instant que <code>@sprite</code> : pas de point d'ancrage, pas d'animation, pas de variantes de couleur. Rien de tout cela n'est nécessaire avant M6, et une directive inconnue est désormais refusée, donc l'ajout sera visible.<br>Deux limites que je n'ai pas fermées, et pourquoi : <b>aucun test « golden »</b> ne relie <code>art/</code> aux captures du dépôt — la reproductibilité est constatée à la main à chaque jalon, mais un tel test casserait à chaque modification volontaire d'un sprite, pour un bénéfice faible ; et la <b>vérification de désynchronisation image/index dans <code>SpriteAtlas</code></b> n'est pas testée automatiquement, parce qu'elle demande un contexte OpenGL (la validation des régions, elle, a été déplacée dans <code>AtlasIndex</code> et est testée sans GL). Enfin les cinq sprites livrés sont des sprites de démonstration : le contenu réel vient avec M4 et M6, et c'est là que la barre « lisibilité tactique » s'appliquera vraiment.</span></td></tr>
 </table>
 

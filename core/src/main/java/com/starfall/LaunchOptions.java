@@ -1,5 +1,7 @@
 package com.starfall;
 
+import com.starfall.game.Grid;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -93,11 +95,19 @@ public final class LaunchOptions {
                         }
                         break;
                     }
-                    case "--grid":
-                        // Les bornes 5 à 15 sont celles de Grid : les redire ici les ferait diverger
-                        // le jour où elles bougeraient. On ne verifie que la forme.
+                    case "--grid": {
+                        // Les bornes viennent de Grid, elles ne sont pas recopiées : les redire ici
+                        // les ferait diverger le jour où elles bougeraient. En revanche il faut les
+                        // vérifier ICI. Ne contrôler que la forme laissait « --grid 20 » ouvrir la
+                        // fenêtre puis planter avec le code 1, alors qu'une ligne de commande
+                        // invalide doit sortir en 2 sans rien ouvrir.
                         gridWidth = requirePositive(requireValue(args, ++i, arg), arg);
+                        if (gridWidth < Grid.MIN_WIDTH || gridWidth > Grid.MAX_WIDTH) {
+                            throw new IllegalArgumentException("--grid attend de " + Grid.MIN_WIDTH
+                                    + " à " + Grid.MAX_WIDTH + " cases, reçu : " + gridWidth);
+                        }
                         break;
+                    }
                     case "--help":
                     case "-h":
                         helpRequested = true;
@@ -146,7 +156,8 @@ public final class LaunchOptions {
                 + "  --size <L>x<H>           taille de la fenêtre (défaut " + DEFAULT_WIDTH + "x" + DEFAULT_HEIGHT + ")\n"
                 + "  --frames <N>             images à capturer en mode capture (défaut " + DEFAULT_FRAMES + ")\n"
                 + "  --scene <nom>            " + String.join(" ou ", SCENES) + " (défaut " + DEFAULT_SCENE + ")\n"
-                + "  --grid <N>               largeur de la grille, 5 à 15 cases (défaut " + DEFAULT_GRID_WIDTH + ")\n"
+                + "  --grid <N>               largeur de la grille, " + Grid.MIN_WIDTH + " à "
+                + Grid.MAX_WIDTH + " cases (défaut " + DEFAULT_GRID_WIDTH + ")\n"
                 + "  --help                   affiche cette aide\n";
     }
 

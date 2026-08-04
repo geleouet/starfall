@@ -1,5 +1,7 @@
 package com.starfall.scene;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -54,6 +56,10 @@ public final class CalibrationScene implements Scene {
     private Texture checker;
     private Texture checker2;
 
+    private boolean scrolling;
+    private float cameraX = StarfallGame.MIN_WORLD_WIDTH / 2f;
+    private float cameraY = StarfallGame.MIN_WORLD_HEIGHT / 2f;
+
     @Override
     public String name() {
         return "calibration";
@@ -67,9 +73,41 @@ public final class CalibrationScene implements Scene {
         this.checker2 = checkerTexture(CHECKER2_W, CHECKER2_H, 2);
     }
 
+    /**
+     * La mire est statique ; c'est la caméra qui bouge.
+     *
+     * <p>Ce défilement est le cœur de la mire : il promène la caméra sur des cibles fractionnaires,
+     * et l'image doit rester nette. Il vit ici, et nulle part ailleurs — le laisser piloter la
+     * caméra de l'arène y faisait sortir des cases de l'écran.
+     */
     @Override
-    public void act(float time, boolean interactive) {
-        // La mire est statique : c'est la caméra qui bouge, et c'est le jeu qui la pilote.
+    public void act(float time, int frameIndex, boolean interactive) {
+        if (interactive) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                scrolling = !scrolling;
+            }
+        } else {
+            // En capture : la première image au repos, les suivantes caméra en mouvement.
+            scrolling = frameIndex > 0;
+        }
+
+        if (scrolling) {
+            cameraX = StarfallGame.MIN_WORLD_WIDTH / 2f + MathUtils.sin(time * 0.6f) * 24f;
+            cameraY = StarfallGame.MIN_WORLD_HEIGHT / 2f + MathUtils.cos(time * 0.4f) * 10f;
+        } else {
+            cameraX = StarfallGame.MIN_WORLD_WIDTH / 2f;
+            cameraY = StarfallGame.MIN_WORLD_HEIGHT / 2f;
+        }
+    }
+
+    @Override
+    public float cameraTargetX() {
+        return cameraX;
+    }
+
+    @Override
+    public float cameraTargetY() {
+        return cameraY;
     }
 
     @Override

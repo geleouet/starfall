@@ -30,9 +30,4 @@ public enum ActionResult {
     public String label() {
         return label;
     }
-
-    /** Vrai si l'état du jeu a changé. */
-    public boolean changedState() {
-        return this == MOVED || this == TURNED || this == SWAPPED;
-    }
 }
