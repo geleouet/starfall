@@ -366,4 +366,102 @@ class PixelScaleTest {
             assertTrue(huge.worldHeight >= 1);
         }
     }
+
+    /**
+     * Les résolutions d'écran réelles, c'est-à-dire ce que la touche « plein écran » donne au
+     * viewport.
+     *
+     * <h2>Pourquoi elles méritent leur propre test</h2>
+     *
+     * <p>Le plein écran est signalé depuis le premier jalon comme « implémenté mais jamais testé
+     * automatiquement », et pour une bonne raison : on ne peut pas ouvrir de fenêtre dans un test.
+     * Mais ce que <code>F11</code> fait réellement tient en une ligne — il passe au viewport la
+     * résolution du moniteur — et cette partie-là, elle, est du calcul pur.
+     *
+     * <p>Le balayage exhaustif s'arrête à 2000x1200, ce qui couvre le 1080p et rien au-delà. Or les
+     * résolutions qui comptent aujourd'hui sont précisément celles qu'il ne visite pas : le 1440p,
+     * l'ultra-large 21:9, le 4K. Un test qui s'arrête juste avant les tailles où le jeu passera le
+     * plus clair de son temps en plein écran ne dit pas grand-chose.
+     */
+    @Nested
+    @DisplayName("Résolutions d'écran réelles, celles que donne le plein écran")
+    class FullscreenResolutions {
+
+        /** Ce qu'un moniteur rend vraiment, du portable au 4K, ratios exotiques compris. */
+        private static final int[][] DISPLAY_MODES = {
+                {1280, 720},   {1366, 768},   {1440, 900},   {1600, 900},
+                {1680, 1050},  {1920, 1080},  {1920, 1200},  {2048, 1152},
+                {2560, 1080},  // 21:9
+                {2560, 1440},  {2560, 1600},
+                {3440, 1440},  // 21:9 large
+                {3840, 1080},  // double écran 32:9
+                {3840, 2160},  // 4K
+                {5120, 1440},  // super ultra-large
+        };
+
+        @Test
+        @DisplayName("Aucune résolution d'écran ne rogne la zone garantie")
+        void noDisplayModeEverClipsTheGuaranteedArea() {
+            for (int[] mode : DISPLAY_MODES) {
+                int w = mode[0];
+                int h = mode[1];
+                PixelScale s = at(w, h);
+                String where = w + "x" + h;
+
+                assertTrue(s.scale >= 1, where + " : echelle non entiere ou nulle");
+                assertTrue(s.safeWorldWidth >= MIN_W,
+                        where + " : zone garantie retrecie a " + s.safeWorldWidth + " de large");
+                assertTrue(s.safeWorldHeight >= MIN_H,
+                        where + " : zone garantie retrecie a " + s.safeWorldHeight + " de haut");
+                assertSafeAreaFullyOnScreen(s, w, h);
+
+                // Pas de bandes noires, et pas plus d'une colonne de débordement par bord.
+                assertTrue(s.screenX <= 0 && s.screenY <= 0, where + " : bandes noires");
+                assertTrue(s.screenX + s.screenWidth >= w, where + " : le viewport ne couvre pas");
+                assertTrue(s.screenY + s.screenHeight >= h, where + " : le viewport ne couvre pas");
+                assertTrue(s.bleedX <= 1 && s.bleedY <= 1, where + " : debordement de plus d'un pixel");
+            }
+        }
+
+        /**
+         * Un pixel-monde doit rester carré : c'est la promesse du projet depuis le premier jalon, et
+         * les ratios exotiques — 32:9, 21:9 — sont exactement ce qui la mettrait en défaut si
+         * l'échelle était calculée par axe.
+         */
+        @Test
+        @DisplayName("Le pixel reste carré même en 32:9")
+        void thePixelStaysSquareEvenOnExtremeRatios() {
+            for (int[] mode : DISPLAY_MODES) {
+                PixelScale s = at(mode[0], mode[1]);
+                String where = mode[0] + "x" + mode[1];
+
+                assertEquals(s.worldWidth * s.scale, s.screenWidth, where + " : pixel non carre en x");
+                assertEquals(s.worldHeight * s.scale, s.screenHeight, where + " : pixel non carre en y");
+            }
+        }
+
+        /**
+         * Passer en plein écran ne doit jamais <em>réduire</em> ce qu'on voit : le moniteur est plus
+         * grand que la fenêtre, donc la zone garantie doit au moins tenir aussi bien.
+         */
+        @Test
+        @DisplayName("Le plein écran ne montre jamais moins que la fenêtre qu'il remplace")
+        void goingFullscreenNeverShowsLessThanTheWindow() {
+            PixelScale windowed = at(1280, 720);
+            for (int[] mode : DISPLAY_MODES) {
+                if (mode[0] < 1280 || mode[1] < 720) {
+                    continue; // un moniteur plus petit que la fenêtre n'est pas le cas qu'on décrit
+                }
+                PixelScale full = at(mode[0], mode[1]);
+                String where = mode[0] + "x" + mode[1];
+
+                assertTrue(full.safeWorldWidth >= windowed.safeWorldWidth,
+                        where + " : la zone garantie retrecit en passant en plein ecran ("
+                                + windowed.safeWorldWidth + " -> " + full.safeWorldWidth + ")");
+                assertTrue(full.safeWorldHeight >= windowed.safeWorldHeight,
+                        where + " : la zone garantie retrecit en hauteur ("
+                                + windowed.safeWorldHeight + " -> " + full.safeWorldHeight + ")");
+            }
+        }
+    }
 }
