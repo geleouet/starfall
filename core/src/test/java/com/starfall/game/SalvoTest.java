@@ -124,6 +124,36 @@ class SalvoTest {
     }
 
     /**
+     * Le cas mixte, celui qui décide de la règle : une salve contenant une tuile payante <b>qui ne
+     * porte pas</b> et une tuile Free-Play <b>qui porte</b>.
+     *
+     * <p>Elle doit être gratuite, et l'énoncé le dit déjà : la salve coûte un tour si au moins une
+     * tuile <em>porte</em> et n'est pas Free-Play. Une tuile payante qui rate n'est pas une raison
+     * de payer — c'est la règle de M5, « une action qui échoue ne coûte pas de tour », et elle vaut
+     * pour chaque tuile de la salve prise séparément.
+     *
+     * <p>Le cas n'était couvert par aucun test : il fallait le fuzz de la review pour l'atteindre,
+     * et un fuzz qui ne trouve rien ne prouve rien tant que personne n'a écrit l'assertion.
+     */
+    @Test
+    @DisplayName("Une salve où seules les tuiles Free-Play portent ne coûte rien")
+    void avolleyWhereOnlyFreePlayTilesConnectCostsNothing() {
+        Arena arena = new Arena(9, 4);
+        // Personne devant : la frappe sera dépensée sans porter. La volte-face, elle, porte
+        // toujours — se retourner ne peut pas rater.
+        arena.queueTile(Tile.STRIKE);
+        arena.queueTile(Tile.PIVOT);
+        int before = arena.turnsTaken();
+
+        arena.unleash();
+
+        assertEquals(before, arena.turnsTaken(),
+                "seule une tuile Free-Play a porte : la salve ne doit rien couter");
+        assertTrue(!arena.rack().isReady(Tile.STRIKE),
+                "la frappe est tout de meme depensee : c'est le prix de l'avoir jouee");
+    }
+
+    /**
      * Le coût d'une salve, énoncé comme une règle et vérifié comme telle : <b>N tours pour charger,
      * un pour lâcher</b>. C'est l'arithmétique que le joueur doit pouvoir faire de tête, et elle
      * n'était écrite nulle part.

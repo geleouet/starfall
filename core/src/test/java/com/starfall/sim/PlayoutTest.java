@@ -114,6 +114,36 @@ class PlayoutTest {
                         + report.averageTurns());
     }
 
+    /**
+     * Une partie enlisée n'est pas une partie, et le bilan ne doit pas la compter comme telle.
+     *
+     * <p>La review du jalon d'équilibrage l'a montré net : le garde-fou anti-enlisement
+     * n'empêche pas de tourner en rond, il le <em>cadence</em> — cinq gestes gratuits, un geste
+     * forcé, jusqu'au plafond. Une politique qui s'enlisait systématiquement affichait donc
+     * « 78 tours survécus », ce qui se lit comme de la résistance alors que c'est le
+     * garde-fou qu'on mesure. Sur la grille la plus large, 92 % des « parties » de la politique de
+     * plafond n'en étaient pas.
+     */
+    @Test
+    @DisplayName("Les parties enlisées sortent des moyennes et sont annoncées")
+    void stalledGamesLeaveTheAveragesAndAreAnnounced() {
+        BalanceReport report = BalanceReport.measure(Policy.thoughtful(), 15, 1, 12);
+
+        assertTrue(report.stalled() >= 0 && report.stalled() <= report.games());
+        assertTrue(report.wins() <= report.games() - report.stalled(),
+                "plus de victoires que de parties reellement jouees : "
+                        + report.wins() + " pour " + (report.games() - report.stalled()));
+        if (report.stalled() > 0) {
+            assertTrue(report.line().contains("ENLISÉES"),
+                    "le bilan tait " + report.stalled() + " partie(s) enlisee(s) : " + report.line());
+        }
+        // « 0,0 » quand personne ne gagne se lirait comme « on gagne a zero point de vie ».
+        if (report.wins() == 0) {
+            assertTrue(report.line().contains("s.o."),
+                    "une marge de vie sans objet doit se dire, pas s'ecrire zero : " + report.line());
+        }
+    }
+
     @Test
     @DisplayName("Le bilan se lit et se reproduit")
     void theReportIsReadableAndReproducible() {
