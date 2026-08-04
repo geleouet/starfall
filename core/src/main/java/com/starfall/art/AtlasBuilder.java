@@ -3,7 +3,9 @@ package com.starfall.art;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnmappableCharacterException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -33,6 +35,11 @@ public final class AtlasBuilder {
 
     /** Largeur maximale de l'atlas, en pixels. */
     public static final int MAX_ATLAS_WIDTH = 512;
+    /**
+     * Hauteur maximale de l'atlas, en pixels. Volontairement bien en dessous de la taille de
+     * texture minimale garantie par OpenGL (2048), pour échouer au build plutôt qu'au chargement.
+     */
+    public static final int MAX_ATLAS_HEIGHT = 1024;
 
     public static final String PALETTE_FILE = "palette.txt";
     public static final String SPRITE_EXTENSION = ".sprite";
@@ -61,7 +68,7 @@ public final class AtlasBuilder {
             System.err.println("[atlas] " + e.getMessage());
             System.exit(1);
         } catch (UncheckedIOException | IOException e) {
-            System.err.println("[atlas] echec d'ecriture : " + e.getMessage());
+            System.err.println("[atlas] " + e.getMessage());
             System.exit(1);
         }
     }
@@ -74,7 +81,7 @@ public final class AtlasBuilder {
         Palette palette = readPalette(artDir.resolve(PALETTE_FILE));
         List<SpriteSource> sprites = readSprites(artDir, palette);
 
-        AtlasLayout layout = AtlasLayout.pack(sprites, MAX_ATLAS_WIDTH);
+        AtlasLayout layout = AtlasLayout.pack(sprites, MAX_ATLAS_WIDTH, MAX_ATLAS_HEIGHT);
         AtlasIndex index = AtlasIndex.of(layout);
 
         Map<String, SpriteSource> byName = new HashMap<>();
@@ -101,11 +108,29 @@ public final class AtlasBuilder {
         return new Result(imagePath, indexPath, sprites.size(), layout.width(), layout.height());
     }
 
-    private static Palette readPalette(Path file) throws IOException {
+    private static Palette readPalette(Path file) {
         if (!Files.isRegularFile(file)) {
             throw new ArtFormatException("palette introuvable : " + file);
         }
-        return Palette.parse(file.toString(), Files.readAllLines(file, StandardCharsets.UTF_8));
+        return Palette.parse(file.toString(), readLines(file));
+    }
+
+    /**
+     * Lit un fichier source en UTF-8, en nommant le fichier fautif si la lecture échoue.
+     *
+     * <p>Un {@code .sprite} enregistré dans un autre encodage produisait auparavant
+     * « echec d'ecriture : Input length = 1 » — un message qui désigne la mauvaise opération et ne
+     * dit pas quel fichier reprendre.
+     */
+    private static List<String> readLines(Path file) {
+        try {
+            return Files.readAllLines(file, StandardCharsets.UTF_8);
+        } catch (MalformedInputException | UnmappableCharacterException e) {
+            throw new ArtFormatException(file + " : le fichier n'est pas de l'UTF-8 valide"
+                    + " (le ré-enregistrer en UTF-8)");
+        } catch (IOException e) {
+            throw new ArtFormatException(file + " : lecture impossible - " + e.getMessage());
+        }
     }
 
     private static List<SpriteSource> readSprites(Path artDir, Palette palette) throws IOException {
@@ -126,12 +151,11 @@ public final class AtlasBuilder {
         Map<String, String> seenIn = new HashMap<>();
         for (Path file : files) {
             String source = file.toString();
-            for (SpriteSource sprite : SpriteParser.parse(source,
-                    Files.readAllLines(file, StandardCharsets.UTF_8), palette)) {
+            for (SpriteSource sprite : SpriteParser.parse(source, readLines(file), palette)) {
                 String previous = seenIn.put(sprite.name(), source);
                 if (previous != null) {
                     throw new ArtFormatException("le sprite « " + sprite.name()
-                            + " » est defini deux fois : " + previous + " et " + source);
+                            + " » est défini deux fois : " + previous + " et " + source);
                 }
                 sprites.add(sprite);
             }

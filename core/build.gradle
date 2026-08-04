@@ -32,3 +32,9 @@ tasks.register('generateAtlas', JavaExec) {
     inputs.dir(artDir).withPropertyName('art')
     outputs.dir(outputDir).withPropertyName('atlas')
 }
+
+// « gradlew :core:build » seul ne declenchait pas la tache, alors qu'elle est definie ici : la
+// documentation promettait « regenere a chaque build » et ce n'etait vrai que via :lwjgl3.
+tasks.named('build') {
+    dependsOn tasks.named('generateAtlas')
+}

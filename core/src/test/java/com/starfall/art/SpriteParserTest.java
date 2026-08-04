@@ -133,6 +133,75 @@ class SpriteParserTest {
     }
 
     @Test
+    @DisplayName("Une directive presque juste n'est pas prise pour « @sprite »")
+    void aNearMissDirectiveIsNotMistakenForSprite() {
+        // « @sprites » au pluriel est une faute de frappe tres plausible, et la comparaison par
+        // prefixe l'acceptait : elle produisait un sprite parfaitement normal, sans un mot.
+        for (String directive : List.of("@sprites", "@sprite2", "@spriteX", "@sprit")) {
+            ArtFormatException error = assertThrows(ArtFormatException.class,
+                    () -> parse(directive + " a/one", "kk"),
+                    "aurait du refuser : " + directive);
+            assertTrue(error.getMessage().contains(directive), error.getMessage());
+        }
+    }
+
+    @Test
+    @DisplayName("Un « # » dans une grille est un code couleur inconnu, pas un commentaire")
+    void aHashInsideAGridIsNotAComment() {
+        // Couper la ligne au premier « # » faisait perdre la derniere colonne en silence - et le
+        // controle de longueur ne rattrapait rien si toutes les lignes le portaient au meme endroit.
+        ArtFormatException error = assertThrows(ArtFormatException.class, () -> parse(
+                "@sprite a/one",
+                "kkk#",
+                "kkk#"));
+
+        assertTrue(error.getMessage().startsWith("test.sprite:2:"), error.getMessage());
+        assertTrue(error.getMessage().contains("colonne 4"), error.getMessage());
+    }
+
+    @Test
+    @DisplayName("Un « # » en fin de ligne ne tronque pas un sprite d'une seule ligne")
+    void aHashDoesNotSilentlyShrinkASingleRowSprite() {
+        ArtFormatException error = assertThrows(ArtFormatException.class,
+                () -> parse("@sprite a/one", "kkkkkkkk#"));
+
+        assertTrue(error.getMessage().contains("colonne 9"), error.getMessage());
+    }
+
+    @Test
+    @DisplayName("Un commentaire en début de ligne reste un commentaire")
+    void aLeadingHashIsStillAComment() {
+        List<SpriteSource> sprites = parse(
+                "# entete",
+                "@sprite a/one",
+                "kk",
+                "   # remarque indentee",
+                "kk");
+
+        assertEquals(2, sprites.get(0).height());
+        assertEquals(2, sprites.get(0).width());
+    }
+
+    @Test
+    @DisplayName("Un commentaire peut suivre une directive")
+    void aDirectiveAcceptsATrailingComment() {
+        List<SpriteSource> sprites = parse("@sprite a/one   # le heros", "kk");
+
+        assertEquals("a/one", sprites.get(0).name());
+    }
+
+    @Test
+    @DisplayName("Le nom « atlas » est refusé : c'est l'en-tête de l'index")
+    void theReservedAtlasNameIsRejected() {
+        // Accepte, il produisait un index que le jeu refusait de relire - mais seulement au
+        // demarrage, longtemps apres un build parfaitement vert.
+        ArtFormatException error = assertThrows(ArtFormatException.class,
+                () -> parse("@sprite atlas", "kk"));
+
+        assertTrue(error.getMessage().contains("réservé"), error.getMessage());
+    }
+
+    @Test
     @DisplayName("Un nom de sprite invalide est refusé")
     void invalidNamesAreRejected() {
         for (String name : List.of("Hero", "hero idle", "hero//idle", "/hero", "hero-idle", "héros")) {

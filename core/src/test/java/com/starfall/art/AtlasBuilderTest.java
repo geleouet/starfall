@@ -146,16 +146,30 @@ class AtlasBuilderTest {
         assertThrows(ArtFormatException.class, () -> AtlasBuilder.build(artDir, dir.resolve("out")));
     }
 
+    /**
+     * Retrouve le dossier {@code art/} en remontant depuis le répertoire de travail.
+     *
+     * <p>La version précédente sortait en silence quand le dossier n'était pas là où elle
+     * l'attendait : le test restait vert tout en ne vérifiant rien, selon le répertoire depuis
+     * lequel on lançait Gradle.
+     */
+    private static Path locateArtDirectory() {
+        Path candidate = Path.of("").toAbsolutePath();
+        for (int depth = 0; depth < 5 && candidate != null; depth++) {
+            Path art = candidate.resolve("art");
+            if (Files.isDirectory(art) && Files.isRegularFile(art.resolve(AtlasBuilder.PALETTE_FILE))) {
+                return art;
+            }
+            candidate = candidate.getParent();
+        }
+        throw new AssertionError("dossier art/ introuvable depuis " + Path.of("").toAbsolutePath()
+                + " : ce test doit verifier les sources reelles, pas se taire");
+    }
+
     @Test
     @DisplayName("Les sprites réels du jeu passent le pipeline")
     void theRealGameArtBuilds(@TempDir Path dir) throws IOException {
-        // Les sources reelles sont a la racine du depot ; le module core est un cran plus bas.
-        Path artDir = Path.of("..", "art").toAbsolutePath().normalize();
-        if (!Files.isDirectory(artDir)) {
-            return; // execute depuis un autre dossier de travail : rien a verifier ici
-        }
-
-        AtlasBuilder.Result result = AtlasBuilder.build(artDir, dir.resolve("out"));
+        AtlasBuilder.Result result = AtlasBuilder.build(locateArtDirectory(), dir.resolve("out"));
 
         assertTrue(result.spriteCount() >= 5, "sprites trouves : " + result.spriteCount());
         AtlasIndex index = AtlasIndex.parse("index",
@@ -183,6 +197,53 @@ class AtlasBuilderTest {
         }
         assertTrue(opaque > hero.width() * hero.height() / 4,
                 "le heros n'a que " + opaque + " pixels opaques sur " + (hero.width() * hero.height()));
+    }
+
+    /**
+     * Le test de reproductibilité enchaîne deux builds à quelques millisecondes d'intervalle : un
+     * horodatage au format PNG ({@code tIME}, résolution d'une seconde) le passerait sans broncher.
+     * L'invariant réel, c'est qu'aucune métadonnée variable ne soit écrite du tout.
+     */
+    @Test
+    @DisplayName("Le PNG ne contient aucune métadonnée variable")
+    void thePngCarriesNoVariableMetadata(@TempDir Path dir) throws IOException {
+        Path artDir = dir.resolve("art");
+        writeArt(artDir, "test.sprite", List.of("@sprite a/one", "kw", "wk"));
+
+        AtlasBuilder.Result result = AtlasBuilder.build(artDir, dir.resolve("out"));
+        List<String> chunks = pngChunkNames(Files.readAllBytes(result.image()));
+
+        assertEquals(List.of("IHDR", "IDAT", "IEND"), chunks,
+                "le PNG contient des blocs inattendus : " + chunks);
+    }
+
+    /** Liste les noms de blocs d'un PNG, dans l'ordre du fichier. */
+    private static List<String> pngChunkNames(byte[] png) {
+        List<String> names = new java.util.ArrayList<>();
+        int offset = 8; // signature PNG
+        while (offset + 8 <= png.length) {
+            int length = ((png[offset] & 0xFF) << 24) | ((png[offset + 1] & 0xFF) << 16)
+                    | ((png[offset + 2] & 0xFF) << 8) | (png[offset + 3] & 0xFF);
+            names.add(new String(png, offset + 4, 4, java.nio.charset.StandardCharsets.US_ASCII));
+            offset += 12 + length; // longueur + type + donnees + CRC
+        }
+        return names;
+    }
+
+    @Test
+    @DisplayName("Un fichier source mal encodé nomme le fichier fautif")
+    void aBadlyEncodedSourceNamesTheFile(@TempDir Path dir) throws IOException {
+        Path artDir = dir.resolve("art");
+        writeArt(artDir, "good.sprite", List.of("@sprite a/one", "kk"));
+        // Octet 0xFF isole : invalide en UTF-8.
+        Files.write(artDir.resolve("sprites").resolve("bad.sprite"),
+                new byte[]{'@', 's', 'p', 'r', 'i', 't', 'e', ' ', 'a', '/', 'b', '\n', (byte) 0xFF});
+
+        ArtFormatException error = assertThrows(ArtFormatException.class,
+                () -> AtlasBuilder.build(artDir, dir.resolve("out")));
+
+        assertTrue(error.getMessage().contains("bad.sprite"), error.getMessage());
+        assertTrue(error.getMessage().contains("UTF-8"), error.getMessage());
     }
 
     @Test

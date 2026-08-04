@@ -21,10 +21,23 @@ import java.util.List;
  * deux passes de review. Une ligne plus courte que les autres, un code couleur inexistant ou un nom
  * en double sont des erreurs signalées avec le fichier et la ligne — jamais un sprite tordu qui
  * s'affiche quand même.
+ *
+ * <h2>Commentaires : ligne entière uniquement</h2>
+ *
+ * <p>Un {@code #} n'ouvre un commentaire que s'il est le premier caractère non blanc de la ligne.
+ * Ailleurs, c'est un caractère de dessin comme un autre — donc un code couleur, donc une erreur
+ * puisque {@code #} est réservé.
+ *
+ * <p>La règle inverse, plus courante, serait ici un piège : couper la ligne au premier {@code #}
+ * ferait qu'une grille terminée par un {@code #} perdrait sa dernière colonne <em>sans le moindre
+ * message</em>, et le contrôle de longueur ne la rattraperait même pas si toutes les lignes le
+ * portaient à la même place.
  */
 public final class SpriteParser {
 
     private static final String SPRITE_DIRECTIVE = "@sprite";
+    private static final char COMMENT = '#';
+    private static final char DIRECTIVE = '@';
 
     /**
      * Une ligne de pixels et l'endroit d'où elle vient. Le numéro est porté par la ligne plutôt que
@@ -52,17 +65,25 @@ public final class SpriteParser {
 
         for (int i = 0; i < lines.size(); i++) {
             int lineNumber = i + 1;
-            String line = stripComment(lines.get(i)).stripTrailing();
-            if (line.isBlank()) {
+            String line = lines.get(i).stripTrailing();
+            String trimmed = line.stripLeading();
+            if (trimmed.isEmpty() || trimmed.charAt(0) == COMMENT) {
                 continue;
             }
 
-            if (line.stripLeading().startsWith(SPRITE_DIRECTIVE)) {
+            if (trimmed.charAt(0) == DIRECTIVE) {
+                String directive = trimmed.split("\\s+")[0];
+                // Comparaison sur le jeton entier : « startsWith » laissait passer « @sprites » et
+                // « @sprite2 », qui produisaient alors un sprite tout à fait normal, sans un mot.
+                if (!SPRITE_DIRECTIVE.equals(directive)) {
+                    throw new ArtFormatException(source, lineNumber,
+                            "directive inconnue « " + directive + " » (connue : " + SPRITE_DIRECTIVE + ")");
+                }
                 if (currentName != null) {
                     sprites.add(build(source, currentName, currentNameLine, currentRows, palette));
                     currentRows = new ArrayList<>();
                 }
-                currentName = parseName(source, lineNumber, line.strip());
+                currentName = parseName(source, lineNumber, stripComment(trimmed).strip());
                 currentNameLine = lineNumber;
                 continue;
             }
@@ -70,10 +91,6 @@ public final class SpriteParser {
             if (currentName == null) {
                 throw new ArtFormatException(source, lineNumber,
                         "grille de pixels avant toute directive « " + SPRITE_DIRECTIVE + " <nom> »");
-            }
-            if (line.stripLeading().startsWith("@")) {
-                throw new ArtFormatException(source, lineNumber,
-                        "directive inconnue « " + line.strip().split("\\s+")[0] + " »");
             }
 
             // Le décalage à gauche fait partie du dessin : on ne retire que les espaces de fin.
@@ -99,6 +116,13 @@ public final class SpriteParser {
         if (!name.matches("[a-z0-9]+(/[a-z0-9]+)*")) {
             throw new ArtFormatException(source, lineNumber,
                     "nom de sprite invalide « " + name + " » : minuscules, chiffres et « / » uniquement");
+        }
+        if (AtlasIndex.RESERVED_NAME.equals(name)) {
+            // Ce nom est la directive d'en-tête de l'index : un sprite ainsi nommé produirait un
+            // index que le jeu refuserait de relire, mais seulement au démarrage, longtemps après
+            // un build parfaitement vert.
+            throw new ArtFormatException(source, lineNumber,
+                    "« " + name + " » est un nom réservé à l'en-tête de l'index d'atlas");
         }
         return name;
     }
@@ -126,8 +150,11 @@ public final class SpriteParser {
             for (int x = 0; x < width; x++) {
                 char code = row.text().charAt(x);
                 if (!palette.hasCode(code)) {
+                    String hint = code == COMMENT
+                            ? " (« " + COMMENT + " » n'ouvre un commentaire qu'en début de ligne)"
+                            : "";
                     throw new ArtFormatException(source, row.lineNumber(),
-                            "colonne " + (x + 1) + " : code couleur inconnu « " + code + " »");
+                            "colonne " + (x + 1) + " : code couleur inconnu « " + code + " »" + hint);
                 }
                 pixels[y * width + x] = palette.color(code, source, row.lineNumber());
             }
@@ -135,8 +162,9 @@ public final class SpriteParser {
         return new SpriteSource(name, width, height, pixels);
     }
 
+    /** Retire un commentaire de fin de ligne. Réservé aux directives : jamais aux lignes de pixels. */
     private static String stripComment(String line) {
-        int hash = line.indexOf('#');
+        int hash = line.indexOf(COMMENT);
         return hash < 0 ? line : line.substring(0, hash);
     }
 }

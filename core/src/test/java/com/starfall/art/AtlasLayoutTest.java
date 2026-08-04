@@ -103,6 +103,64 @@ class AtlasLayoutTest {
         assertEquals(0, layout.height() & (layout.height() - 1), "hauteur " + layout.height());
     }
 
+    /**
+     * La marge n'était gardée qu'aux bords de l'atlas : {@code placementsNeverOverlap} passerait
+     * avec un écart nul entre voisins, et le test de marge transparente n'utilisait qu'un seul
+     * sprite, donc sans voisin. L'invariant annoncé par le javadoc de {@code PADDING} n'était
+     * couvert par rien.
+     */
+    @Test
+    @DisplayName("Deux sprites voisins sont séparés par au moins deux fois la marge")
+    void neighboursAreSeparatedByTheDeclaredPadding() {
+        AtlasLayout layout = AtlasLayout.pack(sampleSprites(), 64);
+
+        List<AtlasLayout.Placement> placements = layout.placements();
+        for (int i = 0; i < placements.size(); i++) {
+            for (int j = i + 1; j < placements.size(); j++) {
+                AtlasLayout.Placement a = placements.get(i);
+                AtlasLayout.Placement b = placements.get(j);
+                int gapX = Math.max(a.x() - b.right(), b.x() - a.right());
+                int gapY = Math.max(a.y() - b.bottom(), b.y() - a.bottom());
+                assertTrue(gapX >= 2 * AtlasLayout.PADDING || gapY >= 2 * AtlasLayout.PADDING,
+                        a + " et " + b + " sont trop proches");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Un atlas trop haut est refusé au build, pas au chargement GL")
+    void anAtlasTallerThanTheLimitIsRejected() {
+        ArtFormatException error = assertThrows(ArtFormatException.class,
+                () -> AtlasLayout.pack(List.of(sprite("huge/tower", 8, 2000)), 64, 1024));
+
+        assertTrue(error.getMessage().contains("au-delà de la limite"), error.getMessage());
+    }
+
+    @Test
+    @DisplayName("Beaucoup de sprites tiennent sans chevauchement ni débordement")
+    void manySpritesStillPackCleanly() {
+        List<SpriteSource> many = new ArrayList<>();
+        for (int i = 0; i < 200; i++) {
+            many.add(sprite("s/" + i, 1 + (i * 5) % 48, 1 + (i * 11) % 40));
+        }
+
+        AtlasLayout layout = AtlasLayout.pack(many, 256, 1024);
+
+        assertEquals(200, layout.placements().size());
+        for (AtlasLayout.Placement placement : layout.placements()) {
+            assertTrue(placement.x() >= AtlasLayout.PADDING);
+            assertTrue(placement.y() >= AtlasLayout.PADDING);
+            assertTrue(placement.right() + AtlasLayout.PADDING <= layout.width());
+            assertTrue(placement.bottom() + AtlasLayout.PADDING <= layout.height());
+        }
+        for (int i = 0; i < layout.placements().size(); i++) {
+            for (int j = i + 1; j < layout.placements().size(); j++) {
+                assertTrue(!layout.placements().get(i).overlaps(layout.placements().get(j)),
+                        layout.placements().get(i) + " chevauche " + layout.placements().get(j));
+            }
+        }
+    }
+
     @Test
     @DisplayName("Un sprite plus large que l'atlas est refusé plutôt que tronqué")
     void aSpriteWiderThanTheAtlasIsRejected() {

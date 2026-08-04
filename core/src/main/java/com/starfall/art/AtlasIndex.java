@@ -21,7 +21,13 @@ import java.util.Map;
  */
 public final class AtlasIndex {
 
-    private static final String ATLAS_DIRECTIVE = "atlas";
+    /**
+     * Nom de l'en-tête, et donc nom interdit pour un sprite : un sprite ainsi nommé rendrait
+     * l'index illisible. {@link SpriteParser} le refuse au build pour cette raison.
+     */
+    public static final String RESERVED_NAME = "atlas";
+
+    private static final String ATLAS_DIRECTIVE = RESERVED_NAME;
 
     private final int width;
     private final int height;
@@ -44,6 +50,9 @@ public final class AtlasIndex {
     /** Rend le fichier d'index, prêt à être écrit. */
     public String render() {
         StringBuilder builder = new StringBuilder();
+        // Les en-têtes restent sans accent : ce fichier est écrit puis relu par la machine, et
+        // rester en ASCII pur évite tout aléa d'encodage sur le seul artefact du pipeline qui
+        // traverse un cycle écriture/relecture.
         builder.append("# Index d'atlas Starfall - genere par AtlasBuilder, ne pas editer a la main.\n");
         builder.append("# Repere de l'image : origine en haut a gauche, Y vers le bas.\n");
         builder.append("# <nom> <x> <y> <largeur> <hauteur>\n");
@@ -83,34 +92,79 @@ public final class AtlasIndex {
                     throw new ArtFormatException(source, lineNumber,
                             "« atlas » attend une largeur et une hauteur");
                 }
-                width = parseInt(source, lineNumber, fields[1]);
-                height = parseInt(source, lineNumber, fields[2]);
+                if (width >= 0) {
+                    // Sans cela, la dernière ligne « atlas » gagnait en silence, et toutes les
+                    // régions se retrouvaient validées contre une taille qui n'était pas la bonne.
+                    throw new ArtFormatException(source, lineNumber,
+                            "l'index déclare deux fois la taille de l'atlas");
+                }
+                width = requirePositive(source, lineNumber, fields[1], "largeur d'atlas");
+                height = requirePositive(source, lineNumber, fields[2], "hauteur d'atlas");
                 continue;
+            }
+            if (width < 0) {
+                throw new ArtFormatException(source, lineNumber,
+                        "région déclarée avant la ligne « atlas <largeur> <hauteur> »");
             }
 
             if (fields.length != 5) {
                 throw new ArtFormatException(source, lineNumber,
-                        "une region s'ecrit « <nom> <x> <y> <largeur> <hauteur> », recu "
+                        "une région s'écrit « <nom> <x> <y> <largeur> <hauteur> », reçu "
                                 + fields.length + " champ(s)");
             }
             String name = fields[0];
             if (regions.containsKey(name)) {
-                throw new ArtFormatException(source, lineNumber, "region en double : « " + name + " »");
+                throw new ArtFormatException(source, lineNumber, "région en double : « " + name + " »");
             }
-            regions.put(name, new AtlasLayout.Placement(name,
+            AtlasLayout.Placement placement = new AtlasLayout.Placement(name,
                     parseInt(source, lineNumber, fields[1]),
                     parseInt(source, lineNumber, fields[2]),
-                    parseInt(source, lineNumber, fields[3]),
-                    parseInt(source, lineNumber, fields[4])));
+                    requirePositive(source, lineNumber, fields[3], "largeur de région"),
+                    requirePositive(source, lineNumber, fields[4], "hauteur de région"));
+            checkInsideAtlas(source, lineNumber, placement, width, height);
+            checkNoOverlap(source, lineNumber, placement, regions.values());
+            regions.put(name, placement);
         }
 
         if (width < 0 || height < 0) {
             throw new ArtFormatException(source + " : ligne « atlas <largeur> <hauteur> » manquante");
         }
         if (regions.isEmpty()) {
-            throw new ArtFormatException(source + " : aucune region declaree");
+            throw new ArtFormatException(source + " : aucune région déclarée");
         }
         return new AtlasIndex(width, height, regions);
+    }
+
+    /**
+     * Une région qui sort de l'image ne provoque aucune erreur au rendu : elle donne un sprite vide
+     * ou étiré, en silence. C'est le mode d'échec le plus dangereux du pipeline, puisque la boucle
+     * de review du projet ne juge que sur des captures.
+     */
+    private static void checkInsideAtlas(String source, int lineNumber,
+                                         AtlasLayout.Placement placement, int width, int height) {
+        if (placement.x() < 0 || placement.y() < 0
+                || placement.right() > width || placement.bottom() > height) {
+            throw new ArtFormatException(source, lineNumber,
+                    "la région « " + placement.name() + " » occupe "
+                            + placement.x() + "," + placement.y() + " à "
+                            + placement.right() + "," + placement.bottom()
+                            + ", en dehors de l'atlas " + width + "x" + height);
+        }
+    }
+
+    /**
+     * Deux régions qui se recouvrent afficheraient chacune un bout de l'autre. L'index étant
+     * produit par la machine, un chevauchement ne peut venir que d'une corruption ou d'une édition
+     * à la main — dans les deux cas mieux vaut s'arrêter que dessiner n'importe quoi.
+     */
+    private static void checkNoOverlap(String source, int lineNumber, AtlasLayout.Placement placement,
+                                       Iterable<AtlasLayout.Placement> existing) {
+        for (AtlasLayout.Placement other : existing) {
+            if (placement.overlaps(other)) {
+                throw new ArtFormatException(source, lineNumber,
+                        "la région « " + placement.name() + " » recouvre « " + other.name() + " »");
+            }
+        }
     }
 
     public int width() {
@@ -149,8 +203,17 @@ public final class AtlasIndex {
         try {
             return Integer.parseInt(text);
         } catch (NumberFormatException e) {
-            throw new ArtFormatException(source, lineNumber, "entier attendu, recu « " + text + " »");
+            throw new ArtFormatException(source, lineNumber, "entier attendu, reçu « " + text + " »");
         }
+    }
+
+    private static int requirePositive(String source, int lineNumber, String text, String what) {
+        int value = parseInt(source, lineNumber, text);
+        if (value < 1) {
+            throw new ArtFormatException(source, lineNumber,
+                    what + " : entier strictement positif attendu, reçu " + value);
+        }
+        return value;
     }
 
     private static String stripComment(String line) {

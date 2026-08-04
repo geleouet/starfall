@@ -59,6 +59,14 @@ public final class AtlasLayout {
      * @param maxWidth largeur maximale de l'atlas, en pixels
      */
     public static AtlasLayout pack(List<SpriteSource> sprites, int maxWidth) {
+        return pack(sprites, maxWidth, maxWidth);
+    }
+
+    /**
+     * @param maxWidth  largeur maximale de l'atlas, en pixels
+     * @param maxHeight hauteur maximale de l'atlas, en pixels
+     */
+    public static AtlasLayout pack(List<SpriteSource> sprites, int maxWidth, int maxHeight) {
         if (sprites.isEmpty()) {
             throw new ArtFormatException("aucun sprite à ranger dans l'atlas");
         }
@@ -100,7 +108,19 @@ public final class AtlasLayout {
             usedWidth = Math.max(usedWidth, cursorX);
         }
 
-        return new AtlasLayout(placements, nextPowerOfTwo(usedWidth), nextPowerOfTwo(shelfY + shelfHeight));
+        int atlasWidth = nextPowerOfTwo(usedWidth);
+        int atlasHeight = nextPowerOfTwo(shelfY + shelfHeight);
+
+        // La largeur était contrôlée, la hauteur ne l'était pas : rien n'empêchait de dépasser la
+        // taille de texture maximale de la carte graphique et de n'échouer qu'au chargement GL,
+        // loin de la source fautive.
+        if (atlasHeight > maxHeight) {
+            throw new ArtFormatException("l'atlas atteindrait " + atlasWidth + "x" + atlasHeight
+                    + " px, au-delà de la limite de " + maxHeight
+                    + " : réduire la taille des sprites ou en retirer");
+        }
+
+        return new AtlasLayout(placements, atlasWidth, atlasHeight);
     }
 
     /** Emplacements, dans l'ordre déterministe du rangement. */

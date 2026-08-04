@@ -69,9 +69,30 @@ class PaletteTest {
     }
 
     @Test
-    @DisplayName("Le transparent ne peut pas être redéfini")
-    void theTransparentCodeCannotBeRedefined() {
+    @DisplayName("Les caractères réservés ne peuvent pas être des codes couleur")
+    void reservedCharactersCannotBeColourCodes() {
+        // « . » est le transparent. « @ » ouvre une directive : une ligne de pixels commencant par
+        // lui serait lue comme telle. « # » ouvre un commentaire : la declaration serait avalee en
+        // silence, on croirait avoir defini la couleur sans l'avoir fait.
         assertThrows(ArtFormatException.class, () -> parse(". opaque ffffff"));
+        assertThrows(ArtFormatException.class, () -> parse("@ arobase ffffff"));
+
+        // Pour « # », la ligne est un commentaire avant meme d'etre analysee : ce qui doit etre
+        // verifie, c'est qu'elle ne definit rien - et donc que la palette reste vide, ce qui est
+        // refuse a son tour.
+        assertThrows(ArtFormatException.class, () -> parse("# diese ffffff"));
+    }
+
+    @Test
+    @DisplayName("Un hexadécimal signé est refusé")
+    void signedHexadecimalIsRejected() {
+        // « +ff000 » et « -f0000 » font bien six caracteres : le controle de longueur les laissait
+        // passer, et Long.parseLong acceptait le signe. La couleur obtenue etait silencieusement
+        // fausse dans un format annonce strict.
+        for (String bad : List.of("+ff000", "-f0000", "ff 000", "0x0000")) {
+            assertThrows(ArtFormatException.class, () -> parse("k noir " + bad),
+                    "aurait du refuser : " + bad);
+        }
     }
 
     @Test

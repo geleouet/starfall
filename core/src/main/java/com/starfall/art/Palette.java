@@ -14,14 +14,29 @@ import java.util.Map;
  * Changer une teinte pour tout le jeu est donc une modification d'une ligne, relisable dans un
  * diff — ce qu'un PNG ne permet pas.
  *
- * <p>Format d'une ligne : {@code <code> <nom> <RRGGBB|RRGGBBAA>}. Le point est réservé au
- * transparent et ne se déclare pas. Les lignes vides et celles commençant par {@code #} sont
- * ignorées.
+ * <p>Format d'une ligne : {@code <code> <nom> <RRGGBB|RRGGBBAA>}. Les lignes vides et celles
+ * commençant par {@code #} sont ignorées ; un commentaire peut aussi suivre une déclaration sur la
+ * même ligne, la structure en trois champs levant l'ambiguïté.
+ *
+ * <h2>Caractères réservés</h2>
+ *
+ * <p>Trois caractères ne peuvent pas être des codes couleur, et le dire franchement vaut mieux que
+ * de laisser une déclaration disparaître sans bruit :
+ * <ul>
+ *   <li>{@code .} — le transparent, qui ne se déclare pas ;</li>
+ *   <li>{@code #} — l'introducteur de commentaire ; une ligne {@code # diese ff0000} serait lue
+ *       comme un commentaire et la couleur n'existerait jamais ;</li>
+ *   <li>{@code @} — l'introducteur de directive dans les fichiers {@code .sprite} ; une ligne de
+ *       pixels commençant par lui serait lue comme une directive.</li>
+ * </ul>
  */
 public final class Palette {
 
     /** Code réservé au transparent. Jamais déclaré dans le fichier. */
     public static final char TRANSPARENT = '.';
+
+    /** Caractères qui ne peuvent pas servir de code couleur, et pourquoi. */
+    private static final String RESERVED = ".#@";
 
     private final Map<Character, Integer> colorsByCode;
     private final Map<Character, String> namesByCode;
@@ -59,9 +74,10 @@ public final class Palette {
             }
 
             char code = fields[0].charAt(0);
-            if (code == TRANSPARENT) {
+            if (RESERVED.indexOf(code) >= 0) {
                 throw new ArtFormatException(source, lineNumber,
-                        "« " + TRANSPARENT + " » est réservé au transparent et ne se déclare pas");
+                        "« " + code + " » est un caractère réservé et ne peut pas être un code couleur"
+                                + " (réservés : " + RESERVED + ")");
             }
             if (colors.containsKey(code)) {
                 throw new ArtFormatException(source, lineNumber,
@@ -126,13 +142,17 @@ public final class Palette {
             throw new ArtFormatException(source, lineNumber,
                     "une couleur s'écrit sur 6 ou 8 chiffres hexadécimaux, reçu « " + hex + " »");
         }
-        long value;
-        try {
-            value = Long.parseLong(hex, 16);
-        } catch (NumberFormatException e) {
-            throw new ArtFormatException(source, lineNumber,
-                    "« " + hex + " » n'est pas un nombre hexadécimal");
+        // Contrôle caractère par caractère plutôt que de s'en remettre à Long.parseLong, qui
+        // accepte un signe : « +ff000 » et « -f0000 » font bien six caractères et passeraient,
+        // en donnant une couleur silencieusement fausse.
+        for (int i = 0; i < hex.length(); i++) {
+            if (Character.digit(hex.charAt(i), 16) < 0) {
+                throw new ArtFormatException(source, lineNumber,
+                        "« " + hex + " » contient « " + hex.charAt(i)
+                                + " », qui n'est pas un chiffre hexadécimal");
+            }
         }
+        long value = Long.parseLong(hex, 16);
         // Une couleur sur 6 chiffres est opaque : on complète l'alpha plutôt que de le laisser à 0,
         // ce qui produirait un sprite invisible sans le moindre message.
         int rgba = hex.length() == 6 ? (int) ((value << 8) | 0xFF) : (int) value;
