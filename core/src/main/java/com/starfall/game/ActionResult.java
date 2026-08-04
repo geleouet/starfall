@@ -49,7 +49,7 @@ public enum ActionResult {
      * tuile » — le joueur ne choisit plus quoi lancer, il a déjà choisi en chargeant.
      */
     UNLEASHED("salve"),
-    /** Une tuile a été reprise de la file. Gratuit aussi. */
+    /** Une tuile a été reprise de la file. Le seul geste resté gratuit. */
     UNQUEUED("tuile reprise"),
     /** La file porte déjà ses cinq tuiles. */
     QUEUE_FULL("file pleine"),

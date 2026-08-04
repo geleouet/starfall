@@ -189,17 +189,21 @@ public final class ArenaScene implements Scene {
      * remplie, la ligne d'annonce disant à chaque étape ce qui partira.
      */
     private static final ScriptedAction[] SCRIPT = {
-            a -> a.queueTile(Tile.THRUST),   // l'estoc porte à deux cases : c'est la portée utile
-            a -> a.queueTile(Tile.STRIKE),   // charger la file ne coûte rien : le tour reste à zéro
-            a -> a.unqueueAt(1),             // on se ravise, gratuitement aussi
-            a -> a.unleash(),             // l'estoc tombe sur l'ennemi de droite
-            a -> a.step(Direction.LEFT),     // demi-tour vers l'archer
-            a -> a.step(Direction.LEFT),     // on avance : les ennemis jouent, la vie descend
+            // On charge sous le feu : chaque pose coûte un tour, et les ennemis se rapprochent
+            // pendant ce temps. C'est toute la tension de la nouvelle économie, et il fallait que
+            // les planches la montrent — les précédentes mouraient en vague 1 sans qu'aucune file
+            // ne dépasse une tuile.
+            a -> a.queueTile(Tile.THRUST),
             a -> a.queueTile(Tile.STRIKE),
-            a -> a.unleash(),             // et la vague bascule quand le terrain se vide
-            a -> a.step(Direction.RIGHT),    // on va au contact du premier de la vague suivante
-            a -> a.queueTile(Tile.PUSH),     // la poussée annonce sa trajectoire, case par case
+            a -> a.queueTile(Tile.PUSH),
+            a -> a.unleash(),                // la salve : trois effets pour un seul tour
+            a -> a.step(Direction.LEFT),     // demi-tour vers ce qui reste
+            a -> a.queueTile(Tile.DASH),
+            a -> a.unleash(),
             a -> a.queueTile(Tile.STRIKE),
+            a -> a.unleash(),                // et la vague bascule quand le terrain se vide
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.queueTile(Tile.PUSH),
     };
 
     /**
@@ -381,12 +385,37 @@ public final class ArenaScene implements Scene {
         if (HudText.hoveringTheTop(arena, hoveredRackSlot, hoveredQueueSlot)) {
             return; // c'est deja le preavis resolu qu'on vient de dessiner
         }
-        TilePreview preview = arena.preview(hovered);
-        if (preview != null) {
-            // Une tuile qu'aucune touche ne peut poser ne se dessine pas dans la couleur qui veut
-            // dire « ce que je vais provoquer » : sa portee reste vraie, sa disponibilite non.
-            boolean available = arena.rack().isReady(hovered) || hoveredQueueSlot >= 0;
-            drawPreview(preview, false, available ? HudColors.PREVIEW : HudColors.SLOT_EMPTY);
+        // Une tuile qu'aucune touche ne peut poser ne se dessine pas dans la couleur qui veut dire
+        // « ce que je vais provoquer » : sa portée reste vraie, sa disponibilité non.
+        boolean available = arena.rack().isReady(hovered) || hoveredQueueSlot >= 0;
+        drawStaticReach(hovered, available ? HudColors.PREVIEW : HudColors.SLOT_EMPTY);
+    }
+
+    /**
+     * Portée <b>statique</b> d'une tuile survolée : les cases qu'elle peut atteindre, sans prétendre
+     * savoir ce qu'elle y trouvera.
+     *
+     * <p>Elle est revenue à sa place ici, et c'est une conséquence directe de la nouvelle économie.
+     * Tant que poser était gratuit, montrer le préavis <em>résolu</em> d'une tuile du râtelier était
+     * exact : rien ne bougeait entre le survol et le moment où elle pouvait agir. Depuis que poser
+     * consomme un tour, les ennemis jouent <b>entre les deux</b> — et la review a mesuré que
+     * l'annonce se trompait alors dans <b>un quart</b> des cas : « aucune cible » puis une frappe
+     * qui porte, un élan annoncé puis bloqué.
+     *
+     * <p>C'est exactement l'invariant de M8, et il vaut toujours : seul le sommet de la file
+     * s'exécutera contre le plateau affiché, donc seul lui a le droit d'annoncer un résultat. Le
+     * tableau {@code Tile.reach()}, que la review de M8 avait trouvé inutilisé, reprend ici du
+     * service — pour la raison même qui l'avait fait écrire.
+     */
+    private void drawStaticReach(Tile tile, Color color) {
+        int hero = arena.heroCell();
+        int step = arena.hero().facing().step();
+        for (int offset : tile.reach()) {
+            int cell = hero + offset * step;
+            if (arena.grid().contains(cell)) {
+                painter.outline(layout.cellLeft(cell) + 2, ArenaLayout.PREVIEW_Y,
+                        ArenaLayout.CELL_WIDTH - 4, ArenaLayout.PREVIEW_HEIGHT, color);
+            }
         }
     }
 

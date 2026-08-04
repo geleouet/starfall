@@ -3,10 +3,10 @@ package com.starfall.game;
 /**
  * Une tuile d'action : ce que le héros sait faire.
  *
- * <p>Une tuile n'est jamais jouée directement. On la <b>pose sur la file</b> — gratuitement — puis
- * on l'exécute. C'est ce décalage qui fait tout le jeu : poser trois tuiles coûte trois tours de
- * vulnérabilité, mais les exécuter ensuite enchaîne trois effets pendant que les ennemis n'ont
- * avancé que d'un cran.
+ * <p>Une tuile n'est jamais jouée directement. On la <b>pose sur la file</b> — ce qui coûte un tour
+ * — puis on lâche toute la file d'un coup. C'est ce décalage qui fait tout le jeu : poser trois
+ * tuiles coûte trois tours de vulnérabilité, mais la salve enchaîne ensuite trois effets pendant que
+ * les ennemis n'ont avancé que d'un cran.
  *
  * <h2>Recharge</h2>
  *
@@ -15,9 +15,12 @@ package com.starfall.game;
  *
  * <h2>Free-Play</h2>
  *
- * <p>Une tuile {@link #isFreePlay() Free-Play} s'exécute <b>sans consommer de tour</b> : les ennemis
- * n'avancent pas et les recharges ne progressent pas. C'est la soupape du système — sans elle, se
- * repositionner coûterait toujours un tour, et la file ne serait qu'une punition.
+ * <p>Une tuile {@link #isFreePlay() Free-Play} <b>se pose sans consommer de tour</b>, et une salve
+ * qui n'en contient que des Free-Play n'en coûte pas non plus. C'est la soupape du système — sans
+ * elle, se repositionner coûterait toujours un tour, et la file ne serait qu'une punition.
+ *
+ * <p>La soupape a suivi le coût : tant que l'exécution était le moment payant, Free-Play voulait
+ * dire « s'exécute gratuitement ». Depuis que c'est le chargement, c'est la pose qui est offerte.
  *
  * <h2>Décider, puis agir</h2>
  *
@@ -252,7 +255,7 @@ public enum Tile {
         return rechargeCost;
     }
 
-    /** Vrai si l'exécuter ne consomme pas de tour. */
+    /** Vrai si la <b>poser</b> ne consomme pas de tour, et si une salve d'elles seules est gratuite. */
     public boolean isFreePlay() {
         return freePlay;
     }

@@ -21,11 +21,14 @@ import java.util.List;
  *
  * <h2>Le tour, et ce qui le consomme</h2>
  *
- * <p>Un tour est la seule monnaie du jeu : c'est lui qui fait avancer les ennemis (M6) et recharger
- * les tuiles. Le consomment : un déplacement, un demi-tour, un échange de place, et l'exécution
- * d'une tuile ordinaire. Ne le consomment pas : poser ou reprendre une tuile, exécuter une tuile
- * Free-Play, et <b>toute action qui échoue</b>. Une action bloquée qui coûterait un tour serait la
- * pire des punitions : celle qu'on ne comprend pas.
+ * <p>Un tour est la seule monnaie du jeu : c'est lui qui fait avancer les ennemis et recharger les
+ * tuiles. Le consomment : un déplacement, un demi-tour, un échange de place, <b>poser une tuile</b>,
+ * et une <b>salve</b> dont au moins une tuile porte. Ne le consomment pas : reprendre une tuile,
+ * poser une tuile Free-Play, une salve qui n'en contient que des Free-Play, et <b>toute action qui
+ * échoue</b>. Une action bloquée qui coûterait un tour serait la pire des punitions : celle qu'on ne
+ * comprend pas.
+
+ * <p>Charger est donc le moment vulnérable et la salve la récompense — voir {@link #unleash()}.
  */
 public final class Arena {
 
@@ -45,11 +48,15 @@ public final class Arena {
     /**
      * Points de vie rendus au passage d'une vague.
      *
-     * <p>Provisoire, et assumé comme tel : mesurée sans répit, la tranche était gagnable mais pas
-     * jouable — zéro victoire sur trois cents parties jouées au hasard, et un jeu quasi optimal
-     * n'arrivait au bout qu'avec deux points de vie sur cinq. Rien ne soignait entre les vagues,
-     * donc la deuxième arrivait avec ce qui restait de la première. Le réaccordage complet est
-     * l'affaire du jalon d'équilibrage.
+     * <p>Deux depuis le jalon d'équilibrage, et la review a montré que c'est <b>trop</b> : sur la
+     * meilleure ligne mesurée, le héros encaisse trois coups sur toute la tranche pour six points
+     * rendus. Le répit est intégralement absorbé, il ne contraint plus rien.
+     *
+     * <p>Il reste en l'état parce que le nombre qu'il faudrait bouger n'est pas celui-là : la même
+     * mesure a montré que <b>charger la file n'est pas survivable</b> — six configurations sur
+     * douze meurent avant la quatrième tuile — et qu'aucune ligne gagnante ne remplit jamais les
+     * cinq emplacements. Baisser le répit rendrait le jeu plus dur sans rendre sa mécanique vedette
+     * plus accessible. La question est consignée au tableau de bord.
      */
     public static final int WAVE_RESPITE = 2;
 
@@ -785,7 +792,8 @@ public final class Arena {
     // ------------------------------------------------------------------ file d'actions
 
     /**
-     * Pose une tuile du râtelier sur la file. <b>Gratuit</b> : aucun tour consommé.
+     * Pose une tuile du râtelier sur la file, en <b>consommant un tour</b> — sauf si elle est
+     * Free-Play.
      *
      * @return {@link ActionResult#QUEUED}, ou {@link ActionResult#QUEUE_FULL} / {@link
      *         ActionResult#NOT_READY} si le geste est impossible
@@ -816,10 +824,16 @@ public final class Arena {
      * Reprend une tuile de la file, désignée par sa position d'affichage — de la plus ancienne à la
      * plus récente. <b>Gratuit</b>, et la tuile ne part pas en recharge : elle n'a pas servi.
      *
-     * <p>Poser coûte un tour ; reprendre n'en rend pas un. C'est le seul geste resté gratuit, et il
-     * le reste : le joueur paie son engagement, pas le fait de changer d'avis sur une tuile qui n'a
-     * rien fait. Reprendre ne récupère pas le tour dépensé, donc il n'y a rien à y gagner — juste de
-     * quoi ne pas être puni deux fois pour une main qui a glissé.
+     * <p>Poser coûte un tour ; reprendre n'en rend pas un. C'est le seul geste resté gratuit : le
+     * joueur paie son engagement, pas le fait de changer d'avis sur une tuile qui n'a rien fait.
+     *
+     * <p><b>Il y a pourtant quelque chose à y gagner, et il vaut mieux le dire.</b> Poser puis
+     * reprendre coûte un tour, ne dépense aucune tuile, ne déplace ni ne retourne le héros, et fait
+     * avancer toutes les recharges d'un cran : c'est un <em>tour de passe</em> parfaitement neutre,
+     * strictement meilleur que le demi-tour, qui lui retourne le héros. C'est le seul moyen
+     * d'attendre sans bouger, donc un vrai outil tactique — la review l'a trouvé alors que le
+     * javadoc affirmait le contraire. Il est laissé en place : sur un plateau où l'on gagne en
+     * plaçant, savoir laisser passer un tour est une décision, pas une faille.
      */
     public ActionResult unqueueAt(int indexFromOldest) {
         if (isOver()) {
@@ -866,6 +880,9 @@ public final class Arena {
         boolean costly = false;
         ActionResult last = ActionResult.EMPTY_QUEUE;
         int fired = 0;
+        // « Le terrain s'est vidé » n'a de sens que s'il y avait quelqu'un. Sur un plateau d'essai
+        // sans ennemi, la salve doit partir en entier comme n'importe où ailleurs.
+        boolean hadEnemies = !enemiesLeftToRight().isEmpty();
         while (!queue.isEmpty()) {
             Tile tile = queue.pop();
             ActionResult result = tile.applyTo(this);
@@ -881,6 +898,13 @@ public final class Arena {
             costly |= connected && !tile.isFreePlay();
             if (isDefeat()) {
                 break; // une salve ne continue pas après la mort de celle qui la lance
+            }
+            if (hadEnemies && enemiesLeftToRight().isEmpty()) {
+                // Ni sur un plateau vide. Les tuiles suivantes partaient dans le vide, étaient
+                // dépensées et mises en recharge sans que rien ne prévienne — la ligne d'annonce
+                // ne décrit que la première. Le joueur payait un gaspillage qu'il ne pouvait pas
+                // voir venir. Ce qui reste dans la file y reste, et servira à la vague suivante.
+                break;
             }
         }
 

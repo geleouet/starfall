@@ -207,12 +207,22 @@ public interface Policy {
         TilePreview aimed = arena.previewTop();
         int loaded = aimed != null && aimed.connects() ? 1 : 0;
 
+        // Une file chargée vaut par elle-même, indépendamment de ce que porte son sommet. Sans ce
+        // terme, la politique était STRUCTURELLEMENT incapable de construire une salve : poser une
+        // deuxième tuile change le sommet — donc « le sommet porte » pouvait retomber à zéro —
+        // pendant que la phase ennemie faisait baisser la vie. Charger était donc toujours évalué
+        // négativement, et la review l'a mesuré : sur 4 436 gestes, la salve représentait 1 % de ce
+        // que faisait ma politique de plafond, et un geste sur cinq était un « reprendre » pur.
+        // Son zéro victoire décrivait ma politique, pas le jeu.
+        int stacked = arena.queue().size();
+
         return arena.hero().health() * 1500
                 + arena.wave() * 20000
                 - enemyHealth * 2500
                 - arena.threatCount(arena.heroCell()) * 1200
                 - adjacent * 100
                 + available * 60
+                + stacked * 900
                 + loaded * 2000
                 - arena.turnsTaken() * 5;
     }

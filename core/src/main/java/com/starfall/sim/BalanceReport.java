@@ -17,6 +17,15 @@ public record BalanceReport(String policy, int gridWidth, int startWave, int gam
                             int wins, double averageTurns, double averageHealthOnWin,
                             double averageWaveReached, int stalled) {
 
+    /*
+     * Les parties enlisées sont exclues des moyennes, et la review a montré pourquoi : le garde-fou
+     * anti-enlisement n'empêche pas de tourner en rond, il le cadence — cinq gestes gratuits, un
+     * geste forcé, jusqu'au plafond. Une politique qui s'enlise systématiquement affichait donc
+     * « 78 tours survécus », ce qui se lit comme de la résistance alors que c'est le garde-fou qu'on
+     * mesure. Sur la grille 15, 92 % des « parties » de la politique de plafond n'étaient pas des
+     * parties.
+     */
+
     /** Proportion de parties gagnées, de 0 à 1. */
     public double winRate() {
         return games == 0 ? 0 : wins / (double) games;
@@ -29,33 +38,39 @@ public record BalanceReport(String policy, int gridWidth, int startWave, int gam
         long healthOnWin = 0;
         long waves = 0;
 
+        int played = 0;
         for (int seed = 0; seed < games; seed++) {
             Playout.Outcome outcome = Playout.play(policy, gridWidth, startWave, seed);
+            if (outcome.actions() >= Playout.MAX_ACTIONS) {
+                stalled++;
+                continue; // enlisée : elle mesure le garde-fou, pas le jeu
+            }
+            played++;
             turns += outcome.turns();
             waves += outcome.waveReached();
             if (outcome.won()) {
                 wins++;
                 healthOnWin += outcome.health();
             }
-            if (outcome.actions() >= Playout.MAX_ACTIONS) {
-                stalled++;
-            }
         }
 
         return new BalanceReport(policy.name(), gridWidth, startWave, games, wins,
-                turns / (double) games,
-                wins == 0 ? 0 : healthOnWin / (double) wins,
-                waves / (double) games,
+                played == 0 ? 0 : turns / (double) played,
+                wins == 0 ? -1 : healthOnWin / (double) wins,
+                played == 0 ? 0 : waves / (double) played,
                 stalled);
     }
 
     /** Une ligne de tableau, en français, lisible dans un terminal. */
     public String line() {
         return String.format("  %-9s grille %-3d vague %d : %3d/%3d gagnées (%3.0f %%)"
-                        + "  tours %5.1f  marge de vie %4.1f  vague atteinte %4.2f%s",
+                        + "  tours %5.1f  marge de vie %s  vague atteinte %4.2f%s",
                 policy, gridWidth, startWave, wins, games, winRate() * 100,
-                averageTurns, averageHealthOnWin, averageWaveReached,
-                stalled > 0 ? "  ENLISÉES " + stalled : "");
+                averageTurns,
+                // « 0,0 » quand personne ne gagne se lit comme « on gagne à zéro point de vie ».
+                averageHealthOnWin < 0 ? " s.o." : String.format("%4.1f", averageHealthOnWin),
+                averageWaveReached,
+                stalled > 0 ? "  ENLISÉES " + stalled + "/" + games + " (hors moyennes)" : "");
     }
 
     /**

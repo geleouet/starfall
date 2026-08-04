@@ -161,10 +161,14 @@ public final class HudText {
         // jeu ne sait pas se dupliquer pour le calculer. Annoncer toute la salve demanderait de
         // deviner — exactement ce que ce projet interdit depuis M6. Le compte des tuiles dit le
         // reste : le joueur sait combien part, et il voit ce que la première fera.
+        // Une seule tuile n'est pas une salve, et le modèle le dit déjà : {@code unleash} renvoie
+        // le résultat propre de la tuile plutôt que « salve », au motif que ce mot « pour un coup
+        // unique se lirait comme une grandiloquence ». L'affichage disait l'inverse dans le même
+        // jalon — deux décisions opposées sur la même question.
         int queued = arena.queue().size();
         String head = queued > 1
                 ? "SALVE " + queued + " - " + preview.tile().label().toUpperCase()
-                : "SALVE : " + preview.tile().label().toUpperCase();
+                : "PRÊTE : " + preview.tile().label().toUpperCase();
         return head + " - " + effectOf(arena, preview);
     }
 
