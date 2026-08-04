@@ -30,10 +30,38 @@ configurations.configureEach {
 // Permet : gradlew :lwjgl3:run --args="--screenshot captures/m1 --size 1280x720"
 tasks.named('run', JavaExec) {
     standardInput = System.in
-    ignoreExitValue = false
+    // On absorbe le code de sortie pour pouvoir le NOMMER, puis on refait echouer la tache.
+    //
+    // Le jeu distingue ses echecs : 1 plantage, 2 ligne de commande invalide, 3 capture non
+    // conforme a la taille demandee. Gradle les ecrasait tous par un « Process finished with
+    // non-zero exit value 1 » : la distinction existait dans le code, etait testee, et
+    // n'arrivait jamais jusqu'a celui qui lance le jeu.
+    //
+    // Le code du processus reste 1 — c'est Gradle qui sort, pas le jeu, et le plomber jusqu'au
+    // .bat demanderait de capturer la sortie dans un fichier, donc de perdre l'affichage en
+    // direct d'un lanceur interactif. Ce qui compte est que le message dise lequel des trois.
+    ignoreExitValue = true
     jvmArgs '--enable-native-access=ALL-UNNAMED'
     // Les chemins relatifs (ex. --screenshot captures/m1) partent de la racine du projet.
     workingDir = rootProject.projectDir
+
+    doLast {
+        int code = executionResult.get().exitValue
+        if (code != 0) {
+            throw new GradleException("[Starfall] le jeu s'est terminé avec le code " + code
+                    + " (" + starfallExitMeaning(code) + ")")
+        }
+    }
+}
+
+/** Les codes de sortie du jeu, en toutes lettres. Voir StarfallGame. */
+static String starfallExitMeaning(int code) {
+    switch (code) {
+        case 1: return "plantage"
+        case 2: return "ligne de commande invalide"
+        case 3: return "capture non conforme à la taille demandée"
+        default: return "code inattendu"
+    }
 }
 
 tasks.register('dist', Jar) {
