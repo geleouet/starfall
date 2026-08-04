@@ -243,6 +243,7 @@ public final class Arena {
             }
             execute(enemy);
         }
+        resolvePendingPush();
         phaseIndex++;
         announceIntentions();
     }
@@ -282,16 +283,16 @@ public final class Arena {
         for (Enemy enemy : enemies) {
             if (!willAct(enemy)) {
                 enemy.announce(Intention.of(Intention.Kind.WAIT));
-                continue;
             }
-            if (!claimsGround(enemy)) {
-                continue;
-            }
-            Intention claim = EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell,
-                    reserved, phaseIndex);
-            enemy.announce(claim);
-            reserve(reserved, grid.indexOf(enemy), claim);
         }
+        // Les charges d'abord, les invocations ensuite, le reste en dernier. L'ordre des deux
+        // premières passes compte : un lancier en élan tient sa promesse quoi qu'il arrive et ne
+        // consulte donc aucune réservation. Si une invocation s'annonçait avant lui, elle pouvait
+        // choisir une case au milieu de son couloir, et le sbire qui s'y levait interceptait la
+        // charge — le coup promis ne tombait jamais. C'est mot pour mot la faute que le jalon
+        // précédent a payée avec un allié, transposée à un ennemi qui n'existait pas encore.
+        announceGroundClaims(enemies, heroCell, reserved, Enemy::isWindingUp);
+        announceGroundClaims(enemies, heroCell, reserved, e -> e.kind().summons() > 0);
 
         for (Enemy enemy : enemies) {
             if (!willAct(enemy) || claimsGround(enemy)) {
@@ -299,6 +300,20 @@ public final class Arena {
             }
             enemy.announce(EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell,
                     reserved, phaseIndex));
+        }
+    }
+
+    /** Fait annoncer les ennemis d'une catégorie, et marque le terrain qu'ils réclament. */
+    private void announceGroundClaims(List<Enemy> enemies, int heroCell, boolean[] reserved,
+                                      java.util.function.Predicate<Enemy> selector) {
+        for (Enemy enemy : enemies) {
+            if (!willAct(enemy) || !selector.test(enemy)) {
+                continue;
+            }
+            Intention claim = EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell,
+                    reserved, phaseIndex);
+            enemy.announce(claim);
+            reserve(reserved, grid.indexOf(enemy), claim);
         }
     }
 
@@ -403,13 +418,39 @@ public final class Arena {
         if (cell != landing || grid.occupantAt(target) == null) {
             return; // interceptée, ou la cible s'est écartée : c'est ainsi qu'on esquive
         }
-        strike(target);
-        // Le poussé n'est déplacé que si la place est libre. Buter ne coûte rien de plus : le
-        // joueur qui se colle au mur perd sa mobilité, pas ses points de vie.
-        int pushed = target + step;
-        if (grid.isFree(pushed) && grid.occupantAt(target) != null) {
-            grid.move(target, pushed);
+        // Autant de coups que la charge en porterait : le compteur de menaces les compte, donc
+        // les oublier ferait sous-promettre le télégraphe dès qu'un souverain porterait un trait.
+        for (int blow = 0; blow < enemy.strikesPerAttack(); blow++) {
+            strike(target);
         }
+        // La poussée est différée à la fin de la phase — voir pendingPush.
+        pendingPushFrom = target;
+        pendingPushStep = step;
+    }
+
+    /**
+     * Poussée en attente, appliquée quand <b>toute</b> la phase ennemie a été résolue.
+     *
+     * <p>Appliquée sur-le-champ, elle sortait le héros d'une case que d'autres ennemis avaient
+     * annoncé vouloir frapper, et leurs coups partaient dans le vide : le bandeau affichait deux
+     * coups, un seul tombait, et la différence tenait à l'ordre d'exécution — invisible. Le
+     * télégraphe sous-promettait.
+     *
+     * <p>Différer la poussée règle le cas sans rien retirer au joueur : il est déplacé de la même
+     * case vers la même case, simplement après que tout ce qui était annoncé a eu lieu. C'est aussi
+     * ce qui se raconte le mieux — la mêlée se résout, puis le souverain vous jette.
+     */
+    private int pendingPushFrom = -1;
+    private int pendingPushStep;
+
+    private void resolvePendingPush() {
+        int from = pendingPushFrom;
+        int step = pendingPushStep;
+        pendingPushFrom = -1;
+        if (from < 0 || grid.occupantAt(from) == null || !grid.isFree(from + step)) {
+            return;
+        }
+        grid.move(from, from + step);
     }
 
     /**
@@ -625,6 +666,37 @@ public final class Arena {
             }
         }
         return false;
+    }
+
+    /** Vrai si au moins une invocation est annoncée quelque part sur le plateau. */
+    public boolean anySummonAnnounced() {
+        for (Enemy enemy : enemiesLeftToRight()) {
+            if (enemy.intention().kind() == Intention.Kind.SUMMON) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Case où une ruée annoncée déplacera l'occupant de {@code cell}, ou {@code -1}.
+     *
+     * <p>Elle existe pour l'affichage, et elle comble un vrai trou : le joueur voyait qu'il allait
+     * être poussé, jamais où il allait atterrir — alors que c'est là tout le coût de la ruée. Être
+     * déplacé d'une case ne veut pas dire la même chose selon qu'on tombe au milieu du plateau ou
+     * contre un mur, entre deux sbires.
+     */
+    public int announcedPushTo(int cell) {
+        for (Enemy enemy : enemiesLeftToRight()) {
+            Intention intention = enemy.intention();
+            if (intention.kind() != Intention.Kind.RUSH || intention.targetCell() != cell) {
+                continue;
+            }
+            int step = Integer.signum(intention.targetCell() - grid.indexOf(enemy));
+            int destination = cell + step;
+            return grid.contains(destination) ? destination : -1;
+        }
+        return -1;
     }
 
     /** Vrai si une case est menacée par l'intention annoncée d'au moins un ennemi. */

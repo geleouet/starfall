@@ -98,7 +98,7 @@ public enum EnemyKind {
 
         @Override
         int summons() {
-            return 2;
+            return 1;
         }
     };
 
@@ -157,8 +157,15 @@ public enum EnemyKind {
      *
      * <p>Fini, et volontairement petit. Une invocation sans plafond ne pose aucune question au
      * joueur : elle transforme une rencontre en course contre la montre, où la seule réponse est de
-     * tuer vite — c'est-à-dire exactement le contraire d'un jeu de placement. Avec deux, chaque
-     * invocation qu'on refuse est une invocation qui ne reviendra pas.
+     * tuer vite — c'est-à-dire exactement le contraire d'un jeu de placement. Chaque invocation
+     * qu'on refuse est une invocation qui ne reviendra pas.
+     *
+     * <p>Le nombre est passé de deux à un, et ce n'est pas un ajustement d'humeur : la correction
+     * du placement des invocations a <b>changé ce que ce nombre voulait dire</b>. Tant qu'une
+     * invocation sur deux tombait derrière le souverain, où le sbire naissait coincé et inerte, en
+     * accorder deux revenait à en accorder une. Maintenant que chacune se lève au contact du héros,
+     * deux, c'est deux. Un paramètre dont la signification bouge doit être redérivé, pas conservé
+     * par habitude — le réaccordage complet reste l'affaire du jalon d'équilibrage.
      */
     int summons() {
         return 0;

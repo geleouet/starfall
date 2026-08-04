@@ -230,39 +230,40 @@ class SovereignTest {
     }
 
     /**
-     * Le télégraphe complet, sur la rencontre du souverain : ce qui est annoncé sur la case du héros
-     * est exactement ce qu'il encaisse. Le fuzz est le seul moyen de couvrir les combinaisons de
-     * ruées, d'invocations et de sbires qui s'ajoutent.
+     * Le télégraphe complet sur la rencontre : ce qui est annoncé sur la case du héros est
+     * <b>exactement</b> ce qu'il encaisse.
+     *
+     * <p>La première version de ce test sautait les tours où le héros avait changé de case — donc
+     * précisément tous ceux où la ruée s'était déclenchée, puisqu'elle <em>pousse</em>. Elle ne
+     * mesurait plus que les tours sans ruée, c'est-à-dire tout sauf la mécanique vedette du jalon.
+     * Elle ne vérifiait pas non plus l'égalité, seulement l'absence de sur-promesse — alors que les
+     * jalons précédents ont été refusés pour des <b>sous</b>-promesses.
+     *
+     * <p>C'est réparable parce que la poussée est désormais différée à la fin de la phase : les
+     * coups annoncés tombent tous sur la case annoncée, et le déplacement vient après. Le demi-tour
+     * reste la seule action qui consomme un tour sans que le héros bouge de son propre fait.
      */
     @Test
-    @DisplayName("Le télégraphe tient face au souverain et à ses invocations")
-    void theTelegraphHoldsAgainstTheSovereign() {
+    @DisplayName("Le télégraphe tient exactement face au souverain et à ses invocations")
+    void theTelegraphHoldsExactlyAgainstTheSovereign() {
         List<String> failures = new ArrayList<>();
 
         for (int seed = 0; seed < 400 && failures.size() <= 5; seed++) {
             Random random = new Random(seed);
             int width = Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1);
-            Arena arena = new Arena(width, width / 2);
-            arena.grid().place(width - 1, new Enemy(EnemyKind.SOUVERAIN));
-            arena.announceIntentions();
+            Arena arena = ArenaSetup.trainingArena(width, Arena.WAVE_COUNT);
 
             for (int turn = 0; turn < 50 && !arena.isOver(); turn++) {
                 int announced = arena.threatCount(arena.heroCell());
                 int hitsBefore = arena.heroHits();
                 int turnsBefore = arena.turnsTaken();
-                int heroBefore = arena.heroCell();
 
-                arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+                arena.step(arena.hero().facing().opposite()); // demi-tour : il ne bouge pas
                 if (arena.turnsTaken() == turnsBefore) {
                     continue;
                 }
-                // Un tour qui deplace le heros le sort peut-etre de la case annoncee : on ne
-                // compare que lorsqu'il n'a pas bouge, comme le fait le test du telegraphe.
-                if (arena.heroCell() != heroBefore) {
-                    continue;
-                }
                 int taken = arena.heroHits() - hitsBefore;
-                if (taken > announced) {
+                if (taken != announced) {
                     failures.add("graine " + seed + " tour " + turn + " : " + announced
                             + " coup(s) annonce(s), " + taken + " encaisse(s)");
                 }
@@ -270,6 +271,247 @@ class SovereignTest {
         }
 
         assertTrue(failures.isEmpty(), "le telegraphe ment :\n  " + String.join("\n  ", failures));
+    }
+
+    /**
+     * Le cas que la poussée différée corrige : un souverain <b>à gauche</b> d'un autre ennemi qui
+     * vise la même case.
+     *
+     * <p>Appliquée sur-le-champ, la poussée sortait le héros de la case avant que l'ennemi suivant
+     * ne frappe : le bandeau annonçait deux coups, un seul tombait, et la différence tenait à
+     * l'ordre d'exécution — invisible. Le miroir exact du même montage en donnait deux. Le même
+     * chiffre affiché, deux résultats.
+     */
+    @Test
+    @DisplayName("La poussée de la ruée ne fait pas rater les coups annoncés après elle")
+    void theRushPushDoesNotMakeLaterAnnouncedBlowsMiss() {
+        for (boolean sovereignFirst : new boolean[]{true, false}) {
+            Arena arena = new Arena(11, 5);
+            int left = sovereignFirst ? 3 : 7;
+            int right = sovereignFirst ? 7 : 3;
+            arena.grid().place(left, new Enemy(EnemyKind.SOUVERAIN));
+            arena.grid().place(right, new Enemy(EnemyKind.ARCHER));
+            arena.announceIntentions();
+
+            int announced = arena.threatCount(arena.heroCell());
+            int before = arena.hero().health();
+            arena.step(arena.hero().facing().opposite());
+
+            assertEquals(2, announced, "montage invalide : deux coups doivent etre annonces");
+            assertEquals(announced, before - arena.hero().health(),
+                    "souverain " + (sovereignFirst ? "a gauche" : "a droite")
+                            + " : le meme chiffre affiche doit donner le meme resultat");
+        }
+    }
+
+    /**
+     * L'invariant qui rend l'invocation jouable : la case annoncée est <b>adjacente au héros</b>.
+     *
+     * <p>Elle est annoncée un tour à l'avance pour qu'on puisse la refuser en l'occupant. Si elle
+     * n'est pas à un geste, l'annonce n'est plus une décision, c'est un compte à rebours. La
+     * première version se rabattait derrière le souverain quand la case derrière le héros était
+     * prise : mesuré, 56 % des invocations de la vague livrée tombaient là, et 57 % des annonces
+     * étaient irréfusables — le boss en travers du chemin.
+     */
+    @Test
+    @DisplayName("Toute invocation annoncée est adjacente au héros, donc refusable")
+    void everyAnnouncedSummonSitsNextToTheHero() {
+        List<String> failures = new ArrayList<>();
+        int seen = 0;
+
+        for (int seed = 0; seed < 400 && failures.size() <= 5; seed++) {
+            Random random = new Random(seed);
+            int width = Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1);
+            Arena arena = ArenaSetup.trainingArena(width, Arena.WAVE_COUNT);
+
+            for (int turn = 0; turn < 40 && !arena.isOver(); turn++) {
+                for (Enemy enemy : arena.enemies()) {
+                    if (enemy.intention().kind() != Intention.Kind.SUMMON) {
+                        continue;
+                    }
+                    seen++;
+                    int distance = Math.abs(enemy.intention().targetCell() - arena.heroCell());
+                    if (distance != 1) {
+                        failures.add("graine " + seed + " tour " + turn + " : invocation en "
+                                + (enemy.intention().targetCell() + 1) + ", heros en "
+                                + (arena.heroCell() + 1) + " (distance " + distance + ")");
+                    }
+                }
+                arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+            }
+        }
+
+        assertTrue(failures.isEmpty(),
+                "invocations irrefusables :\n  " + String.join("\n  ", failures));
+        assertTrue(seen > 200, "le fuzz n'a vu que " + seen + " invocations : trop peu pour prouver"
+                + " quoi que ce soit sur le cas que ce test protege");
+    }
+
+    /**
+     * Le repli, quand la case derrière le héros est prise : devant lui, entre le héros et le
+     * souverain. Toujours adjacente, donc toujours refusable.
+     */
+    @Test
+    @DisplayName("Case arrière occupée, l'invocation se rabat devant le héros")
+    void whenTheCellBehindIsTakenTheSummonFallsInFront() {
+        Arena arena = new Arena(11, 5);
+        arena.grid().place(4, new Enemy(EnemyKind.SABREUR)); // derriere le heros
+        arena.grid().place(8, new Enemy(EnemyKind.SOUVERAIN));
+        arena.announceIntentions();
+        if (sovereignIn(arena).intention().kind() != Intention.Kind.SUMMON) {
+            arena.step(arena.hero().facing().opposite());
+        }
+
+        Enemy boss = sovereignIn(arena);
+        if (boss.intention().kind() == Intention.Kind.SUMMON) {
+            assertEquals(1, Math.abs(boss.intention().targetCell() - arena.heroCell()),
+                    "le repli doit rester adjacent au heros");
+        }
+    }
+
+    /**
+     * Un sbire invoqué doit <b>faire quelque chose</b>.
+     *
+     * <p>Né derrière le souverain, il se retrouvait coincé derrière lui sur une grille linéaire :
+     * mesuré, 47 % des sbires annonçaient « attend », dont 93 % pour cette raison. Le souverain ne
+     * prenait pas en tenaille, il fabriquait une file d'attente — et le joueur payait une invocation
+     * qu'il ne pouvait pas refuser pour un ennemi inerte.
+     */
+    @Test
+    @DisplayName("Un sbire invoqué n'est pas inerte")
+    void aSummonedMinionIsNotInert() {
+        int waiting = 0;
+        int total = 0;
+
+        for (int seed = 0; seed < 200; seed++) {
+            Random random = new Random(seed);
+            Arena arena = ArenaSetup.trainingArena(11, Arena.WAVE_COUNT);
+
+            for (int turn = 0; turn < 30 && !arena.isOver(); turn++) {
+                arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+                for (Enemy enemy : arena.enemies()) {
+                    // Les sbires sont des sabreurs ; l'escorte de la vague est un archer.
+                    if (enemy.kind() != EnemyKind.SABREUR) {
+                        continue;
+                    }
+                    total++;
+                    if (enemy.intention().kind() == Intention.Kind.WAIT) {
+                        waiting++;
+                    }
+                }
+            }
+        }
+
+        assertTrue(total > 100, "montage invalide : " + total + " observations de sbire");
+        assertTrue(waiting * 4 < total, "trop de sbires inertes : " + waiting + " sur " + total
+                + " annoncent « attend »");
+    }
+
+    /**
+     * La ruée doit porter autant de coups qu'une charge, parce que le compteur de menaces les
+     * compte. Elle n'en portait qu'un : latent tant que le souverain n'a pas de trait, mais le
+     * jalon suivant est celui de l'équilibrage, et la table des vagues est une donnée.
+     */
+    @Test
+    @DisplayName("Une ruée rapide porte les deux coups qu'elle annonce")
+    void aFastRushLandsBothAnnouncedBlows() {
+        Arena arena = new Arena(11, 5);
+        arena.grid().place(7, new Enemy(EnemyKind.SOUVERAIN, Trait.RAPIDE));
+        arena.announceIntentions();
+
+        int announced = arena.threatCount(arena.heroCell());
+        int before = arena.heroHits();
+        arena.step(arena.hero().facing().opposite());
+
+        assertEquals(2, announced, "un souverain rapide doit annoncer deux coups");
+        assertEquals(announced, arena.heroHits() - before, "et les porter tous les deux");
+    }
+
+    /**
+     * Une invocation ne doit jamais se poser dans le couloir d'une charge annoncée.
+     *
+     * <p>Un lancier en élan tient sa promesse quoi qu'il arrive et ne consulte donc aucune
+     * réservation : c'est aux autres de lui laisser la place. Si l'invocation s'annonçait avant lui,
+     * elle pouvait choisir une case au milieu de son couloir — et le sbire qui s'y levait
+     * interceptait la charge. Mot pour mot la faute que le jalon précédent a payée avec un allié.
+     */
+    @Test
+    @DisplayName("Aucune invocation ne se pose dans le couloir d'une charge annoncée")
+    void noSummonLandsInsideAnAnnouncedChargeCorridor() {
+        for (int bossCell = 0; bossCell <= 2; bossCell++) {
+            Arena arena = new Arena(11, 4);
+            arena.grid().place(bossCell, new Enemy(EnemyKind.SOUVERAIN));
+            arena.grid().place(8, new Enemy(EnemyKind.LANCIER));
+            arena.announceIntentions();
+
+            for (int turn = 0; turn < 6 && !arena.isOver(); turn++) {
+                for (Enemy charger : arena.enemies()) {
+                    if (charger.intention().kind() != Intention.Kind.CHARGE) {
+                        continue;
+                    }
+                    int from = arena.grid().indexOf(charger);
+                    int to = charger.intention().targetCell();
+                    int step = Integer.signum(to - from);
+                    for (Enemy summoner : arena.enemies()) {
+                        if (summoner.intention().kind() != Intention.Kind.SUMMON) {
+                            continue;
+                        }
+                        int cell = summoner.intention().targetCell();
+                        for (int inside = from + step; inside != to; inside += step) {
+                            assertTrue(cell != inside,
+                                    "boss en " + (bossCell + 1) + " tour " + turn
+                                            + " : invocation en " + (cell + 1)
+                                            + ", dans le couloir de charge " + (from + 1)
+                                            + " vers " + (to + 1));
+                        }
+                    }
+                }
+                arena.hero().face(Direction.LEFT);
+                arena.step(Direction.RIGHT);
+            }
+        }
+    }
+
+    /** Deux souverains ne doivent jamais viser la même case : le code les autorise. */
+    @Test
+    @DisplayName("Deux souverains n'invoquent jamais sur la même case")
+    void twoSovereignsNeverSummonOntoTheSameCell() {
+        for (int seed = 0; seed < 200; seed++) {
+            Random random = new Random(seed);
+            Arena arena = new Arena(11, 5);
+            arena.grid().place(1, new Enemy(EnemyKind.SOUVERAIN));
+            arena.grid().place(9, new Enemy(EnemyKind.SOUVERAIN));
+            arena.announceIntentions();
+
+            for (int turn = 0; turn < 20 && !arena.isOver(); turn++) {
+                List<Integer> cells = new ArrayList<>();
+                for (Enemy enemy : arena.enemies()) {
+                    if (enemy.intention().kind() == Intention.Kind.SUMMON) {
+                        cells.add(enemy.intention().targetCell());
+                    }
+                }
+                assertEquals(cells.size(), new java.util.HashSet<>(cells).size(),
+                        "graine " + seed + " tour " + turn + " : deux invocations sur " + cells);
+                arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+            }
+        }
+    }
+
+    /**
+     * Une vague de départ hors bornes ne doit pas sortir de la table.
+     *
+     * <p>{@code startAtWave} bornait, et la ligne suivante rappelait l'argument brut : deux façons
+     * de borner à deux lignes d'intervalle, dont une seule marchait.
+     */
+    @Test
+    @DisplayName("Une vague de départ hors bornes est ramenée dans la table")
+    void anOutOfRangeStartingWaveIsClamped() {
+        for (int wave : new int[]{-3, 0, 1, Arena.WAVE_COUNT, Arena.WAVE_COUNT + 5}) {
+            Arena arena = ArenaSetup.trainingArena(11, wave);
+            assertTrue(arena.wave() >= 1 && arena.wave() <= Arena.WAVE_COUNT,
+                    "vague " + wave + " a donne " + arena.wave());
+            assertTrue(!arena.enemies().isEmpty(), "vague " + wave + " : personne n'est arrive");
+        }
     }
 
     /**

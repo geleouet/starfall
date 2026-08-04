@@ -53,18 +53,26 @@ public final class HudText {
      * aussi, mais un nombre écrit ne peut pas saturer — et c'est le chiffre le plus décisif de
      * l'écran quand le héros a cinq points de vie.
      *
-     * <p>L'enchaînement a quitté ce bandeau pour la ligne de retour d'action : c'est une
-     * récompense, pas une donnée de décision, et sa place ici mettait la largeur du bandeau à deux
-     * pixels de la rupture.
+     * <p>Deux choses en sont parties. L'<b>enchaînement</b> d'abord : c'est une récompense, pas une
+     * donnée de décision, et sa place ici mettait la largeur du bandeau à deux pixels de la
+     * rupture. Le <b>compteur de tours</b> ensuite, pour faire de la place au mot « invocation » —
+     * et parce qu'il ne sert à rien pour décider : le rythme des archétypes lents se lit sur leurs
+     * intentions annoncées, jamais sur une parité qu'il faudrait calculer. Il reste au bilan de fin
+     * de partie, qui est sa vraie place.
+     *
+     * <p>Le mot « invocation » y est en revanche indispensable : c'est le seul danger que le
+     * compteur de coups ne peut pas dire, puisque rien ne tombe sur la case.
      */
     public static String banner(Arena arena) {
         StringBuilder line = new StringBuilder();
         line.append("VAGUE ").append(arena.wave()).append('/').append(arena.waveCount())
-                .append("  TOUR ").append(arena.turnsTaken())
                 .append("  PV ").append(arena.hero().health()).append('/').append(Hero.MAX_HEALTH);
         int threat = arena.threatCount(arena.heroCell());
         if (threat > 0) {
             line.append("  MENACE ").append(threat);
+        }
+        if (arena.anySummonAnnounced()) {
+            line.append("  INVOCATION");
         }
         return line.toString();
     }

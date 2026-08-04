@@ -159,9 +159,10 @@ KKgggKK..KKgggKK
 # archetypes rouges qu'on apprend a distinguer par la silhouette, et une
 # cinquieme figure qu'on reconnait avant meme d'avoir regarde sa forme.
 #
-# La couronne est ce qui depasse : c'est le seul sprite du jeu dont la
-# silhouette monte au-dessus de la ligne des tetes, donc le seul qu'on
-# repere dans une melee sans compter les cases.
+# La couronne est ce qui depasse. Le sabreur porte deja sa lame haut, mais
+# c'est une verticale collee au bord du sprite ; la couronne est large,
+# centree et doree, et c'est la seule chose du jeu qui se lise au-dessus des
+# tetes sans qu'on ait a compter les cases.
 @sprite enemy/souverain
 ................
 .....y.y.y......

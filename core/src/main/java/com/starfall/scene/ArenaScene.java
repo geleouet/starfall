@@ -751,8 +751,16 @@ public final class ArenaScene implements Scene {
                 // Une invocation ne fait tomber aucun coup : elle a sa forme à elle, un losange
                 // creux, et surtout elle ne compte pas dans les barres. Un joueur qui lit
                 // « deux coups » doit en recevoir deux.
-                drawDiamond(layout.cellLeft(cell) + ArenaLayout.CELL_WIDTH / 2 - 2,
-                        ArenaLayout.GROUND_Y + 1, HudColors.THREAT);
+                drawDiamond(cellCentre(cell), ArenaLayout.GROUND_Y + 1, HudColors.THREAT);
+            }
+            int pushed = arena.announcedPushTo(cell);
+            if (pushed >= 0) {
+                // Où le héros atterrira s'il reste : un chevron, la forme que le jeu utilise déjà
+                // pour « quelqu'un se déplace et ne frappe pas », dans le gris qui va avec. Il
+                // manquait, et c'est pourtant tout le coût de la ruée — être déplacé d'une case ne
+                // veut pas dire la même chose au milieu du plateau ou contre un mur.
+                drawChevron(cellCentre(pushed), ArenaLayout.GROUND_Y + 1,
+                        Integer.signum(pushed - cell), HudColors.SLOT_EMPTY);
             }
             int blows = arena.threatCount(cell);
             if (blows == 0) {
@@ -801,10 +809,17 @@ public final class ArenaScene implements Scene {
                 // Ruée : la double pointe de la charge, doublée d'un chevron de poussée derrière la
                 // cible. La forme dit les deux temps de la combinaison — il vient, puis il déplace.
                 case RUSH -> {
+                    // Une pointe pleine — il vient et il frappe — suivie d'un chevron creux dans le
+                    // même sens : la forme du déplacement, celle qu'utilisent déjà les ennemis qui
+                    // avancent sans frapper. « Il vient, puis il te déplace », en deux formes que
+                    // le joueur connaît déjà séparément.
+                    //
+                    // La première version ajoutait à la double pointe de la charge une barre d'un
+                    // pixel. Deux effets radicalement différents pour un écart d'un pixel, qui à
+                    // l'échelle ×1 ressemblait de surcroît à une demi-barre de prise d'élan.
                     int step = directionTo(cell, intention.targetCell());
-                    drawSpike(centre - step * 3, y, step, HudColors.THREAT);
-                    drawSpike(centre + step, y, step, HudColors.THREAT);
-                    painter.fill(centre + step * 5, y, 1, ArenaLayout.INTENT_HEIGHT, HudColors.THREAT);
+                    drawSpike(centre - step * 2, y, step, HudColors.THREAT);
+                    drawChevron(centre + step * 4, y, step, HudColors.THREAT);
                 }
                 // Invocation : un losange creux, une forme qu'aucune attaque n'utilise. Rien ne
                 // tombera sur cette case — mais quelqu'un s'y lèvera.

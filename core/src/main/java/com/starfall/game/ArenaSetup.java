@@ -32,7 +32,10 @@ public final class ArenaSetup {
         Arena arena = new Arena(gridWidth);
         arena.enableWaves();
         arena.startAtWave(startWave);
-        WaveTable.spawn(arena, startWave);
+        // On repose la question à l'arène plutôt que de réutiliser l'argument : c'est elle qui
+        // borne, et borner à deux endroits de deux façons différentes est ce qui laissait
+        // « vague 0 » passer le garde-fou puis sortir de la table.
+        WaveTable.spawn(arena, arena.wave());
         // Les intentions doivent être visibles avant même le premier geste du joueur : c'est tout
         // l'intérêt du télégraphe.
         arena.announceIntentions();

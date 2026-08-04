@@ -13,17 +13,12 @@ final class EnemyBrain {
     }
 
     /**
-     * @param grid      plateau
-     * @param enemy     ennemi qui décide
-     * @param enemyCell sa case
-     * @param heroCell  case du héros
-     */
-    static Intention decide(Grid grid, Enemy enemy, int enemyCell, int heroCell) {
-        return decide(grid, enemy, enemyCell, heroCell, new boolean[0], 0);
-    }
-
-    /**
-     * @param reserved cases qu'une charge déjà annoncée traversera, et où personne ne doit se poser
+     * @param grid       plateau
+     * @param enemy      ennemi qui décide
+     * @param enemyCell  sa case
+     * @param heroCell   case du héros
+     * @param reserved   cases qu'une intention déjà annoncée réclame, et où personne ne doit se poser
+     * @param phaseIndex numéro de la phase <b>à venir</b> : le souverain y lit son rythme
      */
     static Intention decide(Grid grid, Enemy enemy, int enemyCell, int heroCell,
                             boolean[] reserved, int phaseIndex) {
@@ -91,7 +86,7 @@ final class EnemyBrain {
         // conditions d'une nouvelle ruee. Le souverain fonçait a chaque tour, n'invoquait jamais,
         // et sa mecanique vedette etait injouable - le defaut que M7 avait paye sur les vagues.
         if (enemy.summonsLeft() > 0 && phaseIndex % 2 == 1) {
-            int cell = summonCell(grid, enemyCell, heroCell, toward, reserved);
+            int cell = summonCell(grid, heroCell, toward, reserved);
             if (cell >= 0) {
                 return Intention.summon(cell);
             }
@@ -103,28 +98,39 @@ final class EnemyBrain {
     }
 
     /**
-     * Où l'invocation apparaîtra : <b>derrière le héros</b>, du côté opposé au souverain.
+     * Où l'invocation apparaîtra : sur une case <b>adjacente au héros</b>, de préférence derrière
+     * lui.
      *
-     * <p>C'est ce qui fait de l'invocation une menace de placement et non un simple ajout de
-     * matériel : elle prend en tenaille. Et comme la case est annoncée un tour à l'avance, le
-     * joueur peut la refuser — en s'y mettant, ou en se plaçant de sorte qu'elle sorte de la
-     * grille. Une invocation refusée est une invocation perdue.
+     * <p>L'adjacence n'est pas une préférence esthétique, c'est <b>l'invariant</b> qui rend la
+     * mécanique jouable. Une invocation est annoncée un tour à l'avance pour qu'on puisse la
+     * refuser en occupant la case ; si la case n'est pas à un geste du héros, l'annonce n'est plus
+     * une décision, c'est un compte à rebours.
      *
-     * <p>À défaut — bord de grille, case occupée —, on se rabat derrière le souverain lui-même.
-     * Sinon la mécanique vedette de la rencontre disparaîtrait sur les grilles étroites, ce qui est
-     * exactement le défaut que le jalon précédent a payé sur la table des vagues.
+     * <p>La première version se rabattait sur la case <em>derrière le souverain</em> quand celle
+     * derrière le héros était prise. Mesuré : <b>56 % des invocations de la vague livrée</b>
+     * tombaient là, et 57 % des annonces étaient irréfusables — le boss en travers du chemin. Pire,
+     * les sbires y naissaient coincés derrière lui : <b>47 % d'entre eux annonçaient « attend »</b>,
+     * dont 93 % pour cette raison. Le souverain ne prenait pas en tenaille, il fabriquait une file
+     * d'attente. Le joueur payait une invocation qu'il ne pouvait pas refuser pour un ennemi qui ne
+     * faisait rien.
+     *
+     * <p>Faute de case adjacente libre, on n'invoque pas du tout et le souverain fonce. Renoncer
+     * vaut mieux qu'annoncer ce qui ne se conteste pas.
      *
      * @return la case, ou {@code -1} si aucune ne convient
      */
-    private static int summonCell(Grid grid, int enemyCell, int heroCell, Direction toward,
-                                  boolean[] reserved) {
-        int behindHero = heroCell + toward.step();
-        if (grid.isFree(behindHero) && !isReserved(reserved, behindHero)) {
-            return behindHero;
+    private static int summonCell(Grid grid, int heroCell, Direction toward, boolean[] reserved) {
+        // Derrière le héros d'abord : c'est la tenaille, et c'est le côté qui l'oblige à tourner
+        // le dos au souverain pour la refuser.
+        int behind = heroCell + toward.step();
+        if (grid.isFree(behind) && !isReserved(reserved, behind)) {
+            return behind;
         }
-        int behindSelf = enemyCell - toward.step();
-        if (grid.isFree(behindSelf) && !isReserved(reserved, behindSelf)) {
-            return behindSelf;
+        // Sinon devant lui, entre le héros et le souverain : le sbire y bouche la ruée du boss,
+        // ce qui est un autre marché, mais il reste à un geste.
+        int front = heroCell - toward.step();
+        if (grid.isFree(front) && !isReserved(reserved, front)) {
+            return front;
         }
         return -1;
     }
