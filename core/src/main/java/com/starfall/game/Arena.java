@@ -697,26 +697,50 @@ public final class Arena {
      * droit.
      */
     public ActionResult clickOn(int cell) {
-        if (isOver()) {
-            return ActionResult.BLOCKED;
-        }
-        if (!grid.contains(cell)) {
-            return ActionResult.BLOCKED;
-        }
-        int from = heroCell();
-        if (cell == from) {
-            return ActionResult.BLOCKED;
-        }
-
-        Direction direction = Direction.towards(from, cell);
         // Le demi-tour et le pas sont délégués à step() plutôt que réécrits ici. La version
         // précédente dupliquait la logique de demi-tour, et c'est exactement ce qui a laissé le
         // clic échapper à la comptabilité des tours : se retourner coûtait un tour au clavier et
         // rien à la souris. Une règle écrite à deux endroits finit toujours par diverger.
-        if (hero.facing() == direction && cell == swapTarget()) {
+        return switch (planClick(cell)) {
+            case NOTHING -> ActionResult.BLOCKED;
             // Déjà tourné vers la cible de la capacité : l'échange est le geste attendu.
-            return swapWithTarget();
+            case SWAP -> swapWithTarget();
+            case TURN, STEP -> step(Direction.towards(heroCell(), cell));
+        };
+    }
+
+    /**
+     * Vrai si un clic sur cette case produirait quelque chose.
+     *
+     * <p>Elle existe pour l'interface, et pour une raison précise : le surlignage de survol
+     * s'allumait sur <b>toutes</b> les cases du plateau, y compris celles qu'un clic ne pouvait pas
+     * atteindre — derrière un ennemi, ou n'importe où une fois la partie finie. Le pointeur
+     * promettait une action qui ne venait pas. L'objection date de M4 et traînait depuis quatre
+     * jalons faute d'un endroit où poser la réponse.
+     *
+     * <p>Elle interroge le <em>même</em> plan que {@link #clickOn}, sans l'exécuter : c'est la seule
+     * façon d'être sûr que ce qui s'allume est ce qui répond.
+     */
+    public boolean clickable(int cell) {
+        return planClick(cell) != ClickPlan.NOTHING;
+    }
+
+    /** Ce qu'un clic sur une case déclencherait. */
+    private enum ClickPlan { NOTHING, TURN, STEP, SWAP }
+
+    private ClickPlan planClick(int cell) {
+        if (isOver() || !grid.contains(cell) || cell == heroCell()) {
+            return ClickPlan.NOTHING;
         }
-        return step(direction);
+        Direction direction = Direction.towards(heroCell(), cell);
+        if (hero.facing() != direction) {
+            return ClickPlan.TURN; // se retourner réussit toujours
+        }
+        if (cell == swapTarget()) {
+            return ClickPlan.SWAP;
+        }
+        // Déjà tourné dans la bonne direction : il ne reste qu'un pas, et il faut que la case
+        // suivante soit libre. Cliquer au-delà d'un occupant ne mène nulle part.
+        return grid.isFree(heroCell() + direction.step()) ? ClickPlan.STEP : ClickPlan.NOTHING;
     }
 }

@@ -138,6 +138,39 @@ public final class ArenaLayout {
     public static final int PREVIEW_Y = GROUND_Y - 8;
     public static final int PREVIEW_HEIGHT = 3;
 
+    /**
+     * Barres de menace : une par coup qui tombera sur la case.
+     *
+     * <h2>Pourquoi c'est calculé et non codé en dur</h2>
+     *
+     * <p>Le rendu dessinait trois barres au maximum, en s'arrêtant net au-delà. Quatre coups
+     * annoncés sur une case s'affichaient donc « trois », et la vague 3 — sabreur rapide, archer
+     * agressif, lancier fonceur, colosse — peut en produire cinq. Le héros a cinq points de vie :
+     * la différence entre « trois » et « cinq » est la différence entre rester et mourir.
+     *
+     * <p>C'était le télégraphe qui <b>sous-promettait</b>, dans l'exact miroir du défaut que le
+     * jalon précédent avait fait corriger côté modèle. Le pas se resserre donc pour que le compte
+     * reste exact, et {@link com.starfall.scene.HudText} écrit en plus le nombre.
+     *
+     * @return pas horizontal entre deux barres, en pixels-monde
+     */
+    public static int threatBarPitch(int blows) {
+        int usable = CELL_WIDTH - 4;
+        return blows <= 3 ? 6 : Math.max(2, usable / blows);
+    }
+
+    /** Largeur d'une barre de menace, déduite du pas. */
+    public static int threatBarWidth(int blows) {
+        return Math.max(1, threatBarPitch(blows) - 2);
+    }
+
+    /** Nombre de barres réellement dessinables sur une case sans déborder. */
+    public static int threatBarsDrawn(int blows) {
+        int usable = CELL_WIDTH - 4;
+        int pitch = threatBarPitch(blows);
+        return Math.min(blows, 1 + (usable - threatBarWidth(blows)) / pitch);
+    }
+
     /** Bord bas de la bande sensible au pointage : un peu sous les dalles, pour viser large. */
     public static final int PICK_BOTTOM = GROUND_Y - 8;
     /** Bord haut de la bande sensible : au-dessus des têtes, sans plus. */

@@ -31,7 +31,16 @@ public final class HudColors {
     public static final Color SLOT_EMPTY = new Color(0x8f93a8ff);
     /** Contour d'un emplacement libre, pour qu'il reste comptable. */
     public static final Color SLOT_OUTLINE = new Color(0x4a5570ff);
-    /** Extinction d'une tuile indisponible : éteinte, mais toujours identifiable. */
+    /**
+     * Ce qui est <b>absent</b> : une tuile indisponible, un point de vie perdu.
+     *
+     * <p>Elle a porté un troisième sens pendant un temps — « cette tuile va rater » — et c'était
+     * une faute de la même famille que le vert Free-Play : trois messages sur une couleur bâtie
+     * pour n'en porter qu'un. Pire, elle le portait mal : à {@code 0x3a3a44} sur le fond de la
+     * fosse, le repère qui annonce la promesse-titre du jalon faisait un rectangle de trois pixels
+     * quasi invisible. Un coup qui ne portera pas se dit maintenant par une <b>forme</b> — une
+     * croix — et non par une extinction.
+     */
     public static final Color DIMMED = new Color(0x3a3a44ff);
     /** Points de recharge restants. Un orange vif, distinct de l'ocre des tuiles de placement. */
     public static final Color RECHARGE = new Color(0xff8a3cff);
@@ -74,4 +83,18 @@ public final class HudColors {
     public static final Color TEXT = new Color(0xffffffff);
     /** Texte secondaire : ce qui précise sans commander le regard. */
     public static final Color TEXT_DIM = new Color(0xa8b0d8ff);
+
+    // ------------------------------------------------------------------ fonds de la scène
+    //
+    // Ces trois bandes vivaient en constantes privées de la scène, donc aucun test ne pouvait
+    // mesurer un signal contre le fond sur lequel il est réellement dessiné. C'est ainsi qu'un
+    // repère est resté illisible : il était bien distinct de toutes les autres couleurs
+    // d'interface, et se confondait avec le décor.
+
+    /** Le ciel, au-dessus du mur. */
+    public static final Color SKY = new Color(0x141a2eff);
+    /** Le mur derrière la grille : le fond des figures, de leurs points de vie et de leurs intentions. */
+    public static final Color WALL = new Color(0x1c2440ff);
+    /** La fosse sous les dalles : le fond de toutes les bandes de repères, de la file et du râtelier. */
+    public static final Color PIT = new Color(0x0c101eff);
 }

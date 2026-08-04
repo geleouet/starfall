@@ -93,6 +93,19 @@ public final class HudLayout {
         return INFO_TOP - panelHeight(lines);
     }
 
+    /**
+     * Ordonnée autour de laquelle le panneau d'aide est centré.
+     *
+     * <p>Volontairement <b>plus haute</b> que le milieu du monde. Centrée sur 90, l'aide recouvrait
+     * treize des seize pixels du râtelier — c'est-à-dire les six tuiles que sa deuxième ligne
+     * numérote (« 1 À 6 : POSER UNE TUILE »). Un panneau qui cache ce qu'il explique explique mal.
+     *
+     * <p>Elle couvre encore le plateau, et c'est assumé : l'aide est modale, un geste la referme
+     * sans rien déclencher. {@code HudTextTest} vérifie qu'elle tient entre le haut du râtelier et
+     * le bas du bandeau d'état.
+     */
+    public static final int HELP_CENTRE_Y = 105;
+
     private final int worldCentre;
     private final int rackSize;
 

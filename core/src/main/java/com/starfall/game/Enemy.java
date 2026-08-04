@@ -98,6 +98,24 @@ public final class Enemy implements Occupant {
         return has(Trait.RAPIDE) ? 2 : 1;
     }
 
+    /**
+     * Distance à laquelle cet ennemi frappe, trait <i>agressif</i> compris.
+     *
+     * <p>Publique parce que l'interface doit pouvoir la dire. M8 donne une infobulle aux tuiles au
+     * motif que « l'estoc porte à deux cases et rien ne le disait » ; c'était mot pour mot vrai de
+     * l'archer, du lancier et du trait agressif — sauf qu'on l'apprenait en prenant des coups
+     * plutôt qu'en gâchant des tuiles. Elle délègue au cerveau plutôt que de recalculer : la portée
+     * affichée est celle qui décide de l'intention.
+     */
+    public int reach() {
+        return EnemyBrain.effectiveRange(this);
+    }
+
+    /** Nombre de coups qu'une de ses frappes portera. Sert à l'infobulle. */
+    public int blowsPerAttack() {
+        return strikesPerAttack();
+    }
+
     @Override
     public String spriteName() {
         return kind.spriteName();

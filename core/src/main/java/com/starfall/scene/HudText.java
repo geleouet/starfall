@@ -2,10 +2,14 @@ package com.starfall.scene;
 
 import com.starfall.game.ActionResult;
 import com.starfall.game.Arena;
+import com.starfall.game.Enemy;
 import com.starfall.game.Hero;
+import com.starfall.game.HudLayout;
+import com.starfall.game.Occupant;
 import com.starfall.game.Tile;
 import com.starfall.game.TilePreview;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,18 +20,25 @@ import java.util.List;
  * <p>Un libellé d'interface peut échouer de deux façons qu'aucun coup d'œil ne rattrape :
  *
  * <ul>
- *   <li>il contient un caractère que la police ne sait pas dessiner — et la police <em>saute en
- *       silence</em> ce qu'elle ne connaît pas, donc « PRÊTE » s'affiche « PRTE » sans rien
- *       signaler ;</li>
- *   <li>il est trop long pour la zone garantie, donc il sort de l'écran sur certaines fenêtres et
- *       pas sur d'autres — jamais sur la machine de développement, évidemment.</li>
+ *   <li><b>Un caractère que la police ne connaît pas.</b> {@code PixelFont.draw} saute en silence
+ *       ce qu'elle ne sait pas dessiner : « PRÊTE » s'afficherait « PRTE » sans le moindre signal,
+ *       et le jeu est intégralement en français accentué.</li>
+ *   <li><b>Une ligne trop longue.</b> Elle sort de la zone garantie, donc elle disparaît sur
+ *       certaines tailles de fenêtre et pas sur d'autres — jamais sur celle où l'on développe.</li>
  * </ul>
  *
  * <p>Tant que ces phrases vivaient au milieu du code de rendu, les vérifier demandait un contexte
  * graphique, c'est-à-dire ne les vérifiait pas. Ici, elles sont pures : {@code HudTextTest} les
- * engendre toutes sur des milliers d'états de partie et mesure chacune.
+ * engendre toutes sur des milliers d'états de partie et mesure chacune. Le choix de ce qui
+ * s'affiche — {@link #infoLines} — est ici pour la même raison.
  *
- * <p>Les cases sont nommées de 1 à N pour le joueur, jamais de 0 à N-1.
+ * <h2>Les cases n'ont pas de numéro</h2>
+ *
+ * <p>L'interface a d'abord parlé en numéros de case : « FRAPPE CASE 12 ». Aucune dalle n'étant
+ * numérotée à l'écran, lire cette phrase sur une grille de quinze demandait de compter douze
+ * dalles depuis le bord. Elle parle donc en <b>relatif</b> — « la case devant », « la 2e case
+ * devant » — parce que c'est ainsi qu'on raisonne sur une ligne, et parce que le repère violet
+ * sous la dalle dit déjà <em>où</em> avec une précision qu'aucun numéro n'ajoute.
  */
 public final class HudText {
 
@@ -37,19 +48,90 @@ public final class HudText {
     /**
      * Bandeau d'état.
      *
-     * <p>Il ne porte que ce que la scène ne montre pas déjà. Les points de vie y figurent tout de
-     * même en chiffres : les pastilles au-dessus des têtes répondent à « est-ce que ça va », pas à
-     * « combien exactement », et la différence décide parfois du tour.
+     * <p>Il ne porte que ce que la scène ne montre pas déjà, et une chose qu'elle montre mal : le
+     * <b>nombre de coups</b> qui tomberont sur la case du héros. Les barres sur la dalle le disent
+     * aussi, mais un nombre écrit ne peut pas saturer — et c'est le chiffre le plus décisif de
+     * l'écran quand le héros a cinq points de vie.
+     *
+     * <p>L'enchaînement a quitté ce bandeau pour la ligne de retour d'action : c'est une
+     * récompense, pas une donnée de décision, et sa place ici mettait la largeur du bandeau à deux
+     * pixels de la rupture.
      */
     public static String banner(Arena arena) {
         StringBuilder line = new StringBuilder();
         line.append("VAGUE ").append(arena.wave()).append('/').append(arena.waveCount())
                 .append("  TOUR ").append(arena.turnsTaken())
                 .append("  PV ").append(arena.hero().health()).append('/').append(Hero.MAX_HEALTH);
-        if (arena.lastCombo() > 1) {
-            line.append("  ENCHAÎNEMENT ").append(arena.lastCombo());
+        int threat = arena.threatCount(arena.heroCell());
+        if (threat > 0) {
+            line.append("  MENACE ").append(threat);
         }
         return line.toString();
+    }
+
+    /**
+     * Les lignes du panneau d'information, dans l'ordre.
+     *
+     * <p>La <b>ligne d'annonce est toujours la première</b>, et c'est un correctif : le survol du
+     * râtelier la remplaçait entièrement par l'infobulle. Or l'instant qui suit la pose d'une tuile
+     * est celui où le curseur se trouve sur le râtelier <em>et</em> où le joueur veut savoir ce que
+     * sa nouvelle tuile va faire. L'interface lui cachait exactement ce qu'il venait de demander,
+     * pendant que la touche d'exécution restait active.
+     *
+     * <p>Jamais plus de {@link HudLayout#MAX_INFO_LINES} lignes : au-delà, le panneau mordrait sur
+     * les glyphes d'intention, c'est-à-dire qu'une infobulle cacherait le télégraphe.
+     *
+     * @param rackSlot  tuile du râtelier survolée, ou {@code -1}
+     * @param queueSlot emplacement de file survolé, ou {@code -1}
+     * @param cell      case du plateau survolée, ou {@code -1}
+     * @param last      résultat de la dernière action, ou {@code null}
+     */
+    public static List<String> infoLines(Arena arena, int rackSlot, int queueSlot, int cell,
+                                         ActionResult last) {
+        List<String> lines = new ArrayList<>(HudLayout.MAX_INFO_LINES);
+        lines.add(announce(arena));
+
+        Tile hovered = hoveredTile(arena, rackSlot, queueSlot);
+        if (hovered != null) {
+            lines.add(rackSlot >= 0
+                    ? rackHead(arena, hovered)
+                    : queueHead(arena.queue().fromOldest(), queueSlot));
+            lines.add(hovered.effect().toUpperCase());
+            return lines;
+        }
+        if (arena.grid().occupantAt(cell) instanceof Enemy enemy) {
+            lines.add(enemyHead(enemy));
+            lines.add(enemyDetail(enemy));
+            return lines;
+        }
+        if (last != null) {
+            lines.add(lastAction(last, arena.lastCombo()));
+        }
+        return lines;
+    }
+
+    /** Tuile survolée, du râtelier ou de la file, ou {@code null}. Le râtelier a la priorité. */
+    public static Tile hoveredTile(Arena arena, int rackSlot, int queueSlot) {
+        List<Tile> rack = arena.rack().tiles();
+        if (rackSlot >= 0 && rackSlot < rack.size()) {
+            return rack.get(rackSlot);
+        }
+        List<Tile> queued = arena.queue().fromOldest();
+        if (queueSlot >= 0 && queueSlot < queued.size()) {
+            return queued.get(queueSlot);
+        }
+        return null;
+    }
+
+    /**
+     * Vrai si la tuile survolée est celle qui partira, donc si son préavis a le droit d'annoncer un
+     * résultat.
+     *
+     * <p>Survoler l'emplacement du sommet faisait passer son propre préavis de plein à creux : la
+     * forme disait « ceci pourrait atteindre » à propos de la tuile qui allait partir.
+     */
+    public static boolean hoveringTheTop(Arena arena, int rackSlot, int queueSlot) {
+        return rackSlot < 0 && queueSlot >= 0 && queueSlot == arena.queue().size() - 1;
     }
 
     /**
@@ -78,61 +160,94 @@ public final class HudText {
      */
     public static String effectOf(Arena arena, TilePreview preview) {
         return switch (preview.kind()) {
-            case HIT -> "SUR LA CASE " + cell(preview.aim());
+            case HIT -> "SUR " + ahead(arena, preview.aim());
             case PUSH -> preview.outcome() == ActionResult.PUSHED
-                    ? "CASE " + cell(preview.aim()) + " VERS LA CASE " + cell(preview.landing())
-                    : "CASE " + cell(preview.aim()) + " CONTRE " + obstacle(arena, preview.landing())
-                            + " : CHOC";
+                    ? "RECULE D'UNE CASE"
+                    : "BUTE SUR " + obstacle(arena, preview.landing()) + " : CHOC";
             case MOVE -> preview.outcome() == ActionResult.DASHED
-                    ? "JUSQU'EN CASE " + cell(preview.landing())
-                    : "VERS LA CASE " + cell(preview.landing());
+                    ? "COURSE DE " + distance(arena, preview.landing()) + " CASES"
+                    : "RECUL D'UNE CASE";
             case TURN -> "REGARD À " + preview.direction().label().toUpperCase();
             case NONE -> preview.outcome() == ActionResult.NO_TARGET
-                    ? "CASE " + cell(preview.aim()) + " VIDE - TUILE PERDUE"
+                    ? empty(arena, preview.aim()) + " - TUILE PERDUE"
                     : "BLOQUÉ - TUILE PERDUE";
         };
     }
 
     /** Retour sur l'action qui vient d'être jouée. */
-    public static String lastAction(ActionResult result) {
+    public static String lastAction(ActionResult result, int combo) {
         // Une poussée qui butte et une poussée qui aboutit déplacent toutes les deux quelqu'un
         // d'une case : sans retour écrit, le joueur ne sait pas laquelle des deux il vient de jouer.
-        return "DERNIÈRE ACTION : " + result.label().toUpperCase()
-                + (result == ActionResult.COLLIDED ? " - ENNEMI ÉTOURDI" : "");
+        String line = "DERNIÈRE : " + result.label().toUpperCase();
+        if (result == ActionResult.COLLIDED) {
+            return line + " - ENNEMI ÉTOURDI";
+        }
+        if (combo > 1) {
+            return line + " - ENCHAÎNEMENT " + combo;
+        }
+        return line;
     }
 
     /**
-     * Infobulle d'une tuile du râtelier : ce qu'elle fait, ce qu'elle coûte, et si on peut la poser.
+     * Première ligne d'une infobulle de râtelier : nom, portée, gratuité, <b>et disponibilité</b>.
      *
-     * <p>La troisième ligne est celle qui manquait le plus : le râtelier montrait bien qu'une tuile
-     * était éteinte, avec des points ocre pour compter, mais rien ne disait qu'un point valait un
-     * tour à attendre.
+     * <p>Les quatre sur une ligne parce que la ligne d'annonce a la priorité sur la première du
+     * panneau. C'est aussi la ligne qui dit qu'un point de recharge vaut un tour à attendre : le
+     * râtelier montrait bien des points ocre à compter, sans jamais dire ce qu'ils comptaient.
      */
-    public static List<String> rackTooltip(Arena arena, Tile tile) {
-        int missing = arena.rack().missingPoints(tile);
-        String state;
-        if (missing > 0) {
-            state = "EN RECHARGE : " + missing + (missing > 1 ? " POINTS" : " POINT") + " À ATTENDRE";
-        } else if (!arena.rack().holds(tile)) {
-            state = "DÉJÀ POSÉE SUR LA FILE";
-        } else {
-            state = "PRÊTE - RECHARGE " + tile.rechargeCost() + " APRÈS USAGE";
+    public static String rackHead(Arena arena, Tile tile) {
+        return head(tile) + "   " + rackState(arena, tile);
+    }
+
+    private static String rackState(Arena arena, Tile tile) {
+        if (arena.isOver()) {
+            // Le préavis se tait quand la partie est finie ; l'infobulle disait encore « PRÊTE »
+            // pour une tuile qu'aucune touche ne pouvait plus poser.
+            return "PARTIE FINIE";
         }
-        return List.of(head(tile), tile.effect().toUpperCase(), state);
+        int missing = arena.rack().missingPoints(tile);
+        if (missing > 0) {
+            return "EN RECHARGE : " + missing;
+        }
+        return arena.rack().holds(tile) ? "RECHARGE " + tile.rechargeCost() : "SUR LA FILE";
     }
 
-    /** Infobulle d'une tuile de la file : la même, plus sa place dans l'ordre d'exécution. */
-    public static List<String> queueTooltip(List<Tile> queued, int index) {
-        String state = index == queued.size() - 1
-                ? "SOMMET : C'EST ELLE QUI PART LA PREMIÈRE"
-                : "POSITION " + (index + 1) + " SUR " + queued.size() + " - CLIC POUR LA REPRENDRE";
-        return List.of(head(queued.get(index)), queued.get(index).effect().toUpperCase(), state);
+    /** Première ligne d'une infobulle de file : la même, plus la place dans l'ordre d'exécution. */
+    public static String queueHead(List<Tile> queued, int index) {
+        return head(queued.get(index)) + "   "
+                + (index == queued.size() - 1
+                        ? "SOMMET"
+                        : "POSITION " + (index + 1) + "/" + queued.size());
     }
 
-    /** Première ligne d'une infobulle : le nom, la portée, et la gratuité si elle s'applique. */
-    public static String head(Tile tile) {
+    private static String head(Tile tile) {
         return tile.label().toUpperCase() + "   " + tile.reachLabel().toUpperCase()
                 + (tile.isFreePlay() ? "   GRATUITE" : "");
+    }
+
+    /**
+     * Infobulle d'un ennemi survolé.
+     *
+     * <p>Elle existe pour la raison exacte qui a fait écrire celles des tuiles : « l'estoc porte à
+     * deux cases et rien ne le disait — le joueur devait l'apprendre en gâchant des tuiles. » C'est
+     * mot pour mot vrai de l'archer, du lancier et du trait agressif, sauf qu'on l'apprenait en
+     * prenant des coups.
+     */
+    public static String enemyHead(Enemy enemy) {
+        return enemy.label().toUpperCase() + "   PORTÉE " + enemy.reach()
+                + "   PV " + enemy.health() + "/" + enemy.maxHealth();
+    }
+
+    /** Deuxième ligne : ce qu'il fait maintenant, et ce qui le rend particulier. */
+    public static String enemyDetail(Enemy enemy) {
+        StringBuilder line = new StringBuilder(enemy.intention().kind().label().toUpperCase());
+        if (enemy.blowsPerAttack() > 1) {
+            line.append(" - ").append(enemy.blowsPerAttack()).append(" COUPS PAR FRAPPE");
+        }
+        if (enemy.has(com.starfall.game.Trait.EXPLOSIF)) {
+            line.append(" - EXPLOSE EN MOURANT");
+        }
+        return line.toString();
     }
 
     /** Bannière de fin de partie. Ne vaut la peine d'être appelée que si la partie est finie. */
@@ -156,10 +271,10 @@ public final class HudText {
                 "AIDE - STARFALL",
                 "FLÈCHES OU A/D : SE TOURNER, PUIS AVANCER",
                 "1 À 6 : POSER UNE TUILE SUR LA FILE (GRATUIT)",
-                "ESPACE : EXÉCUTER LA TUILE DU SOMMET",
-                "RETOUR ARRIÈRE : REPRENDRE LA DERNIÈRE POSÉE",
+                "ESPACE : EXÉCUTER LE SOMMET, POSÉ EN DERNIER",
+                "RETOUR ARRIÈRE OU CLIC SUR LA FILE : REPRENDRE",
                 "E : ÉCHANGER DE PLACE AVEC LA CIBLE VISÉE",
-                "CLIC : TOUT CELA À LA SOURIS - SURVOL : DÉTAILS",
+                "SURVOL : PORTÉE ET DÉTAIL   CLIC : TOUT",
                 "F1 FERMER   F11 PLEIN ÉCRAN   ÉCHAP QUITTER");
     }
 
@@ -173,11 +288,41 @@ public final class HudText {
      */
     public static final String HELP_HINT = "F1 AIDE";
 
-    private static String cell(int index) {
-        return String.valueOf(index + 1);
+    // ---------------------------------------------------------------- désignation relative
+
+    /** « LA CASE DEVANT », « LA 2E CASE DEVANT »… selon la distance et le sens du regard. */
+    private static String ahead(Arena arena, int cell) {
+        int offset = Math.abs(cell - arena.heroCell());
+        if (offset <= 1) {
+            return "LA CASE DEVANT";
+        }
+        return "LA " + offset + "E CASE DEVANT";
     }
 
+    /** « RIEN DEVANT », « RIEN À 2 CASES » : la forme courte, pour la ligne d'annonce. */
+    private static String empty(Arena arena, int cell) {
+        int offset = distance(arena, cell);
+        return offset <= 1 ? "RIEN DEVANT" : "RIEN À " + offset + " CASES";
+    }
+
+    private static int distance(Arena arena, int cell) {
+        return Math.abs(cell - arena.heroCell());
+    }
+
+    /**
+     * Ce sur quoi une poussée butte : le mur, ou le voisin.
+     *
+     * <p>L'archétype seul, sans ses traits : « BUTE SUR LE COLOSSE EXPLOSIF : CHOC » derrière le
+     * préfixe de la ligne d'annonce arrivait à cinq pixels de la largeur garantie. Les traits sont
+     * dits par l'infobulle de l'ennemi, qui a la place de les écrire.
+     */
     private static String obstacle(Arena arena, int landing) {
-        return arena.grid().contains(landing) ? "CASE " + cell(landing) : "LE MUR";
+        Occupant blocker = arena.grid().contains(landing) ? arena.grid().occupantAt(landing) : null;
+        if (blocker == null) {
+            return "LE MUR";
+        }
+        return blocker instanceof Enemy enemy
+                ? "LE " + enemy.kind().label().toUpperCase()
+                : blocker.label().toUpperCase();
     }
 }

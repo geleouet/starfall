@@ -1,10 +1,12 @@
 package com.starfall.scene;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.starfall.StarfallGame;
 import com.starfall.game.ActionResult;
 import com.starfall.game.Arena;
+import com.starfall.game.ArenaLayout;
 import com.starfall.game.ArenaSetup;
 import com.starfall.game.Direction;
 import com.starfall.game.Grid;
@@ -42,33 +44,18 @@ class HudTextTest {
     private static final int ACTIONS_PER_SEED = 40;
 
     /**
-     * Largeur utile d'une ligne de panneau, en pixels-monde : la zone garantie, moins la marge
+     * Largeur utile d'une ligne de panneau, en pixels-monde : la bande d'interface, moins la marge
      * gauche du panneau et ses deux marges intérieures.
+     *
+     * <p>Elle se mesure sur {@link StarfallGame#MIN_WORLD_WIDTH} et non sur la zone garantie du
+     * viewport, parce que c'est là que l'interface est ancrée : cette bande de 320 px-monde est la
+     * seule qui accompagne le plateau quelle que soit la forme de la fenêtre.
      */
     private static final int PANEL_TEXT_WIDTH =
             StarfallGame.MIN_WORLD_WIDTH - 8 - 2 * HudLayout.PANEL_PADDING;
 
-    /** Largeur utile du bandeau : la zone garantie moins ses deux marges. */
+    /** Largeur utile du bandeau : la bande d'interface moins ses deux marges. */
     private static final int BANNER_WIDTH = StarfallGame.MIN_WORLD_WIDTH - 8;
-
-    /** Toutes les phrases possibles d'un état de partie donné, avec le nom de leur usage. */
-    private static void collect(Arena arena, Set<String> panel, Set<String> banner) {
-        banner.add(HudText.banner(arena));
-        panel.add(HudText.announce(arena));
-        for (ActionResult result : ActionResult.values()) {
-            panel.add(HudText.lastAction(result));
-        }
-        for (Tile tile : arena.rack().tiles()) {
-            panel.addAll(HudText.rackTooltip(arena, tile));
-        }
-        List<Tile> queued = arena.queue().fromOldest();
-        for (int index = 0; index < queued.size(); index++) {
-            panel.addAll(HudText.queueTooltip(queued, index));
-        }
-        if (arena.isOver()) {
-            panel.addAll(HudText.outcome(arena));
-        }
-    }
 
     /** Le corpus complet des phrases que l'interface peut produire. */
     private record Corpus(Set<String> panel, Set<String> banner) {
@@ -76,6 +63,35 @@ class HudTextTest {
             Set<String> everything = new LinkedHashSet<>(panel);
             everything.addAll(banner);
             return everything;
+        }
+    }
+
+    /**
+     * Toutes les phrases possibles d'un état donné.
+     *
+     * <p>On balaie tous les survols possibles — chaque tuile du râtelier, chaque emplacement de
+     * file, <b>chaque case du plateau</b> — parce que c'est exactement ce que le joueur fera avec
+     * sa souris, et que le panneau change de contenu à chaque fois.
+     */
+    private static void collect(Arena arena, Set<String> panel, Set<String> banner) {
+        banner.add(HudText.banner(arena));
+        for (ActionResult result : ActionResult.values()) {
+            for (int combo : new int[]{0, 1, 3}) {
+                panel.add(HudText.lastAction(result, combo));
+                panel.addAll(HudText.infoLines(arena, -1, -1, -1, result));
+            }
+        }
+        for (int slot = 0; slot < arena.rack().tiles().size(); slot++) {
+            panel.addAll(HudText.infoLines(arena, slot, -1, -1, null));
+        }
+        for (int slot = 0; slot < arena.queue().size(); slot++) {
+            panel.addAll(HudText.infoLines(arena, -1, slot, -1, null));
+        }
+        for (int cell = 0; cell < arena.grid().width(); cell++) {
+            panel.addAll(HudText.infoLines(arena, -1, -1, cell, null));
+        }
+        if (arena.isOver()) {
+            panel.addAll(HudText.outcome(arena));
         }
     }
 
@@ -102,7 +118,6 @@ class HudTextTest {
             }
             collect(arena, panel, banner);
         }
-        // Le bandeau se mesure à part : il partage sa ligne avec le rappel de la touche d'aide.
         return new Corpus(panel, banner);
     }
 
@@ -124,8 +139,8 @@ class HudTextTest {
     }
 
     @Test
-    @DisplayName("Aucune phrase de panneau ne déborde de la zone garantie")
-    void noPanelLineOverflowsTheGuaranteedArea() {
+    @DisplayName("Aucune phrase de panneau ne déborde de la bande d'interface")
+    void noPanelLineOverflowsTheInterfaceBand() {
         List<String> failures = new ArrayList<>();
 
         for (String line : gather().panel()) {
@@ -144,6 +159,11 @@ class HudTextTest {
      * Le bandeau partage sa ligne avec le rappel de la touche d'aide, posé à droite. On mesure donc
      * la somme, plus un espace de séparation : c'est le cas où deux textes qui tiennent chacun se
      * chevauchent quand même.
+     *
+     * <p>Le compteur de tours est poussé à quatre chiffres à la main. Les corpus tirés au hasard
+     * s'arrêtent vers la quarantième action, si bien que la marge réelle du bandeau tenait à des
+     * parties courtes — elle a d'ailleurs été mesurée à deux pixels avant que l'enchaînement ne
+     * quitte cette ligne.
      */
     @Test
     @DisplayName("Le bandeau et le rappel d'aide ne se chevauchent jamais")
@@ -151,7 +171,10 @@ class HudTextTest {
         int hint = PixelFont.widthOf(HudText.HELP_HINT, 1);
 
         List<String> failures = new ArrayList<>();
-        for (String line : gather().banner()) {
+        Set<String> lines = gather().banner();
+        lines.add(longestPlausibleBanner());
+
+        for (String line : lines) {
             int total = PixelFont.widthOf(line, 1) + 6 + hint;
             if (total > BANNER_WIDTH) {
                 failures.add("« " + line + " » + rappel = " + total + " px pour " + BANNER_WIDTH);
@@ -159,6 +182,18 @@ class HudTextTest {
         }
 
         assertTrue(failures.isEmpty(), "le bandeau deborde :\n  " + String.join("\n  ", failures));
+    }
+
+    /** Une partie interminable, tous les compteurs au plus large, et la case du héros sous le feu. */
+    private static String longestPlausibleBanner() {
+        Arena arena = new Arena(9, 4);
+        while (arena.turnsTaken() < 1000) {
+            arena.step(arena.hero().facing().opposite());
+        }
+        String line = HudText.banner(arena);
+        // Le bandeau ne porte pas la menace quand personne ne vise le héros : on la simule à la
+        // valeur la plus large que la vague 3 puisse produire.
+        return line + "  MENACE 99";
     }
 
     /**
@@ -169,10 +204,9 @@ class HudTextTest {
     @Test
     @DisplayName("Le panneau d'information ne mord jamais sur les glyphes d'intention")
     void theInfoPanelNeverCoversTheIntentionGlyphs() {
-        assertTrue(HudLayout.infoPanelBottom(HudLayout.MAX_INFO_LINES)
-                        > com.starfall.game.ArenaLayout.INTENT_TOP,
+        assertTrue(HudLayout.infoPanelBottom(HudLayout.MAX_INFO_LINES) > ArenaLayout.INTENT_TOP,
                 "le panneau descend jusqu'a " + HudLayout.infoPanelBottom(HudLayout.MAX_INFO_LINES)
-                        + ", les glyphes montent a " + com.starfall.game.ArenaLayout.INTENT_TOP);
+                        + ", les glyphes montent a " + ArenaLayout.INTENT_TOP);
         assertTrue(HudLayout.INFO_TOP + 1 <= HudLayout.BANNER_BOTTOM,
                 "le panneau d'information mord sur le bandeau d'etat");
         assertTrue(HudLayout.BANNER_TOP <= StarfallGame.MIN_WORLD_HEIGHT,
@@ -180,25 +214,109 @@ class HudTextTest {
     }
 
     /**
-     * Toutes les infobulles font le même nombre de lignes, et ce nombre est celui que la géométrie
-     * autorise. Une quatrième ligne ajoutée un jour sans y penser sortirait du panneau.
+     * Le panneau d'information ne dépasse jamais le nombre de lignes que la géométrie autorise.
+     *
+     * <p>C'est la contrainte qui a décidé de la forme des infobulles : la ligne d'annonce garde la
+     * première place — sans quoi survoler le râtelier cachait ce qui allait partir — donc il ne
+     * reste que deux lignes pour décrire une tuile, et l'état de recharge a dû rejoindre l'en-tête.
      */
     @Test
-    @DisplayName("Les infobulles tiennent dans le nombre de lignes prévu")
-    void tooltipsFitTheAllowedLineCount() {
+    @DisplayName("Le panneau d'information tient toujours dans le nombre de lignes prévu")
+    void theInfoPanelAlwaysFitsTheAllowedLineCount() {
+        for (int seed = 0; seed < 40; seed++) {
+            Random random = new Random(seed);
+            Arena arena = ArenaSetup.trainingArena(
+                    Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1));
+
+            for (int action = 0; action < 30; action++) {
+                for (int slot = -1; slot < arena.rack().tiles().size(); slot++) {
+                    assertTrue(HudText.infoLines(arena, slot, -1, -1, ActionResult.STRUCK).size()
+                                    <= HudLayout.MAX_INFO_LINES,
+                            "infobulle de ratelier trop haute, graine " + seed);
+                }
+                for (int cell = 0; cell < arena.grid().width(); cell++) {
+                    assertTrue(HudText.infoLines(arena, -1, -1, cell, ActionResult.STRUCK).size()
+                                    <= HudLayout.MAX_INFO_LINES,
+                            "infobulle d'ennemi trop haute, graine " + seed);
+                }
+                arena.queueTile(arena.rack().tiles().get(random.nextInt(6)));
+                arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+            }
+        }
+    }
+
+    /**
+     * La ligne d'annonce ne quitte jamais la première place du panneau.
+     *
+     * <p>Le défaut qu'elle corrige : survoler une tuile du râtelier remplaçait tout le panneau par
+     * l'infobulle. Or l'instant qui suit une pose est celui où le curseur se trouve sur le râtelier
+     * <em>et</em> où le joueur veut savoir ce que sa nouvelle tuile va faire — l'interface lui
+     * cachait exactement ce qu'il venait de demander, pendant que la touche d'exécution restait
+     * active.
+     */
+    @Test
+    @DisplayName("La ligne d'annonce reste visible quoi qu'on survole")
+    void theAnnounceLineSurvivesEveryHover() {
+        Arena arena = ArenaSetup.trainingArena(9);
+        arena.queueTile(Tile.THRUST);
+        String announce = HudText.announce(arena);
+
+        for (int slot = 0; slot < arena.rack().tiles().size(); slot++) {
+            assertEquals(announce, HudText.infoLines(arena, slot, -1, -1, null).get(0));
+        }
+        assertEquals(announce, HudText.infoLines(arena, -1, 0, -1, null).get(0));
+        for (int cell = 0; cell < arena.grid().width(); cell++) {
+            assertEquals(announce, HudText.infoLines(arena, -1, -1, cell, null).get(0));
+        }
+    }
+
+    /**
+     * Une partie finie ne promet plus rien, <b>y compris dans les infobulles</b>.
+     *
+     * <p>Le préavis avait appris la règle et pas les infobulles : après une défaite, le râtelier
+     * annonçait encore « PRÊTE » et la file « CLIC POUR LA REPRENDRE », alors que les six portes
+     * d'action renvoient toutes {@code BLOCKED}.
+     */
+    @Test
+    @DisplayName("Les infobulles se taisent quand la partie est finie")
+    void tooltipsFallSilentOnceTheGameIsOver() {
+        // On joue au hasard jusqu'a la defaite : le jeu s'en charge tout seul, la review l'a
+        // mesure a 0 victoire sur 300 parties aleatoires.
+        Random random = new Random(3);
         Arena arena = ArenaSetup.trainingArena(9);
         arena.queueTile(Tile.STRIKE);
-        arena.queueTile(Tile.PUSH);
+        while (!arena.isOver() && arena.turnsTaken() < 400) {
+            arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+        }
+        assertTrue(arena.isOver(), "la partie doit s'etre terminee");
 
         for (Tile tile : arena.rack().tiles()) {
-            assertTrue(HudText.rackTooltip(arena, tile).size() <= HudLayout.MAX_INFO_LINES,
-                    "infobulle de " + tile + " trop haute");
+            String head = HudText.rackHead(arena, tile);
+            assertTrue(head.contains("PARTIE FINIE"),
+                    "l'infobulle de " + tile + " promet encore quelque chose : " + head);
         }
-        List<Tile> queued = arena.queue().fromOldest();
-        for (int index = 0; index < queued.size(); index++) {
-            assertTrue(HudText.queueTooltip(queued, index).size() <= HudLayout.MAX_INFO_LINES,
-                    "infobulle de file " + index + " trop haute");
-        }
-        assertTrue(HudText.outcome(arena).size() <= HudLayout.MAX_INFO_LINES);
+        assertEquals("PARTIE PERDUE", HudText.announce(arena));
     }
+
+    /**
+     * Le panneau d'aide tient entre le haut du râtelier et le bas du bandeau.
+     *
+     * <p>Centré à mi-hauteur du monde, il recouvrait treize des seize pixels du râtelier —
+     * c'est-à-dire les six tuiles que sa deuxième ligne numérote.
+     */
+    @Test
+    @DisplayName("L'aide ne recouvre ni le râtelier qu'elle explique ni le bandeau d'état")
+    void theHelpPanelClearsTheRackAndTheBanner() {
+        int height = HudLayout.panelHeight(HudText.help().size());
+        int top = HudLayout.HELP_CENTRE_Y + height / 2;
+        int bottom = top - height;
+
+        assertTrue(bottom >= HudLayout.RACK_Y + HudLayout.TILE_SIZE,
+                "l'aide descend a " + bottom + " et recouvre le ratelier, qui monte a "
+                        + (HudLayout.RACK_Y + HudLayout.TILE_SIZE));
+        assertTrue(top <= HudLayout.BANNER_BOTTOM,
+                "l'aide monte a " + top + " et recouvre le bandeau, qui descend a "
+                        + HudLayout.BANNER_BOTTOM);
+    }
+
 }

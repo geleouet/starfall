@@ -72,7 +72,10 @@ public enum Tile {
 
     /** Repousse d'une case l'occupant juste devant. Aucun dégât : c'est du placement. */
     PUSH("poussée", "tile/push", 2, false,
-            new int[]{1}, "repousse d'une case ; le mur blesse") {
+            // L'effet dit la règle entière : buter blesse les deux et étourdit. La ligne d'annonce
+            // n'a pas la place de le répéter, et c'est justement le calcul qu'un joueur ne peut pas
+            // faire de tête.
+            new int[]{1}, "repousse ; buter blesse les deux et étourdit") {
         @Override
         TilePreview preview(Arena arena) {
             Direction facing = arena.hero().facing();
@@ -258,11 +261,16 @@ public enum Tile {
      * Cases que la tuile peut toucher, en décalages relatifs au héros, comptés <b>vers l'avant</b> :
      * {@code 1} désigne la case devant lui, {@code -1} celle derrière.
      *
-     * <p>C'est une portée <em>statique</em> : elle ne sait pas qui se tient où. Elle sert au survol
-     * du râtelier, et uniquement à cela — une tuile du râtelier ne s'exécute pas tout de suite, elle
-     * passe d'abord par la file, donc lui prêter un résultat serait recommencer le mensonge que le
-     * télégraphe a coûté deux jalons à éteindre. Voir {@link TilePreview} pour la portée
-     * <em>résolue</em>, celle du sommet de la file, qui elle a le droit d'annoncer un résultat.
+     * <p>C'est une portée <em>statique</em> : elle ne sait pas qui se tient où. Elle sert à
+     * fabriquer {@link #reachLabel()}, le libellé qu'affiche l'infobulle — et c'est <b>tout</b> ce
+     * qu'elle fait. Un javadoc antérieur lui prêtait le rôle de dessiner le survol du râtelier ;
+     * c'était faux, ce survol passe par {@link Arena#preview(Tile)} comme le sommet de la file.
+     * Une seconde expression de la règle, documentée comme active alors qu'elle dormait, c'est
+     * exactement la fiction que ce jalon prétend avoir supprimée.
+     *
+     * <p>Ce qui lui reste de valeur, et ce n'est pas rien : elle est ce que l'interface
+     * <b>annonce</b>, et {@code TilePreviewTest} vérifie que la tuile vise bien les décalages
+     * annoncés. La boucle est fermée — libellé, tableau, comportement réel.
      *
      * <p>Vide quand la portée dépend du terrain ({@link #DASH}) ou que la tuile ne vise rien
      * ({@link #PIVOT}).

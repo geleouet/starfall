@@ -156,6 +156,41 @@ class HudColorsTest {
     }
 
     /**
+     * Un signal doit trancher sur le fond où il est <b>réellement</b> dessiné.
+     *
+     * <p>C'est le test qui manquait, et son absence a laissé passer un défaut visible : le repère
+     * « ce coup ne portera pas » — la promesse-titre du jalon de l'interface — était peint en
+     * {@code DIMMED} sur le fond de la fosse, soit un rectangle de trois pixels de haut à
+     * {@code 0x3a3a44} sur {@code 0x0c101e}. Il était pourtant bien distinct de toutes les autres
+     * couleurs d'interface et de toute la palette d'art : il se confondait avec le <em>décor</em>,
+     * et rien ne regardait le décor.
+     *
+     * <p>Les trois bandes vivaient en constantes privées de la scène, donc hors de portée de tout
+     * test. Elles ont déménagé dans {@link HudColors} pour cette seule raison.
+     */
+    @Test
+    @DisplayName("Chaque signal tranche sur les fonds de la scène")
+    void everySignalStandsOutAgainstTheSceneBackdrops() {
+        List<NamedColor> backdrops = List.of(
+                new NamedColor("SKY", HudColors.SKY),
+                new NamedColor("WALL", HudColors.WALL),
+                new NamedColor("PIT", HudColors.PIT));
+
+        List<String> collisions = new ArrayList<>();
+        for (NamedColor signal : signalColors()) {
+            for (NamedColor backdrop : backdrops) {
+                int distance = distance(Color.rgba8888(signal.color()),
+                        Color.rgba8888(backdrop.color()));
+                if (distance < MIN_DISTANCE) {
+                    collisions.add(signal.name() + " disparait sur " + backdrop.name()
+                            + " (écart " + distance + ")");
+                }
+            }
+        }
+        assertTrue(collisions.isEmpty(), "signaux illisibles : " + collisions);
+    }
+
+    /**
      * Le texte secondaire doit se distinguer du texte principal, sinon la hiérarchie qu'il est censé
      * porter n'existe pas.
      */
