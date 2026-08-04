@@ -17,6 +17,7 @@ import com.starfall.game.HudLayout;
 import com.starfall.game.Intention;
 import com.starfall.game.Occupant;
 import com.starfall.game.Tile;
+import com.starfall.game.Trait;
 import com.starfall.render.PixelPainter;
 
 import java.util.ArrayList;
@@ -129,12 +130,15 @@ public final class ArenaScene implements Scene {
      * l'ordre où on l'a remplie.
      */
     private static final ScriptedAction[] SCRIPT = {
-            a -> a.queueTile(Tile.PUSH),     // on charge la file, gratuitement
+            a -> a.queueTile(Tile.THRUST),   // l'estoc porte à deux cases : c'est la portée utile
+            a -> a.queueTile(Tile.STRIKE),   // charger la file ne coûte rien : le tour reste à zéro
+            a -> a.unqueueAt(1),             // on se ravise, gratuitement aussi
+            a -> a.executeTop(),             // l'estoc tombe sur l'ennemi de droite
+            a -> a.step(Direction.LEFT),     // demi-tour vers l'archer
+            a -> a.step(Direction.LEFT),     // on avance : les ennemis jouent, la vie descend
             a -> a.queueTile(Tile.STRIKE),
-            a -> a.executeTop(),             // la frappe, posée en dernier, part en premier
-            a -> a.step(Direction.RIGHT),    // on avance : les ennemis jouent, la vie descend
-            a -> a.executeTop(),             // la poussée : collision, dégâts, étourdissement
-            a -> a.step(Direction.LEFT),     // demi-tour
+            a -> a.executeTop(),             // et la vague bascule quand le terrain se vide
+            a -> a.step(Direction.RIGHT),
     };
 
     private int scriptedFrame = -1;
@@ -410,6 +414,15 @@ public final class ArenaScene implements Scene {
                 drawHealth(cell, arena.hero().health(), Hero.MAX_HEALTH, HERO_MARK);
             } else if (occupant instanceof Enemy enemy) {
                 drawHealth(cell, enemy.health(), enemy.maxHealth(), HudColors.THREAT);
+                if (enemy.has(Trait.EXPLOSIF)) {
+                    // Un explosif coûte deux points de vie à qui le tue au contact, soit 40 % de la
+                    // santé du héros — et son sprite est celui de son archétype, donc rien ne le
+                    // distinguait. Le seul indice était une ligne de texte, l'une des premières
+                    // tronquées sur une petite fenêtre.
+                    painter.outline(x - 1, ArenaLayout.FIGURE_Y - 1,
+                            ArenaLayout.FIGURE_WIDTH + 2, ArenaLayout.FIGURE_HEIGHT + 2,
+                            HudColors.RECHARGE);
+                }
             }
         }
     }
@@ -625,16 +638,19 @@ public final class ArenaScene implements Scene {
             if (threats.length() > 0) {
                 threats.append("   ");
             }
+            // Pas de mention « étourdi » ici : l'étourdissement est posé et consommé dans le même
+            // geste du joueur, donc il n'est jamais observable entre deux tours. Il se lit au
+            // résultat de l'action — « collision » — et au fait que l'ennemi annonce « attend ».
             threats.append(enemy.label().toUpperCase()).append(" : ")
-                    .append(enemy.isStunned() ? "ÉTOURDI"
-                            : enemy.intention().kind().label().toUpperCase());
+                    .append(enemy.intention().kind().label().toUpperCase());
         }
         if (threats.length() > 0) {
             lines.add(threats.toString());
         }
 
         if (lastResult != null) {
-            lines.add("DERNIÈRE ACTION : " + lastResult.label().toUpperCase());
+            lines.add("DERNIÈRE ACTION : " + lastResult.label().toUpperCase()
+                    + (lastResult == ActionResult.COLLIDED ? " - ENNEMI ÉTOURDI" : ""));
         }
         lines.add("1-6 : POSER   ESPACE : EXÉCUTER LE SOMMET   RETOUR ARRIÈRE : REPRENDRE");
         lines.add("FLÈCHES OU A/Q ET D : SE TOURNER PUIS AVANCER   E : ÉCHANGE   CLIC : TOUT");

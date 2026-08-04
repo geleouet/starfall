@@ -54,11 +54,20 @@ class CombatTest {
             }
 
             assertTrue(arena.isDefeat());
-            assertEquals(ActionResult.BLOCKED, arena.step(Direction.LEFT),
-                    "le jeu doit s'arreter, pas continuer en silence");
+
+            // TOUTES les portes, pas seulement celle du deplacement : seul step() etait garde, et
+            // un echange de place faisait repasser le temps et deplacait un heros mort.
             int turns = arena.turnsTaken();
-            arena.step(Direction.RIGHT);
-            assertEquals(turns, arena.turnsTaken(), "et le temps ne doit plus passer");
+            int cell = arena.heroCell();
+            assertEquals(ActionResult.BLOCKED, arena.step(Direction.LEFT), "deplacement");
+            assertEquals(ActionResult.BLOCKED, arena.swapWithTarget(), "echange de place");
+            assertEquals(ActionResult.BLOCKED, arena.clickOn(0), "clic");
+            assertEquals(ActionResult.BLOCKED, arena.executeTop(), "execution de tuile");
+            assertEquals(ActionResult.BLOCKED, arena.queueTile(Tile.STRIKE), "pose de tuile");
+            assertEquals(ActionResult.BLOCKED, arena.unqueueAt(0), "reprise de tuile");
+
+            assertEquals(turns, arena.turnsTaken(), "le temps ne doit plus passer");
+            assertEquals(cell, arena.heroCell(), "et le heros mort ne doit plus bouger");
         }
 
         @Test
@@ -186,6 +195,33 @@ class CombatTest {
         }
 
         @Test
+        @DisplayName("Passer une vague rend un point de vie, sans dépasser le maximum")
+        void clearingAWaveGivesSomeRespite() {
+            Arena arena = ArenaSetup.trainingArena(11);
+            // On encaisse d'abord, sinon le repit ne se verrait pas.
+            while (arena.hero().health() > 2) {
+                arena.step(arena.hero().facing().opposite());
+            }
+            int before = arena.hero().health();
+
+            clearBoard(arena);
+
+            assertEquals(Math.min(Hero.MAX_HEALTH, before + Arena.WAVE_RESPITE),
+                    arena.hero().health());
+        }
+
+        @Test
+        @DisplayName("Le répit ne dépasse jamais le maximum")
+        void theRespiteNeverOverflows() {
+            Arena arena = ArenaSetup.trainingArena(11);
+            assertEquals(Hero.MAX_HEALTH, arena.hero().health());
+
+            clearBoard(arena);
+
+            assertEquals(Hero.MAX_HEALTH, arena.hero().health());
+        }
+
+        @Test
         @DisplayName("La dernière vague vidée donne la victoire")
         void clearingTheLastWaveWins() {
             Arena arena = ArenaSetup.trainingArena(11);
@@ -201,16 +237,47 @@ class CombatTest {
         }
 
         @Test
+        @DisplayName("Une vague arrive entière, à toutes les largeurs de grille")
+        void aWaveAlwaysArrivesComplete() {
+            // Abandonner en silence les ennemis qui ne trouvaient pas de case signifiait qu'une
+            // grille de 5 ne rencontrait jamais ni lancier ni colosse explosif : la mecanique
+            // vedette du jalon y etait injouable, et la grille la plus etroite etait la plus facile.
+            for (int width = Grid.MIN_WIDTH; width <= Grid.MAX_WIDTH; width++) {
+                Arena arena = ArenaSetup.trainingArena(width);
+                java.util.Set<EnemyKind> seen = new java.util.HashSet<>();
+
+                for (int wave = 1; wave <= arena.waveCount(); wave++) {
+                    assertTrue(arena.enemies().size() >= wave + 1,
+                            "vague " + wave + " amputee sur une grille de " + width
+                                    + " : " + arena.enemies().size() + " ennemis");
+                    for (Enemy enemy : arena.enemies()) {
+                        seen.add(enemy.kind());
+                    }
+                    clearBoard(arena);
+                }
+
+                assertTrue(seen.containsAll(java.util.List.of(EnemyKind.values())),
+                        "archetypes jamais rencontres sur une grille de " + width + " : "
+                                + java.util.Arrays.stream(EnemyKind.values())
+                                        .filter(k -> !seen.contains(k)).toList());
+            }
+        }
+
+        @Test
         @DisplayName("Une vague neuve arrive des deux côtés et jamais au contact")
         void aFreshWaveArrivesOnBothSidesAndNeverAdjacent() {
             for (int width = Grid.MIN_WIDTH; width <= Grid.MAX_WIDTH; width++) {
                 Arena arena = ArenaSetup.trainingArena(width);
                 int hero = arena.heroCell();
 
-                assertTrue(arena.grid().isFree(hero - 1) || !arena.grid().contains(hero - 1),
-                        "un ennemi au contact des le depart, grille de " + width);
-                assertTrue(arena.grid().isFree(hero + 1) || !arena.grid().contains(hero + 1),
-                        "un ennemi au contact des le depart, grille de " + width);
+                // Le contact reste un dernier recours, jamais le cas nominal : sur une grille qui
+                // a la place, personne ne doit apparaitre colle au heros.
+                if (width >= 7) {
+                    assertTrue(arena.grid().isFree(hero - 1) || !arena.grid().contains(hero - 1),
+                            "un ennemi au contact des le depart, grille de " + width);
+                    assertTrue(arena.grid().isFree(hero + 1) || !arena.grid().contains(hero + 1),
+                            "un ennemi au contact des le depart, grille de " + width);
+                }
                 assertTrue(arena.grid().firstOccupied(hero, Direction.LEFT) >= 0
                                 || arena.grid().firstOccupied(hero, Direction.RIGHT) >= 0,
                         "vague vide sur une grille de " + width);

@@ -42,6 +42,16 @@ public final class Arena {
     public static final int EXPLOSION_DAMAGE = 2;
     /** Dégâts d'une collision. Un point, comme une frappe : le mur vaut une lame, pas davantage. */
     public static final int COLLISION_DAMAGE = 1;
+    /**
+     * Points de vie rendus au passage d'une vague.
+     *
+     * <p>Provisoire, et assumé comme tel : mesurée sans répit, la tranche était gagnable mais pas
+     * jouable — zéro victoire sur trois cents parties jouées au hasard, et un jeu quasi optimal
+     * n'arrivait au bout qu'avec deux points de vie sur cinq. Rien ne soignait entre les vagues,
+     * donc la deuxième arrivait avec ce qui restait de la première. Le réaccordage complet est
+     * l'affaire du jalon d'équilibrage.
+     */
+    public static final int WAVE_RESPITE = 1;
 
     private int turnsTaken;
     /** Numéro de la phase ennemie, qui sert aux archétypes n'agissant qu'une phase sur deux. */
@@ -138,6 +148,11 @@ public final class Arena {
      *
      * @return le résultat à afficher, éventuellement remplacé par un événement plus important
      */
+    /** Ouvre une action du joueur : c'est ici que le compteur de morts repart de zéro. */
+    private void beginAction() {
+        killsThisAction = 0;
+    }
+
     private ActionResult settle(ActionResult result) {
         lastCombo = killsThisAction;
         bestCombo = Math.max(bestCombo, lastCombo);
@@ -152,6 +167,7 @@ public final class Arena {
                 return ActionResult.VICTORY;
             }
             wave++;
+            hero.heal(WAVE_RESPITE);
             WaveTable.spawn(this, wave);
             announceIntentions();
         }
@@ -195,11 +211,15 @@ public final class Arena {
      */
     private void enemyPhase() {
         for (Enemy enemy : enemiesLeftToRight()) {
-            if (enemy.isStunned()) {
-                enemy.setStunned(false);
+            // L'ordre des deux tests compte. Un étourdissement promet de faire perdre « sa prochaine
+            // activation » : le consommer sur une phase où l'ennemi se reposait de toute façon
+            // reviendrait à ne rien lui coûter, et c'est précisément le colosse — le seul à trois
+            // points de vie — que le joueur est censé gérer en poussant plutôt qu'en tuant.
+            if (!enemy.kind().actsThisPhase(phaseIndex)) {
                 continue;
             }
-            if (!enemy.kind().actsThisPhase(phaseIndex)) {
+            if (enemy.isStunned()) {
+                enemy.setStunned(false);
                 continue;
             }
             execute(enemy);
@@ -233,12 +253,52 @@ public final class Arena {
      */
     void announceIntentions() {
         int heroCell = heroCell();
-        for (Enemy enemy : enemiesLeftToRight()) {
-            if (enemy.isStunned() || !enemy.kind().actsThisPhase(phaseIndex)) {
+        List<Enemy> enemies = enemiesLeftToRight();
+
+        // Deux passes, et l'ordre est le fond du sujet. Les charges s'annoncent d'abord, puis leurs
+        // couloirs sont réservés : un allié qui s'y posait interceptait la charge, et le coup
+        // annoncé au joueur ne tombait jamais. Une intention est un engagement — les autres
+        // ennemis doivent le respecter, sans quoi le télégraphe sur-promet.
+        boolean[] reserved = new boolean[grid.width()];
+        for (Enemy enemy : enemies) {
+            if (!willAct(enemy)) {
                 enemy.announce(Intention.of(Intention.Kind.WAIT));
                 continue;
             }
-            enemy.announce(EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell));
+            if (!enemy.isWindingUp()) {
+                continue;
+            }
+            Intention charge = EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell, reserved);
+            enemy.announce(charge);
+            reserveChargePath(reserved, grid.indexOf(enemy), charge);
+        }
+
+        for (Enemy enemy : enemies) {
+            if (!willAct(enemy) || enemy.isWindingUp()) {
+                continue;
+            }
+            enemy.announce(EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell, reserved));
+        }
+    }
+
+    /** Vrai si l'ennemi jouera réellement à la phase à venir. */
+    private boolean willAct(Enemy enemy) {
+        return !enemy.isStunned() && enemy.kind().actsThisPhase(phaseIndex);
+    }
+
+    /** Marque les cases qu'une charge traversera, bornes comprises. */
+    private static void reserveChargePath(boolean[] reserved, int from, Intention intention) {
+        if (intention.kind() != Intention.Kind.CHARGE) {
+            return;
+        }
+        int step = Integer.signum(intention.targetCell() - from);
+        if (step == 0) {
+            return;
+        }
+        for (int cell = from; cell != intention.targetCell(); cell += step) {
+            if (cell >= 0 && cell < reserved.length) {
+                reserved[cell] = true;
+            }
         }
     }
 
@@ -285,7 +345,6 @@ public final class Arena {
      * autrement qu'en s'écartant.
      */
     private void charge(Enemy enemy, int from, int target) {
-        enemy.setWindingUp(false);
         int step = Integer.signum(target - from);
         if (step == 0) {
             return;
@@ -297,8 +356,11 @@ public final class Arena {
             cell += step;
         }
         if (cell != landing) {
-            return; // interceptée en chemin : la charge s'arrête là et ne frappe pas
+            // Interceptée : elle s'arrête là et ne frappe pas — mais elle garde son élan, sans quoi
+            // s'interposer coûterait à l'ennemi bien plus que le tour qu'il vient de perdre.
+            return;
         }
+        enemy.setWindingUp(false);
         for (int blow = 0; blow < enemy.strikesPerAttack(); blow++) {
             strike(target);
         }
@@ -477,6 +539,7 @@ public final class Arena {
         if (isOver()) {
             return ActionResult.BLOCKED;
         }
+        beginAction();
         if (hero.facing() != direction) {
             hero.face(direction);
             consumeTurn();
@@ -502,6 +565,10 @@ public final class Arena {
      *         devant
      */
     public ActionResult swapWithTarget() {
+        if (isOver()) {
+            return ActionResult.BLOCKED;
+        }
+        beginAction();
         int target = swapTarget();
         if (target < 0) {
             return ActionResult.NO_TARGET;
@@ -520,6 +587,9 @@ public final class Arena {
      *         ActionResult#NOT_READY} si le geste est impossible
      */
     public ActionResult queueTile(Tile tile) {
+        if (isOver()) {
+            return ActionResult.BLOCKED;
+        }
         if (queue.isFull()) {
             return ActionResult.QUEUE_FULL;
         }
@@ -536,6 +606,9 @@ public final class Arena {
      * plus récente. <b>Gratuit</b> aussi, et la tuile ne part pas en recharge : elle n'a pas servi.
      */
     public ActionResult unqueueAt(int indexFromOldest) {
+        if (isOver()) {
+            return ActionResult.BLOCKED;
+        }
         Tile removed = queue.removeAt(indexFromOldest);
         if (removed == null) {
             return ActionResult.BLOCKED;
@@ -556,6 +629,7 @@ public final class Arena {
         if (isOver()) {
             return ActionResult.BLOCKED;
         }
+        beginAction();
         if (queue.isEmpty()) {
             return ActionResult.EMPTY_QUEUE;
         }
@@ -585,6 +659,9 @@ public final class Arena {
      * droit.
      */
     public ActionResult clickOn(int cell) {
+        if (isOver()) {
+            return ActionResult.BLOCKED;
+        }
         if (!grid.contains(cell)) {
             return ActionResult.BLOCKED;
         }

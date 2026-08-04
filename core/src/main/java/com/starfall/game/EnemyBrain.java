@@ -19,6 +19,13 @@ final class EnemyBrain {
      * @param heroCell  case du héros
      */
     static Intention decide(Grid grid, Enemy enemy, int enemyCell, int heroCell) {
+        return decide(grid, enemy, enemyCell, heroCell, new boolean[0]);
+    }
+
+    /**
+     * @param reserved cases qu'une charge déjà annoncée traversera, et où personne ne doit se poser
+     */
+    static Intention decide(Grid grid, Enemy enemy, int enemyCell, int heroCell, boolean[] reserved) {
         Direction toward = Direction.towards(enemyCell, heroCell);
         if (toward == null) {
             // Le héros ne peut pas être sur la case de l'ennemi ; par prudence, on n'invente rien.
@@ -35,7 +42,9 @@ final class EnemyBrain {
         }
         if (kind.retreatsWhenAdjacent() && distance == 1) {
             int back = enemyCell - toward.step();
-            return grid.isFree(back) ? Intention.advance(back) : Intention.attack(heroCell);
+            return grid.isFree(back) && !isReserved(reserved, back)
+                    ? Intention.advance(back)
+                    : Intention.attack(heroCell);
         }
         if (distance <= effectiveRange(enemy) && hasClearLine(grid, enemyCell, heroCell)) {
             return Intention.attack(heroCell);
@@ -43,7 +52,19 @@ final class EnemyBrain {
         if (kind.windsUp() && distance >= 2 && hasClearLine(grid, enemyCell, heroCell)) {
             return Intention.of(Intention.Kind.WIND_UP);
         }
-        return approach(grid, enemy, enemyCell, heroCell, toward);
+        return approach(grid, enemy, enemyCell, heroCell, toward, reserved);
+    }
+
+    /**
+     * Vrai si une charge annoncée traversera cette case.
+     *
+     * <p>Une intention est un <b>engagement</b>, donc les autres ennemis doivent le respecter : un
+     * allié qui se posait dans le couloir d'une charge l'interceptait, et le coup annoncé au joueur
+     * ne tombait jamais. Le télégraphe sur-promettait — le joueur pouvait dépenser un tour pour
+     * esquiver un coup qui n'allait pas partir.
+     */
+    private static boolean isReserved(boolean[] reserved, int cell) {
+        return cell >= 0 && cell < reserved.length && reserved[cell];
     }
 
     /**
@@ -54,9 +75,10 @@ final class EnemyBrain {
      * traverserait ses camarades serait illisible.
      */
     private static Intention approach(Grid grid, Enemy enemy, int enemyCell, int heroCell,
-                                      Direction toward) {
+                                      Direction toward, boolean[] reserved) {
         int contactCell = heroCell - toward.step() * effectiveRange(enemy);
         if (enemy.has(Trait.FONCEUR) && contactCell != enemyCell
+                && !isReserved(reserved, contactCell)
                 && isPathClear(grid, enemyCell, contactCell)) {
             return Intention.advance(contactCell);
         }
@@ -64,7 +86,8 @@ final class EnemyBrain {
         int steps = enemy.has(Trait.RAPIDE) ? 2 : 1;
         for (int distance = steps; distance >= 1; distance--) {
             int destination = enemyCell + toward.step() * distance;
-            if (destination != heroCell && isPathClear(grid, enemyCell, destination)) {
+            if (destination != heroCell && !isReserved(reserved, destination)
+                    && isPathClear(grid, enemyCell, destination)) {
                 return Intention.advance(destination);
             }
         }

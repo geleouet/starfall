@@ -90,7 +90,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 à M6 revus · M7 construit · review de M7 à faire</b></div>
+  <div class="stamp">Dernière mise à jour : 4 août 2026 — <b style="color:var(--gold)">M1 à M7 revus et corrigés · prêt pour M8</b></div>
 </header>
 
 <div class="banner warn">
@@ -126,7 +126,7 @@
   <tr><td><span class="pill p-done">revu</span></td><td><b>M4 — Grille et héros</b><span class="why">Grille linéaire de 5 à 15 cases, déplacement, orientation, capacité d'échange de place, cadrage caméra. Clavier <b>et</b> souris. <b>Review indépendante passée : « tient avec réserves ».</b> 8 défauts relevés, tous corrigés ; 271 tests verts sur 25 suites.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M5 — Système de tuiles</b><span class="why">File de 5, exécution dernier-entré premier-sorti, recharges en points, tuiles Free-Play, ajout et retrait sans coût de tour. Six tuiles, jouables au clavier et à la souris. <b>Review indépendante passée : « tient avec réserves ».</b> 5 défauts relevés, tous corrigés ; 318 tests verts.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M6 — Ennemis et intentions</b><span class="why">Quatre archétypes aux silhouettes distinctes, quatre traits, et surtout le <b>télégraphe</b> : ce qui est annoncé est ce qui est joué. <b>Review indépendante passée : refusée en l’état, puis corrigée.</b> 8 défauts relevés, tous traités ; 346 tests verts.</span></td></tr>
-  <tr><td><span class="pill p-done">construit</span></td><td><b>M7 — Résolution du combat</b><span class="why">Points de vie, dégâts, collisions qui blessent et étourdissent, combo kills, trois vagues enchaînées, victoire et défaite. 362 tests verts. <b style="color:var(--gold)">Review indépendante pas encore passée.</b></span></td></tr>
+  <tr><td><span class="pill p-done">revu</span></td><td><b>M7 — Résolution du combat</b><span class="why">Points de vie, dégâts, collisions qui blessent et étourdissent, combo kills, trois vagues enchaînées, victoire et défaite. <b>Review indépendante passée : refusée en l’état, puis corrigée.</b> 8 défauts relevés, tous traités ; 366 tests verts.</span></td></tr>
   <tr><td><span class="pill p-now">suivant</span></td><td><b>M8 — Interface</b><span class="why">HUD, barre de file, portées d'attaque, PV, infobulles — en français.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M9 — Boss</b><span class="why">Rencontre finale de la tranche : invocations, combo charge + frappe.</span></td></tr>
   <tr><td><span class="pill p-wait">à venir</span></td><td><b>M10 — Équilibrage file de 5</b><span class="why">Réaccordage complet des recharges et de la pression ennemie autour de la file élargie.</span></td></tr>
@@ -134,9 +134,9 @@
 
 <h2>En cours de construction</h2>
 <div class="banner">
-  <span class="k">M7 construit — review indépendante à lancer</span>
+  <span class="k">Prochaine étape — M8, l’interface</span>
   <p>Le combat se résout. Le héros et les ennemis ont des points de vie, une poussée qui butte blesse et étourdit, plusieurs morts d'un même geste comptent comme un enchaînement, et trois vagues s'enchaînent jusqu'à la victoire — ou jusqu'à ce que la Vagabonde tombe.</p>
-  <p><b>Ensuite :</b> review indépendante de M7, puis M8 — le HUD, les portées d'attaque, les infobulles.</p>
+  <p><b>Reste à faire :</b> HUD, barre de file, portées d'attaque, PV, infobulles — tout en français.</p>
 </div>
 
 <h3>Les règles de M7</h3>
@@ -198,73 +198,51 @@
 <h2>Planches-contact</h2>
 
 <figure class="sheet">
-  <img src="captures/m7/starfall-1280x720-frame00.png" alt="Starfall M6, quatre ennemis et leurs intentions">
-  <figcaption><b>M6 — quatre archétypes, et ce qu'ils ont annoncé.</b> De gauche à droite : colosse explosif, archer, héros, sabreur rapide, lancier. Les silhouettes se distinguent sans lire un mot — le colosse occupe toute la largeur, l'archer porte son arc, le lancier sa lance à l'horizontale. Au-dessus de chaque tête, un glyphe dit ce qu'il fera : flèche grise pour avancer, flèche rouge pour frapper. <b>La case du héros est cerclée de rouge</b> : l'archer l'a annoncée. La réponse est peinte là où se pose la question — « est-ce que je peux rester là ».</figcaption>
+  <img src="captures/m7/starfall-1280x720-frame00.png" alt="Starfall M7, vague 1 au repos">
+  <figcaption><b>M7 &mdash; vague 1 sur 3, tout le monde &agrave; pleine sant&eacute;.</b> Quatre lectures superpos&eacute;es : les pastilles de vie au-dessus des t&ecirc;tes &mdash; cinq bleues pour le h&eacute;ros, une rouge par ennemi l&eacute;ger &mdash; les glyphes d&rsquo;intention encore au-dessus, la case menac&eacute;e cercl&eacute;e de rouge sur la dalle, et la bande tactique sous elle. Chaque bande a sa propre hauteur, verrouill&eacute;e par un test : les pastilles de vie tombaient d&rsquo;abord exactement sur la ligne des barres de menace.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m7/starfall-1280x720-frame05.png" alt="Starfall M6, deux tours plus tard">
-  <figcaption><b>Deux tours plus tard.</b> Le sabreur rapide est mort — estoc puis frappe — le héros a fait demi-tour, et il a encaissé deux coups. Le lancier, lui, a pris son élan et affiche maintenant <b>charge</b> : il traversera toute la ligne au prochain tour. Le colosse attend, bloqué par l'archer devant lui. Deux tuiles se rechargent, points ocre à l'appui.</figcaption>
+  <img src="captures/m7/starfall-1280x720-frame08.png" alt="Starfall M7, vague 2 apr&egrave;s un enchainement">
+  <figcaption><b>Vague 2 sur 3, apr&egrave;s avoir vid&eacute; la premi&egrave;re.</b> Le bandeau raconte toute la partie : <code>VAGUE 2/3</code>, <code>VIE : 4/5</code> &mdash; le h&eacute;ros a encaiss&eacute; puis r&eacute;cup&eacute;r&eacute; un point au passage de vague &mdash; et <code>ENCHA&Icirc;NEMENT : 1</code>. La vague 2 ajoute le lancier, dont on voit les <b>deux</b> pastilles de vie et qui affiche &laquo; attend &raquo;. Chaque vague pose une question que la pr&eacute;c&eacute;dente ne posait pas.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m7/starfall-1280x720-frame02.png" alt="Starfall M5, trois tuiles posées sur la file">
-  <figcaption><b>La file chargée : 3 sur 5, et le compteur de tours toujours à zéro.</b> Poser ne coûte rien. Les trois tuiles correspondantes sont éteintes au râtelier avec un trait crème — « elle est là-bas » — mais restent visibles : le joueur doit voir <i>laquelle</i> lui manque, pas seulement qu'il lui en manque une. Trois signes concordants désignent l'<b>estoc</b>, posé en dernier, comme le prochain à partir : un cadre, un trait sous la tuile, et un chevron qui pointe vers elle. L'exécution à l'envers de l'ordre de pose est le point le plus contre-intuitif du jeu ; un seul repère ne suffisait pas, la première version en avait un et il était illisible.</figcaption>
+  <img src="captures/m7-etroit/starfall-400x240-frame00.png" alt="Starfall M7, grille de 15 en 400x240">
+  <figcaption><b>Le cas le plus contraint : 15 cases dans une fen&ecirc;tre de 400&times;240, &eacute;chelle &times;1.</b> Plateau, vie, menaces, intentions, file et r&acirc;telier tiennent tous dans les 180 pixels-monde de haut sans se recouvrir.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m7-etroit/starfall-400x240-frame00.png" alt="Starfall M5, grille de 15 dans une fenêtre 400x240">
-  <figcaption><b>Le cas le plus contraint : 15 cases dans une fenêtre de 400×240, échelle ×1.</b> Plateau, repères, file et râtelier tiennent tous dans les 180 pixels-monde de haut, sans se recouvrir — un test le verrouille plutôt que de s'en remettre au coup d'œil.</figcaption>
+  <img src="captures/m7-grille-5/starfall-960x540-frame00.png" alt="Starfall M7, grille de 5 cases">
+  <figcaption><b>La grille la plus &eacute;troite, 5 cases.</b> Elle m&eacute;rite sa propre planche depuis que la review a montr&eacute; qu&rsquo;elle n&rsquo;y rencontrait <i>jamais</i> ni lancier ni colosse explosif : les vagues y &eacute;taient silencieusement ampu-t&eacute;es de leurs derniers arch&eacute;types, ce qui rendait la m&eacute;canique vedette du jalon injouable et faisait de la grille la plus &eacute;troite la plus facile. La vague arrive maintenant enti&egrave;re, quitte &agrave; se serrer.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/m7-grille-5/starfall-960x540-frame00.png" alt="Starfall M5, arène 5 cases">
-  <figcaption><b>La grille la plus étroite, 5 cases.</b> Centrée, avec du décor de part et d'autre.</figcaption>
-</figure>
-
-<figure class="sheet">
-  <img src="captures/m7-grille-15/starfall-960x540-frame00.png" alt="Starfall M5, arène 15 cases">
-  <figcaption><b>La grille la plus large, 15 cases.</b> 300 px-monde dans une zone garantie de 320 : aucune case n'est coupée, et il n'a pas fallu changer de zoom entre les deux largeurs. C'est ce que le choix d'une case de 20 px achète.</figcaption>
-</figure>
-
-<p>La mire de calibration porte les deux jalons précédents à la fois : les motifs de contrôle de M1 — damiers d'1 et 2 px, rayures, diagonales, règle graduée — et, adossés à eux, les sprites de M3 chargés depuis l'atlas. Un sprite flou ou décalé se voit immédiatement à côté d'un damier d'1 px. Cinq tailles de fenêtre, dont deux volontairement bâtardes. <b>La première image de chaque capture est cadrée au repos ; les suivantes montrent la caméra en mouvement sur des cibles fractionnaires.</b></p>
-
-<figure class="sheet">
-  <img src="captures/m3/atlas-planche.png" alt="Atlas généré : 5 sprites en 128x64">
-  <figcaption><b>L'atlas produit par l'étape de build — 5 sprites, 128×64.</b> Rangement en étagères, trié par hauteur décroissante puis par nom : c'est ce tri qui rend la sortie identique d'un build à l'autre. Trois gabarits différents cohabitent (16×32 pour les personnages, 16×16 pour les tuiles, 16×8 pour le sol), ce qui vérifie que le rangement ne suppose rien sur les tailles.</figcaption>
-</figure>
-
-<figure class="sheet">
-  <img src="captures/m3/starfall-1280x720-frame00.png" alt="Starfall M3 à 1280x720, sprites de l'atlas">
-  <figcaption><b>1280×720 → échelle ×4, ajustement exact.</b> En bas à gauche, la vitrine des sprites : héros et ennemi posés sur des dalles de sol, tuiles de file d'actions à côté. Cinq couleurs prélevées sur cette image correspondent exactement aux codes écrits dans les fichiers source, à la position attendue au pixel près.</figcaption>
-</figure>
-
-<figure class="sheet">
-  <img src="captures/m3/starfall-1281x720-frame00.png" alt="Starfall M1 à 1281x720, échelle x4">
-  <figcaption><b>1281×720 → échelle ×4, zone sûre 320×180. La taille qui a fait tomber la première version.</b> La largeur impaire laisse 1 px de reliquat. Avant correction, le bord gauche du cadre or — le bord même de la zone garantie — n'était rendu que sur 2 px au lieu de 4. Mesuré sur cette image : les plages de couleur au niveau du cadre valent <code>(0,4) (424,4) (556,4) …</code>, toutes exactement 4 px, la première comprise.</figcaption>
-</figure>
-
-<figure class="sheet">
-  <img src="captures/m3/starfall-1000x543-frame00.png" alt="Starfall M1 à 1000x543, échelle x3">
-  <figcaption><b>1000×543 → échelle ×3, zone sûre 333×181.</b> Taille non multiple sur la largeur. Damiers réguliers, rayures d'un pixel toutes identiques, diagonales à marches égales, texte accentué lisible. Sur 11 459 plages de couleur mesurées sous le bandeau, aucune n'est un non-multiple de 3.</figcaption>
-</figure>
-
-<figure class="sheet">
-  <img src="captures/m3/starfall-800x450-frame01.png" alt="Starfall M1 à 800x450, caméra en mouvement">
-  <figcaption><b>800×450 → échelle ×2, caméra décalée.</b> Deuxième image de la série : la cible de caméra est fractionnaire, et c'est précisément ce que l'alignement sur la grille doit absorber. Le cadre or de la zone garantie se décale d'un bloc entier, jamais d'un demi-pixel.</figcaption>
-</figure>
-
-<figure class="sheet">
-  <img src="captures/m3/starfall-1920x1080-frame00.png" alt="Starfall M1 à 1920x1080, échelle x6">
-  <figcaption><b>1920×1080 → échelle ×6, ajustement exact.</b> Aucun reliquat, donc aucun débordement : bordure or de 6 px sur les quatre côtés, identique partout.</figcaption>
+  <img src="captures/m7-grille-15/starfall-960x540-frame00.png" alt="Starfall M7, grille de 15 cases">
+  <figcaption><b>La grille la plus large, 15 cases.</b> 300 px-monde dans une zone garantie de 320 : aucune case n&rsquo;est coup&eacute;e, et il n&rsquo;a pas fallu changer de zoom entre les deux largeurs.</figcaption>
 </figure>
 
 <h2>Journal de review</h2>
 
-<div class="rev">
-  <div class="hd">M7 — <b>Review indépendante : à faire</b></div>
-  <p>Le jalon vient d'être construit ; la review en contexte neuf n'a pas encore été lancée.</p>
-  <p style="color:var(--dim2);font-size:12.5px;margin-bottom:0">Trois défauts attrapés par mes soins en cours de route, tous du même genre — une règle nouvelle qui heurte une règle ancienne. L'enchaînement des vagues se déclenchait sur <i>toute</i> arène sans ennemi, y compris un plateau d'essai : la campagne de vagues est désormais une couche explicitement enclenchée, pas une propriété du plateau. Les pastilles de points de vie tombaient exactement sur la ligne des barres de menace — deux informations vitales au même pixel — et ont maintenant leur propre bande, verrouillée par un test. Et un occupant sans points de vie absorbait les frappes en silence, ce qui faisait mentir le résultat rendu.</p>
+<div class="rev fail">
+  <div class="hd">M7 &mdash; passe 1 &mdash; <b>Verdict : refus&eacute;e en l&rsquo;&eacute;tat</b></div>
+  <p>Le relecteur a fuzz&eacute; <b>46 000 actions sur 1 800 parties</b> avec un comparateur maison qui rejouait l&rsquo;historique sur une ar&egrave;ne jumelle pour confronter, avant chaque action, les coups annonc&eacute;s aux d&eacute;g&acirc;ts r&eacute;ellement subis. Il a aussi jou&eacute; des milliers de parties selon plusieurs politiques pour juger l&rsquo;&eacute;quilibre.</p>
+
+  <p><b>M7 avait rouvert le d&eacute;faut de M6, par un chemin que je n&rsquo;avais pas vu.</b> Un alli&eacute; pouvait entrer dans le couloir d&rsquo;une charge d&eacute;j&agrave; annonc&eacute;e et l&rsquo;intercepter : le coup promis au joueur ne tombait alors jamais. Le t&eacute;l&eacute;graphe <i>sur-promettait</i> &mdash; on pouvait d&eacute;penser un tour ou une tuile pour esquiver un coup qui n&rsquo;allait pas partir. Un seul &eacute;cart sur 36 821 actions, r&eacute;duit ensuite &agrave; deux cas d&eacute;terministes. <i>Corrig&eacute; :</i> une intention est un <b>engagement</b>, donc une charge annonc&eacute;e <b>r&eacute;serve son couloir</b> et les autres ennemis doivent le respecter. Un test de propri&eacute;t&eacute; le verrouille.</p>
+
+  <p><b>On pouvait continuer &agrave; jouer apr&egrave;s la d&eacute;faite.</b> Seul le d&eacute;placement &eacute;tait gard&eacute; ; l&rsquo;&eacute;change de place ne l&rsquo;&eacute;tait pas, si bien que le temps repassait, une phase ennemie compl&egrave;te se rejouait, et un h&eacute;ros mort changeait de case. Le fuzz le d&eacute;clenchait dans <b>220 parties sur 300</b>. Le test existant ne v&eacute;rifiait qu&rsquo;une seule des six portes. <i>Corrig&eacute; :</i> toutes sont gard&eacute;es, et le test les &eacute;num&egrave;re.</p>
+
+  <p><b>Les vagues &eacute;taient silencieusement amput&eacute;es sur les grilles &eacute;troites.</b> Le relecteur a dress&eacute; le tableau : &agrave; <code>--grid 5</code>, ni lancier ni colosse explosif, <i>jamais</i>. Toute la m&eacute;canique vedette du jalon y &eacute;tait injouable, et comme l&rsquo;abandon suivait l&rsquo;ordre du patron, ce sont toujours les arch&eacute;types les plus lourds qui disparaissaient &mdash; sa recherche gagnait en 9 tours sur une grille de 5 contre 18 sur une grille large. Choisir la grille la plus &eacute;troite &eacute;tait la fa&ccedil;on la plus s&ucirc;re de gagner. <i>Corrig&eacute; :</i> la vague arrive enti&egrave;re, quitte &agrave; se rabattre sur les cases adjacentes. Un ennemi au contact reste lisible puisqu&rsquo;il annonce avant que le joueur ne rejoue ; une m&eacute;canique absente, non.</p>
+
+  <p><b>Trois autres :</b> l&rsquo;&eacute;tourdissement &eacute;tait gaspill&eacute; quand il tombait sur une phase de repos du colosse &mdash; c&rsquo;est-&agrave;-dire pr&eacute;cis&eacute;ment sur le seul arch&eacute;type que le joueur est cens&eacute; g&eacute;rer en poussant plut&ocirc;t qu&rsquo;en tuant ; un colosse explosif &eacute;tait <b>pixel pour pixel</b> identique &agrave; un colosse ordinaire, alors que le tuer au contact co&ucirc;te 40 % de la vie du h&eacute;ros ; et l&rsquo;affichage &laquo; &eacute;tourdi &raquo; &eacute;tait du <b>code mort</b> &mdash; l&rsquo;&eacute;tat est pos&eacute; et consomm&eacute; dans le m&ecirc;me geste, donc jamais observable entre deux tours.</p>
+
+  <p style="margin-bottom:0"><b>Et les planches-contact portaient les l&eacute;gendes de M5 et M6.</b> Le commit n&rsquo;avait &eacute;chang&eacute; que les chemins d&rsquo;images : aucune planche ne montrait ce que M7 livre, et le sc&eacute;nario de capture ne connectait m&ecirc;me pas &mdash; ses deux tuiles visaient des cases vides. C&rsquo;est un manquement de ma part &agrave; la r&egrave;gle que le projet s&rsquo;est donn&eacute;e : une planche-contact qui ne montre pas ce qu&rsquo;elle l&eacute;gende vaut moins que pas de planche du tout.</p>
+</div>
+
+<div class="rev pass">
+  <div class="hd">M7 &mdash; passe 2 &mdash; <b>&Eacute;quilibre, et ce que la review a mesur&eacute;</b></div>
+  <p>Le relecteur a chiffr&eacute; la jouabilit&eacute; : <b>0 victoire sur 300 parties al&eacute;atoires</b>, 0 sur 500 en jeu glouton, 9 sur 1 500 en jeu biais&eacute; survie. Une recherche par faisceau gagnait, mais jamais mieux qu&rsquo;&agrave; 2 points de vie sur 5. Verdict : <i>gagnable mais pas jouable</i>. La cause est structurelle &mdash; rien ne soignait entre les vagues, donc la deuxi&egrave;me arrivait avec ce qui restait de la premi&egrave;re.</p>
+  <p style="margin-bottom:0">J&rsquo;ai ajout&eacute; un <b>r&eacute;pit d&rsquo;un point de vie au passage de chaque vague</b>, et je le documente comme provisoire : le r&eacute;accordage complet est l&rsquo;affaire du jalon d&rsquo;&eacute;quilibrage, qui devra de toute fa&ccedil;on tout reprendre autour de la file de cinq. Ce n&rsquo;est pas une correction d&rsquo;&eacute;quilibre, c&rsquo;est de quoi rendre le jalon &eacute;valuable.</p>
 </div>
 
 <div class="rev fail">

@@ -132,6 +132,53 @@ class TelegraphTest {
         assertTrue(arena.heroHits() > 0, "le colosse doit tout de meme frapper de temps en temps");
     }
 
+    /**
+     * L'invariant par lequel M7 avait rouvert le défaut de M6 : un allié qui entre dans le couloir
+     * d'une charge déjà annoncée l'intercepte, si bien que le coup promis au joueur ne tombe jamais.
+     * Le télégraphe sur-promet alors — on peut dépenser un tour pour esquiver un coup qui n'allait
+     * pas partir.
+     *
+     * <p>Le test porte sur la propriété plutôt que sur un cas construit à la main : une charge
+     * annoncée <b>réserve</b> son couloir, et aucune autre intention ne doit désigner une case qui
+     * s'y trouve.
+     */
+    @Test
+    @DisplayName("Aucune intention ne vise une case réservée par une charge annoncée")
+    void noIntentionEverTargetsAnAnnouncedChargeCorridor() {
+        for (int seed = 0; seed < SEEDS; seed++) {
+            Random random = new Random(seed);
+            Arena arena = ArenaSetup.trainingArena(
+                    Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1));
+
+            for (int turn = 0; turn < TURNS_PER_SEED && !arena.isOver(); turn++) {
+                arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+
+                for (Enemy charger : arena.enemies()) {
+                    if (charger.intention().kind() != Intention.Kind.CHARGE) {
+                        continue;
+                    }
+                    int from = arena.grid().indexOf(charger);
+                    int to = charger.intention().targetCell();
+                    int step = Integer.signum(to - from);
+
+                    for (Enemy other : arena.enemies()) {
+                        if (other == charger || other.intention().kind() != Intention.Kind.ADVANCE) {
+                            continue;
+                        }
+                        int destination = other.intention().targetCell();
+                        for (int cell = from; cell != to; cell += step) {
+                            assertTrue(destination != cell,
+                                    "graine " + seed + " tour " + turn + " : " + other.label()
+                                            + " veut se poser en " + (destination + 1)
+                                            + ", dans le couloir de charge " + (from + 1)
+                                            + " vers " + (to + 1));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test
     @DisplayName("Une charge interceptée s'arrête et ne frappe pas")
     void anInterceptedChargeStopsAndDoesNotStrike() {

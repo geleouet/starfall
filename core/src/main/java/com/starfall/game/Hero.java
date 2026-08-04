@@ -24,6 +24,11 @@ public final class Hero implements Occupant {
         return health;
     }
 
+    /** Rend des points de vie, sans dépasser le maximum. */
+    void heal(int amount) {
+        health = Math.min(MAX_HEALTH, health + amount);
+    }
+
     /** Retire des points de vie. Renvoie vrai si le héros vient de tomber. */
     boolean damage(int amount) {
         health = Math.max(0, health - amount);
