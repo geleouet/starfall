@@ -5,6 +5,7 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.badlogic.gdx.graphics.glutils.HdpiMode;
 import com.starfall.LaunchOptions;
 import com.starfall.StarfallGame;
+import com.starfall.sim.BalanceReport;
 
 /** Point d'entrée bureau. */
 public final class Lwjgl3Launcher {
@@ -30,6 +31,17 @@ public final class Lwjgl3Launcher {
         }
 
         System.out.println("[Starfall] " + options);
+
+        if (options.simulations > 0) {
+            // Le bilan d'équilibrage n'ouvre aucune fenêtre : c'est une mesure, pas une partie. Il
+            // sort en 0 comme n'importe quelle exécution réussie, pour qu'une boucle de relecture
+            // puisse l'enchaîner sans traitement particulier.
+            for (BalanceReport report : BalanceReport.full(options.simulations)) {
+                System.out.println(report.line());
+            }
+            System.exit(0);
+            return;
+        }
 
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("Starfall");

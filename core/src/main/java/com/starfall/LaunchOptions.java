@@ -16,6 +16,7 @@ import java.util.Locale;
  *   --scene &lt;nom&gt;            arena (défaut) ou calibration
  *   --grid &lt;N&gt;               largeur de la grille, de 5 à 15 cases (défaut 9)
  *   --wave &lt;N&gt;               vague de départ, pour aller voir directement la fin (défaut 1)
+ *   --simulate &lt;N&gt;           joue N parties par politique et imprime le bilan chiffré, sans ouvrir de fenêtre
  *   --help                   affiche l'aide et quitte
  * </pre>
  *
@@ -51,11 +52,20 @@ public final class LaunchOptions {
      * mécanique qu'on ne relit pas.
      */
     public final int startWave;
+    /**
+     * Nombre de parties simulées par politique, ou {@code 0} pour jouer normalement.
+     *
+     * <p>Le jalon d'équilibrage est le seul où l'on ne peut rien prouver en lisant le code : un
+     * nombre n'est ni juste ni faux, il est trop grand ou trop petit <em>pour quelqu'un qui joue</em>.
+     * Cette option rend la mesure refaisable par n'importe qui, au lieu de demander qu'on me croie.
+     */
+    public final int simulations;
     /** Vrai si l'aide a été demandée : le lanceur l'affiche puis s'arrête sans ouvrir de fenêtre. */
     public final boolean helpRequested;
 
     private LaunchOptions(String screenshotDir, int width, int height, int frames,
-                          String scene, int gridWidth, int startWave, boolean helpRequested) {
+                          String scene, int gridWidth, int startWave, int simulations,
+                          boolean helpRequested) {
         this.screenshotDir = screenshotDir;
         this.width = width;
         this.height = height;
@@ -63,6 +73,7 @@ public final class LaunchOptions {
         this.scene = scene;
         this.gridWidth = gridWidth;
         this.startWave = startWave;
+        this.simulations = simulations;
         this.helpRequested = helpRequested;
     }
 
@@ -78,6 +89,7 @@ public final class LaunchOptions {
         String scene = DEFAULT_SCENE;
         int gridWidth = DEFAULT_GRID_WIDTH;
         int startWave = 1;
+        int simulations = 0;
         boolean helpRequested = false;
 
         if (args != null) {
@@ -131,6 +143,9 @@ public final class LaunchOptions {
                         }
                         break;
                     }
+                    case "--simulate":
+                        simulations = requirePositive(requireValue(args, ++i, arg), arg);
+                        break;
                     case "--help":
                     case "-h":
                         helpRequested = true;
@@ -142,7 +157,7 @@ public final class LaunchOptions {
         }
 
         return new LaunchOptions(screenshotDir, width, height, frames, scene, gridWidth,
-                startWave, helpRequested);
+                startWave, simulations, helpRequested);
     }
 
     /**
@@ -180,6 +195,7 @@ public final class LaunchOptions {
                 + "  --size <L>x<H>           taille de la fenêtre (défaut " + DEFAULT_WIDTH + "x" + DEFAULT_HEIGHT + ")\n"
                 + "  --frames <N>             images à capturer en mode capture (défaut " + DEFAULT_FRAMES + ")\n"
                 + "  --scene <nom>            " + String.join(" ou ", SCENES) + " (défaut " + DEFAULT_SCENE + ")\n"
+                + "  --simulate <N>           joue N parties par politique et imprime le bilan\n"
                 + "  --wave <N>               vague de départ, 1 à " + Arena.WAVE_COUNT
                 + " (défaut 1)\n"
                 + "  --grid <N>               largeur de la grille, " + Grid.MIN_WIDTH + " à "
@@ -193,6 +209,7 @@ public final class LaunchOptions {
                 + ", size=" + width + "x" + height
                 + ", frames=" + frames
                 + ", scene=" + scene
-                + ", grid=" + gridWidth + ", wave=" + startWave + '}';
+                + ", grid=" + gridWidth + ", wave=" + startWave
+                + (simulations > 0 ? ", simulate=" + simulations : "") + '}';
     }
 }
