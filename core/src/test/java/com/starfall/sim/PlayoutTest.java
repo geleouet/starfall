@@ -95,16 +95,20 @@ class PlayoutTest {
                 java.util.Random random = new java.util.Random(seed);
 
                 for (int step = 0; step < 25; step++) {
-                    List<String> labels = Move.legal(arena).stream().map(Move::label).toList();
+                    // Une seule enumeration par pas : la version precedente appelait Move.legal
+                    // deux fois, une pour lire les libelles et une pour jouer. Move.legal est pure
+                    // et l'arene ne bouge pas entre les deux, donc rien ne se cachait la - mais
+                    // deux appels la ou un suffit invitent le lecteur a se demander lequel fait foi.
+                    List<Move> moves = Move.legal(arena);
+                    List<String> labels = moves.stream().map(Move::label).toList();
                     for (Tile tile : arena.rack().tiles()) {
                         boolean enumerated = labels.contains("poser " + tile.label());
                         assertEquals(arena.canQueue(tile), enumerated,
-                                "vague " + wave + " graine " + seed + " : « poser "
-                                        + tile.label() + " » est " + (enumerated ? "" : "ab")
-                                        + "sent de l'enumeration alors que canQueue rend "
+                                "vague " + wave + " graine " + seed + " : « poser " + tile.label()
+                                        + " » est " + (enumerated ? "present dans" : "absent de")
+                                        + " l'enumeration alors que canQueue rend "
                                         + arena.canQueue(tile));
                     }
-                    List<Move> moves = Move.legal(arena);
                     if (moves.isEmpty()) {
                         break;
                     }
