@@ -1025,9 +1025,11 @@ public final class ArenaScene implements Scene {
             int x = hud.queueSlotX(slot);
             if (slot < tiles.size()) {
                 painter.sprite(context.atlas().region(tiles.get(slot).spriteName()), x, HudLayout.QUEUE_Y);
-                // Même règle que le surlignage de plateau, qui filtre par « clickable » au motif
-                // que « le pointeur promettait une action qui ne venait pas ». Après la mort,
-                // reprendre rend BLOCKED : le halo promettait un geste impossible.
+                // Même règle que le surlignage de plateau, qui filtre par « clickable ». Le
+                // commentaire disait « même règle » et le code ne testait que isOver() : une review
+                // a mesuré que le halo s'allume aussi sur une tuile en RECHARGE et sur un râtelier
+                // dont la file est PLEINE, alors que le clic rend NOT_READY ou QUEUE_FULL. Dire
+                // « même règle » sans l'appliquer, c'est l'objection de M4 dans un état voisin.
                 if (hoveredQueueSlot == slot && !arena.isOver()) {
                     painter.outline(x - 1, HudLayout.QUEUE_Y - 1,
                             HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
@@ -1116,7 +1118,11 @@ public final class ArenaScene implements Scene {
                 painter.fill(x, HudLayout.RACK_MARK_BOTTOM, HudLayout.TILE_SIZE, 2, HudColors.QUEUE);
             }
 
-            if (hoveredRackSlot == i && !arena.isOver()) {
+            // Un clic sur le râtelier ne fait quelque chose que si la tuile est rechargée ET
+            // qu'il reste de la place : sinon queueTile rend NOT_READY ou QUEUE_FULL. Le halo
+            // suivait la partie finie et rien d'autre.
+            if (hoveredRackSlot == i && !arena.isOver()
+                    && arena.rack().isReady(tile) && !arena.queue().isFull()) {
                 painter.outline(x - 1, HudLayout.RACK_Y - 1,
                         HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
             }

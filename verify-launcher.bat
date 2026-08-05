@@ -49,25 +49,22 @@ rem --screenshot elle ouvrirait une partie ordinaire en pretendant montrer autre
 rem etait verifie A LA MAIN, ce que le preambule de ce fichier qualifie lui-meme de "verification
 rem qu'on finit par ne plus faire".
 rem
-rem LE CONTROLE STATIQUE PASSE EN PREMIER, et ce n'est pas un detail de style. Si le refus
-rem disparaissait, le cas dynamique lancerait une vraie partie : fenetre ouverte, attente
-rem indefinie, aucun timeout nulle part. Mesure : 75 secondes sans retour, processus tues a la
-rem main. Dans une boucle de review automatisee, un garde-fou qui SUSPEND est pire qu'un garde-fou
-rem absent. On verifie donc d'abord que le refus est ecrit, et on ne joue le cas dynamique que
-rem s'il l'est.
-rem On epingle LA GARDE, pas son message. La premiere version cherchait "demande --screenshot",
-rem c'est-a-dire le texte de l'exception : en remplacant la condition par une autre tout en gardant
-rem le message, findstr sortait en 0, le harnais enchainait sur le cas dynamique, une vraie fenetre
-rem s'ouvrait et le harnais se suspendait -- le mode d'echec exact que ce controle existe pour
-rem eviter. Mesure faite par une review.
-findstr /C:"screenshotDir == null && ShowcaseScript.SCENE_NAME.equals(scene)" "%HERE%core\src\main\java\com\starfall\LaunchOptions.java" >nul
-if errorlevel 1 (
-  echo   ECHEC le refus de la vitrine hors capture a disparu de LaunchOptions
-  set /a FAILURES+=1
-) else (
-  echo   OK   le refus de la vitrine est ecrit ^(controle statique^)
-  call :expect 2 "vitrine sans mode capture" --scene showcase
-)
+rem LE CAS DE LA VITRINE A ETE RETIRE D'ICI, et c'est un aveu utile.
+rem
+rem Il ne pouvait echouer que de deux facons, toutes deux mauvaises. En dynamique : si le refus
+rem disparait, run.bat lance une vraie partie, ouvre une fenetre et attend -- mesure a 75 secondes
+rem sans retour, processus tues a la main. Dans une boucle automatisee, un garde-fou qui SUSPEND est
+rem pire qu'un garde-fou absent.
+rem
+rem J'ai donc ajoute un controle statique qui epinglait d'abord le MESSAGE de l'exception, puis --
+rem apres une review -- la ligne de garde elle-meme. Une seconde review a montre que la deuxieme
+rem version rougit A TORT : couper la condition en deux lignes, renommer une variable ou inverser
+rem deux operandes purs suffit. Et la structure « si le statique echoue, on saute le dynamique »
+rem faisait qu'un faux rouge supprimait la seule preuve que la garde marche encore.
+rem
+rem Or ShowcaseScriptTest couvre deja la disparition reelle du refus, en JUnit, sans ecran et sans
+rem risque de suspension -- verifie par mutation. Un controle fragile qui double un controle solide
+rem n'apporte qu'un risque net. Retire.
 
 rem Le cinquieme cas ne se produit pas en usage normal, et c'est justement pourquoi il faut le
 rem provoquer : un jeu sorti PROPREMENT pendant qu'une etape ulterieure de la construction echoue.
@@ -120,9 +117,9 @@ if errorlevel 1 (
 
 echo.
 if %FAILURES%==0 (
-  echo [Starfall] lanceur conforme : huit chemins et trois controles statiques sont conformes.
+  echo [Starfall] lanceur conforme : sept chemins et deux controles statiques sont conformes.
 ) else (
-  echo [Starfall] lanceur NON conforme : %FAILURES% controle^(s^) en echec sur 11.
+  echo [Starfall] lanceur NON conforme : %FAILURES% controle^(s^) en echec sur 9.
 )
 endlocal & exit /b %FAILURES%
 

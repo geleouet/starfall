@@ -181,9 +181,12 @@ ext.renderScenarios = [
         calibration    : ['--size', '1280x720', '--frames', '2', '--scene', 'calibration'],
         // La vitrine : une partie PERDUE, jouée pour montrer ce qu'une partie gagnée ne montre
         // jamais — la bannière de défaite, une poussée qui bute, une case non cliquable survolée,
-        // la reprise d'une tuile, et la fin de partie file encore garnie — sous ses deux formes
-        // de survol, le sommet et le râtelier. Tous prouvés absents par mutation avant qu'elle
-        // existe.
+        // la reprise d'une tuile, et la fin de partie file encore garnie — sous ses TROIS formes
+        // de survol : un emplacement qui n'est pas le sommet, le sommet, le râtelier. Tous prouvés
+        // absents par mutation avant qu'elle existe.
+        //
+        // Le compte a déjà été faux ici une fois, dans le commit même qui corrigeait la phrase
+        // jumelle du tableau de bord : deux endroits, une seule correction.
         // « --from 1 » : l'image 0 d'un scenario d'arene est l'etat initial, donc octet pour octet
         // celle d'arenaDeep. Le commit precedent avait supprime un ecran entier pour douze
         // duplicatas exacts ; en reintroduire un treize minutes plus tard aurait ete comique.
