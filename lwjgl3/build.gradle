@@ -64,6 +64,111 @@ static String starfallExitMeaning(int code) {
     }
 }
 
+/**
+ * Le garde-fou d'image : ce que le jeu dessine vraiment, confronte a une planche de reference.
+ *
+ * <p>Il repond au dernier trou de test que la review a laisse ouvert, et c'est le plus profond du
+ * projet : la geometrie des reperes tactiques est desormais pure et testee, mais RIEN ne verifie
+ * que la scene lui passe les bons arguments. Le relecteur l'a demontre en inversant deux appels
+ * dans ArenaScene -- le heros regardant derriere lui, la cible fuyant le heros -- sans qu'aucun des
+ * 451 tests ne bronche. Aucun test JUnit ne peut fermer ce trou : il demande un contexte OpenGL.
+ *
+ * <p>Une capture, elle, traverse toute la chaine. Comparee octet a octet a une reference, elle
+ * attrape ce qu'aucune assertion d'arithmetique n'atteint : un sens inverse, une couleur echangee,
+ * un ordre de dessin qui masque un signe, une case passee a la place d'une autre.
+ *
+ * <p>POURQUOI PAS captures/m10. Les planches-contact des jalons sont un temoin DATE : elles
+ * montrent l'etat du jeu au moment ou ce jalon a ete relu, et les faire servir de reference vivante
+ * reviendrait a reecrire l'histoire a chaque changement de rendu. captures/reference est l'inverse :
+ * elle n'a pas de date, elle dit « voici ce que le jeu dessine aujourd'hui », et on la regenere
+ * DELIBEREMENT quand on a decide de changer le dessin -- ce qui oblige a regarder.
+ *
+ * <p>Hors de « test » a dessein : cette tache demande un ecran, la suite JUnit non.
+ *
+ *   gradlew :lwjgl3:verifyRender          confronte le rendu a la reference
+ *   gradlew :lwjgl3:acceptRender          adopte le rendu courant comme nouvelle reference
+ */
+tasks.register('verifyRender', JavaExec) {
+    group = 'verification'
+    description = "Confronte le rendu courant a captures/reference, octet a octet."
+    dependsOn tasks.named('classes'), ':core:generateAtlas'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = application.mainClass
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    workingDir = rootProject.projectDir
+    ignoreExitValue = true
+
+    def produced = layout.buildDirectory.dir('render-check').get().asFile
+    def reference = rootProject.file('captures/reference')
+    args = ['--screenshot', produced.absolutePath, '--size', '1280x720',
+            '--frames', '12', '--scene', 'arena']
+
+    doFirst {
+        produced.deleteDir()
+        produced.mkdirs()
+    }
+
+    doLast {
+        int code = executionResult.get().exitValue
+        if (code != 0) {
+            throw new GradleException("[Starfall] la capture a echoue avec le code " + code
+                    + " (" + starfallExitMeaning(code) + ")")
+        }
+        if (!reference.isDirectory() || reference.listFiles({ f -> f.name.endsWith('.png') } as FileFilter).length == 0) {
+            throw new GradleException("[Starfall] aucune planche de reference dans "
+                    + reference + " -- lancer « gradlew :lwjgl3:acceptRender » pour en creer une")
+        }
+
+        def differences = []
+        def missing = []
+        reference.listFiles().findAll { it.name.endsWith('.png') }.sort { it.name }.each { expected ->
+            def actual = new File(produced, expected.name)
+            if (!actual.isFile()) {
+                missing << expected.name
+            } else if (!java.util.Arrays.equals(expected.bytes, actual.bytes)) {
+                differences << expected.name
+            }
+        }
+        def unexpected = produced.listFiles().findAll {
+            it.name.endsWith('.png') && !new File(reference, it.name).isFile()
+        }.collect { it.name }.sort()
+
+        if (differences || missing || unexpected) {
+            def nl = String.valueOf((char) 10)
+            def report = ["[Starfall] le rendu ne correspond plus a la reference."]
+            if (differences) report << "  planches differentes : " + differences
+            if (missing)     report << "  planches manquantes au rendu : " + missing
+            if (unexpected)  report << "  planches en trop : " + unexpected
+            report << "  produit dans : " + produced
+            report << "  Si le changement est VOULU, regarder les images puis lancer"
+            report << "  « gradlew :lwjgl3:acceptRender » pour adopter le nouveau rendu."
+            throw new GradleException(report.join(nl))
+        }
+        logger.lifecycle("[Starfall] rendu conforme a la reference : "
+                + reference.listFiles().findAll { it.name.endsWith('.png') }.size() + " planches identiques.")
+    }
+}
+
+/** Adopte le rendu courant comme nouvelle reference. A ne lancer qu'apres avoir REGARDE les images. */
+tasks.register('acceptRender', JavaExec) {
+    group = 'verification'
+    description = "Regenere captures/reference depuis le rendu courant."
+    dependsOn tasks.named('classes'), ':core:generateAtlas'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = application.mainClass
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    workingDir = rootProject.projectDir
+
+    def reference = rootProject.file('captures/reference')
+    args = ['--screenshot', reference.absolutePath, '--size', '1280x720',
+            '--frames', '12', '--scene', 'arena']
+
+    doFirst {
+        reference.deleteDir()
+        reference.mkdirs()
+    }
+}
+
 tasks.register('dist', Jar) {
     dependsOn configurations.runtimeClasspath
     archiveBaseName = 'Starfall'

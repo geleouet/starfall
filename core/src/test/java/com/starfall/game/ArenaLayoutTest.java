@@ -398,6 +398,26 @@ class ArenaLayoutTest {
     }
 
     /**
+     * La pointe ne peut pas être plus large que la barre qui la porte.
+     *
+     * <p>Elle est dessinée à 45°, donc sa <em>hauteur</em> détermine sa <em>largeur</em> : quatre
+     * pixels de haut, quatre colonnes. Les deux dimensions sont liées par la forme et par rien
+     * d'autre, ce qui rend la contrainte facile à oublier — augmenter {@code MARK_TIP_HEIGHT} pour
+     * gagner en visibilité déborderait silencieusement de la barre.
+     *
+     * <p>Le test précédent le dirait, mais seulement une fois le débordement réalisé et pour la
+     * géométrie du jour. Celui-ci énonce la borne elle-même, et sa marge : seize colonnes utiles
+     * pour une pointe de quatre.
+     */
+    @Test
+    @DisplayName("La hauteur de pointe ne peut pas dépasser la largeur utile d'une case")
+    void thetipHeightCannotExceedTheUsableCellWidth() {
+        assertTrue(ArenaLayout.MARK_TIP_HEIGHT <= ArenaLayout.insetWidth(),
+                "une pointe de " + ArenaLayout.MARK_TIP_HEIGHT + " pixels de haut occupe autant de"
+                        + " colonnes, pour une barre large de " + ArenaLayout.insetWidth());
+    }
+
+    /**
      * Et le héros ne peut pas être sa propre cible d'échange.
      *
      * <p>Sans cette garde, {@code targetMark} recevrait un sens nul et rendrait une pointe dégénérée
