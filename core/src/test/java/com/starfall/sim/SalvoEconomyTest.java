@@ -66,7 +66,7 @@ class SalvoEconomyTest {
      */
     @Test
     @DisplayName("Une salve pleine coûte 4 ou 5 tours, jamais 6")
-    void afullSalvoCostsFourOrFiveTurnsNeverSix() {
+    void aFullSalvoCostsFourOrFiveTurnsNeverSix() {
         List<Tile> free = new ArrayList<>();
         List<Tile> costly = new ArrayList<>();
         for (Tile tile : Tile.values()) {
@@ -107,6 +107,17 @@ class SalvoEconomyTest {
         assertTrue(cheapest.queue().isFull(), "la file devait etre pleine");
         assertEquals(3, cheapest.turnsTaken() - start,
                 "le chargement le moins cher vaut " + (cheapest.turnsTaken() - start) + " tours");
+
+        // Et le tour de la salve elle-même, qui manquait. Le titre annonce « 4 ou 5 tours » : sans
+        // cette ligne, il n'assertait que le chargement et le « +1 » restait supposé. Mesuré : en
+        // faisant consommer deux tours à unleash, ce fichier restait entièrement vert alors que son
+        // titre devenait faux. Une revendication portée par un fichier doit être gardée par lui.
+        int beforeSalvo = cheapest.turnsTaken();
+        cheapest.unleash();
+        assertEquals(1, cheapest.turnsTaken() - beforeSalvo,
+                "lacher toute la file doit couter un tour, pas "
+                        + (cheapest.turnsTaken() - beforeSalvo));
+        assertTrue(cheapest.queue().isEmpty(), "la salve doit vider la file");
     }
 
     // ------------------------------------------------------------------ la file peut être remplie
@@ -186,23 +197,33 @@ class SalvoEconomyTest {
         return deepest;
     }
 
-    /**
-     * Et la largeur du faisceau n'est pas posée au bord de sa propre limite.
+    /*
+     * ------------------------------------------------------------------------------------------
+     * Ici vivait un « test de marge de faisceau », ajouté pour combler un trou relevé par une
+     * review. Il assertait qu'un faisceau de moitié remplit encore la file, sur le modèle du
+     * contrôle que porte WinnabilityTest.
      *
-     * <p>C'est le contrôle que la review a relevé comme manquant, et il a une histoire : ce projet a
-     * déjà eu un faisceau réglé à 1,75× son seuil de rupture, si bien que la moindre retouche
-     * d'heuristique le faisait virer au rouge pour une raison qui n'était pas « le jeu est devenu
-     * impossible ». {@code WinnabilityTest} porte le même contrôle depuis.
+     * IL NE MESURAIT RIEN. La review suivante a mesuré le seuil de rupture réel : un faisceau
+     * de UN remplit la file sur la rencontre finale.
      *
-     * <p>La marge est donc <b>mesurée et non supposée</b> : un faisceau de moitié remplit encore.
+     *   faisceau   1    2    5   20   75  150  300
+     *   profondeur 5    5    5    5    5    5    5
+     *
+     * La marge n'est pas de 2x, elle est d'au moins 300x. L'assertion ne pouvait donc échouer que
+     * lorsque theQueueCanBeFilledInEveryConfiguration échouait déjà -- vérifié en ramenant
+     * Hero.MAX_HEALTH à 1 : les deux viraient au rouge ensemble, jamais l'une sans l'autre.
+     *
+     * Le contraste avec WinnabilityTest est ce qui rend l'erreur instructive. Là-bas le seuil réel
+     * est entre 100 et 200 pour un faisceau réglé à 400 : le contrôle à BEAM/2 est posé juste
+     * au-dessus du bord, il porte vraiment. J'ai recopié la FORME de ce contrôle dans un fichier où
+     * la grandeur n'a pas de sens -- c'est-à-dire que j'ai fabriqué un instrument qui a l'air de
+     * répondre à la question qu'il pose. Exactement ce que ce projet venait de se promettre
+     * d'arrêter, deux commits plus tôt.
+     *
+     * Remplir cette file ne demande aucune recherche : il suffit de poser cinq tuiles. Le faisceau
+     * n'est là que pour rester en vie pendant ce temps, et ça n'a jamais été serré.
+     * ------------------------------------------------------------------------------------------
      */
-    @Test
-    @DisplayName("Un faisceau deux fois plus étroit remplit encore la file")
-    void ahalvedBeamStillFillsTheQueue() {
-        assertEquals(ActionQueue.CAPACITY, deepestQueue(9, Arena.WAVE_COUNT, BEAM / 2),
-                "un faisceau de " + (BEAM / 2) + " ne remplit plus la file sur la rencontre finale :"
-                        + " le garde-fou est pose trop pres de sa limite");
-    }
 
     /**
      * La file <b>peut</b> être remplie, partout.
@@ -219,7 +240,7 @@ class SalvoEconomyTest {
      */
     @Test
     @DisplayName("La file de 5 peut être remplie dans chaque configuration")
-    void thequeueCanBeFilledInEveryConfiguration() {
+    void theQueueCanBeFilledInEveryConfiguration() {
         List<String> stuck = new ArrayList<>();
         for (int width : new int[]{5, 9, 15}) {
             for (int wave = 1; wave <= Arena.WAVE_COUNT; wave++) {

@@ -126,7 +126,7 @@ static String starfallExitMeaning(int code) {
  * captures/reference n'a pas de date : elle dit « voici ce que le jeu dessine aujourd'hui », et
  * acceptRender ne la régénère que délibérément -- ce qui oblige à regarder les images.
  *
- * <p>SEPT ÉCRANS, ET C'EST TROIS FOIS UN CORRECTIF. La première version ne gardait que la vague 1
+ * <p>NEUF ÉCRANS, ET C'EST QUATRE FOIS UN CORRECTIF. La première version ne gardait que la vague 1
  * en grille 9. Une review a relevé que le SOUVERAIN -- la rencontre la plus dense à lire, celle qui
  * empile ruée, invocation et sbires -- n'avait aucune référence, ni la mire de calibration : c'était
  * garder le plus facile et laisser le plus difficile. Elle notait ensuite que les dix autres
@@ -136,13 +136,21 @@ static String starfallExitMeaning(int code) {
  * valait pour l'écran le plus simple et pas pour le plus dense. La rencontre finale est maintenant
  * gardée aux trois largeurs comme le reste.
  *
+ * <p>Il manquait encore les vagues <b>2 et 3</b>, et l'oubli était sérieux : une review a fait
+ * dessiner le COLOSSE avec le sprite de l'archer -- un défaut de câblage modèle vers scène,
+ * c'est-à-dire la classe de défaut pour laquelle ce garde-fou existe -- et les 464 tests comme les
+ * 36 planches sont restés verts. Le colosse, le lancier fonceur et le trait explosif ne paraissent
+ * qu'en vague 3 : ils traversaient toute la chaîne graphique sans témoin.
+ *
  * <p>Hors de « test » à dessein : ces tâches demandent un écran, la suite JUnit non.
  *
- *   gradlew :lwjgl3:verifyRender     confronte les cinq écrans à la référence
+ *   gradlew :lwjgl3:verifyRender     confronte tous les écrans à la référence
  *   gradlew :lwjgl3:acceptRender     adopte le rendu courant, après l'avoir regardé
  */
 ext.renderScenarios = [
         arena          : ['--size', '1280x720', '--frames', '12', '--scene', 'arena'],
+        wave2          : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '2'],
+        wave3          : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '3'],
         arenaNarrow    : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
         arenaWide      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],
         sovereign      : ['--size', '1280x720', '--frames', '6', '--scene', 'arena', '--wave', '4'],
@@ -155,7 +163,31 @@ ext.renderScenarios = [
 
 ext.renderReferenceDir = rootProject.file('captures/reference')
 
-/** Une tâche de rendu par scénario : JavaExec ne lance qu'un processus, et il en faut cinq. */
+/**
+ * Ce qui traîne dans la référence sans plus correspondre à aucun écran.
+ *
+ * <p>Un écran renommé laisse derrière lui un dossier qui reste versionné, a l'air d'une garantie, et
+ * n'est plus comparé à rien — le même défaut que le sprite orphelin de l'atlas. Un <b>fichier</b>
+ * isolé fait exactement la même chose, et la première version n'en voyait aucun : le prédicat
+ * exigeait {@code isDirectory()}.
+ *
+ * <p>La règle est ici, et une seule fois. Elle était écrite deux fois — dans verifyRender et dans
+ * acceptRender — et les deux copies avaient <em>déjà</em> divergé au commit qui les a introduites :
+ * l'une se gardait contre un dossier absent, l'autre non. « Une règle écrite à deux endroits finit
+ * toujours par diverger » est une phrase de ce projet ; elle n'a pas mis longtemps.
+ */
+def orphanReferences() {
+    if (!renderReferenceDir.isDirectory()) {
+        return []
+    }
+    def known = renderScenarios.keySet()
+    return renderReferenceDir.listFiles()
+            .findAll { !it.isDirectory() || !known.contains(it.name) }
+            .findAll { it.isDirectory() ? !known.contains(it.name) : true }
+            .sort { it.name }
+}
+
+/** Une tâche de rendu par scénario : JavaExec ne lance qu'un processus, et il en faut un par écran. */
 def registerRenderTask(String prefix, String scenario, List<String> scenarioArgs, File into) {
     tasks.register(prefix + scenario.capitalize(), JavaExec) {
         dependsOn tasks.named('classes'), ':core:generateAtlas'
@@ -200,7 +232,11 @@ renderScenarios.each { scenario, scenarioArgs ->
 
 tasks.register('verifyRender') {
     group = 'verification'
-    description = "Confronte les cinq écrans du jeu à captures/reference, octet à octet."
+    // Le compte vient du tableau lui-même : trois libellés annonçaient encore « cinq » après le
+    // passage à sept, dont celui-ci, que « gradlew tasks » affiche. Un nombre recopié à la main
+    // dans une phrase finit toujours par mentir ; interpolé, il ne le peut plus.
+    description = "Confronte les ${renderScenarios.size()} écrans du jeu à" +
+            " captures/reference, octet à octet."
     dependsOn renderScenarios.keySet().collect { 'renderCheck' + it.capitalize() }
 
     doLast {
@@ -240,14 +276,7 @@ tasks.register('verifyRender') {
             if (unexpected)  report << ("  ecran « " + scenario + " » : planches en trop " + unexpected)
         }
 
-        // Un écran renommé laisse derrière lui un dossier de référence que plus personne ne
-        // compare : il reste versionné, il a l'air d'une garantie, et il n'en est plus une. C'est le
-        // même défaut que le sprite orphelin de l'atlas, et il se dit de la même façon.
-        def known = renderScenarios.keySet()
-        def orphans = renderReferenceDir.isDirectory()
-                ? renderReferenceDir.listFiles().findAll { it.isDirectory() && !known.contains(it.name) }
-                        .collect { it.name }.sort()
-                : []
+        def orphans = orphanReferences().collect { it.name }
         if (orphans) {
             report << ("  references orphelines, plus comparees a rien : " + orphans)
         }
@@ -284,15 +313,17 @@ tasks.register('acceptRender') {
             staged[scenario] = produced
         }
 
-        // Les dossiers d'écrans disparus partent avec, sinon la référence ne peut jamais redevenir
-        // propre : verifyRender les signalerait à chaque exécution sans qu'aucune commande ne sache
-        // les enlever. C'est annoncé, pas silencieux.
-        def known = renderScenarios.keySet()
-        renderReferenceDir.listFiles().findAll { it.isDirectory() && !known.contains(it.name) }
-                .each { orphan ->
-                    logger.lifecycle("[Starfall] reference orpheline retiree : " + orphan.name)
-                    orphan.deleteDir()
-                }
+        // Ce qui traîne part avec, sinon la référence ne peut jamais redevenir propre : verifyRender
+        // le signalerait à chaque exécution sans qu'aucune commande ne sache l'enlever. C'est
+        // annoncé, pas silencieux, et la liste vient du même endroit que celle de verifyRender.
+        orphanReferences().each { orphan ->
+            logger.lifecycle("[Starfall] reference orpheline retiree : " + orphan.name)
+            if (orphan.isDirectory()) {
+                orphan.deleteDir()
+            } else {
+                orphan.delete()
+            }
+        }
 
         int written = 0
         staged.each { scenario, produced ->

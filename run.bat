@@ -35,10 +35,10 @@ if defined GAMEARGS set "GAMEARGS=!GAMEARGS:"=\"!"
 
 if defined GAMEARGS goto :with_arguments
 call "%~dp0gradlew.bat" --quiet --console=plain :lwjgl3:run "-Pstarfall.exitCodeFile=%EXITFILE%"
-goto :lance
+goto :launched
 :with_arguments
 call "%~dp0gradlew.bat" --quiet --console=plain :lwjgl3:run "-Pstarfall.exitCodeFile=%EXITFILE%" --args="!GAMEARGS!"
-:lance
+:launched
 set EXITCODE=%ERRORLEVEL%
 
 rem Gradle sort 1 des qu'une tache echoue, quel que soit le code du processus : les trois codes du

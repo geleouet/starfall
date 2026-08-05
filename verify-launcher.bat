@@ -53,7 +53,7 @@ call :expect 1 "echec apres un jeu sorti en 0" --screenshot "%SHOTS%" --size 640
 set STARFALL_FAIL_AFTER_RUN=
 
 rem Le septieme cas est celui du DOUBLE-CLIC : run.bat sans aucun argument. Les six autres en
-rem passent tous, si bien que la branche « if defined GAMEARGS goto :avec_arguments » n'etait jamais
+rem passent tous, si bien que la branche « if defined GAMEARGS goto :with_arguments » n'etait jamais
 rem evaluee a faux -- le mode d'emploi principal du fichier, annonce des sa premiere ligne, n'etait
 rem garde par rien. Mesure : en remplacant :lwjgl3:run par une tache inexistante dans cette branche,
 rem les six cas passaient encore.
