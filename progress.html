@@ -309,6 +309,26 @@
 <h2>Journal de review</h2>
 
 <div class="rev fail">
+  <div class="hd">Apr&egrave;s M10 &mdash; <b>La promesse centrale n&rsquo;&eacute;tait &eacute;prouv&eacute;e qu&rsquo;&agrave; deux cinqui&egrave;mes</b></div>
+  <p>M&ecirc;me racine, troisi&egrave;me et quatri&egrave;me victime. Deux fois de suite la mesure a d&eacute;sign&eacute; la m&ecirc;me cause &mdash; <b>le jeu al&eacute;atoire ne quitte jamais la vague 1</b> &mdash; d&rsquo;abord pour le corpus d&rsquo;interface, puis pour le couloir de charge. J&rsquo;ai donc arr&ecirc;t&eacute; de la traiter au cas par cas et je l&rsquo;ai mesur&eacute;e une bonne fois, pour tous les tests qui partagent ce g&eacute;n&eacute;rateur.</p>
+
+  <p><b>Le relev&eacute;, sur cinq cents parties.</b> Aucune ne d&eacute;passe la vague 2 ; 456 sur 500 restent en vague 1. Trois esp&egrave;ces sur cinq n&rsquo;apparaissent <em>jamais</em> ou presque : le souverain z&eacute;ro fois, le colosse z&eacute;ro fois, le lancier dans 2 % des observations. Et c&ocirc;t&eacute; intentions : <b>z&eacute;ro ru&eacute;e, z&eacute;ro invocation</b>, la charge dans 0,2 % des cas. Quinze tests sont b&acirc;tis sur cet &eacute;chantillon.</p>
+
+  <p><b>« Les ennemis ne se traversent pas » ne voyait aucun mouvement traversant.</b> Le test ne jouait que des pas et des &eacute;changes, donc ne tuait rien, donc ne sortait jamais de la vague 1. Or les deux seuls mouvements qui franchissent plusieurs cases &mdash; la <b>charge</b> du lancier et la <b>ru&eacute;e</b> du souverain &mdash; n&rsquo;existent qu&rsquo;&agrave; partir de la vague 2. Il gardait la superposition de deux arch&eacute;types qui avancent d&rsquo;une case, ce qui est &agrave; peu pr&egrave;s le cas le moins risqu&eacute; du jeu.</p>
+
+  <p style="margin-bottom:0"><b>Et le t&eacute;l&eacute;graphe, la promesse centrale, tait le m&ecirc;me d&eacute;faut.</b> « Ce qui est annonc&eacute; est exactement ce qui est jou&eacute; » est la phrase sur laquelle ce jeu repose, et le test qui la garde ne l&rsquo;&eacute;prouvait que contre le sabreur et l&rsquo;archer &mdash; les deux arch&eacute;types qui frappent d&rsquo;une case. Ni la charge, ni la ru&eacute;e qui <em>repousse le h&eacute;ros</em>, ni l&rsquo;invocation. Une promesse &eacute;prouv&eacute;e sur deux esp&egrave;ces sur cinq n&rsquo;est &eacute;prouv&eacute;e qu&rsquo;&agrave; deux cinqui&egrave;mes, et rien nulle part ne le disait.</p>
+</div>
+
+<div class="rev pass">
+  <div class="hd">Apr&egrave;s M10 &mdash; <b>Ce que ce relev&eacute; a produit</b></div>
+  <p><b>Le rem&egrave;de existait d&eacute;j&agrave; dans le d&eacute;p&ocirc;t.</b> <code>ArenaSetup.trainingArena(largeur, vague)</code> accepte une vague de d&eacute;part depuis M9, et huit fichiers de test s&rsquo;en servent &mdash; ceux du souverain d&eacute;marrent directement &agrave; la quatri&egrave;me. Les deux fichiers en cause ne s&rsquo;en servaient pas, sans raison. Les deux montages balaient d&eacute;sormais <b>les quatre vagues</b>.</p>
+
+  <p><b>Et surtout, l&rsquo;&eacute;chantillon dit maintenant ce qu&rsquo;il a vu.</b> C&rsquo;est la m&ecirc;me m&eacute;decine que les compteurs d&rsquo;observation du cycle pr&eacute;c&eacute;dent, port&eacute;e sur la <em>composition</em> plut&ocirc;t que sur le nombre : le test du chevauchement exige d&rsquo;avoir observ&eacute; une charge <b>et</b> une ru&eacute;e, et celui du t&eacute;l&eacute;graphe exige les <b>cinq</b> arch&eacute;types, nomm&eacute;ment. Sans cela, un montage peut retomber en vague 1 sans que personne ne s&rsquo;en aper&ccedil;oive &mdash; ce qui est exactement la fa&ccedil;on dont le pr&eacute;c&eacute;dent a v&eacute;cu.</p>
+
+  <p style="margin-bottom:0"><b>V&eacute;rifi&eacute; par mutation, dans les deux cas en refermant l&rsquo;&eacute;chantillon sur la vague 1.</b> Le chevauchement rougit sur « aucune charge observ&eacute;e », le t&eacute;l&eacute;graphe sur « l&rsquo;arch&eacute;type LANCIER n&rsquo;appara&icirc;t pas une seule fois &mdash; vus : <code>{SABREUR=18000, ARCHER=18000}</code> ». Et la nouvelle est bonne : <b>la promesse tient contre les cinq arch&eacute;types</b>, ru&eacute;e comprise. Elle n&rsquo;&eacute;tait pas fausse, elle n&rsquo;&eacute;tait pas v&eacute;rifi&eacute;e. <b>504 tests, 84 planches sur 12 &eacute;crans.</b></p>
+</div>
+
+<div class="rev fail">
   <div class="hd">Apr&egrave;s M10 &mdash; <b>Les deux derniers trous nomm&eacute;s, et ce que la mesure en a fait</b></div>
   <p>Il restait deux trous que les reviews avaient nomm&eacute;s et que j&rsquo;avais document&eacute;s sans les fermer. Les fermer a co&ucirc;t&eacute; plus cher que pr&eacute;vu, parce que dans les deux cas <b>ce que je croyais manquer n&rsquo;&eacute;tait pas ce qui manquait</b>.</p>
 

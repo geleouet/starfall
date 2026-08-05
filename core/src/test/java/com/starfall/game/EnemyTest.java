@@ -282,26 +282,53 @@ class EnemyTest {
         @Test
         @DisplayName("Les ennemis ne se traversent pas et ne se superposent jamais")
         void enemiesNeverOverlap() {
-            for (int seed = 0; seed < 200; seed++) {
-                Random random = new Random(seed);
-                Arena arena = ArenaSetup.trainingArena(
-                        Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1));
+            java.util.Map<Intention.Kind, Integer> observed =
+                    new java.util.EnumMap<>(Intention.Kind.class);
 
-                for (int step = 0; step < 60; step++) {
-                    if (random.nextBoolean()) {
-                        arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
-                    } else {
-                        arena.swapWithTarget();
-                    }
+            // Toutes les vagues, pas seulement la premiere. Ce test dit « ne se TRAVERSENT pas »,
+            // et les deux seuls mouvements qui traversent plusieurs cases - la charge du lancier et
+            // la ruee du souverain - n'existent qu'a partir de la vague 2. Mesure du montage
+            // precedent, qui ne jouait que des pas et des echanges : cinq cents parties, aucune ne
+            // depassait la vague 1, deux especes sur cinq observees, zero ruee, zero invocation.
+            // Il gardait la superposition de deux archetypes qui avancent d'une case.
+            for (int startWave = 1; startWave <= Arena.WAVE_COUNT; startWave++) {
+                for (int seed = 0; seed < 200; seed++) {
+                    Random random = new Random(seed);
+                    Arena arena = ArenaSetup.trainingArena(
+                            Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1),
+                            startWave);
 
-                    java.util.Set<Occupant> seen = new java.util.HashSet<>();
-                    for (int cell : arena.grid().occupiedCells()) {
-                        assertTrue(seen.add(arena.grid().occupantAt(cell)),
-                                "graine " + seed + " : un occupant est sur deux cases");
+                    for (int step = 0; step < 60; step++) {
+                        for (Enemy enemy : arena.enemies()) {
+                            observed.merge(enemy.intention().kind(), 1, Integer::sum);
+                        }
+                        if (random.nextBoolean()) {
+                            arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+                        } else {
+                            arena.swapWithTarget();
+                        }
+
+                        java.util.Set<Occupant> seen = new java.util.HashSet<>();
+                        for (int cell : arena.grid().occupiedCells()) {
+                            assertTrue(seen.add(arena.grid().occupantAt(cell)),
+                                    "vague " + startWave + " graine " + seed
+                                            + " : un occupant est sur deux cases");
+                        }
+                        assertSame(arena.hero(), arena.grid().occupantAt(arena.heroCell()));
                     }
-                    assertSame(arena.hero(), arena.grid().occupantAt(arena.heroCell()));
                 }
             }
+
+            // Et l'echantillon dit ce qu'il a vu. Sans ces deux lignes, le montage pourrait
+            // retomber en vague 1 sans que personne ne s'en apercoive - c'est exactement ainsi que
+            // le precedent avait vecu.
+            assertTrue(observed.getOrDefault(Intention.Kind.CHARGE, 0) > 0,
+                    "aucune charge observee : le mouvement qui traverse le plus de cases n'est pas"
+                            + " dans l'echantillon, et c'est celui que ce test existe pour garder."
+                            + " Intentions vues : " + observed);
+            assertTrue(observed.getOrDefault(Intention.Kind.RUSH, 0) > 0,
+                    "aucune ruee observee : le second mouvement traversant manque a l'echantillon."
+                            + " Intentions vues : " + observed);
         }
 
         @Test

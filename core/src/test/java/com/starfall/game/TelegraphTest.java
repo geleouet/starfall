@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.jupiter.api.DisplayName;
@@ -40,38 +42,58 @@ class TelegraphTest {
     @DisplayName("Les coups annoncés sur la case du héros sont exactement ceux qu'il encaisse")
     void announcedBlowsAreExactlyTheBlowsTaken() {
         List<String> failures = new ArrayList<>();
+        Map<EnemyKind, Integer> sampled = new EnumMap<>(EnemyKind.class);
 
-        for (int seed = 0; seed < SEEDS; seed++) {
-            Random random = new Random(seed);
-            Arena arena = ArenaSetup.trainingArena(
-                    Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1));
+        // Toutes les vagues. Le montage precedent ne demarrait qu'en vague 1 et, mesure sur cinq
+        // cents parties, n'en sortait jamais : deux archetypes sur cinq, jamais de ruee, jamais
+        // d'invocation, et la charge dans 0,2 % des observations. Or ce test porte sur la promesse
+        // centrale du jeu - ce qui est annonce est exactement ce qui est joue - et il ne l'eprouvait
+        // que sur les deux archetypes qui frappent d'une case.
+        for (int startWave = 1; startWave <= Arena.WAVE_COUNT; startWave++) {
+            for (int seed = 0; seed < SEEDS; seed++) {
+                Random random = new Random(seed);
+                Arena arena = ArenaSetup.trainingArena(
+                        Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1),
+                        startWave);
 
-            for (int turn = 0; turn < TURNS_PER_SEED && !arena.enemies().isEmpty(); turn++) {
-                int heroCell = arena.heroCell();
-                int announced = arena.threatCount(heroCell);
-                int hitsBefore = arena.heroHits();
-                int turnsBefore = arena.turnsTaken();
+                for (int turn = 0; turn < TURNS_PER_SEED && !arena.enemies().isEmpty(); turn++) {
+                    for (Enemy enemy : arena.enemies()) {
+                        sampled.merge(enemy.kind(), 1, Integer::sum);
+                    }
+                    int heroCell = arena.heroCell();
+                    int announced = arena.threatCount(heroCell);
+                    int hitsBefore = arena.heroHits();
+                    int turnsBefore = arena.turnsTaken();
 
-                // Un demi-tour : la seule action qui consomme un tour sans déplacer le héros ni
-                // toucher à la grille. Le héros reste donc exactement sur la case menacée.
-                arena.step(arena.hero().facing().opposite());
-                if (arena.turnsTaken() == turnsBefore) {
-                    continue; // aucun tour consommé : aucune phase ennemie à vérifier
-                }
+                    // Un demi-tour : la seule action qui consomme un tour sans déplacer le héros ni
+                    // toucher à la grille. Le héros reste donc exactement sur la case menacée.
+                    arena.step(arena.hero().facing().opposite());
+                    if (arena.turnsTaken() == turnsBefore) {
+                        continue; // aucun tour consommé : aucune phase ennemie à vérifier
+                    }
 
-                int taken = arena.heroHits() - hitsBefore;
-                if (taken != announced) {
-                    failures.add("graine " + seed + " tour " + turn + " : " + announced
-                            + " coup(s) annonce(s) sur la case " + (heroCell + 1)
-                            + ", " + taken + " encaisse(s)");
-                }
-                if (failures.size() > 5) {
-                    break;
+                    int taken = arena.heroHits() - hitsBefore;
+                    if (taken != announced) {
+                        failures.add("graine " + seed + " tour " + turn + " : " + announced
+                                + " coup(s) annonce(s) sur la case " + (heroCell + 1)
+                                + ", " + taken + " encaisse(s)");
+                    }
+                    if (failures.size() > 5) {
+                        break;
+                    }
                 }
             }
         }
 
         assertTrue(failures.isEmpty(), "le telegraphe ment :\n  " + String.join("\n  ", failures));
+        // Et l'echantillon dit quels archetypes il a vus. Le telegraphe est la promesse que ce jeu
+        // fait au joueur ; une promesse eprouvee sur deux especes sur cinq n'est eprouvee qu'a
+        // deux cinquiemes, et rien ne le disait.
+        for (EnemyKind kind : EnemyKind.values()) {
+            assertTrue(sampled.getOrDefault(kind, 0) > 0,
+                    "l'archetype " + kind + " n'apparait pas une seule fois dans l'echantillon :"
+                            + " le telegraphe n'est pas eprouve contre lui. Vus : " + sampled);
+        }
     }
 
     @Test
