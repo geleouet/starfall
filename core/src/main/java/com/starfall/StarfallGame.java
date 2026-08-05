@@ -17,6 +17,7 @@ import com.starfall.scene.ArenaScene;
 import com.starfall.scene.CalibrationScene;
 import com.starfall.scene.Scene;
 import com.starfall.scene.SceneContext;
+import com.starfall.scene.ShowcaseScript;
 
 import java.util.List;
 
@@ -77,6 +78,9 @@ public class StarfallGame extends ApplicationAdapter {
         // ajout de scène oublié ici échoue bruyamment plutôt que d'afficher la mauvaise.
         return switch (name) {
             case "arena" -> new ArenaScene();
+            // La vitrine rejoue la MEME scene, sur un autre scenario : ce qui est garde est le
+            // rendu du jeu, pas une maquette a cote.
+            case ShowcaseScript.SCENE_NAME -> new ArenaScene(ShowcaseScript.SCENARIO);
             case "calibration" -> new CalibrationScene();
             default -> throw new IllegalArgumentException("Scène inconnue : " + name);
         };

@@ -179,6 +179,10 @@ ext.renderScenarios = [
         sovereignWide  : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '4',
                           '--grid', '15'],
         calibration    : ['--size', '1280x720', '--frames', '2', '--scene', 'calibration'],
+        // La vitrine : une partie PERDUE, jouée pour montrer ce qu'une partie gagnée ne montre
+        // jamais — la bannière de défaite, une poussée qui bute, une case non cliquable survolée,
+        // la reprise d'une tuile. Quatre états qu'une review a prouvés absents par mutation.
+        showcase       : ['--size', '1280x720', '--frames', '12', '--scene', 'showcase'],
 ]
 
 ext.renderReferenceDir = rootProject.file('captures/reference')

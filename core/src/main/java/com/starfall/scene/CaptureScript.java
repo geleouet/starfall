@@ -263,6 +263,29 @@ public final class CaptureScript {
             -1, -1, -1, -1, -1, -1, -1, -1,
     };
 
+    /** La vue « scénario » de la ligne gagnante. Voir {@link CaptureScenario}. */
+    public static final CaptureScenario SCENARIO = new CaptureScenario() {
+        @Override
+        public java.util.List<java.util.function.Function<Arena, ActionResult>> actions() {
+            return ACTIONS;
+        }
+
+        @Override
+        public int rackSlotAt(int frameIndex) {
+            return CaptureScript.rackSlotAt(frameIndex);
+        }
+
+        @Override
+        public int queueSlotAt(int frameIndex) {
+            return CaptureScript.queueSlotAt(frameIndex);
+        }
+
+        @Override
+        public int cellAt(int frameIndex) {
+            return CaptureScript.cellAt(frameIndex);
+        }
+    };
+
     /** Rejoue les {@code count} premiers gestes sur une arène. */
     public static ActionResult replayInto(Arena arena, int count) {
         ActionResult last = null;

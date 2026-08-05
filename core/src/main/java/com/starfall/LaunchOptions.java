@@ -1,6 +1,5 @@
 package com.starfall;
 
-import com.starfall.scene.CaptureScript;
 
 import com.starfall.game.Arena;
 import com.starfall.game.Grid;
@@ -36,7 +35,8 @@ public final class LaunchOptions {
     public static final int DEFAULT_GRID_WIDTH = 9;
 
     /** Scènes connues. La mire de calibration reste atteignable : c'est une preuve de non-régression. */
-    public static final List<String> SCENES = List.of("arena", "calibration");
+    public static final List<String> SCENES =
+            List.of("arena", "calibration", com.starfall.scene.ShowcaseScript.SCENE_NAME);
 
     /** Dossier de sortie des captures, ou {@code null} en fonctionnement normal. */
     public final String screenshotDir;
@@ -182,13 +182,15 @@ public final class LaunchOptions {
         // détail : sans ce contrôle, « --from 200 » écrivait trois PNG rigoureusement identiques et
         // sortait en 0. Le projet a déjà eu ce défaut sous la forme d'un « --frames N » qui écrivait
         // N copies de la même image ; --from rouvrait exactement la même porte.
-        if (screenshotDir != null && DEFAULT_SCENE.equals(scene)) {
+        if (screenshotDir != null && !"calibration".equals(scene)) {
+            // La borne vient du scenario de CETTE scene : la vitrine en compte onze la ou la ligne
+            // gagnante en compte 87, et une borne unique aurait laisse passer un --from hors sujet.
+            int available = com.starfall.scene.CaptureScenario.forScene(scene).size();
             int last = firstFrame + frames - 1;
-            if (last > CaptureScript.ACTIONS.size()) {
+            if (last > available) {
                 throw new IllegalArgumentException("--from " + firstFrame + " avec --frames "
-                        + frames + " demande l'image " + last + ", or le scenario en compte "
-                        + (CaptureScript.ACTIONS.size() + 1) + " (0 a "
-                        + CaptureScript.ACTIONS.size() + ")");
+                        + frames + " demande l'image " + last + ", or le scenario « " + scene
+                        + " » en compte " + (available + 1) + " (0 a " + available + ")");
             }
         }
         return new LaunchOptions(screenshotDir, width, height, frames, firstFrame, scene, gridWidth,

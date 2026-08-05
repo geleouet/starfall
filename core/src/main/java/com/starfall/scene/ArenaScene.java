@@ -65,6 +65,26 @@ public final class ArenaScene implements Scene {
 
     private int hoveredCell = -1;
     private int hoveredQueueSlot = -1;
+
+    /**
+     * Le scénario rejoué en mode capture.
+     *
+     * <p>Il était codé en dur sur la ligne gagnante. Une review a montré que quatre états
+     * d'interface ne pouvaient être atteints par elle — la bannière de défaite, une poussée qui
+     * bute, une case non cliquable survolée, la reprise d'une tuile — et qu'on pouvait donc les
+     * casser sans qu'aucune planche ne bronche. La scène {@code showcase} les joue.
+     */
+    private final CaptureScenario scenario;
+
+    /** La scène du jeu, rejouant la ligne gagnante en mode capture. */
+    public ArenaScene() {
+        this(CaptureScript.SCENARIO);
+    }
+
+    /** La même scène, sur un autre scénario. Voir {@link ShowcaseScript}. */
+    public ArenaScene(CaptureScenario scenario) {
+        this.scenario = scenario;
+    }
     private int hoveredRackSlot = -1;
     private ActionResult lastResult;
 
@@ -155,9 +175,9 @@ public final class ArenaScene implements Scene {
      * contact, et une planche qui ne montre pas ce qu'elle légende vaut moins que pas de planche.
      */
     private void replayScript(int frameIndex) {
-        hoveredCell = CaptureScript.cellAt(frameIndex);
-        hoveredQueueSlot = CaptureScript.queueSlotAt(frameIndex);
-        hoveredRackSlot = CaptureScript.rackSlotAt(frameIndex);
+        hoveredCell = scenario.cellAt(frameIndex);
+        hoveredQueueSlot = scenario.queueSlotAt(frameIndex);
+        hoveredRackSlot = scenario.rackSlotAt(frameIndex);
         helpVisible = frameIndex == 0;
 
         if (frameIndex == scriptedFrame) {
@@ -165,14 +185,14 @@ public final class ArenaScene implements Scene {
         }
         arena = ArenaSetup.trainingArena(layout.gridWidth(), context.options().startWave);
 
-        ActionResult replayed = CaptureScript.replayInto(arena, frameIndex);
+        ActionResult replayed = scenario.replayInto(arena, frameIndex);
         if (replayed != null) {
             lastResult = replayed;
         }
-        if (frameIndex > CaptureScript.ACTIONS.size() && !exhaustionReported) {
+        if (frameIndex > scenario.size() && !exhaustionReported) {
             // Le dire plutôt que de laisser un relecteur croire que deux images identiques
             // signalent un rendu figé.
-            System.out.println("[Starfall] le scénario de capture compte " + CaptureScript.ACTIONS.size()
+            System.out.println("[Starfall] le scénario de capture compte " + scenario.size()
                     + " actions ; les images suivantes répètent l'état final");
             exhaustionReported = true;
         }
