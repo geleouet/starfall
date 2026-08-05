@@ -90,6 +90,17 @@ public final class ArenaScene implements Scene {
     private ActionResult lastResult;
 
     /**
+     * Le déroulé de la dernière action, et l'instant où on l'a vu avancer.
+     *
+     * <p>Il ne tourne qu'en jeu réel : {@code act} sort avant lui en mode capture, si
+     * bien qu'une planche montre toujours un état au repos. Et rien ne le démarre là-bas —
+     * le rejeu de scénario ne passe pas par {@code applied}. Si cela changeait un jour, les
+     * 84 planches le diraient aussitôt : le cadre du déroulé s'y peindrait.
+     */
+    private final Playback playback = new Playback();
+    private float lastTime;
+
+    /**
      * L'aide est <b>ouverte au départ</b> et se referme au premier geste.
      *
      * <p>Un jeu au tour par tour dont les commandes ne sont écrites nulle part n'est pas jouable ;
@@ -129,7 +140,21 @@ public final class ArenaScene implements Scene {
     @Override
     public void act(float time, int frameIndex, boolean interactive) {
         if (!interactive) {
+            // En mode capture, AUCUN déroulé : les planches sont des états au repos, et une image
+            // prise au milieu d'une animation cesserait d'être reproductible. C'est la contrainte
+            // que le tableau de bord pose sur cette fonctionnalité, et elle tient à ce retour
+            // anticipé — pas à une précaution éparpillée plus bas.
             replayScript(frameIndex);
+            return;
+        }
+        float delta = Math.max(0f, time - lastTime);
+        lastTime = time;
+        if (playback.isRunning()) {
+            // Le déroulé BLOQUE les entrées tant qu'il court. Sans cela, le joueur agirait sur un
+            // plateau qu'il ne voit pas encore : le modèle a déjà tout résolu, l'écran est en
+            // retard, et ce qu'on montre doit correspondre à ce sur quoi on agit.
+            playback.advance(delta);
+            trackPointer();
             return;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.F1)) {
@@ -165,6 +190,10 @@ public final class ArenaScene implements Scene {
     private boolean applied(ActionResult result) {
         lastResult = result;
         helpVisible = false;
+        // Le déroulé démarre ici pour la raison qui a fait mettre l'aide ici : c'est le seul
+        // endroit par lequel passent les huit gestes qui déclenchent une action. Réparti sur
+        // chacun, il aurait été oublié par le neuvième.
+        playback.start(arena.beats());
         return true;
     }
 
@@ -297,6 +326,7 @@ public final class ArenaScene implements Scene {
         drawBackdrop();
         drawGround();
         drawThreats();
+        drawPlayback();
         drawReach();
         drawOccupants();
         drawIntentions();
@@ -395,6 +425,22 @@ public final class ArenaScene implements Scene {
      * tableau {@code Tile.reach()}, que la review de M8 avait trouvé inutilisé, reprend ici du
      * service — pour la raison même qui l'avait fait écrire.
      */
+    /**
+     * Le temps en train de se dérouler : un cadre sur la case qu'il concerne.
+     *
+     * <p>Sous les figures et les intentions, au-dessus des menaces : ce cadre dit « voici où ce
+     * coup-ci porte », il ne doit ni masquer l'ennemi qu'il désigne, ni se confondre avec une
+     * annonce ennemie.
+     */
+    private void drawPlayback() {
+        Arena.Beat beat = playback.current();
+        if (beat == null || !arena.grid().contains(beat.cell())) {
+            return;
+        }
+        painter.outline(layout.insetLeft(beat.cell()), ArenaLayout.PREVIEW_Y,
+                ArenaLayout.insetWidth(), ArenaLayout.PREVIEW_HEIGHT, HudColors.PREVIEW);
+    }
+
     private void drawStaticReach(Tile tile, Color color) {
         int hero = arena.heroCell();
         int step = arena.hero().facing().step();
