@@ -16,6 +16,8 @@ import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Le garde-fou qui manquait : <b>le jeu doit rester gagnable</b>.
@@ -54,6 +56,9 @@ class WinnabilityTest {
      * <p>La marge est désormais <b>mesurée et non supposée</b> : {@code searchFindsAWinWellAboveItsBreakingPoint}
      * vérifie qu'un faisceau de moitié trouve encore.
      */
+    /** Retour a la ligne des messages d'echec, sans sequence d'echappement dans le source. */
+    private static final String NL = System.lineSeparator();
+
     private static final int BEAM = 400;
     /** Profondeur maximale en gestes, gratuits compris. Une tranche gagnée en fait moins de 80. */
     private static final int MAX_DEPTH = 110;
@@ -171,60 +176,52 @@ class WinnabilityTest {
     }
 
     /**
-     * La rencontre finale doit rester gagnable. C'est la plus dure, donc la plus susceptible de
-     * basculer du mauvais côté quand un nombre bouge.
+     * La rencontre finale reste gagnable, sur <b>chacune</b> des largeurs jouables.
+     *
+     * <p>C'est la vague la plus dure, donc la plus susceptible de basculer du mauvais côté quand un
+     * nombre bouge. Et la largeur n'est pas un détail de cadrage : elle change la distance à laquelle
+     * le souverain peut charger, le nombre de cases où ses sbires peuvent naître, et la place que le
+     * héros a pour s'extraire. Une rencontre équilibrée sur 9 cases peut devenir impossible sur 5 —
+     * trop serré pour esquiver — ou sur 15 — trop long pour rattraper l'archer avant qu'il tire.
+     *
+     * <p><b>Le balayage est complet, et il l'est pour une raison précise.</b> Ce test n'a d'abord
+     * tenu que la largeur 9, puis 5 et 15 ; la review a relevé que 7, 11 et 13 restaient sans
+     * garde-fou <em>pendant que le tableau de bord annonçait une mesure sur six largeurs</em> — et
+     * que le jeu en accepte onze, les paires comprises, que j'avais oubliées. Un écart entre ce
+     * qu'on affirme et ce qu'on garde finit toujours par se payer. Onze recherches coûtent moins de
+     * deux secondes ; il n'y avait aucune raison d'échantillonner.
+     *
+     * <p><b>Rien n'est affirmé sur la marge.</b> Une recherche en faisceau trouve <i>une</i>
+     * victoire, jamais la meilleure : un seuil de points de vie mesurerait la qualité de mon
+     * heuristique et non la difficulté du jeu. Le projet s'est déjà fait prendre à ce piège, et le
+     * seuil avait été retiré plutôt que rabaissé. Ce qu'on garde ici est unilatéral et honnête : une
+     * victoire <b>existe</b>, et elle ne demande pas un nombre absurde de gestes.
      */
-    @Test
-    @DisplayName("La rencontre du souverain reste gagnable")
-    void theSovereignEncounterStaysWinnable() {
-        List<String> win = findAWin(9, Arena.WAVE_COUNT);
+    @ParameterizedTest(name = "largeur {0}")
+    @DisplayName("La rencontre du souverain reste gagnable sur chaque largeur jouable")
+    @MethodSource("everyPlayableWidth")
+    void thesovereignEncounterStaysWinnableAtEveryWidth(int width) {
+        List<String> win = findAWin(width, Arena.WAVE_COUNT);
 
-        assertTrue(win != null,
-                "aucun chemin vers la victoire trouve sur la rencontre finale.\n"
-                        + "  Un faisceau prouve qu'une victoire existe, jamais qu'elle n'existe pas :\n"
-                        + "  elargir BEAM avant d'accuser l'equilibrage. Si un faisceau large ne\n"
-                        + "  trouve toujours rien, c'est la tranche qui est devenue impossible.");
-        // Strictement inférieur, et c'est le point : « <= MAX_DEPTH » était vrai par construction,
-        // la boucle ne pouvant pas produire plus long. Cette version-ci tombe si la victoire n'est
-        // atteinte qu'en frôlant le plafond, c'est-à-dire si la rencontre s'est durcie.
-        assertTrue(win.size() < MAX_DEPTH - 20,
-                "victoire trouvee en " + win.size() + " gestes, trop pres du plafond de " + MAX_DEPTH);
+        assertTrue(win != null, "aucun chemin vers la victoire sur la rencontre finale en largeur "
+                + width + "." + NL
+                + "  Un faisceau prouve qu'une victoire existe, jamais qu'elle n'existe pas :" + NL
+                + "  elargir BEAM avant d'accuser l'equilibrage. Si un faisceau large ne trouve" + NL
+                + "  toujours rien, c'est la rencontre qui est devenue impossible.");
+
+        // Pas de « rejoue et verifie que ca gagne » : findAWin ne rend une ligne QUE lorsqu'elle
+        // vient d'evaluer ce meme rejeu a vrai, et Playout.replay est pur. Reemettre l'appel serait
+        // une assertion incapable d'echouer -- le defaut exact que ce fichier a deja eu a corriger
+        // trois fois. Ce qui peut echouer, en revanche, c'est la LONGUEUR : une rencontre qui se
+        // durcirait passerait de seize gestes a beaucoup plus sans cesser d'etre gagnable, et
+        // personne ne le verrait.
+        assertTrue(win.size() < MAX_DEPTH - 20, "victoire trouvee en largeur " + width + " apres "
+                + win.size() + " gestes, trop pres du plafond de " + MAX_DEPTH);
     }
 
-    /**
-     * Et sur les <b>largeurs extrêmes</b>, pas seulement au milieu.
-     *
-     * <p>La largeur n'est pas un détail de cadrage : elle change la distance à laquelle le souverain
-     * peut charger, le nombre de cases où ses sbires peuvent naître, et la place que le héros a pour
-     * s'extraire. Une rencontre équilibrée sur 9 cases peut très bien devenir impossible sur 5 —
-     * trop serré pour esquiver — ou sur 15 — trop long pour rattraper l'archer avant qu'il ne tire.
-     * Ne mesurer qu'au milieu, c'est ignorer les deux cas où ça casse.
-     *
-     * <p><b>Ce test n'affirme rien sur la marge.</b> Une recherche en faisceau trouve <i>une</i>
-     * victoire, jamais la meilleure : un seuil de points de vie mesurerait la qualité de mon
-     * heuristique et non la difficulté du jeu. Le projet s'est déjà fait prendre à ce piège une fois
-     * et le seuil a été retiré plutôt que rabaissé. Ce qu'on garde ici est unilatéral et honnête :
-     * une victoire <b>existe</b> à chaque bout de l'intervalle de largeurs.
-     */
-    @Test
-    @DisplayName("La rencontre du souverain reste gagnable aux deux extrémités des largeurs")
-    void thesovereignEncounterStaysWinnableAtBothEndsOfTheWidthRange() {
-        for (int width : new int[]{Grid.MIN_WIDTH, Grid.MAX_WIDTH}) {
-            List<String> win = findAWin(width, Arena.WAVE_COUNT);
-            assertTrue(win != null, "aucun chemin vers la victoire sur la rencontre finale en largeur "
-                    + width + ".\n"
-                    + "  Un faisceau prouve qu'une victoire existe, jamais qu'elle n'existe pas :\n"
-                    + "  elargir BEAM avant d'accuser l'equilibrage.");
-
-            // Pas de « rejoue et verifie que ca gagne » ici : findAWin ne rend une ligne QUE
-            // lorsqu'elle vient d'evaluer ce meme rejeu a vrai, et Playout.replay est pur. Reemettre
-            // l'appel serait une assertion incapable d'echouer -- le defaut exact que ce fichier a
-            // deja eu a corriger trois fois. Ce qui peut echouer, en revanche, c'est la LONGUEUR :
-            // une rencontre qui se durcirait passerait de seize gestes a beaucoup plus sans cesser
-            // d'etre gagnable, et personne ne le verrait.
-            assertTrue(win.size() < MAX_DEPTH - 20, "victoire trouvee en largeur " + width
-                    + " apres " + win.size() + " gestes, trop pres du plafond de " + MAX_DEPTH);
-        }
+    /** Les onze largeurs que le jeu accepte, les paires comprises. */
+    static java.util.stream.IntStream everyPlayableWidth() {
+        return java.util.stream.IntStream.rangeClosed(Grid.MIN_WIDTH, Grid.MAX_WIDTH);
     }
 
     /**
