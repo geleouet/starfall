@@ -156,7 +156,7 @@ public final class ArenaScene implements Scene {
      */
     private void replayScript(int frameIndex) {
         hoveredCell = CaptureScript.cellAt(frameIndex);
-        hoveredQueueSlot = -1;
+        hoveredQueueSlot = CaptureScript.queueSlotAt(frameIndex);
         hoveredRackSlot = CaptureScript.rackSlotAt(frameIndex);
         helpVisible = frameIndex == 0;
 

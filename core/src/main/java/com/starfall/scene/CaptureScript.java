@@ -226,6 +226,34 @@ public final class CaptureScript {
             -1,
     };
 
+    /**
+     * Emplacement de la <b>file</b> survolé à chaque image, ou {@code -1}.
+     *
+     * <p>Il manquait, et une review l'a relevé : {@code hoveredQueueSlot} était forcé à {@code -1}
+     * pendant les captures, si bien que toute la branche « tuile survolée dans la file » —
+     * l'emplacement mis en avant, l'infobulle, le repère de portée, et le régime creux d'une tuile
+     * qui n'est pas au sommet — ne paraissait sur <em>aucune</em> planche.
+     *
+     * <p>Deux images seulement, et elles sont choisies :
+     * <ul>
+     *   <li><b>19</b> : la file compte quatre tuiles et on survole la <em>plus ancienne</em>, donc
+     *       pas celle qui partira la première. C'est le cas que l'interface doit rendre lisible,
+     *       puisque la file s'exécute à l'envers de sa lecture ;</li>
+     *   <li><b>21</b> : la file n'en compte qu'une, donc la survolée <em>est</em> le sommet.</li>
+     * </ul>
+     *
+     * <p>Les deux branches de {@code HudText.hoveringTheTop} sont ainsi exercées. Elles sont prises
+     * dans la <b>suite profonde</b> à dessein : les douze premières images ne bougent pas, donc les
+     * planches-contact datées des jalons restent ce qu'elles étaient.
+     */
+    public static final int[] HOVERED_QUEUE_SLOT = {
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0,
+            -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+    };
+
     /** Rejoue les {@code count} premiers gestes sur une arène. */
     public static ActionResult replayInto(Arena arena, int count) {
         ActionResult last = null;
@@ -239,6 +267,12 @@ public final class CaptureScript {
     public static int rackSlotAt(int frameIndex) {
         return frameIndex >= 0 && frameIndex < HOVERED_RACK_SLOT.length
                 ? HOVERED_RACK_SLOT[frameIndex] : -1;
+    }
+
+    /** Emplacement de la file survolé à cette image, ou {@code -1}. */
+    public static int queueSlotAt(int frameIndex) {
+        return frameIndex >= 0 && frameIndex < HOVERED_QUEUE_SLOT.length
+                ? HOVERED_QUEUE_SLOT[frameIndex] : -1;
     }
 
     /** Case survolée à cette image, ou {@code -1}. */

@@ -164,6 +164,20 @@ class CaptureScriptTest {
                             + " ne porte aucun ennemi, l'infobulle ne montrera rien");
         }
 
+        // Un emplacement de file survolé doit être OCCUPÉ à cette image-là. Le tableau des cases
+        // avait exactement ce défaut : il désignait une case vide, si bien qu'aucune planche ne
+        // montrait l'infobulle d'ennemi alors que c'était sa seule raison d'être. Un survol qui ne
+        // survole rien ne se voit pas sur la planche, et ne se voit pas non plus dans le tableau.
+        for (int frame = 0; frame < CaptureScript.HOVERED_QUEUE_SLOT.length; frame++) {
+            int slot = CaptureScript.HOVERED_QUEUE_SLOT[frame];
+            if (slot < 0) {
+                continue;
+            }
+            int size = after(frame).queue().size();
+            assertTrue(slot < size, "image " + frame + " : la file compte " + size
+                    + " tuile(s), le survol designe l'emplacement " + slot);
+        }
+
         for (int slot : CaptureScript.HOVERED_RACK_SLOT) {
             assertTrue(slot >= -1 && slot < 6, "emplacement de ratelier hors bornes : " + slot);
         }
