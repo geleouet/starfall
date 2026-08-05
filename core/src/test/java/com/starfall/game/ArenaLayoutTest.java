@@ -263,7 +263,7 @@ class ArenaLayoutTest {
      */
     @Test
     @DisplayName("Les deux pointes tactiques ne partagent jamais une colonne")
-    void thetwoTacticalTipsNeverShareAColumn() {
+    void twoTacticalTipsNeverShareAColumn() {
         ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
         for (int heroCell = 0; heroCell < Grid.MAX_WIDTH; heroCell++) {
             for (Direction facing : Direction.values()) {
@@ -290,7 +290,7 @@ class ArenaLayoutTest {
      */
     @Test
     @DisplayName("Un repère ne déborde jamais de sa case")
-    void amarkNeverLeavesItsCell() {
+    void markNeverLeavesItsCell() {
         ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
         for (int cell = 0; cell < Grid.MAX_WIDTH; cell++) {
             int left = layout.cellLeft(cell);
@@ -319,7 +319,7 @@ class ArenaLayoutTest {
      */
     @Test
     @DisplayName("La pointe d'un repère tient dans sa barre")
-    void themarkTipFitsInsideItsOwnBar() {
+    void markTipFitsInsideItsOwnBar() {
         ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
         for (int cell = 0; cell < Grid.MAX_WIDTH; cell++) {
             for (Direction facing : Direction.values()) {
@@ -361,7 +361,7 @@ class ArenaLayoutTest {
      */
     @Test
     @DisplayName("Les deux pointes se font face, et pas dos à dos")
-    void thetwoTipsFaceEachOther() {
+    void twoTipsFaceEachOther() {
         ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
         for (int heroCell = 0; heroCell < Grid.MAX_WIDTH; heroCell++) {
             for (Direction facing : Direction.values()) {
@@ -405,13 +405,19 @@ class ArenaLayoutTest {
      * d'autre, ce qui rend la contrainte facile à oublier — augmenter {@code MARK_TIP_HEIGHT} pour
      * gagner en visibilité déborderait silencieusement de la barre.
      *
-     * <p>Le test précédent le dirait, mais seulement une fois le débordement réalisé et pour la
-     * géométrie du jour. Celui-ci énonce la borne elle-même, et sa marge : seize colonnes utiles
-     * pour une pointe de quatre.
+     * <p><b>Il n'ajoute aucun mode d'échec, et il faut le dire.</b> J'avais écrit que le test
+     * précédent ne le verrait « qu'une fois le débordement réalisé et pour la géométrie du jour » ;
+     * c'est faux — {@code markTipFitsInsideItsOwnBar} balaie toutes les cases et les deux sens en
+     * lisant {@code insetWidth()} par les formes, et il rougit exactement au même seuil. Vérifié en
+     * portant {@code MARK_TIP_HEIGHT} à 17 : les deux tombent ensemble.
+     *
+     * <p>Ce test reste parce qu'il <em>nomme</em> la borne et sa marge — seize colonnes utiles pour
+     * une pointe de quatre — là où l'autre la découvre. Ce n'est pas une garde de plus, c'est la
+     * même garde énoncée à l'endroit où on la cherche quand on veut grossir la pointe.
      */
     @Test
     @DisplayName("La hauteur de pointe ne peut pas dépasser la largeur utile d'une case")
-    void thetipHeightCannotExceedTheUsableCellWidth() {
+    void tipHeightCannotExceedTheUsableCellWidth() {
         assertTrue(ArenaLayout.MARK_TIP_HEIGHT <= ArenaLayout.insetWidth(),
                 "une pointe de " + ArenaLayout.MARK_TIP_HEIGHT + " pixels de haut occupe autant de"
                         + " colonnes, pour une barre large de " + ArenaLayout.insetWidth());
@@ -426,7 +432,7 @@ class ArenaLayoutTest {
      */
     @Test
     @DisplayName("Une cible d'échange confondue avec le héros est refusée")
-    void aswapTargetOnTheHeroCellIsRefused() {
+    void swapTargetOnTheHeroCellIsRefused() {
         ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
         assertThrows(IllegalArgumentException.class, () -> layout.targetMark(3, 3));
     }

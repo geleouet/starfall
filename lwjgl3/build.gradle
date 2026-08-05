@@ -30,12 +30,12 @@ configurations.configureEach {
 // Permet : gradlew :lwjgl3:run --args="--screenshot captures/m1 --size 1280x720"
 tasks.named('run', JavaExec) {
     standardInput = System.in
-    // On absorbe le code de sortie pour pouvoir le NOMMER, puis on refait echouer la tache.
+    // On absorbe le code de sortie pour pouvoir le NOMMER, puis on refait échouer la tâche.
     //
-    // Le jeu distingue ses echecs : 1 plantage, 2 ligne de commande invalide, 3 capture non
-    // conforme a la taille demandee. Gradle les ecrasait tous par un « Process finished with
-    // non-zero exit value 1 » : la distinction existait dans le code, etait testee, et
-    // n'arrivait jamais jusqu'a celui qui lance le jeu.
+    // Le jeu distingue ses échecs : 1 plantage, 2 ligne de commande invalide, 3 capture non
+    // conforme à la taille demandée. Gradle les écrasait tous par un « Process finished with
+    // non-zero exit value 1 » : la distinction existait dans le code, était testée, et
+    // n'arrivait jamais jusqu'à celui qui lance le jeu.
     //
     // Le code du processus reste 1 — c'est Gradle qui sort, pas le jeu, et le plomber jusqu'au
     // .bat demanderait de capturer la sortie dans un fichier, donc de perdre l'affichage en
@@ -45,20 +45,34 @@ tasks.named('run', JavaExec) {
     // Les chemins relatifs (ex. --screenshot captures/m1) partent de la racine du projet.
     workingDir = rootProject.projectDir
 
-    // Le code du jeu est aussi ECRIT, parce que le nommer ne suffisait pas.
+    // Le code du jeu est aussi ÉCRIT, parce que le nommer ne suffisait pas.
     //
-    // Gradle sort 1 des qu'une tache echoue, quel que soit le code du processus : run.bat renvoyait
-    // donc 1 pour les trois cas. La distinction existait dans le jeu, etait testee, etait affichee
-    // -- et restait illisible pour un script, c'est-a-dire pour le seul appelant que des codes de
-    // sortie interessent. Un fichier d'un octet suffit a la lui rendre, sans capturer la sortie du
+    // Gradle sort 1 dès qu'une tâche échoue, quel que soit le code du processus : run.bat renvoyait
+    // donc 1 pour les trois cas. La distinction existait dans le jeu, était testée, était affichée
+    // -- et restait illisible pour un script, c'est-à-dire pour le seul appelant que des codes de
+    // sortie intéressent. Un fichier d'un octet suffit à la lui rendre, sans capturer la sortie du
     // jeu ni perdre son affichage en direct.
     //
-    // Efface avant chaque execution -- mais ce n'est PAS ce qui protege d'une valeur perimee, et il
-    // faut le dire : si la compilation echoue, cette tache ne demarre jamais, donc ce doFirst non
-    // plus. C'est run.bat qui efface le fichier avant tout appel a Gradle. Mesure a l'appui : sans
-    // cela, une compilation cassee juste apres une capture refusee faisait rendre 3 « capture non
-    // conforme » a run.bat pour une erreur de compilation.
-    def exitCodeFile = layout.buildDirectory.file('starfall-exit-code.txt').get().asFile
+    // Efface avant chaque exécution -- mais ce n'est PAS ce qui protège d'une valeur périmée, et il
+    // faut le dire : si la compilation échoue, cette tâche ne démarre jamais, donc ce doFirst non
+    // plus. C'est run.bat qui efface le fichier avant tout appel à Gradle. Mesure à l'appui : sans
+    // cela, une compilation cassée juste après une capture refusée faisait rendre 3 « capture non
+    // conforme » à run.bat pour une erreur de compilation.
+    // Seconde couture de verify-launcher.bat. Celle-ci fait echouer la construction AVANT que la
+    // tache demarre, ce qui reproduit la forme exacte d'une compilation cassee : ni doFirst, ni
+    // doLast, donc aucun effacement du fichier de code cote Gradle. C'est le seul moyen de prouver
+    // que l'effacement fait par run.bat protege reellement d'un code perime -- sans elle, retirer
+    // cet effacement laissait la suite entierement verte.
+    if (System.getenv('STARFALL_FAIL_BEFORE_RUN') != null) {
+        throw new GradleException("[Starfall] echec simule avant le lancement"
+                + " (couture de verify-launcher.bat)")
+    }
+
+    // Le chemin vient de run.bat quand c'est lui qui lance, et il n'y a alors qu'une seule ecriture
+    // de cette regle au lieu de deux. Le repli sert aux appels directs a « gradlew :lwjgl3:run ».
+    def exitCodeFile = project.hasProperty('starfall.exitCodeFile')
+            ? file(project.property('starfall.exitCodeFile'))
+            : layout.buildDirectory.file('starfall-exit-code.txt').get().asFile
 
     doFirst {
         exitCodeFile.delete()
@@ -68,6 +82,19 @@ tasks.named('run', JavaExec) {
         int code = executionResult.get().exitValue
         exitCodeFile.parentFile.mkdirs()
         exitCodeFile.text = String.valueOf(code)
+
+        // Couture de verify-launcher.bat, et elle a une raison precise. Le defaut le plus retors de
+        // la chaine des codes de sortie est le symetrique du plus evident : un jeu sorti PROPREMENT
+        // pendant qu'une etape ulterieure de la construction echoue. run.bat rendait alors 0 -- un
+        // code frais servi par-dessus un echec. Ce cas ne se produit pas en usage normal, donc
+        // aucune suite d'appels au lanceur ne peut l'atteindre : sans cette couture, la regression
+        // reviendrait sans que rien ne le dise. Une variable d'environnement plutot qu'une option,
+        // parce qu'elle traverse run.bat et gradlew sans qu'aucun des deux ait a la connaitre.
+        if (System.getenv('STARFALL_FAIL_AFTER_RUN') != null) {
+            throw new GradleException("[Starfall] echec simule apres un jeu sorti en " + code
+                    + " (couture de verify-launcher.bat)")
+        }
+
         if (code != 0) {
             throw new GradleException("[Starfall] le jeu s'est terminé avec le code " + code
                     + " (" + starfallExitMeaning(code) + ")")
@@ -86,107 +113,156 @@ static String starfallExitMeaning(int code) {
 }
 
 /**
- * Le garde-fou d'image : ce que le jeu dessine vraiment, confronte a une planche de reference.
+ * Le garde-fou d'image : ce que le jeu dessine vraiment, confronté à une référence.
  *
- * <p>Il repond au dernier trou de test que la review a laisse ouvert, et c'est le plus profond du
- * projet : la geometrie des reperes tactiques est desormais pure et testee, mais RIEN ne verifie
- * que la scene lui passe les bons arguments. Le relecteur l'a demontre en inversant deux appels
- * dans ArenaScene -- le heros regardant derriere lui, la cible fuyant le heros -- sans qu'aucun des
- * 451 tests ne bronche. Aucun test JUnit ne peut fermer ce trou : il demande un contexte OpenGL.
+ * <p>Il répond au trou le plus profond du projet : la géométrie des repères tactiques est pure et
+ * testée, mais rien ne vérifie que la scène lui passe les bons arguments. Une review l'a démontré en
+ * inversant deux appels dans ArenaScene -- le héros regardant derrière lui, la cible fuyant le
+ * héros -- sans qu'aucun des 461 tests ne bronche. Aucun test JUnit ne peut fermer ce trou : il
+ * demande un contexte OpenGL. Une capture, elle, traverse toute la chaîne.
  *
- * <p>Une capture, elle, traverse toute la chaine. Comparee octet a octet a une reference, elle
- * attrape ce qu'aucune assertion d'arithmetique n'atteint : un sens inverse, une couleur echangee,
- * un ordre de dessin qui masque un signe, une case passee a la place d'une autre.
+ * <p>POURQUOI PAS captures/mN. Les planches-contact des jalons sont un témoin DATÉ ; les faire
+ * servir de référence vivante reviendrait à réécrire l'histoire à chaque changement de rendu.
+ * captures/reference n'a pas de date : elle dit « voici ce que le jeu dessine aujourd'hui », et
+ * acceptRender ne la régénère que délibérément -- ce qui oblige à regarder les images.
  *
- * <p>POURQUOI PAS captures/m10. Les planches-contact des jalons sont un temoin DATE : elles
- * montrent l'etat du jeu au moment ou ce jalon a ete relu, et les faire servir de reference vivante
- * reviendrait a reecrire l'histoire a chaque changement de rendu. captures/reference est l'inverse :
- * elle n'a pas de date, elle dit « voici ce que le jeu dessine aujourd'hui », et on la regenere
- * DELIBEREMENT quand on a decide de changer le dessin -- ce qui oblige a regarder.
+ * <p>TROIS ÉCRANS, ET C'EST UN CORRECTIF. La première version ne gardait que la vague 1 en grille 9.
+ * La review a relevé que le SOUVERAIN -- la rencontre la plus dense à lire, celle qui empile ruée,
+ * invocation et sbires -- n'avait aucune référence, ni la mire de calibration. C'était garder le
+ * plus facile et laisser le plus difficile.
  *
- * <p>Hors de « test » a dessein : cette tache demande un ecran, la suite JUnit non.
+ * <p>Hors de « test » à dessein : ces tâches demandent un écran, la suite JUnit non.
  *
- *   gradlew :lwjgl3:verifyRender          confronte le rendu a la reference
- *   gradlew :lwjgl3:acceptRender          adopte le rendu courant comme nouvelle reference
+ *   gradlew :lwjgl3:verifyRender     confronte les trois écrans à la référence
+ *   gradlew :lwjgl3:acceptRender     adopte le rendu courant, après l'avoir regardé
  */
-tasks.register('verifyRender', JavaExec) {
-    group = 'verification'
-    description = "Confronte le rendu courant a captures/reference, octet a octet."
-    dependsOn tasks.named('classes'), ':core:generateAtlas'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = application.mainClass
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    workingDir = rootProject.projectDir
-    ignoreExitValue = true
+ext.renderScenarios = [
+        arena      : ['--size', '1280x720', '--frames', '12', '--scene', 'arena'],
+        souverain  : ['--size', '1280x720', '--frames', '6', '--scene', 'arena', '--wave', '4'],
+        calibration: ['--size', '1280x720', '--frames', '2', '--scene', 'calibration'],
+]
 
-    def produced = layout.buildDirectory.dir('render-check').get().asFile
-    def reference = rootProject.file('captures/reference')
-    args = ['--screenshot', produced.absolutePath, '--size', '1280x720',
-            '--frames', '12', '--scene', 'arena']
+ext.renderReferenceDir = rootProject.file('captures/reference')
 
-    doFirst {
-        produced.deleteDir()
-        produced.mkdirs()
-    }
+/** Une tâche de rendu par scénario : JavaExec ne lance qu'un processus, et il en faut trois. */
+def registerRenderTask(String prefix, String scenario, List<String> scenarioArgs, File into) {
+    tasks.register(prefix + scenario.capitalize(), JavaExec) {
+        dependsOn tasks.named('classes'), ':core:generateAtlas'
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = 'com.starfall.lwjgl3.Lwjgl3Launcher'
+        jvmArgs '--enable-native-access=ALL-UNNAMED'
+        workingDir = rootProject.projectDir
+        ignoreExitValue = true
+        args = ['--screenshot', into.absolutePath] + scenarioArgs
 
-    doLast {
-        int code = executionResult.get().exitValue
-        if (code != 0) {
-            throw new GradleException("[Starfall] la capture a echoue avec le code " + code
-                    + " (" + starfallExitMeaning(code) + ")")
+        doFirst {
+            into.deleteDir()
+            into.mkdirs()
         }
-        if (!reference.isDirectory() || reference.listFiles({ f -> f.name.endsWith('.png') } as FileFilter).length == 0) {
-            throw new GradleException("[Starfall] aucune planche de reference dans "
-                    + reference + " -- lancer « gradlew :lwjgl3:acceptRender » pour en creer une")
-        }
-
-        def differences = []
-        def missing = []
-        reference.listFiles().findAll { it.name.endsWith('.png') }.sort { it.name }.each { expected ->
-            def actual = new File(produced, expected.name)
-            if (!actual.isFile()) {
-                missing << expected.name
-            } else if (!java.util.Arrays.equals(expected.bytes, actual.bytes)) {
-                differences << expected.name
+        doLast {
+            int code = executionResult.get().exitValue
+            if (code != 0) {
+                throw new GradleException("[Starfall] rendu de l'écran « " + scenario
+                        + " » interrompu, code " + code + " (" + starfallExitMeaning(code) + ")")
             }
         }
-        def unexpected = produced.listFiles().findAll {
-            it.name.endsWith('.png') && !new File(reference, it.name).isFile()
-        }.collect { it.name }.sort()
+    }
+}
 
-        if (differences || missing || unexpected) {
-            def nl = String.valueOf((char) 10)
-            def report = ["[Starfall] le rendu ne correspond plus a la reference."]
-            if (differences) report << "  planches differentes : " + differences
-            if (missing)     report << "  planches manquantes au rendu : " + missing
-            if (unexpected)  report << "  planches en trop : " + unexpected
-            report << "  produit dans : " + produced
+def checkDir = { String scenario -> layout.buildDirectory.dir('render-check/' + scenario).get().asFile }
+def stageDir = { String scenario -> layout.buildDirectory.dir('render-accept/' + scenario).get().asFile }
+
+renderScenarios.each { scenario, scenarioArgs ->
+    registerRenderTask('renderCheck', scenario, scenarioArgs, checkDir(scenario))
+    registerRenderTask('renderAccept', scenario, scenarioArgs, stageDir(scenario))
+}
+
+tasks.register('verifyRender') {
+    group = 'verification'
+    description = "Confronte les trois écrans du jeu à captures/reference, octet à octet."
+    dependsOn renderScenarios.keySet().collect { 'renderCheck' + it.capitalize() }
+
+    doLast {
+        def nl = String.valueOf((char) 10)
+        def report = []
+        int matched = 0
+
+        renderScenarios.keySet().each { scenario ->
+            def reference = new File(renderReferenceDir, scenario)
+            def produced = checkDir(scenario)
+            def expected = reference.isDirectory()
+                    ? reference.listFiles().findAll { it.name.endsWith('.png') }.sort { it.name }
+                    : []
+            if (expected.isEmpty()) {
+                report << ("  ecran « " + scenario + " » : aucune planche de reference dans " + reference)
+                return
+            }
+
+            def differences = []
+            def missing = []
+            expected.each { file ->
+                def actual = new File(produced, file.name)
+                if (!actual.isFile()) {
+                    missing << file.name
+                } else if (!java.util.Arrays.equals(file.bytes, actual.bytes)) {
+                    differences << file.name
+                } else {
+                    matched++
+                }
+            }
+            def unexpected = produced.listFiles().findAll {
+                it.name.endsWith('.png') && !new File(reference, it.name).isFile()
+            }.collect { it.name }.sort()
+
+            if (differences) report << ("  ecran « " + scenario + " » : planches differentes " + differences)
+            if (missing)     report << ("  ecran « " + scenario + " » : planches manquantes " + missing)
+            if (unexpected)  report << ("  ecran « " + scenario + " » : planches en trop " + unexpected)
+        }
+
+        if (report) {
+            report.add(0, "[Starfall] le rendu ne correspond plus a la reference.")
+            report << ("  produit dans : " + layout.buildDirectory.dir('render-check').get().asFile)
             report << "  Si le changement est VOULU, regarder les images puis lancer"
             report << "  « gradlew :lwjgl3:acceptRender » pour adopter le nouveau rendu."
             throw new GradleException(report.join(nl))
         }
-        logger.lifecycle("[Starfall] rendu conforme a la reference : "
-                + reference.listFiles().findAll { it.name.endsWith('.png') }.size() + " planches identiques.")
+        logger.lifecycle("[Starfall] rendu conforme a la reference : " + matched + " planches sur "
+                + renderScenarios.size() + " ecrans.")
     }
 }
 
-/** Adopte le rendu courant comme nouvelle reference. A ne lancer qu'apres avoir REGARDE les images. */
-tasks.register('acceptRender', JavaExec) {
+tasks.register('acceptRender') {
     group = 'verification'
-    description = "Regenere captures/reference depuis le rendu courant."
-    dependsOn tasks.named('classes'), ':core:generateAtlas'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = application.mainClass
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    workingDir = rootProject.projectDir
+    description = "Remplace captures/reference par le rendu courant, apres l'avoir REGARDE."
+    dependsOn renderScenarios.keySet().collect { 'renderAccept' + it.capitalize() }
 
-    def reference = rootProject.file('captures/reference')
-    args = ['--screenshot', reference.absolutePath, '--size', '1280x720',
-            '--frames', '12', '--scene', 'arena']
+    // La référence n'est touchée qu'UNE FOIS LES TROIS ÉCRANS RENDUS. La première version effaçait
+    // le dossier dans un doFirst, avant de savoir si le jeu saurait le remplir : un plantage à la
+    // capture laissait la référence VIDE -- la tâche « à ne lancer qu'après avoir regardé les
+    // images » était aussi celle qui pouvait effacer les images qu'on allait regarder.
+    doLast {
+        def staged = [:]
+        renderScenarios.keySet().each { scenario ->
+            def produced = stageDir(scenario).listFiles().findAll { it.name.endsWith('.png') }
+            if (!produced) {
+                throw new GradleException("[Starfall] aucune planche produite pour l'écran « "
+                        + scenario + " » -- la référence n'a PAS été touchée.")
+            }
+            staged[scenario] = produced
+        }
 
-    doFirst {
-        reference.deleteDir()
-        reference.mkdirs()
+        int written = 0
+        staged.each { scenario, produced ->
+            def reference = new File(renderReferenceDir, scenario)
+            reference.deleteDir()
+            reference.mkdirs()
+            produced.each { file ->
+                new File(reference, file.name).bytes = file.bytes
+                written++
+            }
+        }
+        logger.lifecycle("[Starfall] reference remplacee : " + written + " planches sur "
+                + staged.size() + " ecrans.")
     }
 }
 

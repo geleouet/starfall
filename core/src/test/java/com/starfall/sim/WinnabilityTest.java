@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,12 +57,12 @@ class WinnabilityTest {
      * <p>La marge est désormais <b>mesurée et non supposée</b> : {@code searchFindsAWinWellAboveItsBreakingPoint}
      * vérifie qu'un faisceau de moitié trouve encore.
      */
-    /** Retour a la ligne des messages d'echec, sans sequence d'echappement dans le source. */
-    private static final String NL = System.lineSeparator();
-
     private static final int BEAM = 400;
     /** Profondeur maximale en gestes, gratuits compris. Une tranche gagnée en fait moins de 80. */
     private static final int MAX_DEPTH = 110;
+
+    /** Retour à la ligne des messages d'échec, sans séquence d'échappement dans le source. */
+    private static final String NL = System.lineSeparator();
 
     /**
      * Une ligne de jeu en cours d'exploration.
@@ -200,7 +201,7 @@ class WinnabilityTest {
     @ParameterizedTest(name = "largeur {0}")
     @DisplayName("La rencontre du souverain reste gagnable sur chaque largeur jouable")
     @MethodSource("everyPlayableWidth")
-    void thesovereignEncounterStaysWinnableAtEveryWidth(int width) {
+    void sovereignEncounterStaysWinnableAtEveryWidth(int width) {
         List<String> win = findAWin(width, Arena.WAVE_COUNT);
 
         assertTrue(win != null, "aucun chemin vers la victoire sur la rencontre finale en largeur "
@@ -220,8 +221,8 @@ class WinnabilityTest {
     }
 
     /** Les onze largeurs que le jeu accepte, les paires comprises. */
-    static java.util.stream.IntStream everyPlayableWidth() {
-        return java.util.stream.IntStream.rangeClosed(Grid.MIN_WIDTH, Grid.MAX_WIDTH);
+    static IntStream everyPlayableWidth() {
+        return IntStream.rangeClosed(Grid.MIN_WIDTH, Grid.MAX_WIDTH);
     }
 
     /**
