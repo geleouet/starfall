@@ -80,10 +80,10 @@ class LaunchOptionsTest {
         @Test
         void parsesTheFirstFrame() {
             LaunchOptions options = parse("--screenshot", "captures/fin", "--frames", "8",
-                    "--from", "80");
+                    "--from", "26");
 
             assertEquals(8, options.frames);
-            assertEquals(80, options.firstFrame);
+            assertEquals(26, options.firstFrame);
         }
 
         /** Zéro est le défaut, donc zéro doit être accepté : refuser sa propre valeur par défaut

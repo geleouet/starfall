@@ -117,8 +117,10 @@ class CombatTest {
         @DisplayName("Une poussée peut tuer, et la mort compte comme n'importe quelle autre")
         void aPushCanKill() {
             Arena arena = bare(9, 4);
-            place(arena, 5, EnemyKind.SABREUR);   // un seul point de vie
-            place(arena, 6, EnemyKind.SABREUR);
+            // Deux archers : le seul archetype a UN point de vie depuis l'axe des degats, donc
+            // le seul que la collision - qui retire un point - puisse tuer.
+            place(arena, 5, EnemyKind.ARCHER);
+            place(arena, 6, EnemyKind.ARCHER);
 
             arena.queueTile(Tile.PUSH);
             arena.unleash();
@@ -137,9 +139,11 @@ class CombatTest {
         @DisplayName("Une seule mort n'est pas un combo")
         void oneKillIsNotACombo() {
             Arena arena = bare(9, 4);
-            place(arena, 5, EnemyKind.SABREUR);
+            // A deux cases, et a l'estoc : depuis l'axe des degats, une frappe n'abat plus rien
+            // d'un coup. Trois degats contre les deux points du sabreur, la mort est certaine.
+            place(arena, 7, EnemyKind.SABREUR);
 
-            arena.queueTile(Tile.STRIKE);
+            arena.queueTile(Tile.THRUST);
             assertEquals(ActionResult.STRUCK, arena.unleash());
             assertEquals(1, arena.lastCombo());
         }
@@ -162,8 +166,8 @@ class CombatTest {
         @DisplayName("Le meilleur combo de la partie est retenu")
         void theBestComboIsKept() {
             Arena arena = bare(9, 4);
-            place(arena, 5, EnemyKind.SABREUR);
-            place(arena, 6, EnemyKind.SABREUR);
+            place(arena, 5, EnemyKind.ARCHER);
+            place(arena, 6, EnemyKind.ARCHER);
 
             arena.queueTile(Tile.PUSH);
             arena.unleash();

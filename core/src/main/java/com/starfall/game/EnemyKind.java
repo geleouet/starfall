@@ -14,7 +14,7 @@ package com.starfall.game;
 public enum EnemyKind {
 
     /** Portée 1. Avance tant qu'il n'est pas au contact. La menace de base. */
-    SABREUR("sabreur", "enemy/sabreur", 1, 1) {
+    SABREUR("sabreur", "enemy/sabreur", 1, 2) {
         @Override
         boolean actsThisPhase(int phaseIndex) {
             return true;
@@ -45,7 +45,7 @@ public enum EnemyKind {
      * <p>Le seul dont la menace est décalée d'un tour : il annonce, on a un tour pour s'écarter ou
      * pour le tuer.
      */
-    LANCIER("lancier", "enemy/lancier", 1, 2) {
+    LANCIER("lancier", "enemy/lancier", 1, 3) {
         @Override
         boolean actsThisPhase(int phaseIndex) {
             return true;

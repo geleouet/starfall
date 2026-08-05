@@ -217,12 +217,13 @@ class PlayoutTest {
     @Test
     @DisplayName("Les parties enlisées sortent des moyennes et sont annoncées")
     void stalledGamesLeaveTheAveragesAndAreAnnounced() {
-        // Configuration redecoupee apres que l'enumeration a cesse d'offrir les pas contre un
-        // mur : la politique ne gaspille plus ces tours, s'enlise beaucoup moins, et l'ancienne
-        // (largeur 15, 12 parties) est tombee a ZERO enlisement - le test ne mesurait plus rien,
-        // et il le disait lui-meme. Mesure : largeur 6 donne 2 enlisements sur 12 parties et 5 sur
-        // 40. On prend la seconde, pour une marge franche plutot qu'un fil.
-        BalanceReport report = BalanceReport.measure(Policy.thoughtful(), 6, 1, 40);
+        // Configuration redecoupee DEUX fois. D'abord quand l'enumeration a cesse d'offrir les pas
+        // contre un mur : la politique ne gaspillait plus ces tours et l'ancienne configuration
+        // tombait a zero enlisement. Puis quand l'axe des degats est arrive : l'estoc abat d'un
+        // coup ce qui demandait trois frappes, et la largeur 6 est tombee a zero a son tour.
+        // Mesure sur quarante parties : largeur 15 en donne cinq, largeur 9 trois, largeur 13
+        // deux, les autres aucune. On prend la plus fournie - une marge franche plutot qu'un fil.
+        BalanceReport report = BalanceReport.measure(Policy.thoughtful(), 15, 1, 40);
 
         // On EXIGE que le cas annoncé soit visité, au lieu de le vérifier sous un « if ». Les deux
         // assertions qui portaient quelque chose étaient conditionnelles : un rééquilibrage qui

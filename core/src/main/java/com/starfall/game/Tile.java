@@ -41,7 +41,7 @@ package com.starfall.game;
 public enum Tile {
 
     /** Frappe la case juste devant. Portée 1. */
-    STRIKE("frappe", "tile/slash", 2, false,
+    STRIKE("frappe", "tile/slash", 1, 2, false,
             new int[]{1}, "frappe la case juste devant") {
         @Override
         TilePreview preview(Arena arena) {
@@ -60,7 +60,7 @@ public enum Tile {
      * <p>Sa raison d'être : atteindre le second rang sans se déplacer. Une portée plus longue pour
      * une recharge plus longue.
      */
-    THRUST("estoc", "tile/thrust", 3, false,
+    THRUST("estoc", "tile/thrust", 3, 4, false,
             new int[]{2}, "frappe la 2e case, par-dessus la 1re") {
         @Override
         TilePreview preview(Arena arena) {
@@ -74,7 +74,7 @@ public enum Tile {
     },
 
     /** Repousse d'une case l'occupant juste devant. Aucun dégât : c'est du placement. */
-    PUSH("poussée", "tile/push", 2, false,
+    PUSH("poussée", "tile/push", 0, 2, false,
             // L'effet dit la règle entière : buter blesse les deux et étourdit. La ligne d'annonce
             // n'a pas la place de le répéter, et c'est justement le calcul qu'un joueur ne peut pas
             // faire de tête.
@@ -92,7 +92,7 @@ public enum Tile {
     },
 
     /** Le héros charge droit devant jusqu'à être arrêté par un bord ou un occupant. */
-    DASH("élan", "tile/dash", 3, false,
+    DASH("élan", "tile/dash", 0, 3, false,
             "portée variable", "court droit devant jusqu'à l'obstacle") {
         @Override
         TilePreview preview(Arena arena) {
@@ -118,7 +118,7 @@ public enum Tile {
      * <p>Reculer en gardant sa cible en vue est exactement ce qu'une tuile Free-Play doit permettre
      * : corriger un placement sans offrir un tour aux ennemis.
      */
-    SIDESTEP("pas de côté", "tile/step", 3, true,
+    SIDESTEP("pas de côté", "tile/step", 0, 3, true,
             new int[]{-1}, "recule d'une case sans se retourner") {
         @Override
         TilePreview preview(Arena arena) {
@@ -143,7 +143,7 @@ public enum Tile {
      * choix de la garder en réserve ou de la dépenser pour rattraper un placement est exactement le
      * genre de décision que la file doit produire.
      */
-    PIVOT("volte-face", "tile/pivot", 2, true,
+    PIVOT("volte-face", "tile/pivot", 0, 2, true,
             "sur place", "se retourne sans avancer") {
         @Override
         TilePreview preview(Arena arena) {
@@ -158,31 +158,9 @@ public enum Tile {
         }
     };
 
-    /**
-     * Dégâts d'une frappe. Un point : la Vagabonde ne frappe pas fort, elle se replace.
-     *
-     * <h2>Écart assumé avec la source, et le plus lourd de tous</h2>
-     *
-     * <p>Chez Shogun Showdown, le nombre porté par une tuile <b>est</b> ses dégâts, et c'est
-     * l'information la plus visible de l'écran. Tout un axe de jeu en découle : « atteindre 5 points
-     * de dégâts est le seuil critique absolu », les archétypes de construction s'opposent entre
-     * « 0 recharge » et « gros dégâts », et une cible à 7 PV contre une tuile à 2 « brise l'économie
-     * de tours ». Ici, <b>toutes les tuiles infligent exactement un point</b> : cet axe n'existe pas.
-     *
-     * <p>Ce que la constante porte à la place, c'est la <b>forme</b> — portée, poussée, élan,
-     * volte-face — et le prix se paie en <b>recharge</b>, jamais en puissance. C'est cohérent avec
-     * le personnage et avec la doctrine du projet : « une forme vaut mieux qu'une nuance ». Mais
-     * c'est une amputation, pas une transposition, et le dire compte : un lecteur du document
-     * d'inspiration cherche ce nombre sur nos tuiles et ne le trouve pas.
-     *
-     * <p>Le rétablir serait une décision de <b>périmètre</b>, pas de réglage : elle rouvrirait
-     * l'équilibrage entier — points de vie des archétypes, coûts de recharge, ligne de capture,
-     * mesures de jouabilité. Elle est donc posée au tableau de bord plutôt que prise ici.
-     */
-    public static final int DAMAGE = 1;
-
     private final String label;
     private final String spriteName;
+    private final int damage;
     private final int rechargeCost;
     private final boolean freePlay;
     private final int[] reach;
@@ -195,21 +173,22 @@ public enum Tile {
      * infobulle annonce « portée 2 » pour une tuile qui vise la case d'à côté. Le test de préavis
      * ferme la boucle en vérifiant que les décalages sont bien ceux que la tuile vise.
      */
-    Tile(String label, String spriteName, int rechargeCost, boolean freePlay,
+    Tile(String label, String spriteName, int damage, int rechargeCost, boolean freePlay,
          int[] reach, String effect) {
-        this(label, spriteName, rechargeCost, freePlay, reach, describe(reach), effect);
+        this(label, spriteName, damage, rechargeCost, freePlay, reach, describe(reach), effect);
     }
 
     /** Tuile dont la portée ne se réduit pas à des décalages : elle dépend du terrain, ou n'existe pas. */
-    Tile(String label, String spriteName, int rechargeCost, boolean freePlay,
+    Tile(String label, String spriteName, int damage, int rechargeCost, boolean freePlay,
          String reachLabel, String effect) {
-        this(label, spriteName, rechargeCost, freePlay, new int[]{}, reachLabel, effect);
+        this(label, spriteName, damage, rechargeCost, freePlay, new int[]{}, reachLabel, effect);
     }
 
-    private Tile(String label, String spriteName, int rechargeCost, boolean freePlay,
-                 int[] reach, String reachLabel, String effect) {
+    private Tile(String label, String spriteName, int damage, int rechargeCost,
+                 boolean freePlay, int[] reach, String reachLabel, String effect) {
         this.label = label;
         this.spriteName = spriteName;
+        this.damage = damage;
         this.rechargeCost = rechargeCost;
         this.freePlay = freePlay;
         this.reach = reach;
@@ -248,7 +227,7 @@ public enum Tile {
         if (!preview.connects()) {
             return preview.outcome();
         }
-        arena.damage(preview.aim(), DAMAGE);
+        arena.damage(preview.aim(), preview.tile().damage());
         return ActionResult.STRUCK;
     }
 
@@ -268,6 +247,28 @@ public enum Tile {
 
     public String spriteName() {
         return spriteName;
+    }
+
+    /**
+     * Ce que retire une frappe de cette tuile. <b>Zéro</b> pour celles qui ne frappent pas.
+     *
+     * <h2>L'axe des dégâts</h2>
+     *
+     * <p>Il a manqué dix jalons. Toutes les tuiles retiraient un point, si bien que la seule
+     * question posée au joueur était « quelle forme » et jamais « combien ». Chez Shogun Showdown,
+     * le nombre porté par une tuile <em>est</em> ses dégâts, c'est l'information la plus visible de
+     * l'écran, et tout un axe en découle : « atteindre 5 points est le seuil critique absolu », les
+     * constructions s'opposent entre « 0 recharge » et « gros dégâts », et une cible à 7 PV face à
+     * une tuile à 2 « brise l'économie de tours ».
+     *
+     * <p>La tension est désormais ici, et elle tient en deux tuiles. La <b>frappe</b> retire un
+     * point et revient au tour suivant : c'est la disponibilité. L'<b>estoc</b> en retire trois et
+     * met quatre tours à revenir : c'est le seuil. Entre les deux, le joueur choisit d'user une
+     * cible ou de la faire tomber d'un coup, et les points de vie des archétypes sont posés pour
+     * que ce choix compte plutôt que pour qu'une réponse domine.
+     */
+    public int damage() {
+        return damage;
     }
 
     /** Points nécessaires pour revenir de recharge après une exécution. */

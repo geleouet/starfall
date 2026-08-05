@@ -43,224 +43,72 @@ public final class CaptureScript {
      * puis 87 — et {@code ACTIONS.size()} le dit sans jamais se tromper.
      */
     public static final List<Function<Arena, ActionResult>> ACTIONS = List.of(
-            // Une ouverture qui tient : elle franchit la première vague à pleine santé en quatre
-            // tours. Elle a été trouvée par la recherche du garde-fou de jouabilité, pas écrite à
-            // la main — la version manuelle mourait au tour 9 sans avoir fait basculer une vague,
-            // et c'est le test de ce fichier qui l'a dit.
-            a -> a.queueTile(Tile.SIDESTEP),  // Free-Play : se charge sans rien coûter
-            a -> a.unleash(),                 // salve entièrement Free-Play : gratuite aussi
-            a -> a.queueTile(Tile.THRUST),    // le premier tour dépensé, et le premier encaissé
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.unleash(),                 // deux effets, un seul tour
-            a -> a.queueTile(Tile.STRIKE),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.unleash(),                 // la vague bascule quand le terrain se vide
-            // Puis on charge sous le feu de la vague suivante, et on lâche : c'est l'image que le
-            // jalon d'équilibrage devait montrer et ne montrait pas. Deux tuiles et pas trois —
-            // la troisième coûtait quatre points de vie de plus, et le test de ce fichier a refusé
-            // une planche qui finissait à un point de vie sur huit.
-            a -> a.queueTile(Tile.THRUST),
-            a -> a.queueTile(Tile.PUSH),
-            a -> a.unleash(),
-            // ------------------------------------------------------------------ la suite profonde
-            // Les onze gestes ci-dessus s'arrêtent une action trop tôt, et une review l'a prouvé en
-            // rendant la CHARGE visuellement indiscernable d'une frappe : les 463 tests et les 48
-            // planches sont restés verts. L'image 11 montre le lancier qui « prend son élan » —
-            // c'est-à-dire la promesse — et le script se terminait là, sans jamais montrer la tenue
-            // de promesse. Aucune valeur de {@code --frames} ne pouvait le rattraper : il n'y avait
-            // plus de geste à jouer.
+            // Ligne retrouvee par la recherche du garde-fou de jouabilite apres l'arrivee de
+            // l'AXE DES DEGATS, exactement comme la precedente l'avait ete apres l'economie de
+            // salve. L'ancienne, calibree sur des tuiles a un degat et des sabreurs a un point de
+            // vie, mourait desormais en vague 2 : c'est le test de ce fichier qui l'a dit.
             //
-            // Ces quinze gestes ont été trouvés par une recherche, pas écrits à la main — la même
-            // discipline que l'ouverture, et pour la même raison. Ils font paraître le glyphe de
-            // charge, portent le compte de coups annoncés à QUATRE — au-delà du plafond de trois
-            // que la bande de menace a dû apprendre à ne plus dépasser en silence — et arrivent à
-            // la vague 3 avec cinq points de vie sur huit.
-            //
-            // Ils sont AJOUTÉS et non intercalés : les douze premières images ne bougent pas d'un
-            // octet, donc les planches-contact datées des jalons restent ce qu'elles étaient.
-            a -> a.step(Direction.RIGHT),
+            // Elle est plus courte de moitie - 33 gestes contre 87 - et c'est l'axe qui le fait :
+            // un estoc a trois degats abat d'un coup ce qui demandait trois frappes. On y lit la
+            // nouvelle economie a l'oeil nu, l'estoc revenant toutes les quatre recharges et la
+            // frappe comblant l'intervalle.
             a -> a.swapWithTarget(),
-            a -> a.step(Direction.RIGHT),
-            a -> a.queueTile(Tile.STRIKE),
-            a -> a.step(Direction.RIGHT),
-            a -> a.queueTile(Tile.PUSH),
-            a -> a.queueTile(Tile.PIVOT),
+            a -> a.queueTile(Tile.THRUST),
             a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.queueTile(Tile.PIVOT),
             a -> a.unleash(),
+            a -> a.queueTile(Tile.STRIKE),
             a -> a.queueTile(Tile.DASH),
-            a -> a.swapWithTarget(),
-            a -> a.swapWithTarget(),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.unleash(),
-            a -> a.swapWithTarget(),
-            // ------------------------------------------------------------------------ la fin
-            // Le scénario va désormais jusqu'à la VICTOIRE, et c'est encore un trou de review qui
-            // l'a imposé : ni la bannière de victoire ni celle de défaite ne paraissaient sur une
-            // seule planche. {@code drawOutcome} traversait toute la chaîne graphique sans témoin.
-            //
-            // Ces gestes viennent d'une recherche, comme les précédents, et le barème a été orienté
-            // vers la SANTÉ plutôt que la vitesse : une première ligne gagnait en 41 gestes de moins
-            // mais finissait à un point de vie sur huit. Une planche qui finit ainsi ne montre pas
-            // une victoire, elle montre un miracle -- et le test de ce fichier refuse déjà une
-            // ouverture qui se termine à un point de vie.
-            //
-            // Toujours ajoutés, jamais intercalés : les vingt-sept premières images ne bougent pas.
-            a -> a.swapWithTarget(),
-            a -> a.step(Direction.RIGHT),
-            a -> a.queueTile(Tile.PUSH),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.queueTile(Tile.SIDESTEP),
-            a -> a.unleash(),
-            a -> a.swapWithTarget(),
-            a -> a.step(Direction.LEFT),
-            a -> a.queueTile(Tile.PUSH),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.swapWithTarget(),
             a -> a.unleash(),
             a -> a.queueTile(Tile.THRUST),
             a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.unleash(),
             a -> a.queueTile(Tile.STRIKE),
+            a -> a.queueTile(Tile.DASH),
+            a -> a.unleash(),
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.unleash(),
+            a -> a.swapWithTarget(),
+            a -> a.swapWithTarget(),
+            a -> a.swapWithTarget(),
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.queueTile(Tile.PIVOT),
             a -> a.unleash(),
             a -> a.queueTile(Tile.PUSH),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.swapWithTarget(),
-            a -> a.swapWithTarget(),
-            a -> a.swapWithTarget(),
-            a -> a.swapWithTarget(),
             a -> a.unleash(),
-            a -> a.swapWithTarget(),
-            a -> a.swapWithTarget(),
-            a -> a.step(Direction.LEFT),
-            a -> a.queueTile(Tile.THRUST),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.queueTile(Tile.SIDESTEP),
-            a -> a.step(Direction.LEFT),
-            a -> a.unleash(),
-            a -> a.swapWithTarget(),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.unleash(),
-            a -> a.swapWithTarget(),
-            a -> a.step(Direction.LEFT),
-            a -> a.queueTile(Tile.THRUST),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.queueTile(Tile.SIDESTEP),
-            a -> a.step(Direction.LEFT),
-            a -> a.unleash(),
-            a -> a.swapWithTarget(),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.unleash(),
-            a -> a.swapWithTarget(),
-            a -> a.step(Direction.LEFT),
-            a -> a.queueTile(Tile.THRUST),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.queueTile(Tile.SIDESTEP),
-            a -> a.step(Direction.LEFT),
-            a -> a.unleash(),
-            a -> a.swapWithTarget(),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.unleash(),
-            a -> a.swapWithTarget(),
-            a -> a.step(Direction.LEFT),
+            a -> a.queueTile(Tile.STRIKE),
             a -> a.queueTile(Tile.PUSH),
-            a -> a.queueTile(Tile.PIVOT),
-            a -> a.queueTile(Tile.SIDESTEP),
-            a -> a.step(Direction.LEFT),
-            a -> a.unleash());
+            a -> a.unleash(),
+            a -> a.step(Direction.RIGHT),
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.unleash(),
+            a -> a.queueTile(Tile.STRIKE),
+            a -> a.queueTile(Tile.PUSH),
+            a -> a.unleash()
+    );
 
-    /**
-     * Tuile du râtelier survolée à chaque image, ou {@code -1}.
-     *
-     * <p>L'ordre du râtelier est celui de {@code ArenaSetup} : frappe, estoc, poussée, élan, pas de
-     * côté, volte-face. Le survol est scénarisé parce que sans lui, ni infobulle ni repère de portée
-     * n'apparaîtrait sur <em>aucune</em> planche — et une planche qui ne montre pas ce qu'elle
-     * légende vaut moins que pas de planche.
-     */
+    /** Emplacement de râtelier survolé à chaque image, ou -1. Une entrée par image. */
     public static final int[] HOVERED_RACK_SLOT = {
-            -1,  // image 0 : l'aide, telle qu'un joueur la découvre
-            1,   // l'estoc et sa portée 2
-            -1,  // rien de survolé : le préavis résolu du sommet
-            2,   // la poussée
-            3,   // l'élan, dont la portée dépend du terrain
-            -1,  // image 5 : c'est une case du plateau qui est survolée, pas le râtelier
-            4,   // le pas de côté, tuile Free-Play
-            -1,
-            -1,
-            -1,  // le préavis résolu d'une salve
-            5,   // la volte-face, qui ne vise aucune case
-            -1,  // et la dernière image, que le tableau ne couvrait pas
-            // La suite profonde. L'emplacement 0 — la frappe — n'était survolé sur AUCUNE image :
-            // l'infobulle et la portée de la tuile la plus élémentaire du jeu ne paraissaient nulle
-            // part. C'est réparé ici.
-            0,   // la frappe, enfin montrée
-            -1, -1,
-            0,   // et une seconde fois, sur un terrain différent
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            // La fin de partie : rien n'est survolé. Ce que ces images viennent montrer, ce sont
-            // les dernières vagues et la bannière de victoire, qui ne demandent aucun survol — et
-            // un survol de râtelier sur la dernière image recouvrirait la bannière d'une infobulle.
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1,
+            -1, 0, -1, 5, -1, -1, -1, -1, -1, 1,
+            -1, -1, -1, -1, -1, 2, -1, -1, -1, -1,
+            3, -1, -1, -1, -1, 4, -1, -1, -1, -1,
+            -1, 0, -1, 2,
     };
 
-    /**
-     * Case du plateau survolée à chaque image, ou {@code -1}.
-     *
-     * <p>Elle sert à montrer l'infobulle d'ennemi, qui existe pour la raison exacte qui a fait
-     * écrire celles des tuiles : la portée de l'archer et celle du trait agressif n'étaient écrites
-     * nulle part, et on les apprenait en prenant des coups.
-     */
+    /** Case de plateau survolée, ou -1. Chacune porte un ennemi : un survol qui ne survole rien ne se voit ni sur la planche, ni dans ce tableau. */
     public static final int[] HOVERED_CELL = {
-            // L'image 5 visait la case 2, qui est VIDE à ce moment-là : aucune planche livrée ne
-            // montrait donc d'infobulle d'ennemi, alors que c'est la seule raison d'être de ce
-            // tableau. Le test qui prétendait le garder ne vérifiait que des bornes.
-            -1, -1, -1, -1, -1, 5, -1, -1, -1, -1, -1, -1,
-            // La suite profonde : les survols de plateau y sont laissés à -1. Le tableau est vérifié
-            // image par image — une case survolée doit porter un ennemi à cet instant précis — et
-            // rien n'oblige à en désigner une : ce que la suite profonde vient montrer, c'est le
-            // glyphe de charge et la bande de menace à quatre coups, qui ne demandent aucun survol.
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            // La fin de partie : idem, aucun survol de plateau.
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1,
+            -1, -1, -1, -1, -1, -1, 4, -1, -1, -1,
+            -1, -1, -1, 3, -1, -1, -1, -1, -1, -1,
+            -1, 1, -1, -1, -1, -1, -1, 3, -1, -1,
+            -1, -1, -1, -1,
     };
 
-    /**
-     * Emplacement de la <b>file</b> survolé à chaque image, ou {@code -1}.
-     *
-     * <p>Il manquait, et une review l'a relevé : {@code hoveredQueueSlot} était forcé à {@code -1}
-     * pendant les captures, si bien que toute la branche « tuile survolée dans la file » —
-     * l'emplacement mis en avant, l'infobulle, le repère de portée, et le régime creux d'une tuile
-     * qui n'est pas au sommet — ne paraissait sur <em>aucune</em> planche.
-     *
-     * <p>Deux images seulement, et elles sont choisies :
-     * <ul>
-     *   <li><b>19</b> : la file compte quatre tuiles et on survole la <em>plus ancienne</em>, donc
-     *       pas celle qui partira la première. C'est le cas que l'interface doit rendre lisible,
-     *       puisque la file s'exécute à l'envers de sa lecture ;</li>
-     *   <li><b>16</b> : la file n'en compte qu'une, donc la survolée <em>est</em> le sommet — et
-     *       cette tuile est une <b>frappe</b>, ce qui n'est pas un détail.</li>
-     * </ul>
-     *
-     * <p><b>Une première version choisissait l'image 21, et elle ne gardait rien.</b> La file y
-     * contenait un <b>élan</b>, dont la portée statique est <em>vide</em>. Une review l'a relevé —
-     * et en cherchant à la remplacer par une image dont la tuile a une portée, on a trouvé pire :
-     * le retour anticipé qu'elle prétendait garder <b>ne pouvait rien changer à aucune image</b>,
-     * la couleur étant forcée à celle du préavis dès qu'un emplacement de file est survolé. Il a
-     * été retiré ; voir {@code ArenaScene.drawReach}.
-     *
-     * <p>Ce qui reste gardé ici est réel et vérifié par mutation : l'emplacement mis en avant, et
-     * la tuile survolée traitée comme disponible. Les deux ne sont vues que par l'image 19.
-     */
+    /** Emplacement de file survolé, ou -1. Chacun est occupé à son image. */
     public static final int[] HOVERED_QUEUE_SLOT = {
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, -1, 0,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, 2, -1, -1, -1, -1, -1,
+            1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, 0, -1, -1, -1,
+            -1, -1, -1, -1,
     };
 
     /** Nom de scène qui sélectionne cette ligne, côté ligne de commande. */

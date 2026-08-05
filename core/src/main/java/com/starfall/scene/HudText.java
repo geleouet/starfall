@@ -275,8 +275,20 @@ public final class HudText {
         return head(queued.get(index)) + "   " + place;
     }
 
+    /**
+     * Tête d'infobulle de tuile : son nom, ce qu'elle retire, jusqu'où, et si elle est gratuite.
+     *
+     * <p>Les <b>dégâts viennent en premier après le nom</b>, et c'est délibéré. Chez la source, le
+     * nombre porté par une tuile est l'information la plus visible de l'écran — un joueur planifie
+     * en comptant « ce coup tue-t-il ? » avant de compter les cases. Tant que toutes nos tuiles
+     * retiraient un point, ce nombre n'avait rien à dire ; depuis l'axe des dégâts, il porte la
+     * moitié de la décision. Les tuiles qui ne frappent pas se taisent sur ce point plutôt que
+     * d'afficher un zéro, qui se lirait comme une faiblesse au lieu d'une autre nature.
+     */
     private static String head(Tile tile) {
-        return tile.label().toUpperCase() + "   " + tile.reachLabel().toUpperCase()
+        return tile.label().toUpperCase()
+                + (tile.damage() > 0 ? "   " + tile.damage() + (tile.damage() > 1 ? " DÉGÂTS" : " DÉGÂT") : "")
+                + "   " + tile.reachLabel().toUpperCase()
                 + (tile.isFreePlay() ? "   GRATUITE" : "");
     }
 

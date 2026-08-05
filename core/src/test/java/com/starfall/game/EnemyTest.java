@@ -344,7 +344,7 @@ class EnemyTest {
             // Charger d'abord, sur un plateau vide : poser coute un tour, et ce test porte sur la
             // phase ou l'ennemi meurt, pas sur celle d'avant.
             arena.queueTile(Tile.STRIKE);
-            place(arena, 5, EnemyKind.SABREUR);
+            place(arena, 5, EnemyKind.ARCHER); // un point de vie : la frappe le tue
 
             arena.unleash(); // le tue, et consomme le tour
 

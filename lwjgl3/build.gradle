@@ -169,7 +169,7 @@ ext.renderScenarios = [
         // mène la tranche jusqu'à la victoire en 87 gestes, mais versionner 88 planches rendrait
         // « regarder les images avant d'adopter » impraticable -- et une référence qu'on adopte sans
         // regarder est pire qu'aucune référence. C'est à cela que sert « --from ».
-        arenaVictory   : ['--size', '1280x720', '--frames', '8', '--from', '80', '--scene', 'arena'],
+        arenaVictory   : ['--size', '1280x720', '--frames', '8', '--from', '26', '--scene', 'arena'],
         arenaNarrow    : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
         arenaWide      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],
         arenaEven      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '8'],

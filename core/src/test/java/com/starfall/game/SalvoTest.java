@@ -91,7 +91,7 @@ class SalvoTest {
         Arena arena = new Arena(9, 4);
         arena.queueTile(Tile.THRUST);   // ne portera pas : elle vise a deux cases
         arena.queueTile(Tile.STRIKE);   // partira en premier et videra le plateau
-        arena.grid().place(5, new Enemy(EnemyKind.SABREUR));
+        arena.grid().place(5, new Enemy(EnemyKind.ARCHER)); // un point de vie
         arena.announceIntentions();
 
         arena.unleash();
@@ -123,12 +123,16 @@ class SalvoTest {
         while (!arena.enemies().isEmpty()) {
             arena.grid().clear(arena.grid().indexOf(arena.enemies().get(0)));
         }
-        arena.grid().place(arena.heroCell() + arena.hero().facing().step(),
+        // A DEUX cases, et c'est l'estoc qui videra le plateau : depuis l'axe des degats, une
+        // frappe n'abat plus un sabreur d'un coup.
+        arena.grid().place(arena.heroCell() + 4 * arena.hero().facing().step(),
                 new Enemy(EnemyKind.SABREUR));
         arena.announceIntentions();
 
-        arena.queueTile(Tile.THRUST);   // vise à deux cases : ne portera pas
-        arena.queueTile(Tile.STRIKE);   // part la première et vide le plateau
+        // L'ordre est inverse de l'intuition : la file part du DERNIER pose. C'est donc l'estoc
+        // qui frappe en premier et vide le plateau, et la frappe qui doit traverser la vague.
+        arena.queueTile(Tile.STRIKE);   // vise la case d'a cote : ne portera pas
+        arena.queueTile(Tile.THRUST);   // part la premiere et vide le plateau
         int waveBefore = arena.wave();
 
         arena.unleash();
@@ -136,9 +140,9 @@ class SalvoTest {
         assertEquals(waveBefore + 1, arena.wave(),
                 "le terrain vide devait faire venir la vague suivante");
         assertEquals(1, arena.queue().size(),
-                "l'estoc devait traverser la vague, pas etre gaspille : file "
+                "la frappe devait traverser la vague, pas etre gaspillee : file "
                         + arena.queue().fromOldest());
-        assertEquals(Tile.THRUST, arena.queue().fromOldest().get(0),
+        assertEquals(Tile.STRIKE, arena.queue().fromOldest().get(0),
                 "et c'est bien celle qui n'avait pas porte");
     }
 

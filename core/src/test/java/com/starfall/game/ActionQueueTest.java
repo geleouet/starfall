@@ -473,14 +473,14 @@ class ActionQueueTest {
         void theStrikeDamagesWithoutKilling() {
             Arena arena = arena();
             int target = arena.heroCell() + 1;
-            Enemy victim = new Enemy(EnemyKind.LANCIER); // deux points de vie
+            Enemy victim = new Enemy(EnemyKind.LANCIER); // trois points de vie
             arena.grid().place(target, victim);
             arena.announceIntentions();
 
             arena.queueTile(Tile.STRIKE);
             assertEquals(ActionResult.STRUCK, arena.unleash());
 
-            assertEquals(1, victim.health(), "entame, pas tue");
+            assertEquals(2, victim.health(), "entame, pas tue");
             assertFalse(arena.grid().isFree(target), "il tient encore sa case");
         }
 
@@ -488,14 +488,20 @@ class ActionQueueTest {
         @DisplayName("Une cible à un seul point de vie tombe du premier coup")
         void aOneHitEnemyFallsAtOnce() {
             Arena arena = arena();
-            int target = arena.heroCell() + 1;
-            arena.grid().place(target, new Enemy(EnemyKind.SABREUR));
+            // Depuis l'axe des degats, aucun archetype ne tombe d'une frappe : le plus fragile
+            // qui tienne sa case en a deux. C'est l'ESTOC qui fait tomber d'un coup, et c'est
+            // precisement ce que ce test doit montrer. L'archer, lui, aurait recule : poser coute
+            // un tour, et il se derobe des qu'on le colle.
+            // A TROIS cases : poser coute un tour, le sabreur avance d'une, et l'estoc le trouve
+            // a deux. Le poser directement a deux le ferait arriver au contact avant le coup.
+            int start = arena.heroCell() + 3;
+            arena.grid().place(start, new Enemy(EnemyKind.SABREUR));
             arena.announceIntentions();
 
-            arena.queueTile(Tile.STRIKE);
+            arena.queueTile(Tile.THRUST);
             assertEquals(ActionResult.STRUCK, arena.unleash());
 
-            assertTrue(arena.grid().isFree(target));
+            assertTrue(arena.grid().isFree(start - 1), "l'estoc l'a trouve a deux cases");
         }
 
         @Test
@@ -676,5 +682,51 @@ class ActionQueueTest {
                     "rien ne se pose sur une partie finie : " + tile.label());
             assertEquals(ActionResult.BLOCKED, finished.queueTile(tile));
         }
+    }
+
+    /**
+     * <b>L'axe des dégâts existe, et il pose un seuil.</b>
+     *
+     * <p>C'est la règle que ce fichier doit garder depuis que les tuiles ne retirent plus toutes
+     * un point. Elle tient en une phrase : <em>l'estoc fait tomber d'un coup ce que la frappe doit
+     * user</em>. Sans elle, le choix « quelle tuile » redevient un choix de forme seulement, et le
+     * nombre affiché sur l'infobulle ne veut plus rien dire.
+     *
+     * <p>Le test épingle les <b>deux moitiés</b>, et la seconde compte autant : la frappe doit
+     * <em>échouer</em> à tuer la même cible. Une implémentation où tout tue d'un coup satisferait
+     * la première et supprimerait l'axe.
+     */
+    @Test
+    @DisplayName("L'estoc abat d'un coup ce que la frappe doit user")
+    void theThrustFellsInOneBlowWhatTheStrikeMustWearDown() {
+        assertTrue(Tile.THRUST.damage() > Tile.STRIKE.damage(),
+                "l'axe des degats a disparu : l'estoc ne retire pas plus que la frappe");
+        assertTrue(Tile.THRUST.rechargeCost() > Tile.STRIKE.rechargeCost(),
+                "l'estoc frappe plus fort SANS couter plus cher a revenir : ce n'est plus un axe,"
+                        + " c'est une domination");
+
+        // Le lancier : trois points de vie, soit exactement les degats de l'estoc. C'est le seuil.
+        assertEquals(Tile.THRUST.damage(), EnemyKind.LANCIER.health(),
+                "le seuil a bouge : l'estoc et le lancier ne se repondent plus");
+
+        Enemy felled = new Enemy(EnemyKind.LANCIER);
+        Arena thrust = new Arena(15, 0);
+        thrust.grid().place(2, felled); // l'estoc frappe la 2e case
+        thrust.announceIntentions();
+        thrust.queueTile(Tile.THRUST);
+        thrust.unleash();
+        assertTrue(felled.health() <= 0 || thrust.grid().indexOf(felled) < 0,
+                "l'estoc devait abattre le lancier d'un seul coup, il lui reste "
+                        + felled.health() + " point(s)");
+
+        Enemy worn = new Enemy(EnemyKind.LANCIER);
+        Arena strike = new Arena(15, 0);
+        strike.grid().place(1, worn);   // la frappe frappe la 1re
+        strike.announceIntentions();
+        strike.queueTile(Tile.STRIKE);
+        strike.unleash();
+        assertTrue(worn.health() > 0 && strike.grid().indexOf(worn) >= 0,
+                "la frappe a abattu le lancier d'un coup : il n'y a plus de seuil, donc plus"
+                        + " d'axe");
     }
 }

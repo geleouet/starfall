@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Test;
 class SilenceAfterTheEndTest {
 
     /** Première coupe de la ligne de capture qui est en vague 4 sans être finie. */
-    private static final int ENTERS_FOURTH_WAVE = 42;
+    private static final int ENTERS_FOURTH_WAVE = 27;
 
     /** Graine qui finit une partie de vague 4 avec une invocation encore annoncée. */
     private static final int WITNESS_SEED = 568;
