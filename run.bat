@@ -33,10 +33,10 @@ rem (« Cannot convert '' to File »), sur les quatre chemins a la fois.
 set "GAMEARGS=%*"
 if defined GAMEARGS set "GAMEARGS=!GAMEARGS:"=\"!"
 
-if defined GAMEARGS goto :avec_arguments
+if defined GAMEARGS goto :with_arguments
 call "%~dp0gradlew.bat" --quiet --console=plain :lwjgl3:run "-Pstarfall.exitCodeFile=%EXITFILE%"
 goto :lance
-:avec_arguments
+:with_arguments
 call "%~dp0gradlew.bat" --quiet --console=plain :lwjgl3:run "-Pstarfall.exitCodeFile=%EXITFILE%" --args="!GAMEARGS!"
 :lance
 set EXITCODE=%ERRORLEVEL%

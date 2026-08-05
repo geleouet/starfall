@@ -126,13 +126,15 @@ static String starfallExitMeaning(int code) {
  * captures/reference n'a pas de date : elle dit « voici ce que le jeu dessine aujourd'hui », et
  * acceptRender ne la régénère que délibérément -- ce qui oblige à regarder les images.
  *
- * <p>CINQ ÉCRANS, ET C'EST DEUX FOIS UN CORRECTIF. La première version ne gardait que la vague 1 en
- * grille 9. La review a relevé que le SOUVERAIN -- la rencontre la plus dense à lire, celle qui
+ * <p>SEPT ÉCRANS, ET C'EST TROIS FOIS UN CORRECTIF. La première version ne gardait que la vague 1
+ * en grille 9. Une review a relevé que le SOUVERAIN -- la rencontre la plus dense à lire, celle qui
  * empile ruée, invocation et sbires -- n'avait aucune référence, ni la mire de calibration : c'était
  * garder le plus facile et laisser le plus difficile. Elle notait ensuite que les dix autres
  * LARGEURS restaient nues, alors que toute la géométrie de l'arène en dépend -- ArenaLayout calcule
  * chaque case à partir d'elle, et c'est précisément là qu'un décalage se voit. Les deux extrémités,
- * 5 et 15, sont donc gardées aussi.
+ * 5 et 15, ont donc été gardées aussi -- mais pour la seule vague 1, si bien que la justification
+ * valait pour l'écran le plus simple et pas pour le plus dense. La rencontre finale est maintenant
+ * gardée aux trois largeurs comme le reste.
  *
  * <p>Hors de « test » à dessein : ces tâches demandent un écran, la suite JUnit non.
  *
@@ -140,11 +142,15 @@ static String starfallExitMeaning(int code) {
  *   gradlew :lwjgl3:acceptRender     adopte le rendu courant, après l'avoir regardé
  */
 ext.renderScenarios = [
-        arena      : ['--size', '1280x720', '--frames', '12', '--scene', 'arena'],
-        souverain  : ['--size', '1280x720', '--frames', '6', '--scene', 'arena', '--wave', '4'],
-        calibration: ['--size', '1280x720', '--frames', '2', '--scene', 'calibration'],
-        etroit     : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
-        large      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],
+        arena          : ['--size', '1280x720', '--frames', '12', '--scene', 'arena'],
+        arenaNarrow    : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
+        arenaWide      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],
+        sovereign      : ['--size', '1280x720', '--frames', '6', '--scene', 'arena', '--wave', '4'],
+        sovereignNarrow: ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '4',
+                          '--grid', '5'],
+        sovereignWide  : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '4',
+                          '--grid', '15'],
+        calibration    : ['--size', '1280x720', '--frames', '2', '--scene', 'calibration'],
 ]
 
 ext.renderReferenceDir = rootProject.file('captures/reference')
@@ -234,6 +240,18 @@ tasks.register('verifyRender') {
             if (unexpected)  report << ("  ecran « " + scenario + " » : planches en trop " + unexpected)
         }
 
+        // Un écran renommé laisse derrière lui un dossier de référence que plus personne ne
+        // compare : il reste versionné, il a l'air d'une garantie, et il n'en est plus une. C'est le
+        // même défaut que le sprite orphelin de l'atlas, et il se dit de la même façon.
+        def known = renderScenarios.keySet()
+        def orphans = renderReferenceDir.isDirectory()
+                ? renderReferenceDir.listFiles().findAll { it.isDirectory() && !known.contains(it.name) }
+                        .collect { it.name }.sort()
+                : []
+        if (orphans) {
+            report << ("  references orphelines, plus comparees a rien : " + orphans)
+        }
+
         if (report) {
             report.add(0, "[Starfall] le rendu ne correspond plus a la reference.")
             report << ("  produit dans : " + layout.buildDirectory.dir('render-check').get().asFile)
@@ -265,6 +283,16 @@ tasks.register('acceptRender') {
             }
             staged[scenario] = produced
         }
+
+        // Les dossiers d'écrans disparus partent avec, sinon la référence ne peut jamais redevenir
+        // propre : verifyRender les signalerait à chaque exécution sans qu'aucune commande ne sache
+        // les enlever. C'est annoncé, pas silencieux.
+        def known = renderScenarios.keySet()
+        renderReferenceDir.listFiles().findAll { it.isDirectory() && !known.contains(it.name) }
+                .each { orphan ->
+                    logger.lifecycle("[Starfall] reference orpheline retiree : " + orphan.name)
+                    orphan.deleteDir()
+                }
 
         int written = 0
         staged.each { scenario, produced ->

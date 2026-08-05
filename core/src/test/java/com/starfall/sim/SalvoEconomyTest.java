@@ -134,6 +134,10 @@ class SalvoEconomyTest {
 
     /** Le plus grand nombre de tuiles qu'on ait su mettre dans la file en restant en vie. */
     private static int deepestQueue(int width, int startWave) {
+        return deepestQueue(width, startWave, BEAM);
+    }
+
+    private static int deepestQueue(int width, int startWave, int beamWidth) {
         List<List<String>> beam = new ArrayList<>();
         beam.add(new ArrayList<>());
         int deepest = 0;
@@ -176,9 +180,28 @@ class SalvoEconomyTest {
                 return byQueue != 0 ? byQueue
                         : Integer.compare(b.hero().health(), a.hero().health());
             });
-            beam = next.size() > BEAM ? new ArrayList<>(next.subList(0, BEAM)) : next;
+            beam = next.size() > beamWidth
+                    ? new ArrayList<>(next.subList(0, beamWidth)) : next;
         }
         return deepest;
+    }
+
+    /**
+     * Et la largeur du faisceau n'est pas posée au bord de sa propre limite.
+     *
+     * <p>C'est le contrôle que la review a relevé comme manquant, et il a une histoire : ce projet a
+     * déjà eu un faisceau réglé à 1,75× son seuil de rupture, si bien que la moindre retouche
+     * d'heuristique le faisait virer au rouge pour une raison qui n'était pas « le jeu est devenu
+     * impossible ». {@code WinnabilityTest} porte le même contrôle depuis.
+     *
+     * <p>La marge est donc <b>mesurée et non supposée</b> : un faisceau de moitié remplit encore.
+     */
+    @Test
+    @DisplayName("Un faisceau deux fois plus étroit remplit encore la file")
+    void ahalvedBeamStillFillsTheQueue() {
+        assertEquals(ActionQueue.CAPACITY, deepestQueue(9, Arena.WAVE_COUNT, BEAM / 2),
+                "un faisceau de " + (BEAM / 2) + " ne remplit plus la file sur la rencontre finale :"
+                        + " le garde-fou est pose trop pres de sa limite");
     }
 
     /**
