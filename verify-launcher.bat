@@ -44,6 +44,12 @@ set STARFALL_FAIL_BEFORE_RUN=
 call :expect 0 "capture reussie" --screenshot "%SHOTS%" --size 640x360 --frames 1
 call :expect 0 "chemin contenant une espace" --screenshot "%SPACED%" --size 640x360 --frames 1
 
+rem La vitrine n'existe qu'en mode capture : son scenario n'est rejoue que la, et sans
+rem --screenshot elle ouvrirait une partie ordinaire en pretendant montrer autre chose. Le refus
+rem etait verifie A LA MAIN, ce que le preambule de ce fichier qualifie lui-meme de "verification
+rem qu'on finit par ne plus faire".
+call :expect 2 "vitrine sans mode capture" --scene showcase
+
 rem Le cinquieme cas ne se produit pas en usage normal, et c'est justement pourquoi il faut le
 rem provoquer : un jeu sorti PROPREMENT pendant qu'une etape ulterieure de la construction echoue.
 rem run.bat rendait alors 0 -- un code frais servi par-dessus un echec, symetrique exact du code
@@ -95,9 +101,9 @@ if errorlevel 1 (
 
 echo.
 if %FAILURES%==0 (
-  echo [Starfall] lanceur conforme : sept chemins et deux controles statiques sont conformes.
+  echo [Starfall] lanceur conforme : huit chemins et deux controles statiques sont conformes.
 ) else (
-  echo [Starfall] lanceur NON conforme : %FAILURES% controle^(s^) en echec sur 9.
+  echo [Starfall] lanceur NON conforme : %FAILURES% controle^(s^) en echec sur 10.
 )
 endlocal & exit /b %FAILURES%
 

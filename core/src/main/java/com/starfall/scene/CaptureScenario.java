@@ -15,9 +15,10 @@ import java.util.function.Function;
  * sur la bannière de victoire. C'est ce qu'il faut pour garder le jeu tel qu'on le joue — mais un
  * jeu qu'on joue bien ne montre jamais ce qui arrive quand on joue mal, ni les cas rares.
  *
- * <p>Quatre états leur ont échappé, tous relevés par une review : la <b>bannière de défaite</b>, le
- * mur d'une <b>poussée qui bute</b>, le filtre qui empêche de surligner une case qu'un clic ne peut
- * pas atteindre, et la <b>reprise</b> d'une tuile — seul geste gratuit du jeu. Les allonger dans la
+ * <p>Plusieurs états leur ont échappé, tous relevés par des reviews : la <b>bannière de
+ * défaite</b>, le mur d'une <b>poussée qui bute</b>, le filtre qui empêche de surligner une case
+ * qu'un clic ne peut pas atteindre, la <b>reprise</b> d'une tuile — seul geste gratuit du jeu — et
+ * la <b>fin de partie</b> avec une file encore garnie, sous ses deux formes de survol. Les allonger dans la
  * ligne gagnante était impossible : elle se termine par une victoire, et rien ne se joue après.
  *
  * <p>D'où cette abstraction, et une seconde implémentation — {@link ShowcaseScript} — dont le seul
@@ -75,6 +76,6 @@ public interface CaptureScenario {
         // mauvaise ». Deux tables de noms, deux disciplines opposées : c'est celle qui devine qui
         // avait tort.
         throw new IllegalArgumentException(
-                "aucun scenario de capture pour la scene « " + scene + " »");
+                "aucun scénario de capture pour la scène « " + scene + " »");
     }
 }

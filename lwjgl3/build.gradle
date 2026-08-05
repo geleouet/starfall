@@ -181,11 +181,13 @@ ext.renderScenarios = [
         calibration    : ['--size', '1280x720', '--frames', '2', '--scene', 'calibration'],
         // La vitrine : une partie PERDUE, jouée pour montrer ce qu'une partie gagnée ne montre
         // jamais — la bannière de défaite, une poussée qui bute, une case non cliquable survolée,
-        // la reprise d'une tuile. Quatre états qu'une review a prouvés absents par mutation.
+        // la reprise d'une tuile, et la fin de partie file encore garnie — sous ses deux formes
+        // de survol, le sommet et le râtelier. Tous prouvés absents par mutation avant qu'elle
+        // existe.
         // « --from 1 » : l'image 0 d'un scenario d'arene est l'etat initial, donc octet pour octet
         // celle d'arenaDeep. Le commit precedent avait supprime un ecran entier pour douze
         // duplicatas exacts ; en reintroduire un treize minutes plus tard aurait ete comique.
-        showcase       : ['--size', '1280x720', '--frames', '10', '--from', '1', '--scene', 'showcase'],
+        showcase       : ['--size', '1280x720', '--frames', '11', '--from', '1', '--scene', 'showcase'],
 ]
 
 ext.renderReferenceDir = rootProject.file('captures/reference')

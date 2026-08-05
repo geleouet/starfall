@@ -69,10 +69,11 @@ public final class ArenaScene implements Scene {
     /**
      * Le scénario rejoué en mode capture.
      *
-     * <p>Il était codé en dur sur la ligne gagnante. Une review a montré que quatre états
+     * <p>Il était codé en dur sur la ligne gagnante. Des reviews ont montré que plusieurs états
      * d'interface ne pouvaient être atteints par elle — la bannière de défaite, une poussée qui
-     * bute, une case non cliquable survolée, la reprise d'une tuile — et qu'on pouvait donc les
-     * casser sans qu'aucune planche ne bronche. La scène {@code showcase} les joue.
+     * bute, une case non cliquable survolée, la reprise d'une tuile, et la fin de partie avec une
+     * file encore garnie — et qu'on pouvait donc les casser sans qu'aucune planche ne bronche. La
+     * scène {@code showcase} les joue. Le compte n'est pas écrit : il a déjà vieilli une fois.
      */
     private final CaptureScenario scenario;
 
@@ -352,7 +353,19 @@ public final class ArenaScene implements Scene {
         }
         // Une tuile qu'aucune touche ne peut poser ne se dessine pas dans la couleur qui veut dire
         // « ce que je vais provoquer » : sa portée reste vraie, sa disponibilité non.
-        boolean available = arena.rack().isReady(hovered) || hoveredQueueSlot >= 0;
+        //
+        // « AUCUNE TOUCHE » INCLUT LA FIN DE PARTIE, et cette ligne l'ignorait. Après la mort,
+        // queueTile et unqueueAt rendent tous deux BLOCKED : rien ne peut plus être posé ni repris.
+        // Or la condition rendait vrai dès qu'une tuile du râtelier est rechargée, ou dès qu'un
+        // emplacement de file est survolé — donc elle dessinait la couleur du préavis sur un fond
+        // nu, après la mort. 544 pixels mesurés, exactement le chiffre et la couleur de la
+        // régression que le retour anticipé ci-dessus venait de réparer.
+        //
+        // C'est le symétrique du correctif précédent : j'avais fermé le cas « on survole le
+        // sommet » et laissé ouverts « on survole le râtelier » et « on survole un emplacement qui
+        // n'est pas le sommet ». Fermer une porte n'est pas fermer la pièce.
+        boolean available = !arena.isOver()
+                && (arena.rack().isReady(hovered) || hoveredQueueSlot >= 0);
         drawStaticReach(hovered, available ? HudColors.PREVIEW : HudColors.SLOT_EMPTY);
     }
 

@@ -7,6 +7,7 @@ import com.starfall.game.ActionResult;
 import com.starfall.game.Arena;
 import com.starfall.game.ArenaSetup;
 import com.starfall.game.Enemy;
+import com.starfall.game.Tile;
 import com.starfall.game.TilePreview;
 
 import org.junit.jupiter.api.DisplayName;
@@ -39,7 +40,7 @@ class ShowcaseScriptTest {
     @Test
     @DisplayName("La vitrine se termine par une défaite")
     void theShowcaseEndsInDefeat() {
-        Arena finished = after(ShowcaseScript.ACTIONS.size());
+        Arena finished = after(ShowcaseScript.DEATH_FRAME);
 
         assertTrue(finished.isDefeat(), "la vitrine doit perdre : etat final vie "
                 + finished.hero().health() + ", partie finie " + finished.isOver());
@@ -50,10 +51,57 @@ class ShowcaseScriptTest {
         // de rendu pour du code mort.
         assertTrue(!finished.queue().isEmpty(),
                 "la file doit rester garnie a la mort, elle contient " + finished.queue().size());
-        assertEquals(0, ShowcaseScript.SCENARIO.queueSlotAt(ShowcaseScript.DEATH_FRAME),
-                "le sommet de la file doit etre survole a l'image de la mort");
-        assertEquals(ShowcaseScript.DEATH_FRAME, ShowcaseScript.ACTIONS.size(),
-                "l'image de la mort doit etre la derniere du scenario");
+    }
+
+    /**
+     * <b>Le sommet</b> de la file est survolé à l'image de la mort, et c'est la conjonction qui
+     * compte.
+     *
+     * <p>La première version assertait trois choses séparément — la file garnie, l'emplacement 0
+     * survolé, la mort en dernière image — sans jamais leur conjonction, c'est-à-dire la seule
+     * propriété qui rend la planche utile. Une review l'a montré en ajoutant <b>un geste</b> au
+     * scénario : la file contenait alors deux tuiles, l'emplacement 0 cessait d'être le sommet, les
+     * quatre assertions passaient, et l'on pouvait de nouveau retirer le retour anticipé sans qu'un
+     * test ni une planche ne bronche.
+     *
+     * <p>Le remède est de demander à la fonction elle-même plutôt que de recopier sa définition.
+     */
+    @Test
+    @DisplayName("Le sommet de la file est survolé à l'image de la mort")
+    void theTopOfTheQueueIsHoveredAtDeath() {
+        Arena dead = after(ShowcaseScript.DEATH_FRAME);
+        int rack = ShowcaseScript.SCENARIO.rackSlotAt(ShowcaseScript.DEATH_FRAME);
+        int queue = ShowcaseScript.SCENARIO.queueSlotAt(ShowcaseScript.DEATH_FRAME);
+
+        assertTrue(HudText.hoveringTheTop(dead, rack, queue),
+                "l'image de la mort ne survole pas le sommet : ratelier " + rack + ", file " + queue
+                        + ", taille " + dead.queue().size());
+    }
+
+    /**
+     * Et l'image d'après montre le <b>râtelier</b> survolé sur le même état terminal.
+     *
+     * <p>Deux règles se cachent derrière « après la mort, rien ne se promet », et une seule image ne
+     * peut pas les montrer toutes deux : {@code hoveringTheTop} exige qu'aucune tuile du râtelier ne
+     * soit survolée, tandis que la disponibilité se lit sur le râtelier. La tuile survolée doit être
+     * <b>rechargée</b>, sans quoi elle serait déjà dessinée en creux et le défaut resterait invisible.
+     */
+    @Test
+    @DisplayName("Le râtelier est survolé sur l'état terminal, et la tuile y est rechargée")
+    void theRackIsHoveredOnTheTerminalState() {
+        Arena dead = after(ShowcaseScript.AFTER_DEATH_FRAME);
+        int slot = ShowcaseScript.SCENARIO.rackSlotAt(ShowcaseScript.AFTER_DEATH_FRAME);
+
+        assertTrue(dead.isOver(), "l'image d'apres la mort doit rester terminale");
+        assertTrue(slot >= 0, "aucune tuile du ratelier survolee a l'image "
+                + ShowcaseScript.AFTER_DEATH_FRAME);
+
+        Tile hovered = dead.rack().tiles().get(slot);
+        assertTrue(dead.rack().isReady(hovered),
+                "la tuile survolee « " + hovered.label() + " » n'est pas rechargee : le defaut de"
+                        + " disponibilite resterait invisible");
+        assertEquals(ShowcaseScript.AFTER_DEATH_FRAME, ShowcaseScript.ACTIONS.size(),
+                "l'etat terminal survole doit etre la derniere image du scenario");
     }
 
     /**

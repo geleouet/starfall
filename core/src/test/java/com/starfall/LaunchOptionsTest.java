@@ -237,6 +237,32 @@ class LaunchOptionsTest {
                     "la vitrine ne compte que " + showcase + " gestes");
         }
 
+        /**
+         * {@code --help} sort avant tout refus, quelles que soient les options qui l'accompagnent.
+         *
+         * <p>Le refus de la vitrine hors capture s'était interposé : « --help --scene showcase »
+         * rendait le code 2 et l'usage sur la sortie d'erreur, alors que l'option est documentée
+         * « affiche l'aide et quitte ». Une option qui explique le programme ne peut pas être
+         * refusée par le programme.
+         */
+        @Test
+        @DisplayName("--help sort avant tout refus, quoi qu'il l'accompagne")
+        void helpEscapesEveryRefusal() {
+            assertTrue(parse("--help", "--scene", "showcase").helpRequested);
+            assertTrue(parse("--scene", "showcase", "--help").helpRequested);
+            assertTrue(parse("--help", "--from", "9999", "--screenshot", "x").helpRequested);
+        }
+
+        /**
+         * Et une simulation n'ouvre aucune fenêtre : le refus de scène y est sans objet, et le
+         * poser reviendrait à refuser une commande qui marche.
+         */
+        @Test
+        @DisplayName("--simulate échappe au refus de scène")
+        void simulationEscapesTheSceneRefusal() {
+            assertEquals(3, parse("--simulate", "3", "--scene", "showcase").simulations);
+        }
+
         /** Et la mire, qui n'a pas de scénario du tout, n'est pas bornée. */
         @Test
         @DisplayName("La mire de calibration échappe à la borne, faute de scénario")

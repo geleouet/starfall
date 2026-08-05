@@ -13,7 +13,7 @@ import java.util.function.Function;
  *
  * <h2>Ce qu'elle exhibe, et pourquoi elle existe</h2>
  *
- * <p>Une review a mesuré quatre états d'interface qu'aucune des planches de référence ne traversait,
+ * <p>Des reviews ont mesuré cinq états d'interface qu'aucune des planches de référence ne traversait,
  * chacun prouvé absent par mutation — on pouvait les casser sans qu'un seul test ni une seule
  * planche ne bronche :
  *
@@ -39,9 +39,11 @@ import java.util.function.Function;
  *
  * <h2>La ligne</h2>
  *
- * <p>Onze gestes, trouvés par recherche comme les autres. Les cinq premiers amènent la poussée qui
- * bute puis la reprennent ; les six derniers sont la défaite la plus courte depuis cet état. Le
- * héros meurt, et c'est le but.
+ * <p>Les gestes viennent d'une recherche, comme ceux de la ligne gagnante : les premiers amènent la
+ * poussée qui bute puis la reprennent, les suivants mènent à la défaite la plus courte depuis cet
+ * état, et le dernier est refusé — il rejoue l'état terminal pour le survoler autrement. Le héros
+ * meurt, et c'est le but. Le compte de gestes n'est pas écrit ici : il a déjà été faux une fois, et
+ * {@code ACTIONS.size()} le dit sans se tromper.
  */
 public final class ShowcaseScript {
 
@@ -50,7 +52,7 @@ public final class ShowcaseScript {
 
     /**
      * L'image où la poussée bute, où un ennemi <b>non cliquable</b> est survolé, et où la file
-     * contient la tuile qui sera reprise à l'image suivante. Trois des quatre états d'un coup.
+     * contient la tuile qui sera reprise à l'image suivante. Trois des cinq états d'un coup.
      */
     public static final int COLLISION_FRAME = 4;
 
@@ -64,6 +66,22 @@ public final class ShowcaseScript {
      * défaite, mais pas l'état où une tuile reste en attente d'une partie qui ne reprendra pas.
      */
     public static final int DEATH_FRAME = 10;
+
+    /**
+     * La <b>même</b> image terminale, mais râtelier survolé.
+     *
+     * <p>Elle existe parce que deux règles distinctes se cachent derrière « après la mort, rien ne
+     * se promet », et qu'une seule image ne peut pas les montrer toutes deux : {@code
+     * hoveringTheTop} exige qu'<em>aucune</em> tuile du râtelier ne soit survolée, tandis que la
+     * disponibilité se lit justement sur le râtelier. J'avais fermé la première et laissé la seconde
+     * ouverte — mêmes 544 pixels, autre porte.
+     *
+     * <p>Le geste qui l'amène est <b>refusé</b> par l'arène, la partie étant finie : c'est
+     * volontaire, et c'est le seul moyen de rendre deux fois le même état terminal avec deux survols
+     * différents. Un geste sans effet dans un scénario de capture est normalement un défaut ; ici
+     * c'est l'instrument.
+     */
+    public static final int AFTER_DEATH_FRAME = 11;
 
     public static final List<Function<Arena, ActionResult>> ACTIONS = List.of(
             a -> a.step(Direction.RIGHT),
@@ -80,11 +98,15 @@ public final class ShowcaseScript {
             a -> a.swapWithTarget(),
             a -> a.step(Direction.RIGHT),
             a -> a.step(Direction.LEFT),
-            a -> a.step(Direction.RIGHT));
+            a -> a.step(Direction.RIGHT),
+            // Refusé : la partie est finie. Voir AFTER_DEATH_FRAME — on rejoue le même état pour
+            // le survoler autrement.
+            a -> a.step(Direction.LEFT));
 
     /**
-     * Aucun survol de râtelier : la ligne principale en montre déjà six, et en ajouter ici
-     * recouvrirait d'une infobulle les états que cette vitrine existe pour montrer.
+     * Un seul survol de râtelier, sur l'image d'après la mort : c'est là que se voit la règle
+     * « une tuile qu'aucune touche ne peut poser ne se dessine pas dans la couleur du préavis ».
+     * Ailleurs il recouvrirait d'une infobulle les états que cette vitrine existe pour montrer.
      */
     public static final int[] HOVERED_RACK_SLOT = new int[ACTIONS.size() + 1];
 
@@ -108,6 +130,7 @@ public final class ShowcaseScript {
         java.util.Arrays.fill(HOVERED_CELL, -1);
         HOVERED_CELL[COLLISION_FRAME] = 4;
         HOVERED_QUEUE_SLOT[DEATH_FRAME] = 0;
+        HOVERED_RACK_SLOT[AFTER_DEATH_FRAME] = 1;
     }
 
     /** La vue « scénario » de cette vitrine. */

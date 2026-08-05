@@ -186,17 +186,34 @@ public final class LaunchOptions {
         // détail : sans ce contrôle, « --from 200 » écrivait trois PNG rigoureusement identiques et
         // sortait en 0. Le projet a déjà eu ce défaut sous la forme d'un « --frames N » qui écrivait
         // N copies de la même image ; --from rouvrait exactement la même porte.
+        // L'aide sort avant tout refus : « --help » est documente « affiche l'aide et quitte », et
+        // il le faisait jusqu'a ce que le refus ci-dessous s'interpose. Mesure : « --help --scene
+        // showcase » rendait le code 2 et l'usage sur la sortie d'erreur. Une option qui explique
+        // le programme ne peut pas etre refusee par le programme.
+        if (helpRequested) {
+            return new LaunchOptions(screenshotDir, width, height, frames, firstFrame, scene,
+                    gridWidth, startWave, simulations, true);
+        }
+
+        // Une simulation n'ouvre aucune fenetre et n'instancie aucune scene : le refus y est sans
+        // objet, et le poser reviendrait a refuser une commande qui marche.
+        if (simulations > 0) {
+            return new LaunchOptions(screenshotDir, width, height, frames, firstFrame, scene,
+                    gridWidth, startWave, simulations, false);
+        }
+
         // La vitrine n'existe qu'en mode capture : son scenario n'est rejoue que la, et sans
         // « --screenshot » elle ouvrirait une partie ordinaire en pretendant montrer autre chose.
         // Le tableau de bord l'a d'ailleurs annoncee jouable pendant un commit entier, ce qui etait
         // faux -- une review l'a releve. Une option qui ment vaut mieux refusee qu'expliquee.
         if (screenshotDir == null && ShowcaseScript.SCENE_NAME.equals(scene)) {
             throw new IllegalArgumentException("--scene " + ShowcaseScript.SCENE_NAME
-                    + " demande --screenshot : son scenario n'est rejoue qu'en mode capture");
+                    + " demande --screenshot : son scénario n'est rejoué qu'en mode capture");
         }
         if (screenshotDir != null && !"calibration".equals(scene)) {
-            // La borne vient du scenario de CETTE scene : la vitrine en compte onze la ou la ligne
-            // gagnante en compte 87, et une borne unique aurait laisse passer un --from hors sujet.
+            // La borne vient du scénario de CETTE scène : les deux n'ont pas la même longueur, et
+            // une borne unique aurait laissé passer un --from hors sujet. Les longueurs ne sont pas
+            // écrites ici — elles ont déjà vieilli ailleurs.
             int available = CaptureScenario.forScene(scene).size();
             int last = firstFrame + frames - 1;
             if (last > available) {
