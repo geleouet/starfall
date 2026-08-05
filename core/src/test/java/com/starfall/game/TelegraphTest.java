@@ -43,6 +43,7 @@ class TelegraphTest {
     void announcedBlowsAreExactlyTheBlowsTaken() {
         List<String> failures = new ArrayList<>();
         Map<EnemyKind, Integer> sampled = new EnumMap<>(EnemyKind.class);
+        Map<Trait, Integer> traits = new EnumMap<>(Trait.class);
 
         // Toutes les vagues. Le montage precedent ne demarrait qu'en vague 1 et, mesure sur cinq
         // cents parties, n'en sortait jamais : deux archetypes sur cinq, jamais de ruee, jamais
@@ -64,7 +65,7 @@ class TelegraphTest {
                     // Les especes presentes AVANT le geste : ce sont elles qui ont annonce, et donc
                     // elles que la comparaison qui suit met a l'epreuve. On ne les compte qu'une
                     // fois le tour reellement consomme.
-                    List<EnemyKind> facing = arena.enemies().stream().map(Enemy::kind).toList();
+                    List<Enemy> facing = List.copyOf(arena.enemies());
                     int heroCell = arena.heroCell();
                     int announced = arena.threatCount(heroCell);
                     int hitsBefore = arena.heroHits();
@@ -81,7 +82,14 @@ class TelegraphTest {
                     // 5 671 tours verifies contre 66 329 sautes, et des totaux de 300 x 60 tout
                     // ronds, signature d'un compteur qui tourne sur un plateau gele. Un compteur de
                     // couverture qui compte ce qui n'est pas eprouve ne mesure pas la couverture.
-                    facing.forEach(kind -> sampled.merge(kind, 1, Integer::sum));
+                    facing.forEach(enemy -> {
+                        sampled.merge(enemy.kind(), 1, Integer::sum);
+                        for (Trait trait : Trait.values()) {
+                            if (enemy.has(trait)) {
+                                traits.merge(trait, 1, Integer::sum);
+                            }
+                        }
+                    });
 
                     int taken = arena.heroHits() - hitsBefore;
                     if (taken != announced) {
@@ -105,12 +113,23 @@ class TelegraphTest {
                     "l'archetype " + kind + " n'apparait pas une seule fois dans l'echantillon :"
                             + " le telegraphe n'est pas eprouve contre lui. Vus : " + sampled);
         }
+        // Le second axe, jamais interroge jusqu'ici : les traits changent CE QUE l'ennemi fait -
+        // le rapide frappe deux fois, l'agressif atteint une case plus loin, le fonceur comble
+        // toute la distance. Une promesse eprouvee contre les cinq archetypes mais contre aucun
+        // trait ne serait eprouvee a moitie. Mesure : les quatre sont bien la, sur les tours
+        // verifies. Ce qui manquait, c'est que rien ne l'affirmait.
+        for (Trait trait : Trait.values()) {
+            assertTrue(traits.getOrDefault(trait, 0) > 0,
+                    "le trait " + trait + " n'apparait pas une seule fois dans l'echantillon :"
+                            + " le telegraphe n'est pas eprouve contre lui. Vus : " + traits);
+        }
     }
 
     @Test
     @DisplayName("Aucun coup n'est encaissé sans avoir été annoncé, même en bougeant")
     void noBlowLandsWithoutHavingBeenAnnounced() {
         int blows = 0;
+        int pushers = 0;
 
         for (int seed = 0; seed < SEEDS; seed++) {
             Random random = new Random(seed);
@@ -118,6 +137,29 @@ class TelegraphTest {
                     Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1));
 
             for (int turn = 0; turn < TURNS_PER_SEED; turn++) {
+                // La premisse de tout ce qui suit, et elle n'etait ecrite nulle part : cet
+                // instrument lit la menace de la case d'ARRIVEE. Elle n'est la case ou les coups
+                // sont tombes que si RIEN n'a deplace le heros pendant la phase ennemie. Voir le
+                // javadoc : mesure a l'appui, des qu'une ruee existe cette assertion accuse le jeu
+                // a tort. On garde donc la premisse au lieu de l'esperer.
+                for (Enemy enemy : arena.enemies()) {
+                    if (enemy.intention().kind() != Intention.Kind.RUSH) {
+                        continue;
+                    }
+                    pushers++;
+                    // ICI et pas a la fin du test : l'assertion qu'elle protege se declenche
+                    // dans la boucle, et elle accuserait le jeu AVANT qu'on ait pu expliquer
+                    // pourquoi elle a tort. Une garde de premisse qui ne parle qu'apres coup
+                    // laisse le mauvais diagnostic sortir en premier.
+                    assertEquals(0, pushers,
+                            "une ruee est annoncee dans l'echantillon. Cet instrument lit la case"
+                                    + " d'ARRIVEE du heros, qui n'est celle ou les coups sont"
+                                    + " tombes que si rien ne l'a deplace. Une ruee le pousse"
+                                    + " APRES l'avoir frappe sur la case annoncee : l'assertion"
+                                    + " suivante accuserait le jeu a tort, comme elle l'a fait 381"
+                                    + " fois quand j'ai elargi l'echantillon. Ce n'est pas elle"
+                                    + " qu'il faut relacher, c'est l'instrument qu'il faut refaire");
+                }
                 // On relève toutes les cases menacées AVANT d'agir, puis on agit librement.
                 boolean[] threatened = new boolean[arena.grid().width()];
                 for (int cell = 0; cell < threatened.length; cell++) {
@@ -149,6 +191,7 @@ class TelegraphTest {
         assertTrue(blows > 0,
                 "le heros n'a encaisse aucun coup en " + SEEDS + " parties : rien de ce que ce"
                         + " test affirme n'a ete verifie");
+        assertEquals(0, pushers, "aucune ruee ne doit atteindre cet echantillon");
     }
 
     /**
