@@ -145,7 +145,7 @@ class SilenceAfterTheEndTest {
     }
 
     @Test
-    @DisplayName("Le bandeau n'annonce plus de menace ni d'invocation")
+    @DisplayName("Le bandeau n'annonce plus de menace")
     void theBannerAnnouncesNoMoreThreat() {
         String banner = HudText.banner(defeated());
 

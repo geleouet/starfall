@@ -195,7 +195,7 @@ class CombatTest {
         }
 
         @Test
-        @DisplayName("Passer une vague rend un point de vie, sans dépasser le maximum")
+        @DisplayName("Passer une vague rend des points de vie")
         void clearingAWaveGivesSomeRespite() {
             Arena arena = ArenaSetup.trainingArena(11);
             // On encaisse d'abord, sinon le repit ne se verrait pas.
@@ -206,8 +206,14 @@ class CombatTest {
 
             clearBoard(arena);
 
-            assertEquals(Math.min(Hero.MAX_HEALTH, before + Arena.WAVE_RESPITE),
-                    arena.hero().health());
+            // Sans Math.min, et le retrait est le fond de la correction. L'attendu recopiait la
+            // formule de heal() - « min(MAX_HEALTH, sante + soin) » - ce qui donnait a
+            // l'assertion l'air d'eprouver le plafond. Elle ne le pouvait pas : la boucle
+            // ci-dessus descend le heros a deux points quand le maximum en vaut huit, si bien
+            // que le min ne serrait JAMAIS. Le titre promettait « sans depasser le maximum » ;
+            // il ne le promet plus, et le plafond a son propre test juste en dessous, celui-la
+            // sur un etat ou il mord.
+            assertEquals(before + Arena.WAVE_RESPITE, arena.hero().health());
         }
 
         @Test
