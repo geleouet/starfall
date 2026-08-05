@@ -119,6 +119,20 @@ class HudTextTest {
             }
             collect(arena, panel, banner);
         }
+
+        // Le jeu aléatoire NE GAGNE JAMAIS — le projet en fait une règle et la tient dans
+        // PlayoutTest. Les deux seules phrases de l'interface que ce corpus ne peut donc pas
+        // contenir sont celles de la victoire : « VICTOIRE » et la ligne de record. Ce sont des
+        // chaînes accentuées de longueur variable, c'est-à-dire les deux modes de défaillance que
+        // ce fichier existe pour attraper — et une review a mesuré qu'on pouvait y injecter un
+        // caractère indessinable et cent caractères de trop sans qu'un seul test ne bronche.
+        //
+        // Un corpus engendré par du jeu ne voit que ce que le jeu produit. Celui-ci va donc chercher
+        // l'état gagné là où il existe : la ligne gagnante du scénario de capture.
+        Arena won = ArenaSetup.trainingArena(9, 1);
+        CaptureScript.SCENARIO.replayInto(won, CaptureScript.ACTIONS.size());
+        collect(won, panel, banner);
+
         return new Corpus(panel, banner);
     }
 

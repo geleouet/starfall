@@ -66,7 +66,7 @@ rem Or ShowcaseScriptTest couvre deja la disparition reelle du refus, en JUnit, 
 rem risque de suspension -- verifie par mutation. Un controle fragile qui double un controle solide
 rem n'apporte qu'un risque net. Retire.
 
-rem Le cinquieme cas ne se produit pas en usage normal, et c'est justement pourquoi il faut le
+rem Ce cas-ci ne se produit pas en usage normal, et c'est justement pourquoi il faut le
 rem provoquer : un jeu sorti PROPREMENT pendant qu'une etape ulterieure de la construction echoue.
 rem run.bat rendait alors 0 -- un code frais servi par-dessus un echec, symetrique exact du code
 rem perime servi apres un echec. Sans cette couture, la regression reviendrait en silence.

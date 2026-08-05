@@ -348,25 +348,65 @@ class SovereignTest {
     }
 
     /**
-     * Le repli, quand la case derrière le héros est prise : devant lui, entre le héros et le
-     * souverain. Toujours adjacente, donc toujours refusable.
+     * Le <b>repli</b> : quand la case derrière le héros est prise, l'invocation tombe devant lui,
+     * entre le héros et le souverain. Toujours adjacente, donc toujours refusable.
+     *
+     * <h3>Ce test n'exécutait aucune assertion</h3>
+     *
+     * <p>Sa première version posait deux ennemis à la main puis enfermait son assertion dans un
+     * {@code if (kind == SUMMON)} — et la mise en scène rendait cette condition <b>impossible</b> :
+     * le souverain, en ligne dégagée, annonçait une ruée, arrivait au contact, et annonçait dès lors
+     * une attaque pour toujours. Une review l'a prouvé en remplaçant le corps du {@code if} par un
+     * échec : jamais atteint. Puis, en cassant l'invariant lui-même, le test restait vert.
+     *
+     * <p>Deux causes, et toutes deux instructives. Le souverain n'invoque qu'<b>une phase sur
+     * deux</b> — un montage figé ne tombe pas dessus par hasard. Et la case occupée pour forcer le
+     * repli l'était du mauvais côté : {@code toward} part du <em>souverain</em>, pas du héros.
+     *
+     * <p>Un {@code if} dans un test est un aveu : ou bien la situation est garantie et il est
+     * inutile, ou bien elle ne l'est pas et il faut le dire. Cette version-ci <b>cherche</b> le
+     * repli sur de vraies parties, comme son voisin, et échoue si elle ne le voit jamais.
      */
     @Test
-    @DisplayName("Case arrière occupée, l'invocation se rabat devant le héros")
-    void whenTheCellBehindIsTakenTheSummonFallsInFront() {
-        Arena arena = new Arena(11, 5);
-        arena.grid().place(4, new Enemy(EnemyKind.SABREUR)); // derriere le heros
-        arena.grid().place(8, new Enemy(EnemyKind.SOUVERAIN));
-        arena.announceIntentions();
-        if (sovereignIn(arena).intention().kind() != Intention.Kind.SUMMON) {
-            arena.step(arena.hero().facing().opposite());
+    @DisplayName("Le repli devant le héros reste adjacent, donc refusable")
+    void theFallbackInFrontOfTheHeroStaysAdjacent() {
+        List<String> failures = new ArrayList<>();
+        int fallbacks = 0;
+
+        for (int seed = 0; seed < 400 && failures.size() <= 5; seed++) {
+            Random random = new Random(seed);
+            int width = Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1);
+            Arena arena = ArenaSetup.trainingArena(width, Arena.WAVE_COUNT);
+
+            for (int turn = 0; turn < 40 && !arena.isOver(); turn++) {
+                for (Enemy enemy : arena.enemies()) {
+                    if (enemy.kind() != EnemyKind.SOUVERAIN
+                            || enemy.intention().kind() != Intention.Kind.SUMMON) {
+                        continue;
+                    }
+                    int hero = arena.heroCell();
+                    int target = enemy.intention().targetCell();
+                    int sovereign = arena.grid().indexOf(enemy);
+                    // Le repli, c'est l'invocation posée DU CÔTÉ du souverain : la case derrière le
+                    // héros, à l'opposé, était prise.
+                    if (Integer.signum(target - hero) != Integer.signum(sovereign - hero)) {
+                        continue;
+                    }
+                    fallbacks++;
+                    if (Math.abs(target - hero) != 1) {
+                        failures.add("graine " + seed + " tour " + turn + " : repli en "
+                                + (target + 1) + ", heros en " + (hero + 1) + " (distance "
+                                + Math.abs(target - hero) + ")");
+                    }
+                }
+                arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+            }
         }
 
-        Enemy boss = sovereignIn(arena);
-        if (boss.intention().kind() == Intention.Kind.SUMMON) {
-            assertEquals(1, Math.abs(boss.intention().targetCell() - arena.heroCell()),
-                    "le repli doit rester adjacent au heros");
-        }
+        assertTrue(failures.isEmpty(), "replis irrefusables :\n  " + String.join("\n  ", failures));
+        assertTrue(fallbacks > 0,
+                "aucun repli observé en 400 parties : ce test ne garde rien, et c'est exactement"
+                        + " le defaut qu'il a deja eu");
     }
 
     /**

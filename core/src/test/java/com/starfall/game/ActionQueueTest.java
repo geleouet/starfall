@@ -572,4 +572,59 @@ class ActionQueueTest {
             assertEquals(8, arena.heroCell());
         }
     }
+
+    /**
+     * {@code canQueue} dit exactement ce que {@code queueTile} fait — dans les <b>quatre</b> états.
+     *
+     * <p>C'est le test qui rend la règle inutile à recopier, et il a une histoire : la scène la
+     * recopiait et n'en connaissait que deux tiers. Elle testait la fin de partie et la recharge,
+     * jamais la <b>file pleine</b>, et peignait donc la portée d'une tuile rechargée dans la couleur
+     * qui veut dire « ce que je vais provoquer » sur un état où poser rend {@code QUEUE_FULL}.
+     *
+     * <p>Le remède n'est pas d'ajouter une condition à la copie : c'est de poser la question à
+     * l'arène, comme {@code clickable} interroge déjà le même plan que {@code clickOn}. Ce test
+     * épingle l'accord entre les deux, faute de quoi la prédiction pourrait rediverger en silence.
+     */
+    @Test
+    @DisplayName("canQueue prédit exactement ce que queueTile fait")
+    void canQueuePredictsExactlyWhatQueueTileDoes() {
+        Arena arena = new Arena(9, 4);
+
+        // 1 - tout est possible : la file est vide, la tuile est prête.
+        assertTrue(arena.canQueue(Tile.STRIKE), "une tuile prete sur une file vide doit se poser");
+        assertEquals(ActionResult.QUEUED, arena.queueTile(Tile.STRIKE));
+
+        // 2 - la même tuile vient d'être posée : elle n'est plus au râtelier.
+        assertTrue(!arena.canQueue(Tile.STRIKE), "une tuile deja posee ne se pose pas deux fois");
+        assertEquals(ActionResult.NOT_READY, arena.queueTile(Tile.STRIKE));
+
+        // 3 - la file pleine refuse même une tuile prête. C'est le cas que la copie ignorait.
+        for (Tile tile : Tile.values()) {
+            if (arena.canQueue(tile)) {
+                arena.queueTile(tile);
+            }
+        }
+        assertTrue(arena.queue().isFull(), "la file devait etre pleine");
+        Tile spare = null;
+        for (Tile tile : Tile.values()) {
+            if (arena.rack().isReady(tile)) {
+                spare = tile;
+            }
+        }
+        assertTrue(spare != null, "il devait rester une tuile prete au ratelier");
+        assertTrue(!arena.canQueue(spare),
+                "une tuile prete ne se pose pas sur une file pleine : " + spare.label());
+        assertEquals(ActionResult.QUEUE_FULL, arena.queueTile(spare));
+
+        // 4 - et la fin de partie refuse tout, quelle que soit la file.
+        Arena finished = ArenaSetup.trainingArena(9, 1);
+        com.starfall.scene.ShowcaseScript.SCENARIO.replayInto(finished,
+                com.starfall.scene.ShowcaseScript.DEATH_FRAME);
+        assertTrue(finished.isOver(), "l'arene devait etre finie");
+        for (Tile tile : Tile.values()) {
+            assertTrue(!finished.canQueue(tile),
+                    "rien ne se pose sur une partie finie : " + tile.label());
+            assertEquals(ActionResult.BLOCKED, finished.queueTile(tile));
+        }
+    }
 }

@@ -798,7 +798,26 @@ public final class Arena {
      * @return {@link ActionResult#QUEUED}, ou {@link ActionResult#QUEUE_FULL} / {@link
      *         ActionResult#NOT_READY} si le geste est impossible
      */
-    public ActionResult queueTile(Tile tile) {
+    /**
+     * Une touche peut-elle poser cette tuile <b>maintenant</b> ?
+     *
+     * <p>Elle existe pour la même raison que {@link #clickable(int)} : l'interface ne doit promettre
+     * que ce qu'elle tient, et la seule façon de ne pas mentir est de <b>poser la question au même
+     * endroit</b> que celui qui exécute. La scène recopiait la règle et n'en connaissait que deux
+     * tiers — elle testait la fin de partie et la recharge, jamais la <b>file pleine</b>. Elle
+     * peignait donc la portée d'une tuile rechargée dans la couleur qui veut dire « ce que je vais
+     * provoquer », sur un état où {@code queueTile} rend {@code QUEUE_FULL}.
+     *
+     * <p>C'était le sixième « symétrique » de la même famille, trouvé dans le commit qui en fermait
+     * un cinquième, à seize lignes de la correction. Une règle recopiée finit toujours par diverger
+     * de l'originale ; celle-ci n'est plus recopiée.
+     */
+    public boolean canQueue(Tile tile) {
+        return refusalToQueue(tile) == null;
+    }
+
+    /** Le refus qu'opposerait {@link #queueTile}, ou {@code null} si le geste passerait. */
+    private ActionResult refusalToQueue(Tile tile) {
         if (isOver()) {
             return ActionResult.BLOCKED;
         }
@@ -807,6 +826,14 @@ public final class Arena {
         }
         if (!rack.isReady(tile)) {
             return ActionResult.NOT_READY;
+        }
+        return null;
+    }
+
+    public ActionResult queueTile(Tile tile) {
+        ActionResult refusal = refusalToQueue(tile);
+        if (refusal != null) {
+            return refusal;
         }
         beginAction();
         rack.take(tile);

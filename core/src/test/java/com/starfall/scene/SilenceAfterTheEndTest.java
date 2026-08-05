@@ -87,7 +87,7 @@ class SilenceAfterTheEndTest {
 
     @Test
     @DisplayName("Une partie GAGNÉE dont la file est garnie se tait aussi")
-    void awonGameWithALoadedQueueFallsSilentToo() {
+    void aWonGameWithALoadedQueueFallsSilentToo() {
         Arena won = victoriousWithALoadedQueue();
 
         assertTrue(won.isVictory(), "la ligne devait gagner");
@@ -102,6 +102,19 @@ class SilenceAfterTheEndTest {
         // Par infoLines et non par queueHead : le correctif n'est pas la branche « over », c'est
         // le CÂBLAGE qui lui passe arena.isOver(). Une review l'a montré sur le jumeau — un test
         // qui écrit « true » à la main éprouve la branche et jamais le fil qui l'alimente.
+        // Le jumeau de previewTop, qui alimente l'infobulle de râtelier, porte la même garde et
+        // n'avait aucun témoin côté victoire : le passer à isDefeat() laissait 500 tests verts.
+        for (Tile tile : Tile.values()) {
+            assertEquals(null, won.preview(tile),
+                    "le preavis de « " + tile.label() + " » promet encore apres la victoire");
+        }
+        // Et l'infobulle de râtelier, éprouvée seulement sur une défaite jusqu'ici.
+        for (int slot = 0; slot < won.rack().tiles().size(); slot++) {
+            List<String> rackLines = HudText.infoLines(won, slot, -1, -1, null);
+            assertTrue(rackLines.stream().anyMatch(line -> line.contains("PARTIE FINIE")),
+                    "l'infobulle de ratelier promet encore apres la victoire : " + rackLines);
+        }
+
         for (int slot = 0; slot < won.queue().size(); slot++) {
             List<String> lines = HudText.infoLines(won, -1, slot, -1, null);
             assertTrue(lines.stream().anyMatch(line -> line.contains("PARTIE FINIE")),

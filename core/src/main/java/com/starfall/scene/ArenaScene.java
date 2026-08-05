@@ -364,8 +364,14 @@ public final class ArenaScene implements Scene {
         // C'est le symétrique du correctif précédent : j'avais fermé le cas « on survole le
         // sommet » et laissé ouverts « on survole le râtelier » et « on survole un emplacement qui
         // n'est pas le sommet ». Fermer une porte n'est pas fermer la pièce.
-        boolean available = !arena.isOver()
-                && (arena.rack().isReady(hovered) || hoveredQueueSlot >= 0);
+        // On POSE LA QUESTION plutôt que de recopier la règle : la scène en connaissait deux
+        // tiers — fin de partie et recharge — et ignorait la file pleine, si bien qu'une tuile
+        // rechargée voyait sa portée peinte en couleur de préavis alors que queueTile aurait rendu
+        // QUEUE_FULL. Une règle recopiée finit toujours par diverger de l'originale.
+        //
+        // Une tuile déjà dans la file, elle, se reprend : le seul refus possible est la fin de
+        // partie, et unqueueAt le dit.
+        boolean available = hoveredQueueSlot >= 0 ? !arena.isOver() : arena.canQueue(hovered);
         drawStaticReach(hovered, available ? HudColors.PREVIEW : HudColors.SLOT_EMPTY);
     }
 
@@ -1025,11 +1031,10 @@ public final class ArenaScene implements Scene {
             int x = hud.queueSlotX(slot);
             if (slot < tiles.size()) {
                 painter.sprite(context.atlas().region(tiles.get(slot).spriteName()), x, HudLayout.QUEUE_Y);
-                // Même règle que le surlignage de plateau, qui filtre par « clickable ». Le
-                // commentaire disait « même règle » et le code ne testait que isOver() : une review
-                // a mesuré que le halo s'allume aussi sur une tuile en RECHARGE et sur un râtelier
-                // dont la file est PLEINE, alors que le clic rend NOT_READY ou QUEUE_FULL. Dire
-                // « même règle » sans l'appliquer, c'est l'objection de M4 dans un état voisin.
+                // Une tuile de la file se REPREND, et le seul refus possible est la fin de
+                // partie : unqueueAt ne connaît pas d'autre motif. Le commentaire qui vivait ici
+                // parlait de recharge et de file pleine — deux notions qui n'ont pas de sens pour
+                // un emplacement déjà rempli. Il décrivait le voisin, pas ce bloc.
                 if (hoveredQueueSlot == slot && !arena.isOver()) {
                     painter.outline(x - 1, HudLayout.QUEUE_Y - 1,
                             HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
@@ -1121,8 +1126,7 @@ public final class ArenaScene implements Scene {
             // Un clic sur le râtelier ne fait quelque chose que si la tuile est rechargée ET
             // qu'il reste de la place : sinon queueTile rend NOT_READY ou QUEUE_FULL. Le halo
             // suivait la partie finie et rien d'autre.
-            if (hoveredRackSlot == i && !arena.isOver()
-                    && arena.rack().isReady(tile) && !arena.queue().isFull()) {
+            if (hoveredRackSlot == i && arena.canQueue(tile)) {
                 painter.outline(x - 1, HudLayout.RACK_Y - 1,
                         HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
             }
