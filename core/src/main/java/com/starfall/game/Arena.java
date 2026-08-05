@@ -887,15 +887,28 @@ public final class Arena {
      * plaçant, savoir laisser passer un tour est une décision, pas une faille.
      */
     public ActionResult unqueueAt(int indexFromOldest) {
-        if (isOver()) {
+        if (!canUnqueue(indexFromOldest)) {
             return ActionResult.BLOCKED;
         }
-        Tile removed = queue.removeAt(indexFromOldest);
-        if (removed == null) {
-            return ActionResult.BLOCKED;
-        }
-        rack.giveBack(removed);
+        rack.giveBack(queue.removeAt(indexFromOldest));
         return ActionResult.UNQUEUED;
+    }
+
+    /**
+     * Ce retrait ferait-il quelque chose ?
+     *
+     * <p>Troisième de la famille, après {@link #canQueue} et {@link #canStep}, et le dernier geste
+     * du joueur qui n'avait pas la sienne. Sa règle était recopiée à deux endroits hors de l'arène
+     * — l'énumération de l'instrument de mesure et le survol de la scène — et les deux ne
+     * connaissaient qu'un de ses deux refus : la fin de partie, jamais l'emplacement inexistant.
+     *
+     * <p>Un seul refus visible de l'extérieur, {@code BLOCKED}, pour deux causes : c'est
+     * volontaire, l'interface n'a pas à distinguer « la partie est finie » de « il n'y a rien
+     * là ». Mais une garde de test qui croyait ce geste capable de rendre {@code EMPTY_QUEUE}
+     * assertait dans le vide, et c'est ce qui a fait remonter cette copie.
+     */
+    public boolean canUnqueue(int indexFromOldest) {
+        return !isOver() && indexFromOldest >= 0 && indexFromOldest < queue.size();
     }
 
     /**

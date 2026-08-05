@@ -369,9 +369,13 @@ public final class ArenaScene implements Scene {
         // rechargée voyait sa portée peinte en couleur de préavis alors que queueTile aurait rendu
         // QUEUE_FULL. Une règle recopiée finit toujours par diverger de l'originale.
         //
-        // Une tuile déjà dans la file, elle, se reprend : le seul refus possible est la fin de
-        // partie, et unqueueAt le dit.
-        boolean available = hoveredQueueSlot >= 0 ? !arena.isOver() : arena.canQueue(hovered);
+        // Une tuile déjà dans la file, elle, se reprend — et cette question aussi se pose à
+        // l'arène. Elle était recopiée ici sous la forme « pas fini », qui ignorait le second
+        // refus d'unqueueAt : un emplacement qui n'existe pas. Cinquième copie de la famille,
+        // trouvée par la dix-septième review.
+        boolean available = hoveredQueueSlot >= 0
+                ? arena.canUnqueue(hoveredQueueSlot)
+                : arena.canQueue(hovered);
         drawStaticReach(hovered, available ? HudColors.PREVIEW : HudColors.SLOT_EMPTY);
     }
 

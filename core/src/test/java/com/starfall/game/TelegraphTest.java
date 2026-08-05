@@ -35,6 +35,13 @@ class TelegraphTest {
         }
     }
 
+    /**
+     * Les traits dont l'effet se joue <b>pendant la phase ennemie</b>, donc les seuls que cet
+     * échantillon puisse mettre à l'épreuve. {@code EXPLOSIF} n'agit qu'à la mort : voir plus bas.
+     */
+    private static final java.util.Set<Trait> ACTS_DURING_THE_ENEMY_PHASE =
+            java.util.EnumSet.of(Trait.RAPIDE, Trait.AGRESSIF, Trait.FONCEUR);
+
     private static final int SEEDS = 300;
     private static final int TURNS_PER_SEED = 60;
 
@@ -44,6 +51,7 @@ class TelegraphTest {
         List<String> failures = new ArrayList<>();
         Map<EnemyKind, Integer> sampled = new EnumMap<>(EnemyKind.class);
         Map<Trait, Integer> traits = new EnumMap<>(Trait.class);
+        int kills = 0;
 
         // Toutes les vagues. Le montage precedent ne demarrait qu'en vague 1 et, mesure sur cinq
         // cents parties, n'en sortait jamais : deux archetypes sur cinq, jamais de ruee, jamais
@@ -82,6 +90,15 @@ class TelegraphTest {
                     // 5 671 tours verifies contre 66 329 sautes, et des totaux de 300 x 60 tout
                     // ronds, signature d'un compteur qui tourne sur un plateau gele. Un compteur de
                     // couverture qui compte ce qui n'est pas eprouve ne mesure pas la couverture.
+                    // Les DISPARUS nommement, et non une difference de tailles : une
+                    // invocation ajoute un ennemi dans le meme tour et rendait le compte
+                    // negatif. Un compteur qui peut descendre sous zero ne compte pas ce
+                    // qu'il croit compter.
+                    for (Enemy enemy : facing) {
+                        if (!arena.enemies().contains(enemy)) {
+                            kills++;
+                        }
+                    }
                     facing.forEach(enemy -> {
                         sampled.merge(enemy.kind(), 1, Integer::sum);
                         for (Trait trait : Trait.values()) {
@@ -113,16 +130,30 @@ class TelegraphTest {
                     "l'archetype " + kind + " n'apparait pas une seule fois dans l'echantillon :"
                             + " le telegraphe n'est pas eprouve contre lui. Vus : " + sampled);
         }
-        // Le second axe, jamais interroge jusqu'ici : les traits changent CE QUE l'ennemi fait -
-        // le rapide frappe deux fois, l'agressif atteint une case plus loin, le fonceur comble
-        // toute la distance. Une promesse eprouvee contre les cinq archetypes mais contre aucun
-        // trait ne serait eprouvee a moitie. Mesure : les quatre sont bien la, sur les tours
-        // verifies. Ce qui manquait, c'est que rien ne l'affirmait.
-        for (Trait trait : Trait.values()) {
+        // Le second axe : les traits changent CE QUE l'ennemi fait pendant la phase - le rapide
+        // frappe deux fois, l'agressif atteint une case plus loin, le fonceur comble toute la
+        // distance. Une promesse eprouvee contre les cinq archetypes mais contre aucun trait ne
+        // serait eprouvee a moitie.
+        //
+        // EXPLOSIF est volontairement absent de cette liste, et c'est le point important. J'avais
+        // ecrit les QUATRE, en annoncant « le telegraphe n'est pas eprouve contre lui ». C'etait
+        // faux pour celui-la : son unique effet est dans Arena.kill, or cet echantillon ne tue
+        // JAMAIS d'ennemi - il ne joue que des demi-tours, et la phase ennemie ne frappe que le
+        // heros. Le rendre totalement inerte laissait ce fichier entierement vert. Compter sa
+        // presence certifiait un drapeau pose, pas une promesse mise a l'epreuve : exactement le
+        // motif que cette assertion venait de fermer pour les archetypes.
+        for (Trait trait : ACTS_DURING_THE_ENEMY_PHASE) {
             assertTrue(traits.getOrDefault(trait, 0) > 0,
                     "le trait " + trait + " n'apparait pas une seule fois dans l'echantillon :"
                             + " le telegraphe n'est pas eprouve contre lui. Vus : " + traits);
         }
+        // Et la premisse de cette exclusion, gardee plutot qu'esperee : le jour ou cet echantillon
+        // se met a tuer, l'explosion devient observable ici et doit rejoindre la liste.
+        assertEquals(0, kills,
+                kills + " ennemi(s) meurent dans cet echantillon. EXPLOSIF est exclu de la liste"
+                        + " ci-dessus parce que son seul effet est a la mort et qu'on n'en"
+                        + " provoquait aucune. Ce n'est plus vrai : ajoute-le, il est desormais"
+                        + " eprouvable ici");
     }
 
     @Test
@@ -156,9 +187,9 @@ class TelegraphTest {
                                     + " d'ARRIVEE du heros, qui n'est celle ou les coups sont"
                                     + " tombes que si rien ne l'a deplace. Une ruee le pousse"
                                     + " APRES l'avoir frappe sur la case annoncee : l'assertion"
-                                    + " suivante accuserait le jeu a tort, comme elle l'a fait 381"
-                                    + " fois quand j'ai elargi l'echantillon. Ce n'est pas elle"
-                                    + " qu'il faut relacher, c'est l'instrument qu'il faut refaire");
+                                    + " suivante accuserait le jeu a tort. Ce n'est pas elle qu'il"
+                                    + " faut relacher, c'est l'instrument qu'il faut refaire :"
+                                    + " voir le javadoc, qui donne la trace du cas");
                 }
                 // On relève toutes les cases menacées AVANT d'agir, puis on agit librement.
                 boolean[] threatened = new boolean[arena.grid().width()];
@@ -191,7 +222,6 @@ class TelegraphTest {
         assertTrue(blows > 0,
                 "le heros n'a encaisse aucun coup en " + SEEDS + " parties : rien de ce que ce"
                         + " test affirme n'a ete verifie");
-        assertEquals(0, pushers, "aucune ruee ne doit atteindre cet echantillon");
     }
 
     /**
@@ -325,8 +355,9 @@ class TelegraphTest {
         assertTrue(summonCells > 0,
                 "aucune case de couloir examinee face a une invocation : l'espece qui invoque a"
                         + " disparu du montage, et c'est le bras dont on a mesure qu'il porte le"
-                        + " plus - reservation retiree, il compte cinquante-huit violations la ou"
-                        + " l'autre en compte cinq");
+                        + " plus : reservation de couloir retiree, les deux bras produisent des"
+                        + " violations et celui-ci nettement davantage - reproductible par cette"
+                        + " mutation, contrairement au chiffre que ce message donnait avant");
         // Et le renoncement silencieux de placeSomewhere : six essais, puis rien, sans un mot.
         assertEquals(0, giveUps,
                 giveUps + " ennemi(s) n'ont pas pu etre poses : le montage est plus pauvre qu'il"

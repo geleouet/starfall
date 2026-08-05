@@ -48,6 +48,51 @@ class ArenaTest {
         }
     }
 
+    /**
+     * Le prédicat et le geste disent la même chose, sur de vraies parties.
+     *
+     * <p>{@code canStep} a été extrait pour que l'énumération de l'instrument de mesure et le
+     * surlignage de la scène cessent de recopier la règle. Deux consommateurs qui s'accordent sur
+     * un prédicat faux s'accordent quand même : ce qu'il faut garder, c'est que le prédicat dise
+     * exactement ce que {@link Arena#step} fera.
+     *
+     * <p>Et le test compte ce qu'il a vu. Un accord observé seulement sur des « oui » ne dit rien :
+     * il faut avoir rencontré les deux réponses.
+     */
+    @Test
+    @DisplayName("canStep prédit exactement ce que step fait")
+    void canStepPredictsExactlyWhatStepDoes() {
+        int allowed = 0;
+        int refused = 0;
+
+        for (int wave = 1; wave <= Arena.WAVE_COUNT; wave++) {
+            for (int seed = 0; seed < 60; seed++) {
+                java.util.Random random = new java.util.Random(seed);
+                Arena arena = ArenaSetup.trainingArena(
+                        Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1), wave);
+
+                for (int turn = 0; turn < 40; turn++) {
+                    Direction direction = random.nextBoolean() ? Direction.LEFT : Direction.RIGHT;
+                    boolean predicted = arena.canStep(direction);
+                    ActionResult result = arena.step(direction);
+                    assertEquals(predicted, result != ActionResult.BLOCKED,
+                            "vague " + wave + " graine " + seed + " tour " + turn + " : canStep dit "
+                                    + predicted + " et step rend " + result);
+                    if (predicted) {
+                        allowed++;
+                    } else {
+                        refused++;
+                    }
+                }
+            }
+        }
+
+        assertTrue(allowed > 0, "aucun pas accepte : l'accord n'a ete observe que sur des refus");
+        assertTrue(refused > 0,
+                "aucun pas refuse : l'accord n'a ete observe que sur des « oui », et un predicat"
+                        + " qui dirait toujours vrai passerait ce test");
+    }
+
     @Nested
     @DisplayName("Orientation et déplacement")
     class Movement {

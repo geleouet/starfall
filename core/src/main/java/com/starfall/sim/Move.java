@@ -69,7 +69,12 @@ public record Move(String label, boolean free, Function<Arena, ActionResult> act
         }
         for (int index = 0; index < arena.queue().size(); index++) {
             int slot = index;
-            moves.add(new Move("reprendre " + (slot + 1), true, a -> a.unqueueAt(slot)));
+            // Comme le pas et la pose : on demande a l'arene. C'etait le cinquieme endroit
+            // ou une regle de refus etait recopiee, et le seul geste du joueur qui n'avait pas
+            // encore son predicat.
+            if (arena.canUnqueue(slot)) {
+                moves.add(new Move("reprendre " + (slot + 1), true, a -> a.unqueueAt(slot)));
+            }
         }
         return moves;
     }

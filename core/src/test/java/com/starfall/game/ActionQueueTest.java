@@ -585,6 +585,56 @@ class ActionQueueTest {
      * l'arène, comme {@code clickable} interroge déjà le même plan que {@code clickOn}. Ce test
      * épingle l'accord entre les deux, faute de quoi la prédiction pourrait rediverger en silence.
      */
+    /**
+     * Le prédicat et le geste disent la même chose, y compris hors bornes.
+     *
+     * <p>{@code canUnqueue} est le dernier des trois prédicats de refus, et le seul dont la règle
+     * était encore recopiée en deux endroits — l'énumération de l'instrument de mesure et le survol
+     * de la scène — qui n'en connaissaient qu'un des deux motifs. Depuis, {@link Arena#unqueueAt}
+     * s'appuie <em>entièrement</em> sur lui : s'ils divergeaient, ce ne serait plus un refus mal
+     * rendu mais un plantage. Raison de plus pour épingler leur accord.
+     */
+    @Test
+    @DisplayName("canUnqueue prédit exactement ce que unqueueAt fait, bornes comprises")
+    void canUnqueuePredictsExactlyWhatUnqueueAtDoes() {
+        int allowed = 0;
+        int refused = 0;
+
+        for (int wave = 1; wave <= Arena.WAVE_COUNT; wave++) {
+            for (int seed = 0; seed < 60; seed++) {
+                java.util.Random random = new java.util.Random(seed);
+                Arena arena = ArenaSetup.trainingArena(9, wave);
+
+                for (int turn = 0; turn < 40; turn++) {
+                    // Volontairement hors bornes une fois sur trois : c'est le motif de refus que
+                    // les deux copies ignoraient.
+                    int slot = random.nextInt(ActionQueue.CAPACITY + 2) - 1;
+                    boolean predicted = arena.canUnqueue(slot);
+                    ActionResult result = arena.unqueueAt(slot);
+                    assertEquals(predicted, result != ActionResult.BLOCKED,
+                            "vague " + wave + " graine " + seed + " emplacement " + slot
+                                    + " : canUnqueue dit " + predicted + " et unqueueAt rend "
+                                    + result);
+                    if (predicted) {
+                        allowed++;
+                    } else {
+                        refused++;
+                    }
+                    if (arena.queue().isEmpty()) {
+                        for (Tile tile : Tile.values()) {
+                            if (arena.canQueue(tile)) {
+                                arena.queueTile(tile);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        assertTrue(allowed > 0, "aucun retrait accepte : l'accord n'a ete observe que sur des refus");
+        assertTrue(refused > 0, "aucun retrait refuse : l'accord n'a ete observe que sur des oui");
+    }
+
     @Test
     @DisplayName("canQueue prédit exactement ce que queueTile fait")
     void canQueuePredictsExactlyWhatQueueTileDoes() {

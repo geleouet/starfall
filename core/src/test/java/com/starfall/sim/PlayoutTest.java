@@ -65,14 +65,25 @@ class PlayoutTest {
      * La question n'est pas « ce résultat est-il un refus quelque part », mais « ce geste-ci a-t-il
      * été refusé pour la raison que l'énumération devait écarter ».
      */
-    private static ActionResult refusalFor(String label) {
+    private static java.util.Set<ActionResult> refusalsFor(String label) {
         if (label.startsWith("pas ")) {
-            return ActionResult.BLOCKED;
+            return java.util.EnumSet.of(ActionResult.BLOCKED);
         }
         if (label.startsWith("poser ")) {
-            return null; // deux refus possibles, traités à part
+            return java.util.EnumSet.of(ActionResult.QUEUE_FULL, ActionResult.NOT_READY);
         }
-        return label.equals("échange") ? ActionResult.NO_TARGET : ActionResult.EMPTY_QUEUE;
+        if (label.startsWith("reprendre ")) {
+            return java.util.EnumSet.of(ActionResult.BLOCKED);
+        }
+        if (label.equals("échange")) {
+            return java.util.EnumSet.of(ActionResult.NO_TARGET);
+        }
+        if (label.equals("salve")) {
+            return java.util.EnumSet.of(ActionResult.EMPTY_QUEUE);
+        }
+        throw new IllegalArgumentException("geste non classe : « " + label + " ». Ajoute-le ici"
+                + " plutot que de le laisser tomber dans un fourre-tout : c'est exactement ce qui"
+                + " avait rendu cette garde vide pour toute une famille de gestes.");
     }
 
     @Test
@@ -131,16 +142,9 @@ class PlayoutTest {
                 // des tours qui n'existent pas », dit son propre javadoc. Trouve en corrigeant le
                 // quatrieme endroit ou la regle etait recopiee.
                 ActionResult result = move.applyTo(arena);
-                if (move.label().startsWith("poser ")) {
-                    assertTrue(result != ActionResult.QUEUE_FULL
-                                    && result != ActionResult.NOT_READY,
-                            "graine " + seed + " : « " + move.label() + " » etait enumere et le"
-                                    + " jeu rend " + result);
-                } else {
-                    assertTrue(result != refusalFor(move.label()),
-                            "graine " + seed + " : « " + move.label() + " » etait enumere comme"
-                                    + " legal et le jeu rend " + result);
-                }
+                assertTrue(!refusalsFor(move.label()).contains(result),
+                        "graine " + seed + " : « " + move.label() + " » etait enumere comme legal"
+                                + " et le jeu rend " + result);
             }
         }
     }
