@@ -887,10 +887,25 @@ public final class Arena {
      * plaçant, savoir laisser passer un tour est une décision, pas une faille.
      */
     public ActionResult unqueueAt(int indexFromOldest) {
-        if (!canUnqueue(indexFromOldest)) {
+        // Ce geste NE demande PAS a canUnqueue, et c'est delibere. Il l'a fait un temps - la
+        // deduplication paraissait evidente - et cela rendait le test de contrat entre les deux
+        // rigoureusement vide dans un sens : « canUnqueue dit oui » et « unqueueAt ne rend pas
+        // BLOCKED » etaient la MEME expression evaluee deux fois. Mesure : un canUnqueue rendu
+        // trop restrictif (interdisant de reprendre la derniere tuile d'une file pleine) laissait
+        // les 508 tests verts, y compris celui ecrit pour l'epingler.
+        //
+        // Deux implementations independantes qui doivent s'accorder valent mieux qu'une seule
+        // consultee deux fois. C'est aussi ce que font step et queueTile : leur predicat et leur
+        // geste passent par un refus PARTAGE, mais le predicat public n'est pas dans le chemin du
+        // geste - muter le predicat seul les fait diverger, donc rougir.
+        if (isOver()) {
             return ActionResult.BLOCKED;
         }
-        rack.giveBack(queue.removeAt(indexFromOldest));
+        Tile removed = queue.removeAt(indexFromOldest);
+        if (removed == null) {
+            return ActionResult.BLOCKED;
+        }
+        rack.giveBack(removed);
         return ActionResult.UNQUEUED;
     }
 
@@ -898,14 +913,21 @@ public final class Arena {
      * Ce retrait ferait-il quelque chose ?
      *
      * <p>Troisième de la famille, après {@link #canQueue} et {@link #canStep}, et le dernier geste
-     * du joueur qui n'avait pas la sienne. Sa règle était recopiée à deux endroits hors de l'arène
-     * — l'énumération de l'instrument de mesure et le survol de la scène — et les deux ne
-     * connaissaient qu'un de ses deux refus : la fin de partie, jamais l'emplacement inexistant.
+     * du joueur qui n'avait pas la sienne. Sa règle était énoncée à deux endroits hors de l'arène —
+     * l'énumération de l'instrument de mesure et le survol de la scène — sous la forme réduite
+     * « la partie n'est pas finie ».
+     *
+     * <p><b>Et cette forme réduite y était correcte</b>, ce qu'une review a mesuré après coup : les
+     * deux sites sont enfermés dans un contexte qui garantit déjà l'emplacement — boucle bornée par
+     * la taille de la file d'un côté, tuile survolée nécessairement présente de l'autre. J'avais
+     * écrit ici qu'ils « ne connaissaient qu'un de ses deux refus », en laissant entendre une
+     * divergence latente. Il n'y en avait pas. Poser la question une seule fois reste préférable —
+     * un contexte qui garantit aujourd'hui peut cesser de garantir demain — mais l'affirmation était
+     * plus large que la mesure.
      *
      * <p>Un seul refus visible de l'extérieur, {@code BLOCKED}, pour deux causes : c'est
      * volontaire, l'interface n'a pas à distinguer « la partie est finie » de « il n'y a rien
-     * là ». Mais une garde de test qui croyait ce geste capable de rendre {@code EMPTY_QUEUE}
-     * assertait dans le vide, et c'est ce qui a fait remonter cette copie.
+     * là ».
      */
     public boolean canUnqueue(int indexFromOldest) {
         return !isOver() && indexFromOldest >= 0 && indexFromOldest < queue.size();

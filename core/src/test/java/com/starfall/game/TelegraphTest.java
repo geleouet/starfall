@@ -35,13 +35,6 @@ class TelegraphTest {
         }
     }
 
-    /**
-     * Les traits dont l'effet se joue <b>pendant la phase ennemie</b>, donc les seuls que cet
-     * échantillon puisse mettre à l'épreuve. {@code EXPLOSIF} n'agit qu'à la mort : voir plus bas.
-     */
-    private static final java.util.Set<Trait> ACTS_DURING_THE_ENEMY_PHASE =
-            java.util.EnumSet.of(Trait.RAPIDE, Trait.AGRESSIF, Trait.FONCEUR);
-
     private static final int SEEDS = 300;
     private static final int TURNS_PER_SEED = 60;
 
@@ -51,7 +44,6 @@ class TelegraphTest {
         List<String> failures = new ArrayList<>();
         Map<EnemyKind, Integer> sampled = new EnumMap<>(EnemyKind.class);
         Map<Trait, Integer> traits = new EnumMap<>(Trait.class);
-        int kills = 0;
 
         // Toutes les vagues. Le montage precedent ne demarrait qu'en vague 1 et, mesure sur cinq
         // cents parties, n'en sortait jamais : deux archetypes sur cinq, jamais de ruee, jamais
@@ -90,15 +82,6 @@ class TelegraphTest {
                     // 5 671 tours verifies contre 66 329 sautes, et des totaux de 300 x 60 tout
                     // ronds, signature d'un compteur qui tourne sur un plateau gele. Un compteur de
                     // couverture qui compte ce qui n'est pas eprouve ne mesure pas la couverture.
-                    // Les DISPARUS nommement, et non une difference de tailles : une
-                    // invocation ajoute un ennemi dans le meme tour et rendait le compte
-                    // negatif. Un compteur qui peut descendre sous zero ne compte pas ce
-                    // qu'il croit compter.
-                    for (Enemy enemy : facing) {
-                        if (!arena.enemies().contains(enemy)) {
-                            kills++;
-                        }
-                    }
                     facing.forEach(enemy -> {
                         sampled.merge(enemy.kind(), 1, Integer::sum);
                         for (Trait trait : Trait.values()) {
@@ -130,30 +113,27 @@ class TelegraphTest {
                     "l'archetype " + kind + " n'apparait pas une seule fois dans l'echantillon :"
                             + " le telegraphe n'est pas eprouve contre lui. Vus : " + sampled);
         }
-        // Le second axe : les traits changent CE QUE l'ennemi fait pendant la phase - le rapide
-        // frappe deux fois, l'agressif atteint une case plus loin, le fonceur comble toute la
-        // distance. Une promesse eprouvee contre les cinq archetypes mais contre aucun trait ne
-        // serait eprouvee a moitie.
+        // Le second axe : les traits. CE QUI SUIT EST UN CONTROLE DE COMPOSITION, PAS UNE
+        // EPREUVE, et les distinguer est tout l'objet de cette version.
         //
-        // EXPLOSIF est volontairement absent de cette liste, et c'est le point important. J'avais
-        // ecrit les QUATRE, en annoncant « le telegraphe n'est pas eprouve contre lui ». C'etait
-        // faux pour celui-la : son unique effet est dans Arena.kill, or cet echantillon ne tue
-        // JAMAIS d'ennemi - il ne joue que des demi-tours, et la phase ennemie ne frappe que le
-        // heros. Le rendre totalement inerte laissait ce fichier entierement vert. Compter sa
-        // presence certifiait un drapeau pose, pas une promesse mise a l'epreuve : exactement le
-        // motif que cette assertion venait de fermer pour les archetypes.
-        for (Trait trait : ACTS_DURING_THE_ENEMY_PHASE) {
+        // J'avais d'abord ecrit « le telegraphe n'est pas eprouve contre ce trait » pour les
+        // quatre, puis retire EXPLOSIF au motif que son unique effet est a la mort et que cet
+        // echantillon ne tue jamais. Le critere etait juste ; je ne l'avais mesure que sur le
+        // trait que je retirais. Une review l'a applique aux trois restants : neutraliser AGRESSIF,
+        // puis FONCEUR, laisse les DIX tests de ce fichier verts. La raison est structurelle et
+        // vaut pour tous - ce test compare l'annonce a la resolution, deux sorties du MEME cerveau,
+        // et changer ce qu'un trait fait deplace les deux ensemble.
+        //
+        // Compter les traits ne dit donc pas que la promesse est eprouvee contre eux. Cela dit que
+        // l'echantillon les CONTIENT, ce qui reste utile : un echantillon qui les perdrait
+        // n'eprouverait plus rien du tout, et c'est exactement ce qui etait arrive aux archetypes.
+        // Les effets, eux, sont gardes par EnemyTest > Traits, ou chacun des quatre rougit sous
+        // mutation - EXPLOSIF compris, ce qui est aussi pourquoi il revient dans cette liste.
+        for (Trait trait : Trait.values()) {
             assertTrue(traits.getOrDefault(trait, 0) > 0,
-                    "le trait " + trait + " n'apparait pas une seule fois dans l'echantillon :"
-                            + " le telegraphe n'est pas eprouve contre lui. Vus : " + traits);
+                    "le trait " + trait + " est absent de l'echantillon : les intentions comparees"
+                            + " ici ne viennent plus que d'ennemis sans traits. Vus : " + traits);
         }
-        // Et la premisse de cette exclusion, gardee plutot qu'esperee : le jour ou cet echantillon
-        // se met a tuer, l'explosion devient observable ici et doit rejoindre la liste.
-        assertEquals(0, kills,
-                kills + " ennemi(s) meurent dans cet echantillon. EXPLOSIF est exclu de la liste"
-                        + " ci-dessus parce que son seul effet est a la mort et qu'on n'en"
-                        + " provoquait aucune. Ce n'est plus vrai : ajoute-le, il est desormais"
-                        + " eprouvable ici");
     }
 
     @Test

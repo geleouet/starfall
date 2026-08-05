@@ -149,6 +149,16 @@ class PlayoutTest {
                 assertTrue(!refusalsFor(move.label()).contains(result),
                         "graine " + seed + " : « " + move.label() + " » etait enumere comme legal"
                                 + " et le jeu rend " + result);
+                // Pour « reprendre », l'assertion ci-dessus ne peut pas echouer : unqueueAt ne
+                // connait que deux sorties, et l'enumeration ne propose ce geste que lorsque
+                // l'autre est certaine. Corriger le classement de cette famille - ce que le commit
+                // precedent a fait - ne l'a donc pas rendue falsifiable. On asserte le resultat
+                // POSITIF, qui lui peut echouer.
+                if (move.label().startsWith("reprendre ")) {
+                    assertEquals(ActionResult.UNQUEUED, result,
+                            "graine " + seed + " : « " + move.label() + " » etait enumere et rend "
+                                    + result + " au lieu de reprendre la tuile");
+                }
             }
         }
     }

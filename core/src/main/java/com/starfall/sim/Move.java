@@ -69,9 +69,11 @@ public record Move(String label, boolean free, Function<Arena, ActionResult> act
         }
         for (int index = 0; index < arena.queue().size(); index++) {
             int slot = index;
-            // Comme le pas et la pose : on demande a l'arene. C'etait le cinquieme endroit
-            // ou une regle de refus etait recopiee, et le seul geste du joueur qui n'avait pas
-            // encore son predicat.
+            // Comme le pas et la pose : on demande a l'arene. Mesure faite depuis, ce filtre ne
+            // filtre RIEN ici - la boucle est bornee par la taille de la file et legal() sort deja
+            // par anticipation sur isOver() -, et le dire vaut mieux que de le laisser croire. Il
+            // reste parce qu'un contexte qui garantit aujourd'hui peut cesser de garantir demain,
+            // pas parce qu'il rattrape quoi que ce soit.
             if (arena.canUnqueue(slot)) {
                 moves.add(new Move("reprendre " + (slot + 1), true, a -> a.unqueueAt(slot)));
             }
