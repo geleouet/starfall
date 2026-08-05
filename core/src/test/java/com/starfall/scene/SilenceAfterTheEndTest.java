@@ -6,11 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.starfall.game.Arena;
 import com.starfall.game.ArenaSetup;
+import com.starfall.game.Direction;
 import com.starfall.game.Enemy;
+import com.starfall.game.EnemyKind;
 import com.starfall.game.Tile;
 import com.starfall.sim.Playout;
 
 import java.util.List;
+import java.util.Random;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,7 +39,10 @@ import org.junit.jupiter.api.Test;
  * témoin dans la suite ordinaire. Ce qui relève du dessin reste gardé par l'image — mais plus
  * <em>seulement</em> par elle.
  */
-class SilenceAfterTheEndTest {
+class SilenceAfterTheEndTest {
+
+    /** Première coupe de la ligne de capture qui est en vague 4 sans être finie. */
+    private static final int ENTERS_FOURTH_WAVE = 42;
 
     /**
      * Une arène perdue, avec une file garnie et des ennemis qui avaient annoncé quelque chose.
@@ -141,11 +147,112 @@ class SilenceAfterTheEndTest {
 
         assertFalse(banner.contains("MENACE"),
                 "le bandeau annonce encore une menace sur une partie finie : " + banner);
-        // Pas d'assertion sur « INVOCATION » : la vitrine se joue en vague 1, où aucune
-        // invocation n'est jamais annoncée — le souverain n'apparaît qu'en vague 4. L'assertion
-        // aurait été vraie par construction, et une review l'a mesuré : retirer la garde
-        // correspondante laissait la suite verte. Ce qui manque est une partie PERDUE en vague 4,
-        // et elle n'existe dans aucun scénario ; c'est écrit ici plutôt que masqué par un vert.
+        // Toujours pas d'assertion sur « INVOCATION » ici : la vitrine se joue en vague 1, où le
+        // souverain n'existe pas. Voir la partie perdue en vague 4 juste en dessous, et surtout ce
+        // que sa mesure a fini par établir.
+    }
+
+    /**
+     * Une partie <b>perdue en vague 4</b>, souverain debout — l'état qui manquait.
+     *
+     * <h2>Ce que cet état devait témoigner, et ce qu'il témoigne réellement</h2>
+     *
+     * <p>Le commentaire d'à côté disait depuis deux reviews : « ce qui manque est une partie perdue
+     * en vague 4, et elle n'existe dans aucun scénario ». La première moitié était vraie, la seconde
+     * était une <b>supposition</b> — elle existe, il suffisait de la chercher. La voici : la ligne de
+     * capture jusqu'à son entrée en vague 4, puis du jeu quelconque jusqu'à la mort. Six cents
+     * graines la produisent ; celle-ci est fixée pour que le test soit reproductible.
+     *
+     * <p>Mais l'état ne témoigne <b>pas</b> de ce qu'on en attendait, et c'est la mesure qui le dit.
+     * Sur les six cents défaites en vague 4, le souverain a <b>zéro invocation restante dans les six
+     * cents</b>. Son budget est de <em>une</em> ; le temps qu'une vague 4 se perde, elle est
+     * toujours déjà dépensée, et {@code decideSovereign} exige {@code summonsLeft() > 0} avant
+     * d'annoncer quoi que ce soit. Mesuré plus largement : <b>3 600 fins de partie, zéro</b> avec
+     * une invocation annoncée, alors que 1 405 invocations vivantes ont été observées <em>en cours
+     * de jeu</em>. La branche {@code isOver()} du mot « INVOCATION » est donc inatteignable — non par
+     * une impossibilité de structure, mais <b>par la valeur du budget</b>, qui est un réglage.
+     *
+     * <p><b>La garde reste en place.</b> Deux fois dans ce projet j'ai supprimé du code vivant sur
+     * une démonstration incomplète ; celle-ci dépend d'un nombre qui a déjà changé une fois — il est
+     * passé de deux à un en M9. Le jour où il remonte, la garde redevient utile sans que personne
+     * n'ait à y repenser. Ce qui est acquis, c'est qu'elle n'est pas testable, et pourquoi.
+     */
+    @Test
+    @DisplayName("Une partie perdue en vague 4 ne promet rien non plus")
+    void aGameLostInTheFourthWavePromisesNothingEither() {
+        Arena arena = lostInTheFourthWave();
+
+        assertTrue(arena.isDefeat(), "cette partie devait etre perdue");
+        assertEquals(4, arena.wave(), "cette partie devait se perdre en vague 4");
+        assertTrue(arena.enemies().stream().anyMatch(e -> e.kind() == EnemyKind.SOUVERAIN),
+                "le souverain devait rester debout : sans lui, cet etat ne vaut pas mieux que la"
+                        + " vitrine en vague 1");
+
+        String banner = HudText.banner(arena);
+        assertTrue(banner.contains("VAGUE 4"), "le bandeau devrait situer la vague : " + banner);
+        assertFalse(banner.contains("MENACE"),
+                "le bandeau annonce une menace alors que la partie est perdue : " + banner);
+        // Cette assertion-ci est vraie par construction, et l'ecrire sans le dire serait commettre
+        // le defaut que ce projet passe son temps a trouver. Elle est conservee pour ce qu'elle
+        // decrit, pas pour ce qu'elle garde.
+        assertFalse(banner.contains("INVOCATION"),
+                "le bandeau annonce une invocation alors que la partie est perdue : " + banner);
+
+        // Le vrai garde-fou est ici : c'est le RAISONNEMENT qui est epingle, pas sa conclusion.
+        // La branche « INVOCATION apres la fin » est inatteignable parce que le budget du souverain
+        // vaut UN et qu'il est toujours deja depense quand une vague 4 se perd. Ce nombre est un
+        // reglage, et il a deja change une fois - de deux a un, en M9. S'il remonte, l'assertion
+        // ci-dessus redevient silencieusement vide et personne ne le saurait. Celle-ci rougit.
+        for (Enemy enemy : arena.enemies()) {
+            if (enemy.kind() != EnemyKind.SOUVERAIN) {
+                continue;
+            }
+            assertEquals(0, enemy.summonsLeft(),
+                    "le souverain finit la partie avec " + enemy.summonsLeft() + " invocation(s) en"
+                            + " reserve. C'est la premiere fois : la mesure disait zero sur six"
+                            + " cents defaites en vague 4. L'etat « partie finie AVEC invocation"
+                            + " annoncee » vient peut-etre de devenir atteignable, auquel cas la"
+                            + " garde du bandeau merite enfin un vrai temoin - a chercher, puis a"
+                            + " ecrire ici");
+        }
+
+        // Et le souverain lui-meme, survole : son infobulle ne doit plus annoncer d'intention.
+        int bossCell = -1;
+        for (Enemy enemy : arena.enemies()) {
+            if (enemy.kind() == EnemyKind.SOUVERAIN) {
+                bossCell = arena.grid().indexOf(enemy);
+            }
+        }
+        List<String> lines = HudText.infoLines(arena, -1, -1, bossCell, null);
+        assertTrue(lines.stream().anyMatch(line -> line.contains("PARTIE FINIE")),
+                "l'infobulle du souverain devrait dire que la partie est finie : " + lines);
+    }
+
+    /**
+     * La ligne de capture jusqu'à son entrée en vague 4, puis du jeu quelconque jusqu'à la mort.
+     *
+     * <p>La coupe 42 est la première où la ligne gagnante est en vague 4 sans être finie : elle est
+     * vérifiée ici plutôt que supposée, parce qu'un scénario qui dérive déplacerait cette frontière
+     * en silence — c'est déjà arrivé deux fois à ce même scénario.
+     */
+    private static Arena lostInTheFourthWave() {
+        Arena arena = ArenaSetup.trainingArena(9);
+        CaptureScript.SCENARIO.replayInto(arena, ENTERS_FOURTH_WAVE);
+        assertTrue(!arena.isOver() && arena.wave() == 4,
+                "la coupe " + ENTERS_FOURTH_WAVE + " de la ligne de capture n'est plus une vague 4"
+                        + " en cours : vague " + arena.wave() + ", finie " + arena.isOver());
+
+        Random random = new Random(0);
+        for (int step = 0; step < 200 && !arena.isOver(); step++) {
+            switch (random.nextInt(4)) {
+                case 0 -> arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+                case 1 -> arena.swapWithTarget();
+                case 2 -> arena.queueTile(
+                        arena.rack().tiles().get(random.nextInt(arena.rack().tiles().size())));
+                default -> arena.unleash();
+            }
+        }
+        return arena;
     }
 
     @Test

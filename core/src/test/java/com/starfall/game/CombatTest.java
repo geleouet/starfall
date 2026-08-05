@@ -319,12 +319,16 @@ class CombatTest {
         @Test
         @DisplayName("Les points de vie restent dans leurs bornes, et la partie se termine")
         void healthStaysInBoundsAndTheGameEnds() {
+            int ended = 0;
+            int longest = 0;
+
             for (int seed = 0; seed < 200; seed++) {
                 Random random = new Random(seed);
                 Arena arena = ArenaSetup.trainingArena(
                         Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1));
 
-                for (int step = 0; step < 300 && !arena.isOver(); step++) {
+                int step = 0;
+                for (; step < 300 && !arena.isOver(); step++) {
                     switch (random.nextInt(4)) {
                         case 0 -> arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
                         case 1 -> arena.swapWithTarget();
@@ -343,7 +347,26 @@ class CombatTest {
                     assertTrue(arena.wave() >= 1 && arena.wave() <= arena.waveCount(),
                             "graine " + seed + " : vague " + arena.wave());
                 }
+
+                if (arena.isOver()) {
+                    ended++;
+                }
+                longest = Math.max(longest, step);
             }
+
+            // La seconde moitie du titre, qui n'etait affirmee nulle part. Le test bornait la sante
+            // et la vague, et s'arretait la : une partie qui aurait tourne en rond indefiniment
+            // l'aurait laisse vert, puisque la boucle sort d'elle-meme au bout de 300 pas. Mesure :
+            // les 200 se terminent, et la plus longue prend 107 pas - une marge de pres de trois.
+            // Le maximum est asserte lui aussi, parce qu'un budget qu'on frole n'est plus un
+            // budget : le jour ou une partie s'approchera de 300, c'est ici qu'on le saura, et non
+            // le jour ou une graine le depassera en silence.
+            assertEquals(200, ended,
+                    "seules " + ended + " parties sur 200 se terminent en 300 pas : le titre de ce"
+                            + " test promet qu'elles se terminent toutes");
+            assertTrue(longest < 200,
+                    "la partie la plus longue prend " + longest + " pas sur un budget de 300 : la"
+                            + " marge s'est refermee, et ce test finira par mentir");
         }
     }
 }
