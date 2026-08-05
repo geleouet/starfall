@@ -292,4 +292,47 @@ class SalvoTest {
         assertEquals(before + back.step(), moving.heroCell(),
                 "et le heros y est bien : le montage ne vaut que si le pas a eu lieu");
     }
+
+    /**
+     * <b>Chaque temps porte le plateau tel qu'il était à ce moment-là.</b>
+     *
+     * <p>C'est ce qui permet aux figures de reculer dans le temps. Sans instantané, le plateau
+     * affiche l'état <em>final</em> pendant que le déroulé égrène les cases : on voit l'ordre des
+     * coups sans voir leurs effets, ce qui est la moitié de la lecture.
+     *
+     * <p>La mise en scène est choisie pour que les deux temps <b>diffèrent</b> : la poussée déplace
+     * le sabreur, l'estoc l'abat ensuite. Un instantané qui pointerait vers les objets vivants —
+     * ou qui serait pris après coup — montrerait un plateau déjà vide au premier temps, et le
+     * déroulé serait un diaporama de la même image.
+     */
+    @Test
+    @DisplayName("Chaque temps porte le plateau de son instant")
+    void everyBeatCarriesTheBoardOfItsMoment() {
+        Arena arena = new Arena(11, 0);
+        arena.grid().place(1, new Enemy(EnemyKind.SABREUR));
+        arena.announceIntentions();
+
+        arena.queueTile(Tile.THRUST);   // posee en premier, donc jouee en DERNIER
+        arena.queueTile(Tile.PUSH);     // jouee en premier : elle repousse
+        arena.unleash();
+
+        List<Arena.Beat> beats = arena.beats();
+        assertEquals(2, beats.size(), "deux tuiles parties : " + beats);
+
+        long standingAfterPush = beats.get(0).board().stream().filter(f -> !f.hero()).count();
+        assertEquals(1, standingAfterPush,
+                "au premier temps le sabreur tient encore sa case : " + beats.get(0).board());
+        assertEquals(2, beats.get(0).board().stream().filter(f -> !f.hero()).findFirst()
+                .orElseThrow().cell(), "et la poussee l'a bien deplace de 1 vers 2");
+
+        long standingAfterThrust = beats.get(1).board().stream().filter(f -> !f.hero()).count();
+        assertEquals(0, standingAfterThrust,
+                "au second temps l'estoc l'a abattu : " + beats.get(1).board());
+
+        // Et le heros figure dans les deux, sans quoi le plateau anime serait borgne.
+        assertTrue(beats.get(0).board().stream().anyMatch(Arena.Figure::hero),
+                "le heros manque au premier temps");
+        assertTrue(beats.get(1).board().stream().anyMatch(Arena.Figure::hero),
+                "le heros manque au second temps");
+    }
 }

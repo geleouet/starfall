@@ -767,28 +767,37 @@ public final class ArenaScene implements Scene {
         }
     }
 
+    /**
+     * Dessine les figures — celles du <b>déroulé</b> s'il court, celles de maintenant sinon.
+     *
+     * <p>Une seule voie de dessin pour les deux, et c'est délibéré : deux voies auraient divergé,
+     * et le plateau animé aurait fini par montrer autre chose que le plateau au repos. C'est le
+     * motif que ce projet a payé neuf fois — une règle écrite à deux endroits finit par diverger.
+     * L'état vivant n'est ici qu'un instantané de plus, celui de l'instant présent.
+     */
     private void drawOccupants() {
-        for (int cell : arena.grid().occupiedCells()) {
-            Occupant occupant = arena.grid().occupantAt(cell);
-            var region = context.atlas().region(occupant.spriteName());
+        Arena.Beat beat = playback.current();
+        for (Arena.Figure figure : beat != null ? beat.board() : arena.snapshot()) {
+            int cell = figure.cell();
+            var region = context.atlas().region(figure.sprite());
             int x = layout.figureLeft(cell);
 
             // Chaque figure est retournée selon son orientation. Le héros est dessiné tourné à
             // droite, les ennemis tournés à gauche : ils arrivent face à lui.
-            boolean flip = occupant == arena.hero()
-                    ? arena.hero().facing() == Direction.LEFT
-                    : occupant instanceof Enemy enemy && enemy.facing() == Direction.RIGHT;
+            boolean flip = figure.hero()
+                    ? figure.facing() == Direction.LEFT
+                    : figure.facing() == Direction.RIGHT;
             if (flip) {
                 painter.spriteFlipped(region, x, ArenaLayout.FIGURE_Y);
             } else {
                 painter.sprite(region, x, ArenaLayout.FIGURE_Y);
             }
 
-            if (occupant == arena.hero()) {
-                drawHealth(cell, arena.hero().health(), Hero.MAX_HEALTH, HERO_MARK);
-            } else if (occupant instanceof Enemy enemy) {
-                drawHealth(cell, enemy.health(), enemy.maxHealth(), HudColors.THREAT);
-                if (enemy.has(Trait.EXPLOSIF)) {
+            if (figure.hero()) {
+                drawHealth(cell, figure.health(), Hero.MAX_HEALTH, HERO_MARK);
+            } else {
+                drawHealth(cell, figure.health(), figure.maxHealth(), HudColors.THREAT);
+                if (figure.explosive()) {
                     // Un explosif coûte deux points de vie à qui le tue au contact, soit 40 % de la
                     // santé du héros — et son sprite est celui de son archétype, donc rien ne le
                     // distinguait. Le seul indice était une ligne de texte, l'une des premières

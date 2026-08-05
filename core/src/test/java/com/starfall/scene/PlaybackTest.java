@@ -24,7 +24,9 @@ import org.junit.jupiter.api.Test;
 class PlaybackTest {
 
     private static Arena.Beat beat(Tile tile, int cell) {
-        return new Arena.Beat(tile, ActionResult.STRUCK, cell);
+        // Le plateau du temps ne joue aucun role ici : ce fichier garde la MACHINE du deroule -
+        // quand il court, dans quel ordre, quand il finit - et pas ce qu'elle donne a dessiner.
+        return new Arena.Beat(tile, ActionResult.STRUCK, cell, List.of());
     }
 
     @Test

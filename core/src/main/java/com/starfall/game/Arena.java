@@ -190,7 +190,44 @@ public final class Arena {
      * @param result ce qu'elle a produit
      * @param cell   la case visée, ou {@code -1} quand la tuile n'en vise aucune
      */
-    public record Beat(Tile tile, ActionResult result, int cell) {
+    public record Beat(Tile tile, ActionResult result, int cell, List<Figure> board) {
+    }
+
+    /**
+     * Une figure sur le plateau, telle qu'il faut la dessiner — et rien de plus.
+     *
+     * <p>Assez pour que la scène rende un plateau <em>passé</em> : la case, le sprite, l'orientation,
+     * la santé, et de quoi distinguer le héros d'un ennemi explosif. Pas de référence vers
+     * l'occupant vivant, et c'est tout l'objet : un instantané qui pointerait vers l'objet réel
+     * montrerait l'état d'aujourd'hui sous prétexte de montrer celui d'hier.
+     */
+    public record Figure(int cell, String sprite, Direction facing, int health, int maxHealth,
+                         boolean hero, boolean explosive) {
+    }
+
+    /**
+     * Le plateau tel qu'il est <b>maintenant</b>, sous une forme que la scène peut garder.
+     *
+     * <p>C'est ce qui permet au déroulé de faire reculer les figures dans le temps : sans lui, le
+     * plateau affiche l'état final pendant que le déroulé égrène les cases, et l'on voit l'ordre
+     * des coups sans voir leurs effets.
+     */
+    public List<Figure> snapshot() {
+        List<Figure> figures = new ArrayList<>();
+        for (int cell : grid.occupiedCells()) {
+            Occupant occupant = grid.occupantAt(cell);
+            if (occupant == hero) {
+                figures.add(new Figure(cell, hero.spriteName(), hero.facing(), hero.health(),
+                        Hero.MAX_HEALTH, true, false));
+            } else if (occupant instanceof Enemy enemy) {
+                figures.add(new Figure(cell, enemy.spriteName(), enemy.facing(), enemy.health(),
+                        enemy.maxHealth(), false, enemy.has(Trait.EXPLOSIF)));
+            } else {
+                figures.add(new Figure(cell, occupant.spriteName(), Direction.LEFT, 0, 0, false,
+                        false));
+            }
+        }
+        return List.copyOf(figures);
     }
 
     /**
@@ -1058,7 +1095,10 @@ public final class Arena {
             TilePreview preview = tile.preview(this);
             int cell = preview.aim() >= 0 ? preview.aim() : preview.landing();
             ActionResult result = tile.applyTo(this);
-            beats.add(new Beat(tile, result, cell));
+            // Le plateau APRES le coup : c'est l'effet de cette tuile-ci qu'il faut montrer, pas
+            // l'état qui la précédait. Le premier temps montre donc déjà quelque chose, et le
+            // dernier montre l'état final — celui que la scène retrouvera de toute façon au repos.
+            beats.add(new Beat(tile, result, cell, snapshot()));
             rack.giveBackSpent(tile);
             fired++;
             last = result;
