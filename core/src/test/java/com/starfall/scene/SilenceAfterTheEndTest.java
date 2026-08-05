@@ -51,6 +51,36 @@ class SilenceAfterTheEndTest {
         return arena;
     }
 
+    /*
+     * ------------------------------------------------------------------------------------------
+     * Ici vivait « Une partie GAGNÉE se tait autant qu'une partie perdue », écrit pour combler le
+     * trou qu'une review avait nommé : tous les témoins « après la fin » étaient du côté de la
+     * défaite.
+     *
+     * IL NE GARDAIT RIEN, et c'est mesuré : en remplaçant isOver() par isDefeat() dans
+     * Arena.swapTarget -- c'est-à-dire en retirant la garde pour la moitié « victoire » -- la suite
+     * restait entièrement verte.
+     *
+     * La raison est structurelle et vaut mieux que le test. À la victoire, le plateau est VIDE et
+     * la file l'est aussi (sondé : 0 ennemi, file vide, menace 0, aucune invocation) -- la victoire
+     * ne se déclare que lorsque le terrain se vide sur la dernière vague. Chacune des « silences »
+     * y tient donc pour une raison qui n'a rien à voir avec la garde :
+     *
+     *   - swapTarget rend -1 parce qu'il n'y a personne à échanger ;
+     *   - previewTop rend null parce que la file est vide ;
+     *   - le bandeau ne dit ni MENACE ni INVOCATION parce qu'il n'y a plus d'ennemi pour annoncer ;
+     *   - queueHead n'est appelé sur aucune tuile.
+     *
+     * La branche « victoire » de ces gardes est donc INOBSERVABLE par construction. Ce n'est pas un
+     * trou de test : c'est un cas qui ne peut pas diverger. Le seul témoin possible de cette famille
+     * est la défaite, et il est ci-dessous.
+     *
+     * Écrire ce test m'aurait donné quatre assertions vertes et zéro pouvoir de détection -- le
+     * quatorzième garde-fou de ce genre. Il a été trouvé par mutation avant d'être commité, ce qui
+     * est la première fois : les treize précédents l'ont été par une review, après coup.
+     * ------------------------------------------------------------------------------------------
+     */
+
     @Test
     @DisplayName("Une partie finie ne désigne plus de cible d'échange")
     void afinishedGameNamesNoSwapTarget() {
