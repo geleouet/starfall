@@ -178,23 +178,37 @@ class TelegraphTest {
      * franchi une seule fois. C'est la même racine que le corpus d'interface engendré par jeu
      * aléatoire : <b>l'échantillon exclut structurellement l'espèce qu'on prétend éprouver</b>.
      *
-     * <p>Et le montage réparé a montré pire. Le test ne regardait que les intentions
-     * {@code ADVANCE}, alors que sa propre phrase dit « aucune <em>autre intention</em> ». Or une
-     * avance ne peut pas viser un couloir : pour l'atteindre il lui faudrait traverser le chargeur
-     * ou le héros, et {@code isPathClear} le lui interdit déjà. Réservation entièrement retirée,
-     * l'assertion reste verte sur 7 542 cases de couloir. Elle était <b>vraie par construction</b>.
+     * <p>Le test ne regardait par ailleurs que les intentions {@code ADVANCE}, alors que sa propre
+     * phrase dit « aucune <em>autre intention</em> ». Les deux bras y sont désormais, et
+     * <b>les deux portent</b> — c'est le second point de cette histoire, et il m'a coûté une
+     * affirmation de trop.
      *
-     * <p>Ce que la réservation protège vraiment, c'est l'<b>invocation</b> : le souverain choisit sa
-     * case adjacente au héros sans regarder les couloirs, et c'est là qu'il se pose au milieu d'une
-     * charge. Mesuré sur le même montage : réservation active, zéro ; réservation retirée,
-     * <b>1 048 invocations</b> dans un couloir vivant. Le test garde désormais l'appariement qui
-     * porte, sur un montage qui contient l'espèce qui charge — et il compte ce qu'il a vu.
+     * <h2>Ce que j'avais écrit ici, et qui était faux</h2>
+     *
+     * <p>J'avais écrit qu'une avance <em>ne peut pas</em> viser un couloir, « pour l'atteindre il
+     * lui faudrait traverser le chargeur ou le héros, et {@code isPathClear} le lui interdit
+     * déjà », et j'en avais conclu que ce bras était <b>vrai par construction</b>. C'est faux, et le
+     * contre-exemple sort à la <b>troisième graine</b> de ce montage : une avance n'a pas besoin de
+     * traverser qui que ce soit pour entrer dans un couloir, il lui suffit d'y être déjà voisine.
+     * Réservation de couloir retirée, bras {@code ADVANCE} seul : « graine 3 tour 2 : sabreur
+     * réclame la case 6, dans le couloir de charge 8 vers 5 ».
+     *
+     * <p>Ma mesure disait pourtant zéro. Elle disait zéro <b>sur un autre montage</b> — un
+     * échantillon qui ne garantissait pas la présence conjointe des deux espèces — et j'ai
+     * généralisé de celui-là à celui-ci. C'est, mot pour mot, la faute que ce projet a déjà payée
+     * deux fois : <b>une démonstration ne vaut que pour la population qu'elle a examinée</b>.
+     *
+     * <p>L'invocation, elle, porte aussi : le souverain choisit sa case adjacente au héros sans
+     * regarder les couloirs, et c'est là qu'il se pose au milieu d'une charge. Le test compte
+     * désormais <b>chaque bras séparément</b> — les fusionner laissait le bras vivant masquer la
+     * disparition de l'autre.
      */
     @Test
     @DisplayName("Aucune intention ne vise une case réservée par une charge annoncée")
     void noIntentionEverTargetsAnAnnouncedChargeCorridor() {
-        int corridorCells = 0;
-        int claimants = 0;
+        int advanceCells = 0;
+        int summonCells = 0;
+        int giveUps = 0;
 
         for (int seed = 0; seed < SEEDS; seed++) {
             Random random = new Random(seed);
@@ -202,9 +216,9 @@ class TelegraphTest {
             Arena arena = new Arena(width, random.nextInt(width));
             // L'espece qui charge et l'espece qui invoque, toutes deux absentes de la vague 1 : sans
             // elles ce test ne franchit jamais son premier filtre.
-            placeSomewhere(arena, EnemyKind.LANCIER, random);
-            placeSomewhere(arena, EnemyKind.SOUVERAIN, random);
-            placeSomewhere(arena, EnemyKind.SABREUR, random);
+            giveUps += placeSomewhere(arena, EnemyKind.LANCIER, random) ? 0 : 1;
+            giveUps += placeSomewhere(arena, EnemyKind.SOUVERAIN, random) ? 0 : 1;
+            giveUps += placeSomewhere(arena, EnemyKind.SABREUR, random) ? 0 : 1;
             arena.announceIntentions();
 
             for (int turn = 0; turn < TURNS_PER_SEED && !arena.isOver(); turn++) {
@@ -227,10 +241,13 @@ class TelegraphTest {
                                         && claim != Intention.Kind.SUMMON)) {
                             continue;
                         }
-                        claimants++;
                         int destination = other.intention().targetCell();
                         for (int cell = from; cell != to; cell += step) {
-                            corridorCells++;
+                            if (claim == Intention.Kind.ADVANCE) {
+                                advanceCells++;
+                            } else {
+                                summonCells++;
+                            }
                             assertTrue(destination != cell,
                                     "graine " + seed + " tour " + turn + " : " + other.label()
                                             + " reclame la case " + (destination + 1)
@@ -243,24 +260,45 @@ class TelegraphTest {
             }
         }
 
-        // Trois filtres imbriques separent la boucle de son assertion, et le montage precedent n'en
-        // franchissait aucun : zero charge en trois cents parties. Sans ce compte, le test etait
-        // vert parce qu'il ne regardait rien.
-        assertTrue(corridorCells > 0,
-                "aucune case de couloir examinee : le montage ne produit pas de charge annoncee"
-                        + " avec une intention concurrente, et ce test ne garde rien");
-        assertTrue(claimants > 0, "aucune intention concurrente observee");
+        // UN COMPTE PAR BRAS, et c'est tout l'interet. La version precedente les fusionnait : le
+        // bras ADVANCE, quatre fois plus fourni, satisfaisait a lui seul le total, si bien que
+        // retirer du montage l'espece qui invoque - une ligne - laissait la suite entierement
+        // verte. Un compteur qui ne peut pas detecter la disparition de ce qu'il compte fabrique
+        // une assurance au lieu d'en donner une.
+        assertTrue(advanceCells > 0,
+                "aucune case de couloir examinee face a une avance : le montage ne produit plus de"
+                        + " charge annoncee avec un camarade en approche");
+        assertTrue(summonCells > 0,
+                "aucune case de couloir examinee face a une invocation : l'espece qui invoque a"
+                        + " disparu du montage, et c'est le bras dont on a mesure qu'il porte le"
+                        + " plus - reservation retiree, il compte cinquante-huit violations la ou"
+                        + " l'autre en compte cinq");
+        // Et le renoncement silencieux de placeSomewhere : six essais, puis rien, sans un mot.
+        assertEquals(0, giveUps,
+                giveUps + " ennemi(s) n'ont pas pu etre poses : le montage est plus pauvre qu'il"
+                        + " n'en a l'air, et personne ne le disait");
     }
 
-    /** Pose un ennemi sur une case libre au hasard, ou renonce. */
-    private static void placeSomewhere(Arena arena, EnemyKind kind, Random random) {
-        for (int tries = 0; tries < 6; tries++) {
-            int cell = random.nextInt(arena.grid().width());
+    /**
+     * Pose un ennemi sur une case libre au hasard.
+     *
+     * @return {@code false} si les six essais ont échoué — un renoncement silencieux appauvrit le
+     *     montage sans que rien ne le signale, et l'appelant en tient le compte
+     */
+    private static boolean placeSomewhere(Arena arena, EnemyKind kind, Random random) {
+        // Depart au hasard, puis balayage complet : six tirages a l'aveugle renoncaient deux fois
+        // sur neuf cents sur les grilles etroites, sans un mot. Ici on ne renonce que s'il n'y a
+        // reellement plus une seule case libre, ce qui est une information et non un hasard.
+        int width = arena.grid().width();
+        int start = random.nextInt(width);
+        for (int offset = 0; offset < width; offset++) {
+            int cell = (start + offset) % width;
             if (arena.grid().isFree(cell)) {
                 arena.grid().place(cell, new Enemy(kind));
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     @Test

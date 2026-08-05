@@ -747,8 +747,9 @@ public final class Arena {
         if (direction == null) {
             throw new IllegalArgumentException("Direction nulle : aucune action à jouer");
         }
-        if (isOver()) {
-            return ActionResult.BLOCKED;
+        ActionResult refusal = refusalToStep(direction);
+        if (refusal != null) {
+            return refusal;
         }
         beginAction();
         if (hero.facing() != direction) {
@@ -758,13 +759,36 @@ public final class Arena {
         }
 
         int from = heroCell();
-        int to = from + direction.step();
-        if (!grid.isFree(to)) {
-            return ActionResult.BLOCKED;
-        }
-        grid.move(from, to);
+        grid.move(from, from + direction.step());
         consumeTurn();
         return settle(ActionResult.MOVED);
+    }
+
+    /**
+     * Ce pas ferait-il quelque chose ?
+     *
+     * <p>Même motif que {@link #canQueue} : la question se pose <b>ici</b> et ne se recopie pas.
+     * L'énumération de l'instrument de mesure proposait « pas droite » contre un mur — le jeu
+     * répondait {@code BLOCKED}, aucun tour n'était consommé, et la politique avait dépensé son
+     * geste pour rien. Son javadoc promettait pourtant qu'« on n'énumère pas les gestes que le jeu
+     * refuserait de toute façon », et le test qui le garde s'appelle « tout geste énuméré est
+     * accepté » sans avoir jamais regardé la réponse du jeu.
+     *
+     * <p>Un demi-tour passe toujours : il change l'orientation et consomme un tour, mur ou pas.
+     */
+    public boolean canStep(Direction direction) {
+        return refusalToStep(direction) == null;
+    }
+
+    /** Le refus qu'opposerait {@link #step}, ou {@code null} si le geste passerait. */
+    private ActionResult refusalToStep(Direction direction) {
+        if (isOver()) {
+            return ActionResult.BLOCKED;
+        }
+        if (hero.facing() != direction) {
+            return null;
+        }
+        return grid.isFree(heroCell() + direction.step()) ? null : ActionResult.BLOCKED;
     }
 
     /**
@@ -1032,8 +1056,10 @@ public final class Arena {
         if (cell == swapTarget()) {
             return ClickPlan.SWAP;
         }
-        // Déjà tourné dans la bonne direction : il ne reste qu'un pas, et il faut que la case
-        // suivante soit libre. Cliquer au-delà d'un occupant ne mène nulle part.
-        return grid.isFree(heroCell() + direction.step()) ? ClickPlan.STEP : ClickPlan.NOTHING;
+        // Déjà tourné dans la bonne direction : il ne reste qu'un pas. La question « ce pas
+        // ferait-il quelque chose » se pose à canStep et ne se recopie pas — elle l'était ici, à
+        // l'identique, et c'était le jumeau de l'énumération de l'instrument de mesure. Ce projet
+        // a laissé sept fois un correctif sans son symétrique ; celui-ci part avec.
+        return canStep(direction) ? ClickPlan.STEP : ClickPlan.NOTHING;
     }
 }

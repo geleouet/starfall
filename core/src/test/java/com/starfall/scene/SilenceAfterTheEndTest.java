@@ -9,6 +9,7 @@ import com.starfall.game.ArenaSetup;
 import com.starfall.game.Direction;
 import com.starfall.game.Enemy;
 import com.starfall.game.EnemyKind;
+import com.starfall.game.Grid;
 import com.starfall.game.Tile;
 import com.starfall.sim.Playout;
 
@@ -43,6 +44,9 @@ class SilenceAfterTheEndTest {
 
     /** Première coupe de la ligne de capture qui est en vague 4 sans être finie. */
     private static final int ENTERS_FOURTH_WAVE = 42;
+
+    /** Graine qui finit une partie de vague 4 avec une invocation encore annoncée. */
+    private static final int WITNESS_SEED = 568;
 
     /**
      * Une arène perdue, avec une file garnie et des ennemis qui avaient annoncé quelque chose.
@@ -153,29 +157,11 @@ class SilenceAfterTheEndTest {
     }
 
     /**
-     * Une partie <b>perdue en vague 4</b>, souverain debout — l'état qui manquait.
-     *
-     * <h2>Ce que cet état devait témoigner, et ce qu'il témoigne réellement</h2>
+     * Une partie <b>perdue en vague 4</b>, souverain debout.
      *
      * <p>Le commentaire d'à côté disait depuis deux reviews : « ce qui manque est une partie perdue
      * en vague 4, et elle n'existe dans aucun scénario ». La première moitié était vraie, la seconde
-     * était une <b>supposition</b> — elle existe, il suffisait de la chercher. La voici : la ligne de
-     * capture jusqu'à son entrée en vague 4, puis du jeu quelconque jusqu'à la mort. Six cents
-     * graines la produisent ; celle-ci est fixée pour que le test soit reproductible.
-     *
-     * <p>Mais l'état ne témoigne <b>pas</b> de ce qu'on en attendait, et c'est la mesure qui le dit.
-     * Sur les six cents défaites en vague 4, le souverain a <b>zéro invocation restante dans les six
-     * cents</b>. Son budget est de <em>une</em> ; le temps qu'une vague 4 se perde, elle est
-     * toujours déjà dépensée, et {@code decideSovereign} exige {@code summonsLeft() > 0} avant
-     * d'annoncer quoi que ce soit. Mesuré plus largement : <b>3 600 fins de partie, zéro</b> avec
-     * une invocation annoncée, alors que 1 405 invocations vivantes ont été observées <em>en cours
-     * de jeu</em>. La branche {@code isOver()} du mot « INVOCATION » est donc inatteignable — non par
-     * une impossibilité de structure, mais <b>par la valeur du budget</b>, qui est un réglage.
-     *
-     * <p><b>La garde reste en place.</b> Deux fois dans ce projet j'ai supprimé du code vivant sur
-     * une démonstration incomplète ; celle-ci dépend d'un nombre qui a déjà changé une fois — il est
-     * passé de deux à un en M9. Le jour où il remonte, la garde redevient utile sans que personne
-     * n'ait à y repenser. Ce qui est acquis, c'est qu'elle n'est pas testable, et pourquoi.
+     * était une <b>supposition</b> — elle existe, il suffisait de la chercher.
      */
     @Test
     @DisplayName("Une partie perdue en vague 4 ne promet rien non plus")
@@ -192,29 +178,6 @@ class SilenceAfterTheEndTest {
         assertTrue(banner.contains("VAGUE 4"), "le bandeau devrait situer la vague : " + banner);
         assertFalse(banner.contains("MENACE"),
                 "le bandeau annonce une menace alors que la partie est perdue : " + banner);
-        // Cette assertion-ci est vraie par construction, et l'ecrire sans le dire serait commettre
-        // le defaut que ce projet passe son temps a trouver. Elle est conservee pour ce qu'elle
-        // decrit, pas pour ce qu'elle garde.
-        assertFalse(banner.contains("INVOCATION"),
-                "le bandeau annonce une invocation alors que la partie est perdue : " + banner);
-
-        // Le vrai garde-fou est ici : c'est le RAISONNEMENT qui est epingle, pas sa conclusion.
-        // La branche « INVOCATION apres la fin » est inatteignable parce que le budget du souverain
-        // vaut UN et qu'il est toujours deja depense quand une vague 4 se perd. Ce nombre est un
-        // reglage, et il a deja change une fois - de deux a un, en M9. S'il remonte, l'assertion
-        // ci-dessus redevient silencieusement vide et personne ne le saurait. Celle-ci rougit.
-        for (Enemy enemy : arena.enemies()) {
-            if (enemy.kind() != EnemyKind.SOUVERAIN) {
-                continue;
-            }
-            assertEquals(0, enemy.summonsLeft(),
-                    "le souverain finit la partie avec " + enemy.summonsLeft() + " invocation(s) en"
-                            + " reserve. C'est la premiere fois : la mesure disait zero sur six"
-                            + " cents defaites en vague 4. L'etat « partie finie AVEC invocation"
-                            + " annoncee » vient peut-etre de devenir atteignable, auquel cas la"
-                            + " garde du bandeau merite enfin un vrai temoin - a chercher, puis a"
-                            + " ecrire ici");
-        }
 
         // Et le souverain lui-meme, survole : son infobulle ne doit plus annoncer d'intention.
         int bossCell = -1;
@@ -226,6 +189,80 @@ class SilenceAfterTheEndTest {
         List<String> lines = HudText.infoLines(arena, -1, -1, bossCell, null);
         assertTrue(lines.stream().anyMatch(line -> line.contains("PARTIE FINIE")),
                 "l'infobulle du souverain devrait dire que la partie est finie : " + lines);
+    }
+
+    /**
+     * Une partie finie <b>pendant qu'une invocation est annoncée</b> : le témoin qui manquait, et
+     * dont j'avais écrit qu'il ne pouvait pas exister.
+     *
+     * <h2>L'affirmation structurelle qui est tombée, la troisième</h2>
+     *
+     * <p>J'avais conclu, chiffres à l'appui, que cet état était <b>inatteignable</b> : « sur six
+     * cents défaites en vague 4, le souverain a zéro invocation restante dans les six cents ; son
+     * budget vaut un et il est toujours déjà dépensé ». Une review indépendante l'a réfuté en
+     * balayant une population que je n'avais pas regardée — des parties <em>démarrées</em> à chaque
+     * vague, et non la seule ligne de capture prolongée. Résultat : <b>quatre fins de partie sur
+     * 3 200</b> portent une invocation vivante. Reproduit ici.
+     *
+     * <p>Le mécanisme, une fois le contre-exemple en main, est simple et j'aurais dû le voir :
+     * {@code spendSummon} est appelé à l'<em>exécution</em>, et la phase ennemie termine
+     * <b>toujours</b> par {@code announceIntentions}, même quand le héros vient de mourir. Il suffit
+     * donc qu'un <em>autre</em> ennemi porte le coup fatal pendant que le souverain, à distance et
+     * en phase impaire, a encore son budget : il ré-annonce une invocation après la fin.
+     *
+     * <p>La leçon est celle que ce projet a déjà payée deux fois, et c'est la troisième :
+     * <b>une démonstration ne vaut que pour la population qu'elle a examinée.</b> J'avais cherché le
+     * contre-exemple — mais dans un seul couloir, en prolongeant la ligne de capture, là où la
+     * défaite arrive toujours tard et le budget toujours dépensé. Le fil-piège que j'avais posé
+     * « au cas où le réglage changerait » regardait cette même partie unique : il était vert
+     * pendant que l'état existait déjà.
+     */
+    @Test
+    @DisplayName("Le bandeau tait l'invocation annoncée après la fin")
+    void theBannerSilencesASummonAnnouncedAfterTheEnd() {
+        Arena arena = overWithALiveSummon();
+
+        assertTrue(arena.isOver(), "cette partie devait etre finie");
+        // La premisse du temoin. Si elle tombe, ce n'est pas l'assertion suivante qu'il faut
+        // croire : c'est ce test qui a cesse de temoigner, et il doit le dire lui-meme.
+        assertTrue(arena.anySummonAnnounced(),
+                "aucune invocation annoncee sur cette partie finie : le temoin a derive et"
+                        + " l'assertion ci-dessous serait vraie pour rien, exactement comme la"
+                        + " version qu'elle remplace");
+
+        String banner = HudText.banner(arena);
+        assertFalse(banner.contains("INVOCATION"),
+                "une invocation est annoncee ET la partie est finie : le bandeau la repete alors"
+                        + " que plus rien ne sera joue. " + banner);
+    }
+
+    /**
+     * La graine qui produit une fin de partie avec une invocation encore annoncée.
+     *
+     * <p>Quatre couples (vague, graine) le font sur les 3 200 balayés ; celui-ci est fixé pour que
+     * le test soit reproductible. Le tirage de largeur consomme le même flux aléatoire que le jeu
+     * — c'est ce qui rend la partie déterministe, et c'est pourquoi il n'est pas sorti de la boucle.
+     */
+    private static Arena overWithALiveSummon() {
+        Random random = new Random(WITNESS_SEED);
+        Arena arena = ArenaSetup.trainingArena(
+                Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1),
+                Arena.WAVE_COUNT);
+        playUntilOver(arena, random);
+        return arena;
+    }
+
+    /** Du jeu quelconque, les quatre gestes, jusqu'à la fin ou jusqu'à épuisement du budget. */
+    private static void playUntilOver(Arena arena, Random random) {
+        for (int step = 0; step < 200 && !arena.isOver(); step++) {
+            switch (random.nextInt(4)) {
+                case 0 -> arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+                case 1 -> arena.swapWithTarget();
+                case 2 -> arena.queueTile(
+                        arena.rack().tiles().get(random.nextInt(arena.rack().tiles().size())));
+                default -> arena.unleash();
+            }
+        }
     }
 
     /**
@@ -242,16 +279,7 @@ class SilenceAfterTheEndTest {
                 "la coupe " + ENTERS_FOURTH_WAVE + " de la ligne de capture n'est plus une vague 4"
                         + " en cours : vague " + arena.wave() + ", finie " + arena.isOver());
 
-        Random random = new Random(0);
-        for (int step = 0; step < 200 && !arena.isOver(); step++) {
-            switch (random.nextInt(4)) {
-                case 0 -> arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
-                case 1 -> arena.swapWithTarget();
-                case 2 -> arena.queueTile(
-                        arena.rack().tiles().get(random.nextInt(arena.rack().tiles().size())));
-                default -> arena.unleash();
-            }
-        }
+        playUntilOver(arena, new Random(0));
         return arena;
     }
 

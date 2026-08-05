@@ -40,7 +40,12 @@ public record Move(String label, boolean free, Function<Arena, ActionResult> act
         }
 
         for (Direction direction : Direction.values()) {
-            moves.add(new Move("pas " + direction.label(), false, a -> a.step(direction)));
+            // Un pas contre un mur rend BLOCKED et ne consomme aucun tour : l'enumerer donnait aux
+            // politiques un geste qui ne fait rien, dans l'instrument meme qui sert a mesurer
+            // combien de tours coute une ligne de jeu.
+            if (arena.canStep(direction)) {
+                moves.add(new Move("pas " + direction.label(), false, a -> a.step(direction)));
+            }
         }
         if (arena.swapTarget() >= 0) {
             moves.add(new Move("échange", false, Arena::swapWithTarget));
@@ -48,15 +53,18 @@ public record Move(String label, boolean free, Function<Arena, ActionResult> act
         if (!arena.queue().isEmpty()) {
             moves.add(new Move("salve", false, Arena::unleash));
         }
-        if (!arena.queue().isFull()) {
-            for (Tile tile : arena.rack().tiles()) {
-                if (arena.rack().isReady(tile)) {
-                    // Poser coûte un tour, sauf pour une tuile Free-Play : c'est là que le temps
-                    // passe désormais, et la distinction compte pour la politique autant que pour
-                    // le compte des tours.
-                    moves.add(new Move("poser " + tile.label(), tile.isFreePlay(),
-                            a -> a.queueTile(tile)));
-                }
+        // La question « une touche peut-elle poser cette tuile » se pose a l'arene, elle ne se
+        // recopie pas. Elle l'etait ici : fin de partie, file pleine, recharge - les trois memes
+        // conditions que refusalToQueue, dupliquees. C'etait le QUATRIEME endroit, et le seul qui
+        // restait apres la couleur de portee, le halo de survol et l'infobulle de ratelier ; il
+        // gouverne l'instrument de mesure sur lequel repose tout M10.
+        for (Tile tile : arena.rack().tiles()) {
+            if (arena.canQueue(tile)) {
+                // Poser coûte un tour, sauf pour une tuile Free-Play : c'est là que le temps
+                // passe désormais, et la distinction compte pour la politique autant que pour
+                // le compte des tours.
+                moves.add(new Move("poser " + tile.label(), tile.isFreePlay(),
+                        a -> a.queueTile(tile)));
             }
         }
         for (int index = 0; index < arena.queue().size(); index++) {

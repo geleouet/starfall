@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.starfall.game.Arena;
+import com.starfall.game.ActionResult;
 import com.starfall.game.ArenaSetup;
 import com.starfall.game.Grid;
 import com.starfall.game.Tile;
@@ -32,10 +33,15 @@ class PlayoutTest {
     @DisplayName("Rejouer la même histoire redonne exactement le même état")
     void replayingTheSameHistoryGivesTheSameState() {
         for (int width : new int[]{Grid.MIN_WIDTH, 9, Grid.MAX_WIDTH}) {
+            // « pas gauche » et non « pas droite » : le heros regarde deja a droite au depart et
+            // la case y est occupee, si bien que ce script rejouait depuis toujours un geste que le
+            // jeu REFUSE - sur les trois largeurs, mesure. Il passait parce que l'enumeration
+            // l'offrait quand meme et que le determinisme tient aussi pour un geste sans effet.
+            // Un pas vers la gauche est un demi-tour, donc toujours accepte.
             List<String> history = new ArrayList<>(List.of(
                     "poser " + Tile.THRUST.label(),
                     "poser " + Tile.STRIKE.label(),
-                    "pas droite",
+                    "pas gauche",
                     "salve",
                     "pas gauche"));
 
@@ -43,6 +49,56 @@ class PlayoutTest {
             for (int repeat = 0; repeat < 4; repeat++) {
                 assertEquals(reference, signature(Playout.replay(width, 1, history)),
                         "grille de " + width);
+            }
+        }
+    }
+
+    /**
+     * Le refus <b>propre à chaque geste</b>, et pas un ensemble global.
+     *
+     * <p>Ma première version mettait {@code NO_TARGET} dans une liste unique de refus, et elle a
+     * aussitôt accusé « salve » à tort : pour une salve, {@code NO_TARGET} n'est pas un refus, c'est
+     * le <em>résultat</em> de sa dernière tuile — le tir est bien parti, il n'a rien trouvé. Le même
+     * mot dit « je refuse » pour un échange et « c'était vide » pour une salve.
+     *
+     * <p>C'est le motif que ce projet appelle <i>un instrument incapable de porter sa conclusion</i>.
+     * La question n'est pas « ce résultat est-il un refus quelque part », mais « ce geste-ci a-t-il
+     * été refusé pour la raison que l'énumération devait écarter ».
+     */
+    private static ActionResult refusalFor(String label) {
+        if (label.startsWith("pas ")) {
+            return ActionResult.BLOCKED;
+        }
+        if (label.startsWith("poser ")) {
+            return null; // deux refus possibles, traités à part
+        }
+        return label.equals("échange") ? ActionResult.NO_TARGET : ActionResult.EMPTY_QUEUE;
+    }
+
+    @Test
+    @DisplayName("L'énumération des poses est exactement ce que l'arène accepterait")
+    void theEnumerationOfPlacementsIsExactlyWhatTheArenaWouldAccept() {
+        for (int wave = 1; wave <= Arena.WAVE_COUNT; wave++) {
+            for (int seed = 0; seed < 40; seed++) {
+                Arena arena = ArenaSetup.trainingArena(9, wave);
+                java.util.Random random = new java.util.Random(seed);
+
+                for (int step = 0; step < 25; step++) {
+                    List<String> labels = Move.legal(arena).stream().map(Move::label).toList();
+                    for (Tile tile : arena.rack().tiles()) {
+                        boolean enumerated = labels.contains("poser " + tile.label());
+                        assertEquals(arena.canQueue(tile), enumerated,
+                                "vague " + wave + " graine " + seed + " : « poser "
+                                        + tile.label() + " » est " + (enumerated ? "" : "ab")
+                                        + "sent de l'enumeration alors que canQueue rend "
+                                        + arena.canQueue(tile));
+                    }
+                    List<Move> moves = Move.legal(arena);
+                    if (moves.isEmpty()) {
+                        break;
+                    }
+                    moves.get(random.nextInt(moves.size())).applyTo(arena);
+                }
             }
         }
     }
@@ -68,7 +124,23 @@ class PlayoutTest {
                 // évaluation partirait d'un état faux sans que rien ne le signale.
                 history.add(move.label());
                 Playout.replay(9, 1, history);
-                move.applyTo(arena);
+
+                // Le titre de ce test dit « accepte par le jeu », et rien ne l'assertait : applyTo
+                // rend un ActionResult que personne ne regardait. Or un geste enumere puis refuse
+                // est exactement ce que legal() existe pour empecher — « les mesures compteraient
+                // des tours qui n'existent pas », dit son propre javadoc. Trouve en corrigeant le
+                // quatrieme endroit ou la regle etait recopiee.
+                ActionResult result = move.applyTo(arena);
+                if (move.label().startsWith("poser ")) {
+                    assertTrue(result != ActionResult.QUEUE_FULL
+                                    && result != ActionResult.NOT_READY,
+                            "graine " + seed + " : « " + move.label() + " » etait enumere et le"
+                                    + " jeu rend " + result);
+                } else {
+                    assertTrue(result != refusalFor(move.label()),
+                            "graine " + seed + " : « " + move.label() + " » etait enumere comme"
+                                    + " legal et le jeu rend " + result);
+                }
             }
         }
     }
@@ -127,7 +199,12 @@ class PlayoutTest {
     @Test
     @DisplayName("Les parties enlisées sortent des moyennes et sont annoncées")
     void stalledGamesLeaveTheAveragesAndAreAnnounced() {
-        BalanceReport report = BalanceReport.measure(Policy.thoughtful(), 15, 1, 12);
+        // Configuration redecoupee apres que l'enumeration a cesse d'offrir les pas contre un
+        // mur : la politique ne gaspille plus ces tours, s'enlise beaucoup moins, et l'ancienne
+        // (largeur 15, 12 parties) est tombee a ZERO enlisement - le test ne mesurait plus rien,
+        // et il le disait lui-meme. Mesure : largeur 6 donne 2 enlisements sur 12 parties et 5 sur
+        // 40. On prend la seconde, pour une marge franche plutot qu'un fil.
+        BalanceReport report = BalanceReport.measure(Policy.thoughtful(), 6, 1, 40);
 
         // On EXIGE que le cas annoncé soit visité, au lieu de le vérifier sous un « if ». Les deux
         // assertions qui portaient quelque chose étaient conditionnelles : un rééquilibrage qui
