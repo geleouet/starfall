@@ -476,6 +476,7 @@ public final class Arena {
             return;
         }
         Enemy minion = new Enemy(EnemyKind.SABREUR);
+        minion.summonedBy(enemy);
         grid.place(cell, minion);
         minion.announce(Intention.of(Intention.Kind.WAIT));
     }
@@ -561,6 +562,33 @@ public final class Arena {
             killsThisAction++;
             if (enemy.has(Trait.EXPLOSIF)) {
                 explode(cell);
+            }
+            dismissSummonsOf(enemy);
+        }
+    }
+
+    /**
+     * Les invocations d'un chef abattu <b>disparaissent</b>.
+     *
+     * <p>Règle systémique de la source, et elle n'était pas ici : « les invocations disparaissent
+     * instantanément à la mort du leader, économisant ainsi des dizaines de tours d'action
+     * potentiellement mortels ». Sans elle, la seule ligne jouable contre le souverain est de tout
+     * nettoyer ; avec elle, ignorer les sbires pour saturer le chef en devient une seconde, et
+     * c'est cette alternative qui fait la rencontre.
+     *
+     * <p>Elles <b>disparaissent</b>, elles ne meurent pas : ni explosion, ni combo. Créditer ces
+     * retraits inverserait l'incitation que la règle installe — on gagnerait à laisser vivre les
+     * sbires pour les encaisser tous d'un coup, alors que le sens de la règle est qu'ils cessent
+     * simplement de compter. C'est aussi pourquoi on passe par {@code grid.clear} et non par
+     * {@link #kill}, qui déclencherait les deux.
+     *
+     * <p>Appelé après l'explosion : un chef explosif blesse d'abord ses voisins, puis emporte les
+     * siens. L'ordre inverse ferait disparaître des sbires que l'explosion aurait dû toucher.
+     */
+    private void dismissSummonsOf(Enemy leader) {
+        for (int cell = 0; cell < grid.width(); cell++) {
+            if (grid.occupantAt(cell) instanceof Enemy minion && minion.summoner() == leader) {
+                grid.clear(cell);
             }
         }
     }

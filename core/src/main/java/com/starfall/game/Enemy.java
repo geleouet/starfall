@@ -25,6 +25,8 @@ public final class Enemy implements Occupant {
     private boolean windingUp;
     /** Invocations qu'il lui reste. Zéro pour tout le monde sauf le souverain. */
     private int summonsLeft;
+    /** Celui qui l'a fait apparaître, ou {@code null} s'il est arrivé avec sa vague. */
+    private Enemy summoner;
 
     public Enemy(EnemyKind kind, Trait... traits) {
         this.kind = kind;
@@ -37,6 +39,23 @@ public final class Enemy implements Occupant {
 
     public EnemyKind kind() {
         return kind;
+    }
+
+    /**
+     * Celui qui l'a fait apparaître, ou {@code null} s'il est arrivé avec sa vague.
+     *
+     * <p>La source fait de ce lien une règle systémique : « les invocations disparaissent
+     * instantanément à la mort du leader, économisant ainsi des dizaines de tours d'action
+     * potentiellement mortels ». C'est ce qui rend viable la stratégie « ignorer les sbires et
+     * saturer le chef » — sans ce lien, la seule ligne jouable est de tout nettoyer, et la
+     * rencontre perd un de ses deux axes.
+     */
+    Enemy summoner() {
+        return summoner;
+    }
+
+    void summonedBy(Enemy leader) {
+        this.summoner = leader;
     }
 
     public Set<Trait> traits() {

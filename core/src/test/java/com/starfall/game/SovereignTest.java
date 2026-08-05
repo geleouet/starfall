@@ -1,6 +1,7 @@
 package com.starfall.game;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -634,5 +635,57 @@ class SovereignTest {
                 .anyMatch(e -> e.kind() == EnemyKind.SOUVERAIN);
         assertTrue(sovereignPresent, "la derniere vague doit amener le souverain");
         assertTrue(last.enemies().size() >= 2, "il ne doit pas venir tout a fait seul");
+    }
+
+    /**
+     * Les invocations d'un chef abattu disparaissent avec lui.
+     *
+     * <p>Règle systémique de la source, absente d'ici jusqu'à cette passe sur les captures :
+     * « les invocations disparaissent instantanément à la mort du leader, économisant ainsi des
+     * dizaines de tours d'action potentiellement mortels ». Elle porte un axe de jeu entier —
+     * ignorer les sbires pour saturer le chef — qui n'existait pas sans elle.
+     *
+     * <p>Le test épingle aussi le <b>symétrique</b>, et c'est la moitié qui compte le plus ici :
+     * un ennemi arrivé avec sa vague ne doit <em>pas</em> disparaître. Une implémentation qui
+     * viderait le plateau satisferait la première moitié et détruirait le jeu.
+     */
+    @Test
+    @DisplayName("Les invocations disparaissent avec leur chef, les autres restent")
+    void summonsVanishWithTheirLeaderButTheOthersStay() {
+        Arena arena = new Arena(11, 5);
+        Enemy sovereign = new Enemy(EnemyKind.SOUVERAIN);
+        arena.grid().place(1, sovereign);
+        Enemy bystander = new Enemy(EnemyKind.SABREUR);
+        arena.grid().place(9, bystander);
+        arena.announceIntentions();
+
+        // On laisse le souverain invoquer : une phase sur deux, donc au plus quelques tours.
+        int summoned = -1;
+        for (int turn = 0; turn < 12 && summoned < 0; turn++) {
+            int announced = -1;
+            for (Enemy enemy : arena.enemies()) {
+                if (enemy.intention().kind() == Intention.Kind.SUMMON) {
+                    // La case est lue AVANT le pas : la phase ennemie execute l'intention puis en
+                    // reannonce une neuve, si bien qu'apres coup on lirait la suivante.
+                    announced = enemy.intention().targetCell();
+                }
+            }
+            arena.step(arena.hero().facing().opposite());
+            if (announced >= 0) {
+                summoned = announced;
+            }
+        }
+        assertTrue(summoned >= 0, "le souverain n'a jamais invoque : ce test ne garde rien");
+        assertTrue(arena.grid().occupantAt(summoned) instanceof Enemy,
+                "l'invocation devait se lever en " + (summoned + 1));
+
+        arena.kill(arena.grid().indexOf(sovereign));
+
+        assertTrue(arena.grid().isFree(summoned),
+                "le sbire invoque est encore en " + (summoned + 1) + " apres la mort de son chef :"
+                        + " la seule ligne jouable redevient « tout nettoyer »");
+        assertSame(bystander, arena.grid().occupantAt(arena.grid().indexOf(bystander)),
+                "un ennemi arrive avec sa vague a disparu lui aussi : la regle emporte plus que"
+                        + " les invocations, ce qui viderait le plateau");
     }
 }
