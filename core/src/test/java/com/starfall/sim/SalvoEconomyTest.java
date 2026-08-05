@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.starfall.game.ActionQueue;
 import com.starfall.game.Arena;
+import com.starfall.game.Grid;
 import com.starfall.game.ArenaSetup;
 import com.starfall.game.Enemy;
 import com.starfall.game.Tile;
@@ -266,7 +267,14 @@ class SalvoEconomyTest {
     @DisplayName("La file de 5 peut être remplie dans chaque configuration")
     void theQueueCanBeFilledInEveryConfiguration() {
         List<String> stuck = new ArrayList<>();
-        for (int width : new int[]{5, 9, 15}) {
+        // TOUTES les largeurs, pas trois. Le titre dit « chaque configuration » et le balayage en
+        // couvrait douze sur quarante-quatre - trois largeurs sur onze, fois quatre vagues. Ce
+        // n'etait pas un mensonge sur le nombre, le tableau de bord ecrivait bien « douze
+        // configurations mesurees » ; c'etait le mot « chaque » qui promettait plus que le
+        // balayage. Et cette affirmation-la porte une decision de game design verrouillee - « le
+        // plafond de la file : ne rien changer » - qui repose sur « elle se remplit partout ».
+        // Prix mesure : 2,55 s pour douze, un peu moins de dix pour quarante-quatre.
+        for (int width = Grid.MIN_WIDTH; width <= Grid.MAX_WIDTH; width++) {
             for (int wave = 1; wave <= Arena.WAVE_COUNT; wave++) {
                 int deepest = deepestQueue(width, wave);
                 if (deepest < ActionQueue.CAPACITY) {
