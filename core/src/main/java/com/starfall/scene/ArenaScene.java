@@ -344,21 +344,11 @@ public final class ArenaScene implements Scene {
         if (hovered == null) {
             return;
         }
-        // Ici vivait un retour anticipé « c'est déjà le préavis résolu qu'on vient de dessiner »,
-        // gardé par HudText.hoveringTheTop. Il ne pouvait RIEN changer à l'image, et c'est
-        // démontrable plutôt que constaté :
-        //
-        //   - hoveringTheTop n'est vrai que si un emplacement de FILE est survolé ;
-        //   - la ligne ci-dessous force alors « available » à vrai, donc la couleur à PREVIEW ;
-        //   - drawStaticReach dessine un CONTOUR, et le préavis résolu du sommet a déjà rempli ou
-        //     contouré le même rectangle dans la même couleur.
-        //
-        // Un contour de la couleur d'un aplat de la même couleur ne se voit pas. La review avait
-        // repéré que la planche choisie pour l'exercer était neutre ; le fond est pire, aucune
-        // planche ne pouvait l'exercer. Retiré plutôt que rafistolé, comme les seuils avant lui.
-        //
-        // Ce que le javadoc de hoveringTheTop décrivait — « le préavis du sommet passait de plein à
-        // creux » — est empêché par la couleur, pas par ce retour.
+        if (HudText.hoveringTheTop(arena, hoveredRackSlot, hoveredQueueSlot)) {
+            return; // c'est deja le preavis resolu qu'on vient de dessiner
+        }
+        // Une tuile qu'aucune touche ne peut poser ne se dessine pas dans la couleur qui veut dire
+        // « ce que je vais provoquer » : sa portée reste vraie, sa disponibilité non.
         boolean available = arena.rack().isReady(hovered) || hoveredQueueSlot >= 0;
         drawStaticReach(hovered, available ? HudColors.PREVIEW : HudColors.SLOT_EMPTY);
     }

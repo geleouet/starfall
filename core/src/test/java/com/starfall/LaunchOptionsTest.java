@@ -208,6 +208,43 @@ class LaunchOptionsTest {
                     "deux images depuis la derniere auraient du etre refusees");
         }
 
+        /**
+         * La borne de {@code --from} vient du scénario de <b>cette</b> scène, pas d'un scénario
+         * unique.
+         *
+         * <p>Le commentaire du code l'affirmait ; rien ne le tenait. Une review l'a montré en
+         * remplaçant la résolution par scène par la longueur de la ligne gagnante : les 477 tests
+         * restaient verts, et {@code --scene showcase --from 12} redevenait accepté — c'est-à-dire
+         * que le défaut « des images identiques écrites en silence » se rouvrait pour la vitrine.
+         *
+         * <p>Les deux scénarios n'ont pas la même longueur, et c'est tout ce qu'il faut pour que ce
+         * test morde.
+         */
+        @Test
+        @DisplayName("La borne de --from suit le scénario de la scène demandée")
+        void theFirstFrameBoundFollowsTheSceneScenario() {
+            int showcase = com.starfall.scene.ShowcaseScript.ACTIONS.size();
+            int winning = com.starfall.scene.CaptureScript.ACTIONS.size();
+            assertTrue(showcase < winning,
+                    "les deux scenarios ont la meme longueur : ce test ne mord plus");
+
+            // Ce que la ligne gagnante accepte, la vitrine doit le refuser.
+            assertEquals(showcase + 1, parse("--screenshot", "captures/x", "--scene", "arena",
+                    "--from", String.valueOf(showcase + 1), "--frames", "1").firstFrame);
+            assertThrows(IllegalArgumentException.class,
+                    () -> parse("--screenshot", "captures/x", "--scene", "showcase",
+                            "--from", String.valueOf(showcase + 1), "--frames", "1"),
+                    "la vitrine ne compte que " + showcase + " gestes");
+        }
+
+        /** Et la mire, qui n'a pas de scénario du tout, n'est pas bornée. */
+        @Test
+        @DisplayName("La mire de calibration échappe à la borne, faute de scénario")
+        void theCalibrationSceneHasNoScriptBound() {
+            assertEquals(500, parse("--screenshot", "captures/x", "--scene", "calibration",
+                    "--from", "500", "--frames", "1").firstFrame);
+        }
+
         @ParameterizedTest(name = "--from {0}")
         @ValueSource(strings = {"-1", "-80", "quatre", "8.5", ""})
         @DisplayName("Une première image négative ou informe est refusée")

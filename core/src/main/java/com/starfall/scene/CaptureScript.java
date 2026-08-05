@@ -263,6 +263,9 @@ public final class CaptureScript {
             -1, -1, -1, -1, -1, -1, -1, -1,
     };
 
+    /** Nom de scène qui sélectionne cette ligne, côté ligne de commande. */
+    public static final String SCENE_NAME = "arena";
+
     /** La vue « scénario » de la ligne gagnante. Voir {@link CaptureScenario}. */
     public static final CaptureScenario SCENARIO = new CaptureScenario() {
         @Override
@@ -285,15 +288,6 @@ public final class CaptureScript {
             return CaptureScript.cellAt(frameIndex);
         }
     };
-
-    /** Rejoue les {@code count} premiers gestes sur une arène. */
-    public static ActionResult replayInto(Arena arena, int count) {
-        ActionResult last = null;
-        for (int i = 0; i < count && i < ACTIONS.size(); i++) {
-            last = ACTIONS.get(i).apply(arena);
-        }
-        return last;
-    }
 
     /** Tuile survolée à cette image, ou {@code -1}. */
     public static int rackSlotAt(int frameIndex) {

@@ -1,5 +1,9 @@
 package com.starfall;
 
+import com.starfall.scene.CaptureScenario;
+import com.starfall.scene.CaptureScript;
+import com.starfall.scene.ShowcaseScript;
+
 
 import com.starfall.game.Arena;
 import com.starfall.game.Grid;
@@ -15,7 +19,7 @@ import java.util.Locale;
  *   --size &lt;L&gt;x&lt;H&gt;           taille initiale de la fenêtre (défaut 1280x720)
  *   --frames &lt;N&gt;             nombre d'images à rendre en mode capture (défaut 2)
  *   --from &lt;N&gt;               première image du scénario à rendre (défaut 0)
- *   --scene &lt;nom&gt;            arena (défaut) ou calibration
+ *   --scene &lt;nom&gt;            voir {@link #SCENES} — l'aide d'exécution les énumère
  *   --grid &lt;N&gt;               largeur de la grille, de 5 à 15 cases (défaut 9)
  *   --wave &lt;N&gt;               vague de départ, pour aller voir directement la fin (défaut 1)
  *   --simulate &lt;N&gt;           joue N parties par politique et imprime le bilan chiffré, sans ouvrir de fenêtre
@@ -31,12 +35,12 @@ public final class LaunchOptions {
     public static final int DEFAULT_WIDTH = 1280;
     public static final int DEFAULT_HEIGHT = 720;
     public static final int DEFAULT_FRAMES = 2;
-    public static final String DEFAULT_SCENE = "arena";
+    public static final String DEFAULT_SCENE = CaptureScript.SCENE_NAME;
     public static final int DEFAULT_GRID_WIDTH = 9;
 
     /** Scènes connues. La mire de calibration reste atteignable : c'est une preuve de non-régression. */
     public static final List<String> SCENES =
-            List.of("arena", "calibration", com.starfall.scene.ShowcaseScript.SCENE_NAME);
+            List.of(CaptureScript.SCENE_NAME, "calibration", ShowcaseScript.SCENE_NAME);
 
     /** Dossier de sortie des captures, ou {@code null} en fonctionnement normal. */
     public final String screenshotDir;
@@ -185,7 +189,7 @@ public final class LaunchOptions {
         if (screenshotDir != null && !"calibration".equals(scene)) {
             // La borne vient du scenario de CETTE scene : la vitrine en compte onze la ou la ligne
             // gagnante en compte 87, et une borne unique aurait laisse passer un --from hors sujet.
-            int available = com.starfall.scene.CaptureScenario.forScene(scene).size();
+            int available = CaptureScenario.forScene(scene).size();
             int last = firstFrame + frames - 1;
             if (last > available) {
                 throw new IllegalArgumentException("--from " + firstFrame + " avec --frames "

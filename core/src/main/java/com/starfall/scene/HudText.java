@@ -132,6 +132,30 @@ public final class HudText {
     }
 
     /**
+     * Vrai si la tuile survolée est celle qui partira, donc si son préavis a le droit d'annoncer un
+     * résultat.
+     *
+     * <p>Survoler l'emplacement du sommet faisait passer son propre préavis de plein à creux : la
+     * forme disait « ceci pourrait atteindre » à propos de la tuile qui allait partir.
+     *
+     * <p><b>Elle a été retirée une fois, à tort.</b> J'avais démontré que le retour anticipé qu'elle
+     * garde ne pouvait rien changer à l'image, en raisonnant sur les couleurs : la portée statique
+     * dessine un contour là où le préavis résolu a déjà rempli le même rectangle dans la même
+     * couleur. Le raisonnement était juste — et incomplet. Il supposait qu'un préavis résolu existe,
+     * or {@link Arena#previewTop()} rend <b>{@code null} quand la partie est finie</b>, précisément
+     * pour ne pas promettre un coup qu'aucune touche ne peut plus déclencher. Sans ce retour, une
+     * portée réapparaît alors sur fond nu, après la mort : 544 pixels mesurés par la review.
+     *
+     * <p>La leçon vaut mieux que le correctif : <b>une démonstration n'est pas une mesure</b>. Le
+     * « rendu identique à l'octet » que j'avais présenté comme preuve ne prouvait rien, puisque
+     * aucune planche du projet n'atteignait l'état « partie finie, file non vide ». La vitrine
+     * l'atteint maintenant.
+     */
+    public static boolean hoveringTheTop(Arena arena, int rackSlot, int queueSlot) {
+        return rackSlot < 0 && queueSlot >= 0 && queueSlot == arena.queue().size() - 1;
+    }
+
+    /**
      * La ligne la plus lue de l'écran : ce qui partira si le joueur appuie sur espace.
      *
      * <p>Elle est composée à partir du <b>préavis</b>, c'est-à-dire de l'objet même que l'exécution

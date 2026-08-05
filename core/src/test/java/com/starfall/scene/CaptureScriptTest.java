@@ -34,7 +34,7 @@ class CaptureScriptTest {
 
     private static Arena after(int actions) {
         Arena arena = ArenaSetup.trainingArena(GRID);
-        CaptureScript.replayInto(arena, actions);
+        CaptureScript.SCENARIO.replayInto(arena, actions);
         return arena;
     }
 

@@ -60,7 +60,18 @@ public interface CaptureScenario {
      * rendu. Écrite à deux endroits, elle aurait divergé — ce projet en a l'habitude.
      */
     static CaptureScenario forScene(String scene) {
-        return ShowcaseScript.SCENE_NAME.equals(scene) ? ShowcaseScript.SCENARIO
-                : CaptureScript.SCENARIO;
+        if (ShowcaseScript.SCENE_NAME.equals(scene)) {
+            return ShowcaseScript.SCENARIO;
+        }
+        if (CaptureScript.SCENE_NAME.equals(scene)) {
+            return CaptureScript.SCENARIO;
+        }
+        // Elle rendait la ligne gagnante pour TOUT le reste, y compris « calibration », « banane »
+        // et null. Son voisin StarfallGame.sceneFor fait l'inverse et son javadoc revendique le
+        // principe : « un ajout de scène oublié ici échoue bruyamment plutôt que d'afficher la
+        // mauvaise ». Deux tables de noms, deux disciplines opposées : c'est celle qui devine qui
+        // avait tort.
+        throw new IllegalArgumentException(
+                "aucun scenario de capture pour la scene « " + scene + " »");
     }
 }

@@ -43,7 +43,17 @@ class ShowcaseScriptTest {
 
         assertTrue(finished.isDefeat(), "la vitrine doit perdre : etat final vie "
                 + finished.hero().health() + ", partie finie " + finished.isOver());
-        assertTrue(finished.isOver(), "une defaite doit terminer la partie");
+        // Pas de « et la partie est finie » : isOver() rend « victoire || defaite », donc
+        // l'assertion serait impliquee par la precedente. Ce qui compte, et qui peut echouer, c'est
+        // que la file soit encore GARNIE et que son sommet soit survole -- le seul etat ou le
+        // retour anticipe de hoveringTheTop se voit, et celui qui m'a fait prendre une regression
+        // de rendu pour du code mort.
+        assertTrue(!finished.queue().isEmpty(),
+                "la file doit rester garnie a la mort, elle contient " + finished.queue().size());
+        assertEquals(0, ShowcaseScript.SCENARIO.queueSlotAt(ShowcaseScript.DEATH_FRAME),
+                "le sommet de la file doit etre survole a l'image de la mort");
+        assertEquals(ShowcaseScript.DEATH_FRAME, ShowcaseScript.ACTIONS.size(),
+                "l'image de la mort doit etre la derniere du scenario");
     }
 
     /**
@@ -94,26 +104,40 @@ class ShowcaseScriptTest {
                 "l'image " + ShowcaseScript.UNQUEUE_FRAME + " devait suivre une reprise");
     }
 
-    /**
-     * Les tableaux de survol couvrent toutes les images, comme ceux de la ligne gagnante.
+    /*
+     * ------------------------------------------------------------------------------------------
+     * Ici vivait « Les tableaux de survol de la vitrine couvrent toutes ses images », copié sur la
+     * garde équivalente de la ligne gagnante. IL ÉTAIT VRAI PAR CONSTRUCTION : les trois tableaux
+     * sont déclarés « new int[ACTIONS.size() + 1] », donc leur longueur EST celle qu'on assertait,
+     * calculée depuis la même expression, dans le même fichier.
      *
-     * <p>La borne manquait sur l'un des trois tableaux de l'autre scénario, et le tronquer faisait
-     * disparaître ses survols en silence. La même garde vaut ici.
+     * La garde d'origine, elle, porte : chez CaptureScript les tableaux sont des littéraux écrits à
+     * la main, et les tronquer fait disparaître des survols en silence. Prouvé des deux côtés en
+     * ajoutant un geste à chaque scénario -- la garde de la ligne gagnante rougit, celle-ci non.
+     *
+     * J'avais recopié la FORME d'un contrôle dans un fichier où la grandeur n'a pas de sens :
+     * exactement ce qui était arrivé au « test de marge de faisceau » deux reviews plus tôt.
+     * Retiré plutôt que rafistolé.
+     * ------------------------------------------------------------------------------------------
+     */
+
+    /**
+     * Un nom de scène inconnu est <b>refusé</b>, il ne retombe pas sur la ligne gagnante.
+     *
+     * <p>La première version rendait la ligne gagnante pour tout ce qui n'était pas la vitrine —
+     * y compris {@code "calibration"}, {@code "banane"} et {@code null}. Son voisin
+     * {@code StarfallGame.sceneFor} fait l'inverse et son javadoc revendique le principe : « un
+     * ajout de scène oublié ici échoue bruyamment plutôt que d'afficher la mauvaise ». Deux tables
+     * de noms, deux disciplines opposées ; c'est celle qui devinait qui avait tort.
      */
     @Test
-    @DisplayName("Les tableaux de survol de la vitrine couvrent toutes ses images")
-    void theShowcaseHoverTablesCoverEveryFrame() {
-        int frames = ShowcaseScript.ACTIONS.size() + 1;
-
-        assertTrue(ShowcaseScript.HOVERED_RACK_SLOT.length >= frames,
-                "survols de ratelier : " + ShowcaseScript.HOVERED_RACK_SLOT.length + " pour "
-                        + frames + " images");
-        assertTrue(ShowcaseScript.HOVERED_QUEUE_SLOT.length >= frames,
-                "survols de file : " + ShowcaseScript.HOVERED_QUEUE_SLOT.length + " pour "
-                        + frames + " images");
-        assertTrue(ShowcaseScript.HOVERED_CELL.length >= frames,
-                "survols de plateau : " + ShowcaseScript.HOVERED_CELL.length + " pour "
-                        + frames + " images");
+    @DisplayName("Un nom de scène sans scénario est refusé")
+    void anUnknownSceneHasNoScenario() {
+        for (String unknown : new String[]{"calibration", "banane", "", null}) {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                    () -> CaptureScenario.forScene(unknown),
+                    "aurait du refuser la scene « " + unknown + " »");
+        }
     }
 
     /** Et la résolution par nom de scène rend bien ce scénario-ci, pas la ligne gagnante. */
