@@ -18,6 +18,13 @@ rem qu'on finit par ne plus faire.
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
+rem Le dossier du script, capture UNE FOIS. Il ne peut pas etre relu par %~dp0 dans le sous-programme
+rem :expect, parce que « shift » decale aussi %0 : apres deux shift, %~dp0 vaut le repertoire courant
+rem et non celui du script. Mesure : SANS-SHIFT donne le dossier du script, APRES-2-SHIFT donne
+rem C:\Windows\. Ca marchait par accident, grace au « cd /d » ci-dessus -- l'ecriture disait une
+rem chose et faisait l'autre.
+set "HERE=%~dp0"
+
 rem Sans cela, un echec attendu suspendrait ce script sur « Appuyez sur une touche ».
 set STARFALL_NO_PAUSE=1
 set "SHOTS=%TEMP%\starfall-verify-launcher"
@@ -45,11 +52,52 @@ set STARFALL_FAIL_AFTER_RUN=1
 call :expect 1 "echec apres un jeu sorti en 0" --screenshot "%SHOTS%" --size 640x360 --frames 1
 set STARFALL_FAIL_AFTER_RUN=
 
+rem Le septieme cas est celui du DOUBLE-CLIC : run.bat sans aucun argument. Les six autres en
+rem passent tous, si bien que la branche « if defined GAMEARGS goto :avec_arguments » n'etait jamais
+rem evaluee a faux -- le mode d'emploi principal du fichier, annonce des sa premiere ligne, n'etait
+rem garde par rien. Mesure : en remplacant :lwjgl3:run par une tache inexistante dans cette branche,
+rem les six cas passaient encore.
+rem
+rem On le provoque par un echec avant lancement, sinon le jeu ouvrirait une fenetre et attendrait.
+rem CE QUE CE CAS COUVRE, ET CE QU'IL NE COUVRE PAS. Il eprouve la branche sans argument jusqu'au
+rem code de sortie : la propriete -P, l'effacement du fichier, la lecture du code. Il ne peut PAS
+rem verifier qu'elle lance la bonne tache, parce qu'une tache inexistante et un echec force rendent
+rem tous deux 1 -- mesure faite, la mutation passait. Jouer cette branche jusqu'au bout demanderait
+rem que le jeu se termine seul, or sans argument il ouvre une fenetre et attend. Le controle
+rem statique ci-dessous prend le relais sur ce point precis.
+set STARFALL_FAIL_BEFORE_RUN=1
+call :expect 1 "double-clic, sans aucun argument"
+set STARFALL_FAIL_BEFORE_RUN=
+
+rem Les deux branches doivent appeler LA MEME tache. C'est ce que le cas dynamique ne peut pas voir.
+set BRANCHES=0
+for /f %%A in ('findstr /C:":lwjgl3:run" "%HERE%run.bat" ^| find /c /v ""') do set BRANCHES=%%A
+if not "!BRANCHES!"=="2" (
+  echo   ECHEC run.bat n'appelle plus :lwjgl3:run sur ses deux branches ^(!BRANCHES! trouvee^(s^)^)
+  set /a FAILURES+=1
+) else (
+  echo   OK   les deux branches appellent :lwjgl3:run ^(controle statique^)
+)
+
+rem Et un controle STATIQUE, faute de mieux, sur la garde qui protege le double-clic du blocage.
+rem Le « pause » de fin ne doit s'executer QUE sans argument : lance par un script, il suspendait
+rem indefiniment celui a qui on venait de rendre le code lisible. Ce harnais ne peut pas l'eprouver
+rem en marchant, parce qu'il pose lui-meme STARFALL_NO_PAUSE pour ne pas se suspendre -- la soupape
+rem masque la garde. Et un blocage ne se chronometre pas en batch. On verifie donc que la ligne
+rem existe telle quelle, ce qui est faible mais honnete, et bien mieux que rien.
+findstr /C:"if \"%%~1\"==\"\" if not defined STARFALL_NO_PAUSE pause" "%HERE%run.bat" >nul
+if errorlevel 1 (
+  echo   ECHEC la garde du « pause » a disparu de run.bat : un script pourrait s'y suspendre
+  set /a FAILURES+=1
+) else (
+  echo   OK   la garde du « pause » est en place ^(controle statique^)
+)
+
 echo.
 if %FAILURES%==0 (
-  echo [Starfall] lanceur conforme : les six chemins rendent le code attendu.
+  echo [Starfall] lanceur conforme : sept chemins et deux controles statiques sont conformes.
 ) else (
-  echo [Starfall] lanceur NON conforme : %FAILURES% chemin^(s^) sur 6.
+  echo [Starfall] lanceur NON conforme : %FAILURES% controle^(s^) en echec sur 8.
 )
 endlocal & exit /b %FAILURES%
 
@@ -59,8 +107,9 @@ set EXPECTED=%1
 set "LABEL=%~2"
 shift
 shift
-rem Les arguments restants sont reinjectes tels quels, guillemets compris.
-call "%~dp0run.bat" %1 %2 %3 %4 %5 %6 %7 %8 >nul 2>&1
+rem Les arguments restants sont reinjectes tels quels, guillemets compris. HERE vient du niveau
+rem au-dessus : apres deux shift, %~dp0 ne designe plus le dossier de ce script.
+call "%HERE%run.bat" %1 %2 %3 %4 %5 %6 %7 %8 >nul 2>&1
 set ACTUAL=!ERRORLEVEL!
 if "!ACTUAL!"=="%EXPECTED%" (
   echo   OK   %LABEL% : code !ACTUAL!

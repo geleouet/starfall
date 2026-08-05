@@ -149,7 +149,7 @@ ext.renderScenarios = [
 
 ext.renderReferenceDir = rootProject.file('captures/reference')
 
-/** Une tâche de rendu par scénario : JavaExec ne lance qu'un processus, et il en faut trois. */
+/** Une tâche de rendu par scénario : JavaExec ne lance qu'un processus, et il en faut cinq. */
 def registerRenderTask(String prefix, String scenario, List<String> scenarioArgs, File into) {
     tasks.register(prefix + scenario.capitalize(), JavaExec) {
         dependsOn tasks.named('classes'), ':core:generateAtlas'
@@ -251,7 +251,7 @@ tasks.register('acceptRender') {
     description = "Remplace captures/reference par le rendu courant, apres l'avoir REGARDE."
     dependsOn renderScenarios.keySet().collect { 'renderAccept' + it.capitalize() }
 
-    // La référence n'est touchée qu'UNE FOIS LES TROIS ÉCRANS RENDUS. La première version effaçait
+    // La référence n'est touchée qu'UNE FOIS TOUS LES ÉCRANS RENDUS. La première version effaçait
     // le dossier dans un doFirst, avant de savoir si le jeu saurait le remplir : un plantage à la
     // capture laissait la référence VIDE -- la tâche « à ne lancer qu'après avoir regardé les
     // images » était aussi celle qui pouvait effacer les images qu'on allait regarder.
