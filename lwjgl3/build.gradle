@@ -45,8 +45,29 @@ tasks.named('run', JavaExec) {
     // Les chemins relatifs (ex. --screenshot captures/m1) partent de la racine du projet.
     workingDir = rootProject.projectDir
 
+    // Le code du jeu est aussi ECRIT, parce que le nommer ne suffisait pas.
+    //
+    // Gradle sort 1 des qu'une tache echoue, quel que soit le code du processus : run.bat renvoyait
+    // donc 1 pour les trois cas. La distinction existait dans le jeu, etait testee, etait affichee
+    // -- et restait illisible pour un script, c'est-a-dire pour le seul appelant que des codes de
+    // sortie interessent. Un fichier d'un octet suffit a la lui rendre, sans capturer la sortie du
+    // jeu ni perdre son affichage en direct.
+    //
+    // Efface avant chaque execution -- mais ce n'est PAS ce qui protege d'une valeur perimee, et il
+    // faut le dire : si la compilation echoue, cette tache ne demarre jamais, donc ce doFirst non
+    // plus. C'est run.bat qui efface le fichier avant tout appel a Gradle. Mesure a l'appui : sans
+    // cela, une compilation cassee juste apres une capture refusee faisait rendre 3 « capture non
+    // conforme » a run.bat pour une erreur de compilation.
+    def exitCodeFile = layout.buildDirectory.file('starfall-exit-code.txt').get().asFile
+
+    doFirst {
+        exitCodeFile.delete()
+    }
+
     doLast {
         int code = executionResult.get().exitValue
+        exitCodeFile.parentFile.mkdirs()
+        exitCodeFile.text = String.valueOf(code)
         if (code != 0) {
             throw new GradleException("[Starfall] le jeu s'est terminé avec le code " + code
                     + " (" + starfallExitMeaning(code) + ")")
