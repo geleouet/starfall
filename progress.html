@@ -308,6 +308,15 @@
 
 <h2>Journal de review</h2>
 
+<div class="rev pass">
+  <div class="hd">Apr&egrave;s M10 &mdash; <b>La r&eacute;serve de la dix-huiti&egrave;me review, et le troisi&egrave;me contrat</b></div>
+  <p>La review avait relev&eacute; un <b>champ <code>static</code> mutable dans une classe de test</b> sans le compter comme d&eacute;faut : « pi&egrave;ge pour qui activera la parall&eacute;lisation, pas un d&eacute;faut aujourd&rsquo;hui ». Elle avait raison sur les deux moiti&eacute;s &mdash; et c&rsquo;est la premi&egrave;re qui compte. Un compteur d&rsquo;&eacute;tat partag&eacute; entre m&eacute;thodes de test est une course qui attend son d&eacute;clencheur, et ce projet a d&eacute;j&agrave; assez pay&eacute; les garde-fous qui d&eacute;pendent d&rsquo;une condition non &eacute;crite. Il est devenu <b>local</b>, la profondeur &eacute;tant relev&eacute;e par l&rsquo;appelant qui tient d&eacute;j&agrave; l&rsquo;ar&egrave;ne. Capacit&eacute; ramen&eacute;e &agrave; une tuile, la garde rougit toujours.</p>
+
+  <p><b>Et le chiffre faux vivait &agrave; deux endroits.</b> Je l&rsquo;avais corrig&eacute; dans le tableau de bord au cycle pr&eacute;c&eacute;dent, en laissant intact le commentaire du code qui le portait aussi. Une mesure fausse dans un commentaire est aussi durable qu&rsquo;ailleurs, et plus difficile &agrave; retrouver. Les deux disent maintenant la m&ecirc;me chose : <b>80 400 observations, plus d&rsquo;un quart &agrave; deux tuiles ou plus, profondeur maximale cinq</b>.</p>
+
+  <p style="margin-bottom:0"><b>Le troisi&egrave;me contrat a &eacute;t&eacute; &eacute;prouv&eacute; comme les deux autres.</b> La review avait montr&eacute; que celui de <code>canUnqueue</code> &eacute;tait vide et que celui de <code>canStep</code> avait des dents ; elle n&rsquo;avait pas fait le troisi&egrave;me. Ne pas le faire aurait &eacute;t&eacute; laisser un sym&eacute;trique ouvert &mdash; le motif que ce projet a d&eacute;j&agrave; pay&eacute; <b>neuf fois</b>. Mesur&eacute; : <code>canQueue</code> mut&eacute; seul fait rougir son contrat en premier, « une tuile pr&ecirc;te sur une file vide doit se poser ». Les trois pr&eacute;dicats ont d&eacute;sormais chacun un contrat, et les trois mordent. <b>508 tests, 84 planches sur 12 &eacute;crans.</b></p>
+</div>
+
 <div class="rev fail">
   <div class="hd">Apr&egrave;s M10 &mdash; <b>Verdict : refus&eacute;e en l&rsquo;&eacute;tat</b> (dix-huiti&egrave;me review : la d&eacute;duplication qui vide un contrat)</div>
   <p>Cinq d&eacute;fauts. Les deux majeurs sont dans du code que je venais d&rsquo;&eacute;crire, et le premier est une le&ccedil;on que ce projet n&rsquo;avait pas encore apprise : <b>rendre un geste enti&egrave;rement d&eacute;pendant de son pr&eacute;dicat vide le test qui garde leur accord</b>.</p>

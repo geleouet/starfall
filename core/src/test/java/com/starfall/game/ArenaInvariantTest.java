@@ -30,7 +30,11 @@ class ArenaInvariantTest {
     @Test
     @DisplayName("Les invariants tiennent sur 80 000 actions aléatoires")
     void invariantsHoldUnderRandomPlay() {
-        deepestQueueSeen = 0;
+        // Local, et non un champ statique. Il l'a ete, et la dix-huitieme review l'a releve sans
+        // le compter : « piege pour qui activera la parallelisation ». Un compteur d'etat partage
+        // entre methodes de test est une course qui attend son declencheur, et ce projet a deja
+        // paye assez cher les garde-fous qui dependent d'une condition non ecrite.
+        int deepestQueueSeen = 0;
 
         for (int seed = 0; seed < SEEDS; seed++) {
             Random random = new Random(seed);
@@ -38,11 +42,13 @@ class ArenaInvariantTest {
             Arena arena = ArenaSetup.trainingArena(gridWidth);
 
             checkAll(arena, seed, -1, "depart");
+            deepestQueueSeen = Math.max(deepestQueueSeen, arena.queue().size());
             for (int step = 0; step < ACTIONS_PER_SEED; step++) {
                 int turnsBefore = arena.turnsTaken();
                 applyRandomAction(arena, random);
                 checkAll(arena, seed, step, "apres action");
                 checkTimeMovesForward(arena, turnsBefore, seed, step);
+                deepestQueueSeen = Math.max(deepestQueueSeen, arena.queue().size());
             }
         }
 
@@ -51,9 +57,6 @@ class ArenaInvariantTest {
                         + " « aucune tuile deux fois sur la file » n'a rien compare, un ensemble"
                         + " de zero ou une tuile n'ayant jamais de doublon");
     }
-
-    /** Profondeur maximale atteinte par la file pendant le dernier fuzz. */
-    private static int deepestQueueSeen;
 
     private static void applyRandomAction(Arena arena, Random random) {
         List<Tile> tiles = arena.rack().tiles();
@@ -98,13 +101,13 @@ class ArenaInvariantTest {
 
         // La file ne déborde pas, et ne porte jamais deux fois la même tuile.
         List<Tile> queued = arena.queue().fromOldest();
-        deepestQueueSeen = Math.max(deepestQueueSeen, queued.size());
         assertTrue(queued.size() <= ActionQueue.CAPACITY,
                 where + "file de " + queued.size() + " tuiles");
         // « autant d'elements que d'elements distincts » est trivialement vrai en dessous de DEUX
         // tuiles : la seizieme review a trouve cet idiome exactement vide ailleurs, sur une liste
-        // qui n'atteignait jamais deux. Ici il porte - mesure : 1 097 observations a deux tuiles
-        // ou plus sur 6 754 - mais rien ne le garantissait. La profondeur atteinte est desormais
+        // qui n'atteignait jamais deux. Ici il porte - mesure sur les 80 400 observations de ce
+        // fuzz : plus d'un quart atteignent deux tuiles ou plus, et la profondeur maximale vaut
+        // cinq - mais rien ne le garantissait. La profondeur atteinte est desormais
         // assertee a la fin du fuzz, comme l'exige la voisine qui pose « size() >= 2 » avant le
         // meme idiome.
         assertEquals(queued.size(), new HashSet<>(queued).size(),
