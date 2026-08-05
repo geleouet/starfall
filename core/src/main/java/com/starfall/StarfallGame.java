@@ -82,7 +82,7 @@ public class StarfallGame extends ApplicationAdapter {
             // La vitrine rejoue la MEME scene, sur un autre scenario : ce qui est garde est le
             // rendu du jeu, pas une maquette a cote.
             case ShowcaseScript.SCENE_NAME -> new ArenaScene(ShowcaseScript.SCENARIO);
-            case "calibration" -> new CalibrationScene();
+            case CalibrationScene.SCENE_NAME -> new CalibrationScene();
             default -> throw new IllegalArgumentException("Scène inconnue : " + name);
         };
     }

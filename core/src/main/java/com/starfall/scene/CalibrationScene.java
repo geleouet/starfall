@@ -60,9 +60,19 @@ public final class CalibrationScene implements Scene {
     private float cameraX = StarfallGame.MIN_WORLD_WIDTH / 2f;
     private float cameraY = StarfallGame.MIN_WORLD_HEIGHT / 2f;
 
+        /**
+     * Nom de scène qui la sélectionne, côté ligne de commande.
+     *
+     * <p>Il était écrit en toutes lettres à quatre endroits — ici, dans la table des scènes, dans
+     * l'aiguillage du jeu, et dans l'exemption de la borne de {@code --from}. Les deux autres scènes
+     * portaient déjà leur nom ; celle-ci ne l'a pas fait parce qu'elle n'a pas de scénario de
+     * capture, c'est-à-dire pour une raison qui n'a rien à voir.
+     */
+    public static final String SCENE_NAME = "calibration";
+
     @Override
     public String name() {
-        return "calibration";
+        return SCENE_NAME;
     }
 
     @Override

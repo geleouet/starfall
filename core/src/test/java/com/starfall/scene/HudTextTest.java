@@ -1,6 +1,7 @@
 package com.starfall.scene;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.starfall.StarfallGame;
@@ -319,4 +320,40 @@ class HudTextTest {
                         + HudLayout.BANNER_BOTTOM);
     }
 
+
+    /**
+     * {@code hoveringTheTop} : trois branches, aucune testée jusqu'ici.
+     *
+     * <p>Elle est pourtant pure et vit dans la classe dont le javadoc revendique de tout éprouver à
+     * ce niveau. Son absence de test n'est pas anodine : c'est elle qui décide si le préavis du
+     * sommet reste plein quand on le survole, et c'est autour d'elle que deux régressions de rendu
+     * se sont jouées — une suppression à tort, puis un symétrique laissé ouvert.
+     */
+    @Test
+    @DisplayName("Survoler le sommet : les trois branches")
+    void hoveringTheTopHasThreeBranches() {
+        Arena arena = ArenaSetup.trainingArena(9, 1);
+        arena.queueTile(Tile.STRIKE);
+        arena.queueTile(Tile.PUSH);
+
+        // Le râtelier est prioritaire : tant qu'une tuile y est survolée, la file ne compte pas.
+        assertFalse(HudText.hoveringTheTop(arena, 0, 1),
+                "un survol de ratelier ne peut pas etre un survol du sommet");
+
+        // Aucun emplacement de file survolé.
+        assertFalse(HudText.hoveringTheTop(arena, -1, -1), "rien n'est survole");
+
+        // Le sommet est le DERNIER posé, pas le premier affiché : c'est tout le contre-intuitif de
+        // la file, et l'inverser rendrait « plein » un préavis qui doit rester creux.
+        assertTrue(HudText.hoveringTheTop(arena, -1, arena.queue().size() - 1),
+                "le dernier emplacement est le sommet");
+        assertFalse(HudText.hoveringTheTop(arena, -1, 0),
+                "le premier emplacement n'est pas le sommet quand la file en compte deux");
+
+        // Et sur une file d'une seule tuile, l'unique emplacement EST le sommet.
+        Arena single = ArenaSetup.trainingArena(9, 1);
+        single.queueTile(Tile.STRIKE);
+        assertTrue(HudText.hoveringTheTop(single, -1, 0),
+                "l'unique emplacement d'une file d'une tuile est le sommet");
+    }
 }
