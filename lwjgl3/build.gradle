@@ -154,7 +154,10 @@ static String starfallExitMeaning(int code) {
  *   gradlew :lwjgl3:acceptRender     adopte le rendu courant, après l'avoir regardé
  */
 ext.renderScenarios = [
-        arena          : ['--size', '1280x720', '--frames', '12', '--scene', 'arena'],
+        // L'écran « arena » vivait ici, à 12 images. Une review a mesuré que ses douze planches
+        // étaient OCTET POUR OCTET les douze premières d'arenaDeep, qui rend le même scénario plus
+        // loin : douze duplicatas exacts, un lancement de JVM et douze images à relire de plus à
+        // chaque adoption, pour un apport propre nul. Retiré.
         wave2          : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '2'],
         wave3          : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '3'],
         // La suite profonde du scénario, et c'est l'écran le plus chargé du lot : il est le seul à
@@ -196,7 +199,8 @@ ext.PENDING_SUFFIX = '.pending'
 // interrompue cesserait d'être vu comme orphelin -- c'est-à-dire exactement ce que le javadoc
 // ci-dessus déclare impossible. Une prémisse tacite est une prémisse qu'on ne verra pas tomber.
 assert renderScenarios.keySet().every { !it.endsWith(PENDING_SUFFIX) } :
-        "un ecran ne peut pas s'appeler « ...${PENDING_SUFFIX} » : son dossier de reference serait" +
+        "un ecran ne peut pas porter le suffixe « ${PENDING_SUFFIX} » : son dossier de reference" +
+                " serait" +
                 " confondu avec une ecriture en cours"
 
 /**

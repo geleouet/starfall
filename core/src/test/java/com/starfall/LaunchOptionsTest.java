@@ -182,6 +182,32 @@ class LaunchOptionsTest {
             assertEquals(value, parse("--grid", String.valueOf(value)).gridWidth);
         }
 
+        /**
+         * Demander une image que le scénario n'a pas est une erreur de ligne de commande.
+         *
+         * <p>Sans ce contrôle, {@code --from 200} écrivait trois PNG rigoureusement identiques et
+         * sortait en 0. Le projet avait déjà eu ce défaut sous la forme d'un {@code --frames N} qui
+         * écrivait N copies de la même image ; {@code --from} rouvrait la même porte, et une review
+         * l'a mesuré : trois fichiers de 8917 octets chacun.
+         */
+        @Test
+        @DisplayName("Une première image au-delà du scénario est refusée")
+        void aFirstFrameBeyondTheScriptIsRejected() {
+            int last = com.starfall.scene.CaptureScript.ACTIONS.size();
+            // La dernière image du scénario est celle qui suit le dernier geste : elle est légale.
+            assertEquals(last, parse("--screenshot", "captures/fin", "--from", String.valueOf(last),
+                    "--frames", "1").firstFrame);
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> parse("--screenshot", "captures/fin", "--from", String.valueOf(last + 1),
+                            "--frames", "1"),
+                    "une image au-dela du scenario aurait du etre refusee");
+            assertThrows(IllegalArgumentException.class,
+                    () -> parse("--screenshot", "captures/fin", "--from", String.valueOf(last),
+                            "--frames", "2"),
+                    "deux images depuis la derniere auraient du etre refusees");
+        }
+
         @ParameterizedTest(name = "--from {0}")
         @ValueSource(strings = {"-1", "-80", "quatre", "8.5", ""})
         @DisplayName("Une première image négative ou informe est refusée")

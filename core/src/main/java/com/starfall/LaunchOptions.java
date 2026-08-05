@@ -1,5 +1,7 @@
 package com.starfall;
 
+import com.starfall.scene.CaptureScript;
+
 import com.starfall.game.Arena;
 import com.starfall.game.Grid;
 
@@ -176,6 +178,19 @@ public final class LaunchOptions {
             }
         }
 
+        // Demander des images que le scénario n'a pas est une erreur de ligne de commande, pas un
+        // détail : sans ce contrôle, « --from 200 » écrivait trois PNG rigoureusement identiques et
+        // sortait en 0. Le projet a déjà eu ce défaut sous la forme d'un « --frames N » qui écrivait
+        // N copies de la même image ; --from rouvrait exactement la même porte.
+        if (screenshotDir != null && DEFAULT_SCENE.equals(scene)) {
+            int last = firstFrame + frames - 1;
+            if (last > CaptureScript.ACTIONS.size()) {
+                throw new IllegalArgumentException("--from " + firstFrame + " avec --frames "
+                        + frames + " demande l'image " + last + ", or le scenario en compte "
+                        + (CaptureScript.ACTIONS.size() + 1) + " (0 a "
+                        + CaptureScript.ACTIONS.size() + ")");
+            }
+        }
         return new LaunchOptions(screenshotDir, width, height, frames, firstFrame, scene, gridWidth,
                 startWave, simulations, helpRequested);
     }
@@ -200,6 +215,21 @@ public final class LaunchOptions {
      * et refuser la valeur par défaut serait une drôle de validation.
      */
     private static int requireNonNegative(String raw, String option) {
+        return requireAtLeast(raw, option, 0);
+    }
+
+    private static int requirePositive(String raw, String option) {
+        return requireAtLeast(raw, option, 1);
+    }
+
+    /**
+     * Un entier au moins égal à {@code minimum}.
+     *
+     * <p>Les deux formes ci-dessus étaient écrites en toutes lettres, à quatorze lignes près, dans
+     * un projet dont la phrase récurrente est qu'une règle écrite à deux endroits finit par
+     * diverger. Un paramètre suffisait.
+     */
+    private static int requireAtLeast(String raw, String option, int minimum) {
         String text = raw.trim();
         int value;
         try {
@@ -207,23 +237,10 @@ public final class LaunchOptions {
         } catch (NumberFormatException notANumber) {
             throw new IllegalArgumentException(option + " attend un entier, reçu : " + text);
         }
-        if (value < 0) {
-            throw new IllegalArgumentException(option + " attend un entier positif ou nul, reçu : "
-                    + value);
-        }
-        return value;
-    }
-
-    private static int requirePositive(String raw, String option) {
-        String text = raw.trim();
-        int value;
-        try {
-            value = Integer.parseInt(text);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(option + " attend un entier, reçu : " + text);
-        }
-        if (value < 1) {
-            throw new IllegalArgumentException(option + " attend un entier strictement positif, reçu : " + value);
+        if (value < minimum) {
+            throw new IllegalArgumentException(option + " attend un entier "
+                    + (minimum == 0 ? "positif ou nul" : "au moins égal à " + minimum)
+                    + ", reçu : " + value);
         }
         return value;
     }
@@ -248,6 +265,7 @@ public final class LaunchOptions {
         return "LaunchOptions{screenshotDir=" + screenshotDir
                 + ", size=" + width + "x" + height
                 + ", frames=" + frames
+                + (firstFrame > 0 ? ", from=" + firstFrame : "")
                 + ", scene=" + scene
                 + ", grid=" + gridWidth + ", wave=" + startWave
                 + (simulations > 0 ? ", simulate=" + simulations : "") + '}';

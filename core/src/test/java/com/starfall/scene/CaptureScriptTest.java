@@ -147,6 +147,13 @@ class CaptureScriptTest {
         assertTrue(CaptureScript.HOVERED_RACK_SLOT.length >= frames,
                 "le survol du ratelier s'arrete a l'image "
                         + CaptureScript.HOVERED_RACK_SLOT.length + " pour " + frames + " images");
+        // Le troisième tableau était sans borne, et c'est le défaut que le commentaire ci-dessus
+        // décrit mot pour mot : tronqué à douze entrées, les deux survols de file disparaissaient
+        // et la suite restait verte, parce que queueSlotAt rend -1 hors bornes. Une perte
+        // silencieuse est pire qu'une erreur.
+        assertTrue(CaptureScript.HOVERED_QUEUE_SLOT.length >= frames,
+                "le tableau des survols de file ne couvre que "
+                        + CaptureScript.HOVERED_QUEUE_SLOT.length + " images pour " + frames);
         assertTrue(CaptureScript.HOVERED_CELL.length >= frames,
                 "le survol des cases s'arrete a l'image "
                         + CaptureScript.HOVERED_CELL.length + " pour " + frames + " images");

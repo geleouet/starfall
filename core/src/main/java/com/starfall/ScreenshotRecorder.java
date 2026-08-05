@@ -82,8 +82,14 @@ public final class ScreenshotRecorder {
 
         Pixmap pixmap = Pixmap.createFromFrameBuffer(0, 0, width, height);
         // Le nom porte l'image du SCÉNARIO et non le compteur d'écriture : avec « --from 80 », le
-        // premier fichier doit s'appeler frame80 et pas frame00, sans quoi deux planches de deux
-        // écrans différents porteraient le même nom en montrant des instants sans rapport.
+        // premier fichier s'appelle frame80 et pas frame00.
+        //
+        // La justification écrite ici disait « sans quoi deux planches de deux écrans différents
+        // porteraient le même nom en montrant des instants sans rapport ». C'était faux, et une
+        // review l'a relevé : c'est déjà le cas partout, arena/frame00 et wave3/frame00 coexistent
+        // sans se gêner puisqu'ils vivent dans des dossiers distincts. La vraie raison est plus
+        // simple : celui qui relit une planche doit pouvoir la situer dans le scénario sans
+        // calculer un décalage de tête.
         String name = String.format("starfall-%dx%d-frame%02d.png", width, height,
                 firstFrame + framesCaptured);
         FileHandle file = outputDir.child(name);

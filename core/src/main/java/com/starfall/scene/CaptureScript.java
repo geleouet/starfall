@@ -38,7 +38,9 @@ public final class CaptureScript {
      * <p>Ce qu'ils doivent montrer, et ce que le test vérifie : une file <b>chargée sous le feu</b>
      * — chaque pose coûte un tour et les ennemis se rapprochent pendant ce temps — puis une
      * <b>salve</b> qui fait tomber plusieurs effets d'un coup, puis une <b>vague qui bascule</b>.
-     * C'est toute l'économie du jeu en onze gestes.
+     * C'est toute l'économie du jeu, puis la tranche entière jusqu'à la victoire. Le compte de
+     * gestes n'est pas écrit ici : il a été faux deux fois — « onze » alors qu'il y en avait 27,
+     * puis 87 — et {@code ACTIONS.size()} le dit sans jamais se tromper.
      */
     public static final List<Function<Arena, ActionResult>> ACTIONS = List.of(
             // Une ouverture qui tient : elle franchit la première vague à pleine santé en quatre
@@ -239,16 +241,23 @@ public final class CaptureScript {
      *   <li><b>19</b> : la file compte quatre tuiles et on survole la <em>plus ancienne</em>, donc
      *       pas celle qui partira la première. C'est le cas que l'interface doit rendre lisible,
      *       puisque la file s'exécute à l'envers de sa lecture ;</li>
-     *   <li><b>21</b> : la file n'en compte qu'une, donc la survolée <em>est</em> le sommet.</li>
+     *   <li><b>16</b> : la file n'en compte qu'une, donc la survolée <em>est</em> le sommet — et
+     *       cette tuile est une <b>frappe</b>, ce qui n'est pas un détail.</li>
      * </ul>
      *
-     * <p>Les deux branches de {@code HudText.hoveringTheTop} sont ainsi exercées. Elles sont prises
-     * dans la <b>suite profonde</b> à dessein : les douze premières images ne bougent pas, donc les
-     * planches-contact datées des jalons restent ce qu'elles étaient.
+     * <p><b>Une première version choisissait l'image 21, et elle ne gardait rien.</b> La file y
+     * contenait un <b>élan</b>, dont la portée statique est <em>vide</em>. Une review l'a relevé —
+     * et en cherchant à la remplacer par une image dont la tuile a une portée, on a trouvé pire :
+     * le retour anticipé qu'elle prétendait garder <b>ne pouvait rien changer à aucune image</b>,
+     * la couleur étant forcée à celle du préavis dès qu'un emplacement de file est survolé. Il a
+     * été retiré ; voir {@code ArenaScene.drawReach}.
+     *
+     * <p>Ce qui reste gardé ici est réel et vérifié par mutation : l'emplacement mis en avant, et
+     * la tuile survolée traitée comme disponible. Les deux ne sont vues que par l'image 19.
      */
     public static final int[] HOVERED_QUEUE_SLOT = {
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0,
-            -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, -1, 0,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
             -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
             -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
             -1, -1, -1, -1, -1, -1, -1, -1,

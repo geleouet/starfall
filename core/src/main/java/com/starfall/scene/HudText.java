@@ -132,17 +132,6 @@ public final class HudText {
     }
 
     /**
-     * Vrai si la tuile survolée est celle qui partira, donc si son préavis a le droit d'annoncer un
-     * résultat.
-     *
-     * <p>Survoler l'emplacement du sommet faisait passer son propre préavis de plein à creux : la
-     * forme disait « ceci pourrait atteindre » à propos de la tuile qui allait partir.
-     */
-    public static boolean hoveringTheTop(Arena arena, int rackSlot, int queueSlot) {
-        return rackSlot < 0 && queueSlot >= 0 && queueSlot == arena.queue().size() - 1;
-    }
-
-    /**
      * La ligne la plus lue de l'écran : ce qui partira si le joueur appuie sur espace.
      *
      * <p>Elle est composée à partir du <b>préavis</b>, c'est-à-dire de l'objet même que l'exécution
