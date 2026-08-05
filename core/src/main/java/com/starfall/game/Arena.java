@@ -981,6 +981,21 @@ public final class Arena {
      * <p>Une salve dont <b>rien</b> ne porte ne coûte pas de tour : les tuiles sont dépensées et
      * partent en recharge, ce qui est déjà le prix de les avoir jouées, mais on ne fait pas payer
      * deux fois une décision déjà punie. C'est la règle de M5, transposée à la salve entière.
+     *
+     * <h2>Écart assumé avec la source</h2>
+     *
+     * <p>Shogun Showdown décrit l'exécution comme un processus « <b>tout-ou-rien</b> » qui
+     * « s'enchaîne sans interruption », et il en fait un <em>risque de conception</em> : vider le
+     * plateau déclenche aussitôt la vague suivante, si bien qu'« un joueur ayant vidé sa file et ses
+     * cooldowns pour un combo spectaculaire peut se retrouver démuni ». La salve qui continue dans
+     * le vide fait partie de la punition.
+     *
+     * <p>Ici elle s'arrête, et les tuiles restantes demeurent dans la file. Le choix est délibéré et
+     * il a sa raison — la ligne d'annonce ne décrit que la <em>première</em> tuile, donc le
+     * gaspillage serait invisible au moment de décider, ce qui en ferait une punition non
+     * télégraphiée. Le télégraphe est l'invariant central de ce projet ; il l'emporte sur la
+     * fidélité au détail. Mais c'est bien un écart, et le nommer vaut mieux que de le laisser
+     * ressembler à un oubli.
      */
     public ActionResult unleash() {
         if (isOver()) {
