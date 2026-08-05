@@ -111,7 +111,7 @@ public final class HudText {
         }
         if (arena.grid().occupantAt(cell) instanceof Enemy enemy) {
             lines.add(enemyHead(enemy));
-            lines.add(enemyDetail(enemy));
+            lines.add(enemyDetail(enemy, arena.isOver()));
             return lines;
         }
         if (last != null) {
@@ -283,7 +283,13 @@ public final class HudText {
     }
 
     /** Deuxième ligne : ce qu'il fait maintenant, et ce qui le rend particulier. */
-    public static String enemyDetail(Enemy enemy) {
+    public static String enemyDetail(Enemy enemy, boolean over) {
+        // Une intention est une annonce : elle dit ce que la phase ennemie va faire. Après la fin de
+        // partie il n'y en aura plus, et l'infobulle disait encore « FRAPPE » pendant que le râtelier
+        // disait « PARTIE FINIE ». Le glyphe et le texte se sont tus ensemble, cette fois.
+        if (over) {
+            return "PARTIE FINIE";
+        }
         StringBuilder line = new StringBuilder(enemy.intention().kind().label().toUpperCase());
         if (enemy.blowsPerAttack() > 1) {
             line.append(" - ").append(enemy.blowsPerAttack()).append(" COUPS PAR FRAPPE");

@@ -71,7 +71,7 @@ class RenderWindowTest {
     private static void assertCapturesItsOwnScene(String declaration, String scenario) {
         assertTrue(declaration.contains("'--scene', '" + scenario + "'"),
                 "la declaration de l'ecran « " + scenario + " » ne capture pas cette scene : "
-                        + declaration.replaceAll("\s+", " ").trim());
+                        + declaration.replaceAll("\\s+", " ").trim());
     }
 
     /** La valeur d'une option de ligne de commande dans cette déclaration, ou le défaut donné. */

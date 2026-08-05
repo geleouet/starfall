@@ -55,7 +55,12 @@ rem indefinie, aucun timeout nulle part. Mesure : 75 secondes sans retour, proce
 rem main. Dans une boucle de review automatisee, un garde-fou qui SUSPEND est pire qu'un garde-fou
 rem absent. On verifie donc d'abord que le refus est ecrit, et on ne joue le cas dynamique que
 rem s'il l'est.
-findstr /C:"demande --screenshot" "%HERE%core\src\main\java\com\starfall\LaunchOptions.java" >nul
+rem On epingle LA GARDE, pas son message. La premiere version cherchait "demande --screenshot",
+rem c'est-a-dire le texte de l'exception : en remplacant la condition par une autre tout en gardant
+rem le message, findstr sortait en 0, le harnais enchainait sur le cas dynamique, une vraie fenetre
+rem s'ouvrait et le harnais se suspendait -- le mode d'echec exact que ce controle existe pour
+rem eviter. Mesure faite par une review.
+findstr /C:"screenshotDir == null && ShowcaseScript.SCENE_NAME.equals(scene)" "%HERE%core\src\main\java\com\starfall\LaunchOptions.java" >nul
 if errorlevel 1 (
   echo   ECHEC le refus de la vitrine hors capture a disparu de LaunchOptions
   set /a FAILURES+=1

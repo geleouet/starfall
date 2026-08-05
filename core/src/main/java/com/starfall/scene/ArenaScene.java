@@ -803,6 +803,15 @@ public final class ArenaScene implements Scene {
      * ne saurait pas distinguer un ennemi qui se rapproche d'un ennemi qui attend.
      */
     private void drawIntentions() {
+        // « La case menacée dit OÙ ; ce glyphe dit QUOI » — et c'est la phrase même du javadoc
+        // ci-dessus qui condamne l'oubli. J'avais fait taire les bandes de menace après la mort et
+        // laissé les glyphes : les planches neuves de la vitrine portaient la pointe pleine
+        // d'ATTAQUE visant la case d'un héros mort, 288 pixels de la couleur de la menace, sur les
+        // trois images construites pour prouver qu'aucune promesse ne survit. Quatrième fois qu'un
+        // correctif de cette famille laisse son symétrique ouvert.
+        if (arena.isOver()) {
+            return;
+        }
         for (Enemy enemy : arena.enemies()) {
             int cell = arena.grid().indexOf(enemy);
             int centre = cellCentre(cell);
@@ -1016,7 +1025,10 @@ public final class ArenaScene implements Scene {
             int x = hud.queueSlotX(slot);
             if (slot < tiles.size()) {
                 painter.sprite(context.atlas().region(tiles.get(slot).spriteName()), x, HudLayout.QUEUE_Y);
-                if (hoveredQueueSlot == slot) {
+                // Même règle que le surlignage de plateau, qui filtre par « clickable » au motif
+                // que « le pointeur promettait une action qui ne venait pas ». Après la mort,
+                // reprendre rend BLOCKED : le halo promettait un geste impossible.
+                if (hoveredQueueSlot == slot && !arena.isOver()) {
                     painter.outline(x - 1, HudLayout.QUEUE_Y - 1,
                             HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
                 }
@@ -1104,7 +1116,7 @@ public final class ArenaScene implements Scene {
                 painter.fill(x, HudLayout.RACK_MARK_BOTTOM, HudLayout.TILE_SIZE, 2, HudColors.QUEUE);
             }
 
-            if (hoveredRackSlot == i) {
+            if (hoveredRackSlot == i && !arena.isOver()) {
                 painter.outline(x - 1, HudLayout.RACK_Y - 1,
                         HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
             }
