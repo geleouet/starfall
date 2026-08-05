@@ -867,7 +867,7 @@ public final class ArenaScene implements Scene {
 
         if (target >= 0) {
             drawAimLink(hero, target);
-            drawCellMark(target, TARGET_MARK);
+            drawSwapTargetMark(target, hero);
         }
         drawHeroMark(hero);
         // Le surlignage s'allumait sur toutes les cases, y compris celles qu'un clic ne pouvait
@@ -879,18 +879,53 @@ public final class ArenaScene implements Scene {
         }
     }
 
-    /** Repère de case : un trait épais sous la dalle, qui ne cache jamais la figure. */
-    private void drawCellMark(int cell, Color color) {
-        painter.fill(layout.cellLeft(cell) + 2, ArenaLayout.MARK_Y, ArenaLayout.CELL_WIDTH - 4, 2, color);
+    /**
+     * Repère de la cible d'échange : un trait, et une <b>pointe qui regarde le héros</b>.
+     *
+     * <p>C'était un simple trait épais de deux pixels, posé sur la même ligne et dans la même
+     * couleur que le trait de liaison, qui en fait un. Les deux ne se distinguaient donc que par
+     * <em>un pixel d'épaisseur</em> — il fallait regarder à l'échelle ×1 pour les démêler. La review
+     * du jalon de la grille l'avait relevé ; le correctif attendait qu'on sache par quoi remplacer.
+     *
+     * <p>La réponse est celle que le projet s'est donnée depuis, à chaque fois que deux signes se
+     * ressemblaient de trop : <b>une forme vaut mieux qu'une nuance</b>. C'est ce qui distingue le
+     * chevron creux de la pointe pleine chez les ennemis, le losange de l'invocation, la croix d'un
+     * coup qui rate.
+     *
+     * <p>La pointe est tournée <em>vers le héros</em>, et pas vers la cible : elle dit « celui-ci
+     * vient à toi », ce qui est exactement ce que fait un échange de place. Avec la pointe du héros
+     * qui, elle, regarde la cible, les deux repères se lisent comme une seule phrase — deux flèches
+     * qui se font face, c'est-à-dire un troc.
+     */
+    private void drawSwapTargetMark(int cell, int heroCell) {
+        int left = layout.cellLeft(cell) + 2;
+        int width = ArenaLayout.CELL_WIDTH - 4;
+        painter.fill(left, ArenaLayout.MARK_Y, width, 2, TARGET_MARK);
+
+        // Pointe vers le héros : quatre colonnes qui s'affinent, comme celle du héros mais à
+        // contresens. Même grammaire, sens inverse.
+        int step = Integer.signum(heroCell - cell);
+        int tip = step > 0 ? left + width : left - 1;
+        for (int i = 0; i < 4; i++) {
+            int height = 8 - 2 * i;
+            painter.fill(tip + step * i, ArenaLayout.MARK_Y + 1 - height / 2, 1, height, TARGET_MARK);
+        }
     }
 
-    /** Trait de liaison entre le héros et la cible, sur la même ligne que les deux repères. */
+    /**
+     * Trait de liaison entre le héros et la cible.
+     *
+     * <p>Il est <b>pointillé</b>, et c'est la seconde moitié du correctif : un trait plein d'un
+     * pixel à côté d'un trait plein de deux ne se départage qu'à la loupe. Pointillé, il se lit
+     * comme ce qu'il est — un lien, et non un repère de case.
+     */
     private void drawAimLink(int hero, int target) {
-        int heroCentre = cellCentre(hero);
-        int targetCentre = cellCentre(target);
+        int from = Math.min(cellCentre(hero), cellCentre(target));
+        int to = Math.max(cellCentre(hero), cellCentre(target));
 
-        painter.fill(Math.min(heroCentre, targetCentre), ArenaLayout.MARK_Y,
-                Math.abs(targetCentre - heroCentre), 1, TARGET_MARK);
+        for (int x = from; x < to; x += 2) {
+            painter.fill(x, ArenaLayout.MARK_Y, 1, 1, TARGET_MARK);
+        }
     }
 
     /**
