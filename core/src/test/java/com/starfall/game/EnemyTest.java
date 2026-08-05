@@ -298,7 +298,13 @@ class EnemyTest {
                             Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1),
                             startWave);
 
-                    for (int step = 0; step < 60; step++) {
+                    for (int step = 0; step < 60 && !arena.isOver(); step++) {
+                        // Meme correction que dans TelegraphTest, et pour la meme raison : sans la
+                        // borne « !isOver() » cette boucle tournait sur un plateau gele apres la
+                        // mort du heros. La review l'avait mesure sans le retenir - 299 charges et
+                        // 796 ruees comptees APRES la fin - et l'avait ecarte parce que le signal
+                        // vivant suffisait. Il suffisait, mais un compteur nourri par des tours ou
+                        // rien ne se joue n'est pas un compteur de couverture.
                         for (Enemy enemy : arena.enemies()) {
                             observed.merge(enemy.intention().kind(), 1, Integer::sum);
                         }

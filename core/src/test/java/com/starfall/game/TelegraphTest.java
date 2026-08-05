@@ -56,10 +56,15 @@ class TelegraphTest {
                         Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1),
                         startWave);
 
-                for (int turn = 0; turn < TURNS_PER_SEED && !arena.enemies().isEmpty(); turn++) {
-                    for (Enemy enemy : arena.enemies()) {
-                        sampled.merge(enemy.kind(), 1, Integer::sum);
-                    }
+                // « !isOver() » et pas seulement « il reste des ennemis » : apres la mort du
+                // heros le plateau est GELE, et cette boucle continuait d'y tourner jusqu'a
+                // soixante tours en nourrissant le compteur de couverture.
+                for (int turn = 0; turn < TURNS_PER_SEED && !arena.isOver()
+                        && !arena.enemies().isEmpty(); turn++) {
+                    // Les especes presentes AVANT le geste : ce sont elles qui ont annonce, et donc
+                    // elles que la comparaison qui suit met a l'epreuve. On ne les compte qu'une
+                    // fois le tour reellement consomme.
+                    List<EnemyKind> facing = arena.enemies().stream().map(Enemy::kind).toList();
                     int heroCell = arena.heroCell();
                     int announced = arena.threatCount(heroCell);
                     int hitsBefore = arena.heroHits();
@@ -71,6 +76,12 @@ class TelegraphTest {
                     if (arena.turnsTaken() == turnsBefore) {
                         continue; // aucun tour consommé : aucune phase ennemie à vérifier
                     }
+                    // APRES le « continue », et c'est tout l'interet. Place avant, le compteur
+                    // creditait des tours ou rien n'etait verifie - la seizieme review l'a mesure :
+                    // 5 671 tours verifies contre 66 329 sautes, et des totaux de 300 x 60 tout
+                    // ronds, signature d'un compteur qui tourne sur un plateau gele. Un compteur de
+                    // couverture qui compte ce qui n'est pas eprouve ne mesure pas la couverture.
+                    facing.forEach(kind -> sampled.merge(kind, 1, Integer::sum));
 
                     int taken = arena.heroHits() - hitsBefore;
                     if (taken != announced) {
