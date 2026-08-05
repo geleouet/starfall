@@ -213,9 +213,19 @@ class WinnabilityTest {
         // Pas de « rejoue et verifie que ca gagne » : findAWin ne rend une ligne QUE lorsqu'elle
         // vient d'evaluer ce meme rejeu a vrai, et Playout.replay est pur. Reemettre l'appel serait
         // une assertion incapable d'echouer -- le defaut exact que ce fichier a deja eu a corriger
-        // trois fois. Ce qui peut echouer, en revanche, c'est la LONGUEUR : une rencontre qui se
-        // durcirait passerait de seize gestes a beaucoup plus sans cesser d'etre gagnable, et
-        // personne ne le verrait.
+        // trois fois.
+        //
+        // Le plafond ci-dessous, lui, PEUT echouer -- mais soyons exact sur ce qu'il vaut, parce que
+        // j'ai d'abord ecrit qu'il attraperait « une rencontre qui se durcirait ». Les victoires
+        // mesurees font 11 a 16 gestes ; le plafond est a 90. La marge est de 5,6x : un durcissement
+        // realiste, meme un doublement, passerait dessous sans le declencher. C'est un garde-fou
+        // contre l'EMBALLEMENT -- une recherche qui frole son propre plafond de profondeur, donc qui
+        // ne prouve plus grand-chose -- et pas une jauge de difficulte.
+        //
+        // Le resserrer mesurerait la qualite de ma recherche et non le jeu : la longueur d'une ligne
+        // trouvee depend de Policy.score autant que de l'equilibrage, et ce projet a deja retire un
+        // seuil plutot que de le rabaisser pour cette raison exacte. Mieux vaut un plafond large et
+        // honnetement decrit qu'un plafond serre qui crie au loup a chaque retouche d'heuristique.
         assertTrue(win.size() < MAX_DEPTH - 20, "victoire trouvee en largeur " + width + " apres "
                 + win.size() + " gestes, trop pres du plafond de " + MAX_DEPTH);
     }

@@ -126,20 +126,25 @@ static String starfallExitMeaning(int code) {
  * captures/reference n'a pas de date : elle dit « voici ce que le jeu dessine aujourd'hui », et
  * acceptRender ne la régénère que délibérément -- ce qui oblige à regarder les images.
  *
- * <p>TROIS ÉCRANS, ET C'EST UN CORRECTIF. La première version ne gardait que la vague 1 en grille 9.
- * La review a relevé que le SOUVERAIN -- la rencontre la plus dense à lire, celle qui empile ruée,
- * invocation et sbires -- n'avait aucune référence, ni la mire de calibration. C'était garder le
- * plus facile et laisser le plus difficile.
+ * <p>CINQ ÉCRANS, ET C'EST DEUX FOIS UN CORRECTIF. La première version ne gardait que la vague 1 en
+ * grille 9. La review a relevé que le SOUVERAIN -- la rencontre la plus dense à lire, celle qui
+ * empile ruée, invocation et sbires -- n'avait aucune référence, ni la mire de calibration : c'était
+ * garder le plus facile et laisser le plus difficile. Elle notait ensuite que les dix autres
+ * LARGEURS restaient nues, alors que toute la géométrie de l'arène en dépend -- ArenaLayout calcule
+ * chaque case à partir d'elle, et c'est précisément là qu'un décalage se voit. Les deux extrémités,
+ * 5 et 15, sont donc gardées aussi.
  *
  * <p>Hors de « test » à dessein : ces tâches demandent un écran, la suite JUnit non.
  *
- *   gradlew :lwjgl3:verifyRender     confronte les trois écrans à la référence
+ *   gradlew :lwjgl3:verifyRender     confronte les cinq écrans à la référence
  *   gradlew :lwjgl3:acceptRender     adopte le rendu courant, après l'avoir regardé
  */
 ext.renderScenarios = [
         arena      : ['--size', '1280x720', '--frames', '12', '--scene', 'arena'],
         souverain  : ['--size', '1280x720', '--frames', '6', '--scene', 'arena', '--wave', '4'],
         calibration: ['--size', '1280x720', '--frames', '2', '--scene', 'calibration'],
+        etroit     : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
+        large      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],
 ]
 
 ext.renderReferenceDir = rootProject.file('captures/reference')
@@ -162,8 +167,18 @@ def registerRenderTask(String prefix, String scenario, List<String> scenarioArgs
         doLast {
             int code = executionResult.get().exitValue
             if (code != 0) {
+                // Le code 3 a une cause banale qu'il vaut mieux nommer : sur un poste dont l'écran
+                // est plus petit que 1280x720, la fenêtre est bornée par le système et la capture
+                // n'a pas la taille demandée. Le garde-fou devient alors inutilisable, et la review
+                // a relevé qu'aucun recours n'était écrit. Il n'y en a pas de bon : abaisser la
+                // taille invaliderait la référence pour tout le monde. Ce qu'on peut faire, c'est
+                // le dire au lieu de laisser chercher.
+                def tooSmall = " -- l'écran est-il plus petit que la taille demandée ? " +
+                        "La référence est calée sur 1280x720 et ne peut pas être vérifiée en dessous."
+                def hint = (code == 3) ? tooSmall : ""
                 throw new GradleException("[Starfall] rendu de l'écran « " + scenario
-                        + " » interrompu, code " + code + " (" + starfallExitMeaning(code) + ")")
+                        + " » interrompu, code " + code + " (" + starfallExitMeaning(code) + ")"
+                        + hint)
             }
         }
     }
@@ -179,7 +194,7 @@ renderScenarios.each { scenario, scenarioArgs ->
 
 tasks.register('verifyRender') {
     group = 'verification'
-    description = "Confronte les trois écrans du jeu à captures/reference, octet à octet."
+    description = "Confronte les cinq écrans du jeu à captures/reference, octet à octet."
     dependsOn renderScenarios.keySet().collect { 'renderCheck' + it.capitalize() }
 
     doLast {
