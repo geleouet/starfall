@@ -158,7 +158,27 @@ public enum Tile {
         }
     };
 
-    /** Dégâts d'une frappe. Un point : la Vagabonde ne frappe pas fort, elle se replace. */
+    /**
+     * Dégâts d'une frappe. Un point : la Vagabonde ne frappe pas fort, elle se replace.
+     *
+     * <h2>Écart assumé avec la source, et le plus lourd de tous</h2>
+     *
+     * <p>Chez Shogun Showdown, le nombre porté par une tuile <b>est</b> ses dégâts, et c'est
+     * l'information la plus visible de l'écran. Tout un axe de jeu en découle : « atteindre 5 points
+     * de dégâts est le seuil critique absolu », les archétypes de construction s'opposent entre
+     * « 0 recharge » et « gros dégâts », et une cible à 7 PV contre une tuile à 2 « brise l'économie
+     * de tours ». Ici, <b>toutes les tuiles infligent exactement un point</b> : cet axe n'existe pas.
+     *
+     * <p>Ce que la constante porte à la place, c'est la <b>forme</b> — portée, poussée, élan,
+     * volte-face — et le prix se paie en <b>recharge</b>, jamais en puissance. C'est cohérent avec
+     * le personnage et avec la doctrine du projet : « une forme vaut mieux qu'une nuance ». Mais
+     * c'est une amputation, pas une transposition, et le dire compte : un lecteur du document
+     * d'inspiration cherche ce nombre sur nos tuiles et ne le trouve pas.
+     *
+     * <p>Le rétablir serait une décision de <b>périmètre</b>, pas de réglage : elle rouvrirait
+     * l'équilibrage entier — points de vie des archétypes, coûts de recharge, ligne de capture,
+     * mesures de jouabilité. Elle est donc posée au tableau de bord plutôt que prise ici.
+     */
     public static final int DAMAGE = 1;
 
     private final String label;
