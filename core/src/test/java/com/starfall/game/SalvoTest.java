@@ -232,4 +232,64 @@ class SalvoTest {
                     "une salve de " + size + " doit couter " + (size + 1) + " tours en tout");
         }
     }
+
+    /**
+     * <b>La salve raconte son déroulement, temps par temps.</b>
+     *
+     * <p>C'est ce qui manque pour rendre le geste central lisible : cinq tuiles se résolvent dans
+     * un seul tour, et l'écran passe de l'avant à l'après sans montrer l'enchaînement. Le modèle
+     * reste instantané — délibérément — mais il consigne désormais ce qu'il a fait, dans l'ordre,
+     * pour que la vue puisse prendre du retard sur lui.
+     *
+     * <p>Trois moitiés, et chacune peut échouer seule : l'<b>ordre</b> doit être celui de
+     * l'exécution, du sommet vers le bas ; la <b>case</b> de chaque temps doit être celle que la
+     * tuile visait, lue avant l'exécution puisqu'après elle ne décrit plus rien ; et un geste
+     * simple ne doit produire <em>aucun</em> temps, sans quoi la scène animerait un pas.
+     */
+    @Test
+    @DisplayName("La salve consigne ses temps, dans l'ordre et avec leur case")
+    void theVolleyRecordsItsBeatsInOrder() {
+        Arena arena = new Arena(11, 1);
+        arena.grid().place(3, new Enemy(EnemyKind.SABREUR));
+        arena.announceIntentions();
+
+        arena.queueTile(Tile.THRUST);   // posee en premier, donc jouee en DERNIER
+        arena.queueTile(Tile.STRIKE);
+        assertTrue(arena.beats().isEmpty(), "poser n'est pas un deroulement");
+
+        arena.unleash();
+        List<Arena.Beat> beats = arena.beats();
+
+        assertEquals(2, beats.size(), "deux tuiles parties, deux temps : " + beats);
+        assertEquals(Tile.STRIKE, beats.get(0).tile(),
+                "la file part du DERNIER pose : la frappe d'abord");
+        assertEquals(Tile.THRUST, beats.get(1).tile(), "puis l'estoc");
+        assertEquals(arena.heroCell() + 1, beats.get(0).cell(),
+                "la frappe vise la case juste devant");
+        assertEquals(arena.heroCell() + 2, beats.get(1).cell(),
+                "l'estoc vise la deuxieme, et cette case se lit AVANT l'execution");
+
+        // Et un geste simple ne raconte rien : sans cela, la scene animerait un pas.
+        arena.step(arena.hero().facing().opposite());
+        assertTrue(arena.beats().isEmpty(),
+                "un demi-tour a produit des temps : " + arena.beats());
+
+        // LA MOITIE QUI MORD. Les deux assertions de case ci-dessus ne distinguent rien : ni la
+        // frappe ni l'estoc ne deplacent le heros, si bien que la case visee est la meme avant et
+        // apres l'execution - mesure, la mutation « lire la case APRES » les laissait vertes. Il
+        // faut une tuile qui BOUGE, dont la case d'arrivee change des qu'elle a joue.
+        Arena moving = new Arena(11, 5);
+        moving.announceIntentions();
+        int before = moving.heroCell();
+        Direction back = moving.hero().facing().opposite();
+        moving.queueTile(Tile.SIDESTEP);
+        moving.unleash();
+
+        assertEquals(1, moving.beats().size(), "une tuile partie, un temps");
+        assertEquals(before + back.step(), moving.beats().get(0).cell(),
+                "le temps doit porter la case d'ARRIVEE calculee avant le pas ; lue apres, elle"
+                        + " designerait la case suivante, celle du pas d'apres");
+        assertEquals(before + back.step(), moving.heroCell(),
+                "et le heros y est bien : le montage ne vaut que si le pas a eu lieu");
+    }
 }

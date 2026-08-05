@@ -174,9 +174,42 @@ public final class Arena {
      *
      * @return le résultat à afficher, éventuellement remplacé par un événement plus important
      */
+    /**
+     * Un <b>temps</b> de la résolution : une tuile a joué, voici ce qu'elle a fait et où.
+     *
+     * <p>Une salve de cinq tuiles se résout dans un seul tour, et le modèle la résout d'un bloc :
+     * l'écran passe de l'avant à l'après sans que rien ne montre l'enchaînement. C'est le geste
+     * central du jeu — celui pour lequel la file existe — et c'est le seul qu'on ne peut pas lire.
+     *
+     * <p>Ces temps sont ce que la scène animera. Le modèle reste instantané, ce qui est
+     * délibéré : tout ce qui dépend de lui — les cinq cent dix tests, la recherche de jouabilité,
+     * les mesures d'équilibrage — continue de voir une résolution atomique. C'est la <em>vue</em>
+     * qui prend du retard sur l'état, jamais l'inverse.
+     *
+     * @param tile   la tuile qui a joué
+     * @param result ce qu'elle a produit
+     * @param cell   la case visée, ou {@code -1} quand la tuile n'en vise aucune
+     */
+    public record Beat(Tile tile, ActionResult result, int cell) {
+    }
+
+    /**
+     * Les temps de la <b>dernière action du joueur</b>, dans l'ordre où ils se sont produits.
+     *
+     * <p>Vide pour un geste qui n'en compte qu'un — un pas, un échange : il n'y a rien à
+     * dérouler. Une salve en compte autant que de tuiles parties, et c'est là que la lecture se
+     * perd aujourd'hui.
+     */
+    public List<Beat> beats() {
+        return List.copyOf(beats);
+    }
+
+    private final List<Beat> beats = new ArrayList<>();
+
     /** Ouvre une action du joueur : c'est ici que le compteur de morts repart de zéro. */
     private void beginAction() {
         killsThisAction = 0;
+        beats.clear();
     }
 
     private ActionResult settle(ActionResult result) {
@@ -1014,7 +1047,18 @@ public final class Arena {
         boolean hadEnemies = !enemiesLeftToRight().isEmpty();
         while (!queue.isEmpty()) {
             Tile tile = queue.pop();
+            // La case se lit AVANT l'exécution : après, la tuile a déjà déplacé le héros, et le
+            // préavis décrirait le coup SUIVANT au lieu de celui qui vient de partir.
+            //
+            // La visée d'abord, l'arrivée ensuite. Une tuile qui frappe dans le VIDE garde sa case
+            // visée — le préavis la conserve même quand rien ne s'y trouve — et c'est ce qu'il faut
+            // montrer : voir l'estoc balayer une case déserte explique au joueur pourquoi rien ne
+            // s'est produit. Les tuiles de mouvement, elles, n'ont pas de visée : c'est leur case
+            // d'arrivée qui porte le temps, et c'est là qu'il y a le plus à voir.
+            TilePreview preview = tile.preview(this);
+            int cell = preview.aim() >= 0 ? preview.aim() : preview.landing();
             ActionResult result = tile.applyTo(this);
+            beats.add(new Beat(tile, result, cell));
             rack.giveBackSpent(tile);
             fired++;
             last = result;
