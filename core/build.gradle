@@ -51,4 +51,16 @@ tasks.named('build') {
 // etait celle qui ne marchait pas chez lui.
 tasks.named('test') {
     dependsOn tasks.named('generateAtlas')
+
+    // RenderWindowTest lit lwjgl3/build.gradle pour confronter la fenetre de capture a la longueur
+    // du scenario. Sans cette declaration, Gradle ne voit pas ce fichier comme une entree : modifier
+    // la fenetre laissait la tache UP-TO-DATE, servie depuis le cache, et le test passait AU VERT
+    // SANS ETRE EXECUTE. Une review l'a mesure -- 902 ms, FROM-CACHE, sur la regression meme que ce
+    // test existe pour attraper.
+    //
+    // L'auteur avait eprouve la seule direction qui marche (modifier le Java) et conclu que le pont
+    // existait. Le precedent invoque pour se justifier -- AtlasCoverageTest lit l'index genere --
+    // ne tenait pas : cet index est produit par une tache dont test depend, donc c'est une entree
+    // declaree. Ici il n'y en avait aucune.
+    inputs.file(rootProject.file('lwjgl3/build.gradle')).withPropertyName('renderScenarios')
 }

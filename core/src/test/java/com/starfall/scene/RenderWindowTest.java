@@ -59,6 +59,21 @@ class RenderWindowTest {
         return matcher.group(1);
     }
 
+    /**
+     * La déclaration capture-t-elle bien la scène que sa clé nomme ?
+     *
+     * <p>Sans ce contrôle, le test reliait une <b>clé de map</b> à un scénario Java sans jamais
+     * vérifier que l'écran rend la bonne scène. Une review l'a montré : en faisant capturer
+     * {@code --scene arena} sous la clé {@code showcase}, les deux tests passaient — l'écran de la
+     * vitrine aurait rendu la ligne gagnante, et le test écrit pour garder son image terminale
+     * n'aurait rien dit.
+     */
+    private static void assertCapturesItsOwnScene(String declaration, String scenario) {
+        assertTrue(declaration.contains("'--scene', '" + scenario + "'"),
+                "la declaration de l'ecran « " + scenario + " » ne capture pas cette scene : "
+                        + declaration.replaceAll("\s+", " ").trim());
+    }
+
     /** La valeur d'une option de ligne de commande dans cette déclaration, ou le défaut donné. */
     private static int optionOf(String declaration, String option, int fallback) {
         Matcher matcher = Pattern.compile(
@@ -76,6 +91,7 @@ class RenderWindowTest {
     @DisplayName("La fenêtre de capture de la vitrine couvre sa dernière image")
     void theShowcaseWindowEndsOnItsLastFrame() throws IOException {
         String declaration = declarationOf(ShowcaseScript.SCENE_NAME);
+        assertCapturesItsOwnScene(declaration, ShowcaseScript.SCENE_NAME);
         int from = optionOf(declaration, "--from", 0);
         int frames = optionOf(declaration, "--frames", 2);
 
@@ -98,6 +114,7 @@ class RenderWindowTest {
     @DisplayName("La fenêtre de la fin de partie couvre la dernière image de la ligne gagnante")
     void theVictoryWindowEndsOnTheLastFrame() throws IOException {
         String declaration = declarationOf("arenaVictory");
+        assertCapturesItsOwnScene(declaration, CaptureScript.SCENE_NAME);
         int from = optionOf(declaration, "--from", 0);
         int frames = optionOf(declaration, "--frames", 2);
 

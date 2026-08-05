@@ -343,6 +343,15 @@ class HudTextTest {
         // Aucun emplacement de file survolé.
         assertFalse(HudText.hoveringTheTop(arena, -1, -1), "rien n'est survole");
 
+        // Et la branche que le titre promettait sans l'éprouver : sur une file VIDE, « size() - 1 »
+        // vaut -1, donc sans la clause « queueSlot >= 0 » un survol absent passerait pour un survol
+        // du sommet. Le test poussait toujours deux tuiles avant d'asserter, si bien que -1 == 1
+        // était faux de toute façon : l'assertion ci-dessus était vraie par construction.
+        Arena empty = ArenaSetup.trainingArena(9, 1);
+        assertTrue(empty.queue().isEmpty(), "la file devait etre vide");
+        assertFalse(HudText.hoveringTheTop(empty, -1, -1),
+                "une file vide n'a pas de sommet, meme quand rien n'est survole");
+
         // Le sommet est le DERNIER posé, pas le premier affiché : c'est tout le contre-intuitif de
         // la file, et l'inverser rendrait « plein » un préavis qui doit rester creux.
         assertTrue(HudText.hoveringTheTop(arena, -1, arena.queue().size() - 1),

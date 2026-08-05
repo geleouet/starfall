@@ -753,6 +753,12 @@ public final class ArenaScene implements Scene {
      * doit être au même endroit que la question.
      */
     private void drawThreats() {
+        // Une menace est une ANNONCE : elle dit ce que la phase ennemie va faire. Après la mort il
+        // n'y a plus de phase ennemie, et le bandeau annonçait « MENACE 2 » au-dessus d'un panneau
+        // disant « PARTIE PERDUE ». Deux coups que personne ne jouera jamais.
+        if (arena.isOver()) {
+            return;
+        }
         for (int cell = 0; cell < layout.gridWidth(); cell++) {
             if (arena.summonsAt(cell)) {
                 // Une invocation ne fait tomber aucun coup : elle a sa forme à elle, un losange
@@ -1038,6 +1044,11 @@ public final class ArenaScene implements Scene {
      * lisait comme une annotation du râtelier.
      */
     private void drawNextMarker(int slotX) {
+        // Le repère de la prochaine tuile exécutée dit « c'est celle-là qui part la première ».
+        // Après la mort, aucune ne part. Même raison que la bande de menace juste au-dessus.
+        if (arena.isOver()) {
+            return;
+        }
         painter.outline(slotX - 1, HudLayout.QUEUE_Y - 1,
                 HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HudColors.QUEUE);
         painter.fill(slotX, HudLayout.QUEUE_MARK_BOTTOM, HudLayout.TILE_SIZE, 2, HudColors.QUEUE);

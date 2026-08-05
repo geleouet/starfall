@@ -60,28 +60,34 @@ public final class ShowcaseScript {
     public static final int UNQUEUE_FRAME = 5;
 
     /**
-     * L'image de la mort, file <b>non vide</b> et sommet survolé.
+     * Les <b>trois</b> images terminales, et pourquoi il en faut trois.
      *
-     * <p>La première version de cette vitrine mourait la file vide : elle montrait la bannière de
-     * défaite, mais pas l'état où une tuile reste en attente d'une partie qui ne reprendra pas.
+     * <p>« Après la mort, rien ne se promet » n'est pas une règle mais trois, et aucune image ne
+     * peut les montrer ensemble :
+     *
+     * <ul>
+     *   <li>{@link #DEATH_FRAME} — un emplacement de file survolé qui <b>n'est pas</b> le sommet.
+     *       C'est la moitié du correctif qui n'avait aucun témoin : la vitrine mourait avec une
+     *       seule tuile, donc l'emplacement 0 était toujours le sommet et ce chemin n'était jamais
+     *       atteint. Elle meurt maintenant avec deux ;</li>
+     *   <li>{@link #TOP_FRAME} — le <b>sommet</b> survolé, qui passe par un autre chemin du code :
+     *       {@code hoveringTheTop} sort avant même de regarder la disponibilité ;</li>
+     *   <li>{@link #RACK_FRAME} — une tuile du <b>râtelier</b> survolée, ce que {@code
+     *       hoveringTheTop} exclut par construction.</li>
+     * </ul>
+     *
+     * <p>Les deux derniers gestes sont <b>refusés</b> par l'arène, la partie étant finie : c'est le
+     * seul moyen de rendre trois fois le même état terminal avec trois survols différents. Un geste
+     * sans effet dans un scénario de capture est normalement un défaut ; ici c'est l'instrument, et
+     * un test exige qu'ils soient bien refusés.
      */
-    public static final int DEATH_FRAME = 10;
+    public static final int DEATH_FRAME = 11;
 
-    /**
-     * La <b>même</b> image terminale, mais râtelier survolé.
-     *
-     * <p>Elle existe parce que deux règles distinctes se cachent derrière « après la mort, rien ne
-     * se promet », et qu'une seule image ne peut pas les montrer toutes deux : {@code
-     * hoveringTheTop} exige qu'<em>aucune</em> tuile du râtelier ne soit survolée, tandis que la
-     * disponibilité se lit justement sur le râtelier. J'avais fermé la première et laissé la seconde
-     * ouverte — mêmes 544 pixels, autre porte.
-     *
-     * <p>Le geste qui l'amène est <b>refusé</b> par l'arène, la partie étant finie : c'est
-     * volontaire, et c'est le seul moyen de rendre deux fois le même état terminal avec deux survols
-     * différents. Un geste sans effet dans un scénario de capture est normalement un défaut ; ici
-     * c'est l'instrument.
-     */
-    public static final int AFTER_DEATH_FRAME = 11;
+    /** L'état terminal, sommet de la file survolé. */
+    public static final int TOP_FRAME = 12;
+
+    /** L'état terminal, râtelier survolé. */
+    public static final int RACK_FRAME = 13;
 
     public static final List<Function<Arena, ActionResult>> ACTIONS = List.of(
             a -> a.step(Direction.RIGHT),
@@ -91,29 +97,31 @@ public final class ShowcaseScript {
             // le dire par une forme et non par un mot.
             a -> a.queueTile(Tile.PUSH),
             a -> a.unqueueAt(0),
-            // On recharge avant de mourir : la file doit être GARNIE à la dernière image, sans quoi
-            // l'état « partie finie, tuile en attente » reste hors de portée du garde-fou.
+            // On recharge DEUX tuiles avant de mourir : la file doit être garnie à plus d'un à la
+            // dernière image, sans quoi l'emplacement survolé serait toujours le sommet et la
+            // moitié « file » de la règle resterait sans témoin.
             a -> a.queueTile(Tile.STRIKE),
+            a -> a.queueTile(Tile.THRUST),
             // Puis on meurt, ce qui est le seul moyen de voir la bannière de défaite.
-            a -> a.swapWithTarget(),
             a -> a.step(Direction.RIGHT),
             a -> a.step(Direction.LEFT),
             a -> a.step(Direction.RIGHT),
-            // Refusé : la partie est finie. Voir AFTER_DEATH_FRAME — on rejoue le même état pour
-            // le survoler autrement.
+            a -> a.step(Direction.LEFT),
+            // Refusés : la partie est finie. Voir TOP_FRAME et RACK_FRAME.
+            a -> a.step(Direction.RIGHT),
             a -> a.step(Direction.LEFT));
 
     /**
-     * Un seul survol de râtelier, sur l'image d'après la mort : c'est là que se voit la règle
+     * Un seul survol de râtelier, sur la dernière image terminale : c'est là que se voit la règle
      * « une tuile qu'aucune touche ne peut poser ne se dessine pas dans la couleur du préavis ».
      * Ailleurs il recouvrirait d'une infobulle les états que cette vitrine existe pour montrer.
      */
     public static final int[] HOVERED_RACK_SLOT = new int[ACTIONS.size() + 1];
 
     /**
-     * Un seul survol de file, et il porte sur la <b>dernière</b> image : la partie est finie et une
-     * frappe attend encore. C'est là que le retour anticipé de {@code hoveringTheTop} se voit, et
-     * nulle part ailleurs.
+     * Deux survols de file, sur deux images terminales : l'un sur un emplacement qui <b>n'est
+     * pas</b> le sommet, l'autre sur le sommet. Les deux passent par des chemins de code
+     * différents, et c'est pour cela qu'il en faut deux.
      */
     public static final int[] HOVERED_QUEUE_SLOT = new int[ACTIONS.size() + 1];
 
@@ -129,8 +137,11 @@ public final class ShowcaseScript {
         java.util.Arrays.fill(HOVERED_QUEUE_SLOT, -1);
         java.util.Arrays.fill(HOVERED_CELL, -1);
         HOVERED_CELL[COLLISION_FRAME] = 4;
-        HOVERED_QUEUE_SLOT[DEATH_FRAME] = 0;
-        HOVERED_RACK_SLOT[AFTER_DEATH_FRAME] = 1;
+        HOVERED_QUEUE_SLOT[DEATH_FRAME] = 0;   // la plus ancienne : PAS le sommet
+        HOVERED_QUEUE_SLOT[TOP_FRAME] = 1;     // le sommet
+        // La poussee : rechargee a l'etat terminal ET de portee non vide. Les deux comptent --
+        // une tuile depensee serait deja dessinee en creux, et une portee vide ne dessinerait rien.
+        HOVERED_RACK_SLOT[RACK_FRAME] = 2;
     }
 
     /** La vue « scénario » de cette vitrine. */

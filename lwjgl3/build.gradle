@@ -187,7 +187,7 @@ ext.renderScenarios = [
         // « --from 1 » : l'image 0 d'un scenario d'arene est l'etat initial, donc octet pour octet
         // celle d'arenaDeep. Le commit precedent avait supprime un ecran entier pour douze
         // duplicatas exacts ; en reintroduire un treize minutes plus tard aurait ete comique.
-        showcase       : ['--size', '1280x720', '--frames', '11', '--from', '1', '--scene', 'showcase'],
+        showcase       : ['--size', '1280x720', '--frames', '13', '--from', '1', '--scene', 'showcase'],
 ]
 
 ext.renderReferenceDir = rootProject.file('captures/reference')

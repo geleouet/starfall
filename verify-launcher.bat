@@ -48,7 +48,21 @@ rem La vitrine n'existe qu'en mode capture : son scenario n'est rejoue que la, e
 rem --screenshot elle ouvrirait une partie ordinaire en pretendant montrer autre chose. Le refus
 rem etait verifie A LA MAIN, ce que le preambule de ce fichier qualifie lui-meme de "verification
 rem qu'on finit par ne plus faire".
-call :expect 2 "vitrine sans mode capture" --scene showcase
+rem
+rem LE CONTROLE STATIQUE PASSE EN PREMIER, et ce n'est pas un detail de style. Si le refus
+rem disparaissait, le cas dynamique lancerait une vraie partie : fenetre ouverte, attente
+rem indefinie, aucun timeout nulle part. Mesure : 75 secondes sans retour, processus tues a la
+rem main. Dans une boucle de review automatisee, un garde-fou qui SUSPEND est pire qu'un garde-fou
+rem absent. On verifie donc d'abord que le refus est ecrit, et on ne joue le cas dynamique que
+rem s'il l'est.
+findstr /C:"demande --screenshot" "%HERE%core\src\main\java\com\starfall\LaunchOptions.java" >nul
+if errorlevel 1 (
+  echo   ECHEC le refus de la vitrine hors capture a disparu de LaunchOptions
+  set /a FAILURES+=1
+) else (
+  echo   OK   le refus de la vitrine est ecrit ^(controle statique^)
+  call :expect 2 "vitrine sans mode capture" --scene showcase
+)
 
 rem Le cinquieme cas ne se produit pas en usage normal, et c'est justement pourquoi il faut le
 rem provoquer : un jeu sorti PROPREMENT pendant qu'une etape ulterieure de la construction echoue.
@@ -101,9 +115,9 @@ if errorlevel 1 (
 
 echo.
 if %FAILURES%==0 (
-  echo [Starfall] lanceur conforme : huit chemins et deux controles statiques sont conformes.
+  echo [Starfall] lanceur conforme : huit chemins et trois controles statiques sont conformes.
 ) else (
-  echo [Starfall] lanceur NON conforme : %FAILURES% controle^(s^) en echec sur 10.
+  echo [Starfall] lanceur NON conforme : %FAILURES% controle^(s^) en echec sur 11.
 )
 endlocal & exit /b %FAILURES%
 

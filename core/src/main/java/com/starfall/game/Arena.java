@@ -942,6 +942,14 @@ public final class Arena {
 
     /** Case que la capacité viserait maintenant, ou {@code -1}. Sert aussi à la télégraphier. */
     public int swapTarget() {
+        // Aucune cible quand la partie est finie, et c'est le même principe que previewTop : ne pas
+        // désigner ce qu'aucune touche ne peut plus atteindre. swapWithTarget rend déjà BLOCKED et
+        // clickable rend déjà faux ; seule cette méthode continuait de nommer une case, si bien que
+        // la scène éteignait le surlignage ET peignait par-dessus la pointe qui dit « celui-ci
+        // vient à toi ». Une règle vraie à trois endroits sur quatre est une règle fausse.
+        if (isOver()) {
+            return -1;
+        }
         return grid.firstOccupied(heroCell(), hero.facing());
     }
 

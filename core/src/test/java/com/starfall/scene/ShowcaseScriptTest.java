@@ -67,15 +67,25 @@ class ShowcaseScriptTest {
      * <p>Le remède est de demander à la fonction elle-même plutôt que de recopier sa définition.
      */
     @Test
-    @DisplayName("Le sommet de la file est survolé à l'image de la mort")
-    void theTopOfTheQueueIsHoveredAtDeath() {
+    @DisplayName("Les deux formes de survol de file sont montrées sur l'état terminal")
+    void bothQueueHoversAreShownOnTheTerminalState() {
         Arena dead = after(ShowcaseScript.DEATH_FRAME);
         int rack = ShowcaseScript.SCENARIO.rackSlotAt(ShowcaseScript.DEATH_FRAME);
         int queue = ShowcaseScript.SCENARIO.queueSlotAt(ShowcaseScript.DEATH_FRAME);
 
-        assertTrue(HudText.hoveringTheTop(dead, rack, queue),
-                "l'image de la mort ne survole pas le sommet : ratelier " + rack + ", file " + queue
-                        + ", taille " + dead.queue().size());
+        assertTrue(!HudText.hoveringTheTop(dead, rack, queue),
+                "l'image de la mort doit survoler un emplacement qui N'EST PAS le sommet : c'est la"
+                        + " moitie du correctif qui n'avait aucun temoin. Ratelier " + rack
+                        + ", file " + queue + ", taille " + dead.queue().size());
+        assertTrue(queue >= 0, "aucun emplacement de file survole a l'image de la mort");
+        assertTrue(dead.queue().size() >= 2,
+                "la file doit compter au moins deux tuiles, sinon l'emplacement 0 EST le sommet"
+                        + " et ce chemin n'est jamais atteint");
+
+        int topQueue = ShowcaseScript.SCENARIO.queueSlotAt(ShowcaseScript.TOP_FRAME);
+        assertTrue(HudText.hoveringTheTop(after(ShowcaseScript.TOP_FRAME),
+                        ShowcaseScript.SCENARIO.rackSlotAt(ShowcaseScript.TOP_FRAME), topQueue),
+                "l'image du sommet doit bien survoler le sommet : file " + topQueue);
     }
 
     /**
@@ -89,19 +99,33 @@ class ShowcaseScriptTest {
     @Test
     @DisplayName("Le râtelier est survolé sur l'état terminal, et la tuile y est rechargée")
     void theRackIsHoveredOnTheTerminalState() {
-        Arena dead = after(ShowcaseScript.AFTER_DEATH_FRAME);
-        int slot = ShowcaseScript.SCENARIO.rackSlotAt(ShowcaseScript.AFTER_DEATH_FRAME);
+        Arena dead = after(ShowcaseScript.RACK_FRAME);
+        int slot = ShowcaseScript.SCENARIO.rackSlotAt(ShowcaseScript.RACK_FRAME);
 
         assertTrue(dead.isOver(), "l'image d'apres la mort doit rester terminale");
         assertTrue(slot >= 0, "aucune tuile du ratelier survolee a l'image "
-                + ShowcaseScript.AFTER_DEATH_FRAME);
+                + ShowcaseScript.RACK_FRAME);
 
         Tile hovered = dead.rack().tiles().get(slot);
         assertTrue(dead.rack().isReady(hovered),
                 "la tuile survolee « " + hovered.label() + " » n'est pas rechargee : le defaut de"
                         + " disponibilite resterait invisible");
-        assertEquals(ShowcaseScript.AFTER_DEATH_FRAME, ShowcaseScript.ACTIONS.size(),
+        assertTrue(hovered.reach().length > 0,
+                "la tuile survolee « " + hovered.label() + " » a une portee VIDE : rien ne serait"
+                        + " dessine, et le defaut resterait invisible pour une seconde raison");
+        assertEquals(ShowcaseScript.RACK_FRAME, ShowcaseScript.ACTIONS.size(),
                 "l'etat terminal survole doit etre la derniere image du scenario");
+
+        // Les deux derniers gestes DOIVENT etre refuses : c'est toute la premisse des images
+        // terminales, et rien ne l'assertait. Si l'arene cessait de les refuser, les trois images
+        // cesseraient de porter le meme etat et seul verifyRender le dirait -- qu'un acceptRender
+        // distrait enterinerait.
+        for (int frame : new int[]{ShowcaseScript.TOP_FRAME, ShowcaseScript.RACK_FRAME}) {
+            Arena before = after(frame - 1);
+            assertEquals(com.starfall.game.ActionResult.BLOCKED,
+                    ShowcaseScript.ACTIONS.get(frame - 1).apply(before),
+                    "le geste menant a l'image " + frame + " doit etre refuse");
+        }
     }
 
     /**

@@ -67,11 +67,13 @@ public final class HudText {
         StringBuilder line = new StringBuilder();
         line.append("VAGUE ").append(arena.wave()).append('/').append(arena.waveCount())
                 .append("  PV ").append(arena.hero().health()).append('/').append(Hero.MAX_HEALTH);
-        int threat = arena.threatCount(arena.heroCell());
+        // Rien à annoncer quand plus rien ne sera joué : « MENACE 2 » s'affichait au-dessus de
+        // « PARTIE PERDUE ».
+        int threat = arena.isOver() ? 0 : arena.threatCount(arena.heroCell());
         if (threat > 0) {
             line.append("  MENACE ").append(threat);
         }
-        if (arena.anySummonAnnounced()) {
+        if (!arena.isOver() && arena.anySummonAnnounced()) {
             line.append("  INVOCATION");
         }
         return line.toString();
@@ -103,7 +105,7 @@ public final class HudText {
         if (hovered != null) {
             lines.add(rackSlot >= 0
                     ? rackHead(arena, hovered)
-                    : queueHead(arena.queue().fromOldest(), queueSlot));
+                    : queueHead(arena.queue().fromOldest(), queueSlot, arena.isOver()));
             lines.add(hovered.effect().toUpperCase());
             return lines;
         }
@@ -246,12 +248,20 @@ public final class HudText {
         return arena.rack().holds(tile) ? "RECHARGE " + tile.rechargeCost() : "SUR LA FILE";
     }
 
-    /** Première ligne d'une infobulle de file : la même, plus la place dans l'ordre d'exécution. */
-    public static String queueHead(List<Tile> queued, int index) {
-        return head(queued.get(index)) + "   "
-                + (index == queued.size() - 1
+    /**
+     * Première ligne d'une infobulle de file : la même, plus la place dans l'ordre d'exécution.
+     *
+     * <p>« SOMMET » veut dire « c'est celle-là qui part la première ». Quand la partie est finie,
+     * aucune ne part : le mot devient une promesse en trop, exactement comme le râtelier qui dit
+     * « PARTIE FINIE » au lieu d'annoncer une portée. L'asymétrie avait été introduite sans qu'on
+     * la voie — le râtelier avait reçu le traitement, pas la file.
+     */
+    public static String queueHead(List<Tile> queued, int index, boolean over) {
+        String place = over ? "PARTIE FINIE"
+                : index == queued.size() - 1
                         ? "SOMMET"
-                        : "POSITION " + (index + 1) + "/" + queued.size());
+                        : "POSITION " + (index + 1) + "/" + queued.size();
+        return head(queued.get(index)) + "   " + place;
     }
 
     private static String head(Tile tile) {

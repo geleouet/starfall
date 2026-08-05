@@ -74,7 +74,10 @@ public class StarfallGame extends ApplicationAdapter {
         this.scene = sceneFor(options.scene);
     }
 
-    private static Scene sceneFor(String name) {
+    // Visible pour le test : SceneNamesTest recopiait ce switch a la main faute de pouvoir
+    // l'appeler, si bien qu'un aiguillage rendant la mauvaise scene laissait les 491 tests verts.
+    // Un pont qui recopie ce qu'il relie ne relie rien.
+    static Scene sceneFor(String name) {
         // La ligne de commande a déjà refusé tout autre nom ; ce défaut n'existe que pour qu'un
         // ajout de scène oublié ici échoue bruyamment plutôt que d'afficher la mauvaise.
         return switch (name) {
