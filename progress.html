@@ -309,6 +309,17 @@
 <h2>Journal de review</h2>
 
 <div class="rev pass">
+  <div class="hd">Apr&egrave;s M10 &mdash; <b>Le garde-fou qu&rsquo;aucun contr&ocirc;le p&eacute;riodique ne regardait</b></div>
+  <p>Angle mort dans ma propre boucle : &agrave; chaque tour je v&eacute;rifie <code>test</code> et <code>verifyRender</code>, <b>jamais le garde-fou du lanceur</b>. Il vit hors de <code>gradlew test</code> &mdash; il demande un &eacute;cran et lance le vrai jeu sept fois &mdash; exactement la condition dans laquelle ce projet a d&eacute;j&agrave; vu des r&egrave;gles pourrir sans t&eacute;moin. Je l&rsquo;ai donc lanc&eacute;, et il rend <b>9 contr&ocirc;les conformes sur 9</b> en une minute et demie.</p>
+
+  <p><b>Mais sa premi&egrave;re ex&eacute;cution en a rendu 7 sur 9</b>, sur exactement le m&ecirc;me code : les deux seuls chemins qui doivent r&eacute;ussir en rendant z&eacute;ro &eacute;chouaient. Rejou&eacute;s isol&eacute;ment, ils rendent z&eacute;ro. Le lanceur est correct ; ce qui a fl&eacute;chi est une <b>contention de d&eacute;mon Gradle</b> &mdash; ce contr&ocirc;le lance <code>gradlew</code> sept fois de suite, et il d&eacute;marrait juste apr&egrave;s le <code>verifyRender</code> de la boucle. Un garde-fou qui rend deux verdicts sur le m&ecirc;me code est un garde-fou qu&rsquo;on apprend &agrave; ignorer, et c&rsquo;est not&eacute; comme tel.</p>
+
+  <p><b>Et j&rsquo;ai failli consigner une seconde trouvaille qui n&rsquo;existait pas.</b> Relanc&eacute;, il a paru <em>suspendre</em> &mdash; plus de dix minutes sans une ligne. Le pr&eacute;ambule de ce fichier dit qu&rsquo;un garde-fou qui suspend est pire qu&rsquo;un garde-fou absent : j&rsquo;avais donc de quoi &eacute;crire un beau paragraphe. Il aurait &eacute;t&eacute; faux. <b>Ce qui suspendait, c&rsquo;&eacute;tait mon capteur</b>, qui mettait tout le flux en tampon jusqu&rsquo;&agrave; la fin. &Eacute;crit directement dans un fichier, le m&ecirc;me contr&ocirc;le se d&eacute;roule sous les yeux et finit en <b>90 secondes</b>.</p>
+
+  <p style="margin-bottom:0"><b>Troisi&egrave;me fois en trois cycles qu&rsquo;un instrument &agrave; moi est le coupable</b>, apr&egrave;s la case d&rsquo;arriv&eacute;e du t&eacute;l&eacute;graphe et le compteur de morts sorti &agrave; &minus;300. Le motif m&eacute;rite d&rsquo;&ecirc;tre &eacute;crit une bonne fois : <b>quand la mesure accuse, il faut d&rsquo;abord soup&ccedil;onner l&rsquo;appareil</b>. La seule modification retenue va dans ce sens &mdash; le harnais <b>annonce chaque chemin avant de le lancer</b>, au lieu de rester muet pendant les minutes qu&rsquo;il prend. Sans cette ligne je n&rsquo;aurais pas su distinguer un blocage du jeu d&rsquo;un blocage de ma lecture. Et il rejoint le contr&ocirc;le p&eacute;riodique. <b>508 tests, 84 planches, 9 contr&ocirc;les de lanceur.</b></p>
+</div>
+
+<div class="rev pass">
   <div class="hd">Apr&egrave;s M10 &mdash; <b>La tautologie : un angle jamais balay&eacute;</b></div>
   <p>Plus rien &agrave; trancher, la dix-septi&egrave;me review enti&egrave;rement trait&eacute;e. J&rsquo;ai donc ouvert un angle neuf, le seul de la liste des motifs que je n&rsquo;avais jamais cherch&eacute; <em>syst&eacute;matiquement</em> : les assertions dont la <b>valeur attendue est produite par le code qu&rsquo;elles testent</b>. Balayage m&eacute;canique de toute la suite, cinq candidates.</p>
 

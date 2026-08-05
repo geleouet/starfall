@@ -129,6 +129,13 @@ set EXPECTED=%1
 set "LABEL=%~2"
 shift
 shift
+rem Annonce AVANT de lancer. Sans cette ligne, ce harnais est muet pendant les minutes que
+rem prend chaque chemin, et une suspension ne dit pas ou elle a lieu : mesure, vingt minutes
+rem a chercher sur quel controle il etait bloque, pour un blocage qui s'est avere venir d'une
+rem contention de demon Gradle et non de run.bat. Le preambule de ce fichier dit qu'un
+rem garde-fou qui suspend est pire qu'un garde-fou absent ; un garde-fou qui suspend SANS DIRE
+rem OU est pire encore.
+echo   ...  %LABEL%
 rem Les arguments restants sont reinjectes tels quels, guillemets compris. HERE vient du niveau
 rem au-dessus : apres deux shift, %~dp0 ne designe plus le dossier de ce script.
 call "%HERE%run.bat" %1 %2 %3 %4 %5 %6 %7 %8 >nul 2>&1
