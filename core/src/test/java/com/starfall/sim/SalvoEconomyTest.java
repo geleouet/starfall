@@ -107,6 +107,18 @@ class SalvoEconomyTest {
                 "le chargement le plus cher devrait couter un tour par tuile payante");
         assertEquals(4, loading, "le chargement le plus cher vaut " + loading + " tours");
 
+        // Et sa salve, qui manquait : le titre annonce « 4 ou 5 tours », or seul le chargement bon
+        // marché était suivi de son unleash. La borne haute -- la composition la plus chère, salve
+        // comprise -- restait une addition faite de tête.
+        int beforeCostly = arena.turnsTaken();
+        arena.unleash();
+        assertEquals(1, arena.turnsTaken() - beforeCostly,
+                "lacher la file la plus chere doit couter un tour, pas "
+                        + (arena.turnsTaken() - beforeCostly));
+        assertEquals(5, arena.turnsTaken() - before,
+                "la salve pleine la plus chere doit couter 5 tours en tout, pas "
+                        + (arena.turnsTaken() - before));
+
         // Et le meilleur des cas : les deux gratuites entrent dans la file.
         Arena cheapest = ArenaSetup.trainingArena(9, 1);
         int start = cheapest.turnsTaken();

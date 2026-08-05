@@ -103,7 +103,8 @@ public class StarfallGame extends ApplicationAdapter {
         scene.create(new SceneContext(batch, painter, atlas, viewport, font, options));
 
         if (options.isScreenshotMode()) {
-            recorder = new ScreenshotRecorder(options.screenshotDir, options.frames, options.width, options.height);
+            recorder = new ScreenshotRecorder(options.screenshotDir, options.frames,
+                    options.firstFrame, options.width, options.height);
         }
     }
 
@@ -166,9 +167,15 @@ public class StarfallGame extends ApplicationAdapter {
         }
     }
 
-    /** Numéro de l'image capturée, ou 0 hors mode capture. */
+    /**
+     * Numéro de l'image du <b>scénario</b>, ou 0 hors mode capture.
+     *
+     * <p>Ce n'est pas le compte d'images écrites : {@code --from} décale les deux. Rendre la fin
+     * d'une partie de 88 images sans écrire les 88 demande de commencer le scénario plus loin que
+     * le premier fichier.
+     */
     private int frameIndex() {
-        return recorder == null ? 0 : recorder.framesCaptured();
+        return recorder == null ? 0 : options.firstFrame + recorder.framesCaptured();
     }
 
     /**

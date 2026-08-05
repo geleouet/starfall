@@ -69,6 +69,31 @@ class LaunchOptionsTest {
             assertEquals(15, options.gridWidth);
         }
 
+        /**
+         * {@code --from} décale la première image du <b>scénario</b>, pas le compte d'images écrites.
+         *
+         * <p>L'option existe pour garder la bannière de fin sans versionner les 88 images d'une
+         * partie complète. Elle a été testée dès son ajout, parce qu'une review a montré ce que
+         * coûte une option de ligne de commande non testée : {@code --grid} et {@code --scene} ne
+         * l'étaient pas, et c'est ce qui a laissé passer un défaut de code de sortie.
+         */
+        @Test
+        void parsesTheFirstFrame() {
+            LaunchOptions options = parse("--screenshot", "captures/fin", "--frames", "8",
+                    "--from", "80");
+
+            assertEquals(8, options.frames);
+            assertEquals(80, options.firstFrame);
+        }
+
+        /** Zéro est le défaut, donc zéro doit être accepté : refuser sa propre valeur par défaut
+         * serait une drôle de validation. */
+        @Test
+        void acceptsZeroAsFirstFrame() {
+            assertEquals(0, parse("--screenshot", "captures/fin", "--from", "0").firstFrame);
+            assertEquals(0, parse("--screenshot", "captures/fin").firstFrame);
+        }
+
         @Test
         @DisplayName("Le nom de scène est accepté quelle que soit la casse")
         void theSceneNameIsCaseInsensitive() {
@@ -155,6 +180,14 @@ class LaunchOptionsTest {
         @DisplayName("Les largeurs de grille légales passent")
         void legalGridWidthsAreAccepted(int value) {
             assertEquals(value, parse("--grid", String.valueOf(value)).gridWidth);
+        }
+
+        @ParameterizedTest(name = "--from {0}")
+        @ValueSource(strings = {"-1", "-80", "quatre", "8.5", ""})
+        @DisplayName("Une première image négative ou informe est refusée")
+        void anInvalidFirstFrameIsRejected(String value) {
+            assertThrows(IllegalArgumentException.class, () -> parse("--from", value),
+                    "aurait du refuser : " + value);
         }
 
         @ParameterizedTest(name = "--scene {0}")

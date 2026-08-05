@@ -13,6 +13,7 @@ import java.util.Locale;
  *   --screenshot &lt;dossier&gt;   rend quelques images, écrit un PNG par image, puis quitte
  *   --size &lt;L&gt;x&lt;H&gt;           taille initiale de la fenêtre (défaut 1280x720)
  *   --frames &lt;N&gt;             nombre d'images à rendre en mode capture (défaut 2)
+ *   --from &lt;N&gt;               première image du scénario à rendre (défaut 0)
  *   --scene &lt;nom&gt;            arena (défaut) ou calibration
  *   --grid &lt;N&gt;               largeur de la grille, de 5 à 15 cases (défaut 9)
  *   --wave &lt;N&gt;               vague de départ, pour aller voir directement la fin (défaut 1)
@@ -40,6 +41,19 @@ public final class LaunchOptions {
     public final int width;
     public final int height;
     public final int frames;
+
+    /**
+     * Première image du scénario à rendre.
+     *
+     * <p>Elle existe pour une raison précise : le scénario de capture mène maintenant la tranche
+     * jusqu'à la victoire en 87 gestes, et garder la <b>bannière de fin</b> demandait de rendre les
+     * 88 images pour n'en regarder que la dernière. Une planche de référence qu'on ne peut pas
+     * relire à l'œil est une planche qu'on finit par adopter sans regarder — c'est-à-dire pire que
+     * pas de planche du tout.
+     *
+     * <p>Avec {@code --from}, huit images suffisent à garder la fin de partie.
+     */
+    public final int firstFrame;
     public final String scene;
     /** Largeur de la grille de combat, en cases. Bornée par {@code Grid}, pas ici. */
     public final int gridWidth;
@@ -63,13 +77,14 @@ public final class LaunchOptions {
     /** Vrai si l'aide a été demandée : le lanceur l'affiche puis s'arrête sans ouvrir de fenêtre. */
     public final boolean helpRequested;
 
-    private LaunchOptions(String screenshotDir, int width, int height, int frames,
+    private LaunchOptions(String screenshotDir, int width, int height, int frames, int firstFrame,
                           String scene, int gridWidth, int startWave, int simulations,
                           boolean helpRequested) {
         this.screenshotDir = screenshotDir;
         this.width = width;
         this.height = height;
         this.frames = frames;
+        this.firstFrame = firstFrame;
         this.scene = scene;
         this.gridWidth = gridWidth;
         this.startWave = startWave;
@@ -86,6 +101,7 @@ public final class LaunchOptions {
         int width = DEFAULT_WIDTH;
         int height = DEFAULT_HEIGHT;
         int frames = DEFAULT_FRAMES;
+        int firstFrame = 0;
         String scene = DEFAULT_SCENE;
         int gridWidth = DEFAULT_GRID_WIDTH;
         int startWave = 1;
@@ -111,6 +127,10 @@ public final class LaunchOptions {
                     }
                     case "--frames":
                         frames = requirePositive(requireValue(args, ++i, arg), arg);
+                        break;
+                    case "--from":
+                        // Zéro est légitime -- c'est le défaut -- donc « positif » ne convient pas.
+                        firstFrame = requireNonNegative(requireValue(args, ++i, arg), arg);
                         break;
                     case "--scene": {
                         scene = requireValue(args, ++i, arg).toLowerCase(Locale.ROOT);
@@ -156,7 +176,7 @@ public final class LaunchOptions {
             }
         }
 
-        return new LaunchOptions(screenshotDir, width, height, frames, scene, gridWidth,
+        return new LaunchOptions(screenshotDir, width, height, frames, firstFrame, scene, gridWidth,
                 startWave, simulations, helpRequested);
     }
 
@@ -171,6 +191,25 @@ public final class LaunchOptions {
         String value = args[index];
         if (value.startsWith("--")) {
             throw new IllegalArgumentException(option + " attend une valeur, mais a reçu l'option " + value);
+        }
+        return value;
+    }
+
+    /**
+     * Comme {@link #requirePositive}, mais zéro est accepté : c'est le défaut de {@code --from},
+     * et refuser la valeur par défaut serait une drôle de validation.
+     */
+    private static int requireNonNegative(String raw, String option) {
+        String text = raw.trim();
+        int value;
+        try {
+            value = Integer.parseInt(text);
+        } catch (NumberFormatException notANumber) {
+            throw new IllegalArgumentException(option + " attend un entier, reçu : " + text);
+        }
+        if (value < 0) {
+            throw new IllegalArgumentException(option + " attend un entier positif ou nul, reçu : "
+                    + value);
         }
         return value;
     }
@@ -194,6 +233,7 @@ public final class LaunchOptions {
                 + "  --screenshot <dossier>   rend des images en PNG dans <dossier> puis quitte\n"
                 + "  --size <L>x<H>           taille de la fenêtre (défaut " + DEFAULT_WIDTH + "x" + DEFAULT_HEIGHT + ")\n"
                 + "  --frames <N>             images à capturer en mode capture (défaut " + DEFAULT_FRAMES + ")\n"
+                + "  --from <N>               première image du scénario à rendre (défaut 0)\n"
                 + "  --scene <nom>            " + String.join(" ou ", SCENES) + " (défaut " + DEFAULT_SCENE + ")\n"
                 + "  --simulate <N>           joue N parties par politique et imprime le bilan\n"
                 + "  --wave <N>               vague de départ, 1 à " + Arena.WAVE_COUNT

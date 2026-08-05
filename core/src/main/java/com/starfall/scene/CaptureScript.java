@@ -90,7 +90,80 @@ public final class CaptureScript {
             a -> a.swapWithTarget(),
             a -> a.queueTile(Tile.PIVOT),
             a -> a.unleash(),
-            a -> a.swapWithTarget());
+            a -> a.swapWithTarget(),
+            // ------------------------------------------------------------------------ la fin
+            // Le scénario va désormais jusqu'à la VICTOIRE, et c'est encore un trou de review qui
+            // l'a imposé : ni la bannière de victoire ni celle de défaite ne paraissaient sur une
+            // seule planche. {@code drawOutcome} traversait toute la chaîne graphique sans témoin.
+            //
+            // Ces gestes viennent d'une recherche, comme les précédents, et le barème a été orienté
+            // vers la SANTÉ plutôt que la vitesse : une première ligne gagnait en 41 gestes de moins
+            // mais finissait à un point de vie sur huit. Une planche qui finit ainsi ne montre pas
+            // une victoire, elle montre un miracle -- et le test de ce fichier refuse déjà une
+            // ouverture qui se termine à un point de vie.
+            //
+            // Toujours ajoutés, jamais intercalés : les vingt-sept premières images ne bougent pas.
+            a -> a.swapWithTarget(),
+            a -> a.step(Direction.RIGHT),
+            a -> a.queueTile(Tile.PUSH),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.unleash(),
+            a -> a.swapWithTarget(),
+            a -> a.step(Direction.LEFT),
+            a -> a.queueTile(Tile.PUSH),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.swapWithTarget(),
+            a -> a.unleash(),
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.queueTile(Tile.STRIKE),
+            a -> a.unleash(),
+            a -> a.queueTile(Tile.PUSH),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.swapWithTarget(),
+            a -> a.swapWithTarget(),
+            a -> a.swapWithTarget(),
+            a -> a.swapWithTarget(),
+            a -> a.unleash(),
+            a -> a.swapWithTarget(),
+            a -> a.swapWithTarget(),
+            a -> a.step(Direction.LEFT),
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.step(Direction.LEFT),
+            a -> a.unleash(),
+            a -> a.swapWithTarget(),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.unleash(),
+            a -> a.swapWithTarget(),
+            a -> a.step(Direction.LEFT),
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.step(Direction.LEFT),
+            a -> a.unleash(),
+            a -> a.swapWithTarget(),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.unleash(),
+            a -> a.swapWithTarget(),
+            a -> a.step(Direction.LEFT),
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.step(Direction.LEFT),
+            a -> a.unleash(),
+            a -> a.swapWithTarget(),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.unleash(),
+            a -> a.swapWithTarget(),
+            a -> a.step(Direction.LEFT),
+            a -> a.queueTile(Tile.PUSH),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.step(Direction.LEFT),
+            a -> a.unleash());
 
     /**
      * Tuile du râtelier survolée à chaque image, ou {@code -1}.
@@ -120,6 +193,13 @@ public final class CaptureScript {
             -1, -1,
             0,   // et une seconde fois, sur un terrain différent
             -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            // La fin de partie : rien n'est survolé. Ce que ces images viennent montrer, ce sont
+            // les dernières vagues et la bannière de victoire, qui ne demandent aucun survol — et
+            // un survol de râtelier sur la dernière image recouvrirait la bannière d'une infobulle.
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1,
     };
 
     /**
@@ -139,6 +219,11 @@ public final class CaptureScript {
             // rien n'oblige à en désigner une : ce que la suite profonde vient montrer, c'est le
             // glyphe de charge et la bande de menace à quatre coups, qui ne demandent aucun survol.
             -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            // La fin de partie : idem, aucun survol de plateau.
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1,
     };
 
     /** Rejoue les {@code count} premiers gestes sur une arène. */

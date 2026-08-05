@@ -23,6 +23,7 @@ public final class ScreenshotRecorder {
 
     private final FileHandle outputDir;
     private final int frameCount;
+    private final int firstFrame;
     private final int requestedWidth;
     private final int requestedHeight;
 
@@ -35,10 +36,12 @@ public final class ScreenshotRecorder {
      * @param requestedWidth  largeur de fenêtre demandée sur la ligne de commande
      * @param requestedHeight hauteur de fenêtre demandée sur la ligne de commande
      */
-    public ScreenshotRecorder(String outputDirPath, int frameCount, int requestedWidth, int requestedHeight) {
+    public ScreenshotRecorder(String outputDirPath, int frameCount, int firstFrame,
+            int requestedWidth, int requestedHeight) {
         File dir = new File(outputDirPath).getAbsoluteFile();
         this.outputDir = Gdx.files.absolute(dir.getPath());
         this.frameCount = Math.max(1, frameCount);
+        this.firstFrame = Math.max(0, firstFrame);
         this.requestedWidth = requestedWidth;
         this.requestedHeight = requestedHeight;
         this.outputDir.mkdirs();
@@ -78,7 +81,11 @@ public final class ScreenshotRecorder {
         }
 
         Pixmap pixmap = Pixmap.createFromFrameBuffer(0, 0, width, height);
-        String name = String.format("starfall-%dx%d-frame%02d.png", width, height, framesCaptured);
+        // Le nom porte l'image du SCÉNARIO et non le compteur d'écriture : avec « --from 80 », le
+        // premier fichier doit s'appeler frame80 et pas frame00, sans quoi deux planches de deux
+        // écrans différents porteraient le même nom en montrant des instants sans rapport.
+        String name = String.format("starfall-%dx%d-frame%02d.png", width, height,
+                firstFrame + framesCaptured);
         FileHandle file = outputDir.child(name);
         if (file.exists()) {
             System.out.println("[Starfall] écrasement de " + name);
