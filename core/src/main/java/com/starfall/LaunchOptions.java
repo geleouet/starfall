@@ -186,6 +186,14 @@ public final class LaunchOptions {
         // détail : sans ce contrôle, « --from 200 » écrivait trois PNG rigoureusement identiques et
         // sortait en 0. Le projet a déjà eu ce défaut sous la forme d'un « --frames N » qui écrivait
         // N copies de la même image ; --from rouvrait exactement la même porte.
+        // La vitrine n'existe qu'en mode capture : son scenario n'est rejoue que la, et sans
+        // « --screenshot » elle ouvrirait une partie ordinaire en pretendant montrer autre chose.
+        // Le tableau de bord l'a d'ailleurs annoncee jouable pendant un commit entier, ce qui etait
+        // faux -- une review l'a releve. Une option qui ment vaut mieux refusee qu'expliquee.
+        if (screenshotDir == null && ShowcaseScript.SCENE_NAME.equals(scene)) {
+            throw new IllegalArgumentException("--scene " + ShowcaseScript.SCENE_NAME
+                    + " demande --screenshot : son scenario n'est rejoue qu'en mode capture");
+        }
         if (screenshotDir != null && !"calibration".equals(scene)) {
             // La borne vient du scenario de CETTE scene : la vitrine en compte onze la ou la ligne
             // gagnante en compte 87, et une borne unique aurait laisse passer un --from hors sujet.

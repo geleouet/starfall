@@ -140,6 +140,35 @@ class ShowcaseScriptTest {
         }
     }
 
+    /**
+     * La vitrine n'existe qu'en <b>mode capture</b>, et la demander autrement est refusé.
+     *
+     * <p>Son scénario n'est rejoué que sous {@code --screenshot} : sans lui, {@code --scene
+     * showcase} ouvrait une partie ordinaire tout en prétendant montrer autre chose. Le tableau de
+     * bord l'a annoncée jouable pendant un commit entier, ce qui était faux — une review l'a
+     * relevé. Une option qui ment vaut mieux refusée qu'expliquée.
+     */
+    @Test
+    @DisplayName("La vitrine sans mode capture est refusée")
+    void theShowcaseIsRefusedOutsideCaptureMode() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> com.starfall.LaunchOptions.parse(
+                        new String[]{"--scene", ShowcaseScript.SCENE_NAME}),
+                "la vitrine sans --screenshot aurait du etre refusee");
+
+        // Et avec la capture, elle passe : le refus vise l'usage trompeur, pas la scene.
+        assertEquals(ShowcaseScript.SCENE_NAME, com.starfall.LaunchOptions.parse(new String[]{
+                "--screenshot", "captures/x", "--scene", ShowcaseScript.SCENE_NAME}).scene);
+    }
+
+    /** Et le nom que la scène rend est celui de son scénario, pas « arena » pour tout le monde. */
+    @Test
+    @DisplayName("La scène rend le nom de son scénario")
+    void theSceneReportsItsOwnName() {
+        assertEquals(ShowcaseScript.SCENE_NAME, new ArenaScene(ShowcaseScript.SCENARIO).name());
+        assertEquals(CaptureScript.SCENE_NAME, new ArenaScene().name());
+    }
+
     /** Et la résolution par nom de scène rend bien ce scénario-ci, pas la ligne gagnante. */
     @Test
     @DisplayName("Le nom de scène de la vitrine désigne son scénario")

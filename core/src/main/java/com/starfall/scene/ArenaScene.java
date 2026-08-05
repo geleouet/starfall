@@ -100,7 +100,10 @@ public final class ArenaScene implements Scene {
 
     @Override
     public String name() {
-        return "arena";
+        // Elle rendait « arena » y compris pour la vitrine : une identite fausse en attente d'un
+        // lecteur. Aucun appelant ne s'en servait, ce qui explique qu'elle ait survecu -- mais un
+        // nom qui ment est un nom qu'on finira par croire.
+        return scenario.sceneName();
     }
 
     @Override

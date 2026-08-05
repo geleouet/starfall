@@ -113,6 +113,11 @@ public final class ShowcaseScript {
     /** La vue « scénario » de cette vitrine. */
     public static final CaptureScenario SCENARIO = new CaptureScenario() {
         @Override
+        public String sceneName() {
+            return SCENE_NAME;
+        }
+
+        @Override
         public List<Function<Arena, ActionResult>> actions() {
             return ACTIONS;
         }

@@ -269,6 +269,11 @@ public final class CaptureScript {
     /** La vue « scénario » de la ligne gagnante. Voir {@link CaptureScenario}. */
     public static final CaptureScenario SCENARIO = new CaptureScenario() {
         @Override
+        public String sceneName() {
+            return SCENE_NAME;
+        }
+
+        @Override
         public java.util.List<java.util.function.Function<Arena, ActionResult>> actions() {
             return ACTIONS;
         }

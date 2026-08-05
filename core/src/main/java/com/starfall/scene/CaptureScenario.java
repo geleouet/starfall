@@ -25,6 +25,9 @@ import java.util.function.Function;
  */
 public interface CaptureScenario {
 
+    /** Le nom de scène qui sélectionne ce scénario. */
+    String sceneName();
+
     /** Les gestes, dans l'ordre. L'image {@code n} montre l'état après les {@code n} premiers. */
     List<Function<Arena, ActionResult>> actions();
 
