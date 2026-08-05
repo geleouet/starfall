@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.starfall.game.Arena;
 import com.starfall.game.Enemy;
+import com.starfall.game.Grid;
 import com.starfall.game.Intention;
 import com.starfall.game.Occupant;
 import com.starfall.game.Tile;
@@ -188,6 +189,37 @@ class WinnabilityTest {
         // atteinte qu'en frôlant le plafond, c'est-à-dire si la rencontre s'est durcie.
         assertTrue(win.size() < MAX_DEPTH - 20,
                 "victoire trouvee en " + win.size() + " gestes, trop pres du plafond de " + MAX_DEPTH);
+    }
+
+    /**
+     * Et sur les <b>largeurs extrêmes</b>, pas seulement au milieu.
+     *
+     * <p>La largeur n'est pas un détail de cadrage : elle change la distance à laquelle le souverain
+     * peut charger, le nombre de cases où ses sbires peuvent naître, et la place que le héros a pour
+     * s'extraire. Une rencontre équilibrée sur 9 cases peut très bien devenir impossible sur 5 —
+     * trop serré pour esquiver — ou sur 15 — trop long pour rattraper l'archer avant qu'il ne tire.
+     * Ne mesurer qu'au milieu, c'est ignorer les deux cas où ça casse.
+     *
+     * <p><b>Ce test n'affirme rien sur la marge.</b> Une recherche en faisceau trouve <i>une</i>
+     * victoire, jamais la meilleure : un seuil de points de vie mesurerait la qualité de mon
+     * heuristique et non la difficulté du jeu. Le projet s'est déjà fait prendre à ce piège une fois
+     * et le seuil a été retiré plutôt que rabaissé. Ce qu'on garde ici est unilatéral et honnête :
+     * une victoire <b>existe</b> à chaque bout de l'intervalle de largeurs.
+     */
+    @Test
+    @DisplayName("La rencontre du souverain reste gagnable aux deux extrémités des largeurs")
+    void thesovereignEncounterStaysWinnableAtBothEndsOfTheWidthRange() {
+        for (int width : new int[]{Grid.MIN_WIDTH, Grid.MAX_WIDTH}) {
+            List<String> win = findAWin(width, Arena.WAVE_COUNT);
+            assertTrue(win != null, "aucun chemin vers la victoire sur la rencontre finale en largeur "
+                    + width + ".\n"
+                    + "  Un faisceau prouve qu'une victoire existe, jamais qu'elle n'existe pas :\n"
+                    + "  elargir BEAM avant d'accuser l'equilibrage.");
+
+            Arena finished = Playout.replay(width, Arena.WAVE_COUNT, win);
+            assertTrue(finished.isVictory(),
+                    "la ligne trouvee en largeur " + width + " ne gagne pas au rejeu");
+        }
     }
 
     /**
