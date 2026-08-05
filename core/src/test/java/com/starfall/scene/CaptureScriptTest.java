@@ -117,6 +117,36 @@ class CaptureScriptTest {
     }
 
     /**
+     * Et il doit <b>gagner</b>.
+     *
+     * <p>Les assertions voisines se contentent de « pas mort, vague &ge; 2, au moins deux points de
+     * vie ». Une dérive qui laisserait la ligne <b>enlisée en vague 3</b> les satisferait toutes — et
+     * ce scénario a déjà dérivé deux fois sans que rien ne bronche.
+     *
+     * <p>Mais l'enjeu a changé depuis le quinzième refus : cette ligne n'est plus seulement le
+     * porteur des planches, c'est la <b>seule source de victoire</b> de toute la suite.
+     * {@code HudTextTest} y prend les phrases « VICTOIRE » du corpus qui prétend éprouver
+     * <em>toutes</em> les phrases de l'interface, et {@code SilenceAfterTheEndTest} y prend ses
+     * témoins côté victoire. Si la ligne cessait de gagner, ces deux fichiers redeviendraient
+     * exactement ce qu'on venait de leur reprocher — un corpus qui exclut structurellement la
+     * victoire — et <b>resteraient verts</b>, puisqu'ils n'affirment rien sur l'état reçu.
+     *
+     * <p>C'est une dépendance entre fichiers que personne ne déclarait. Elle se déclare ici.
+     */
+    @Test
+    @DisplayName("Le scénario gagne la partie")
+    void theScriptWinsTheGame() {
+        Arena finished = after(CaptureScript.ACTIONS.size());
+
+        assertTrue(finished.isVictory(),
+                "la ligne de capture ne gagne plus : elle s'arrete en vague " + finished.wave()
+                        + " au tour " + finished.turnsTaken() + ", avec encore "
+                        + (finished.grid().occupiedCells().size() - 1) + " ennemi(s) debout. Deux"
+                        + " autres fichiers tirent d'elle leurs seuls temoins de victoire, et"
+                        + " resteraient verts en n'en testant plus aucun");
+    }
+
+    /**
      * Et il doit faire basculer une vague : c'est la seule façon de montrer sur une planche que le
      * combat progresse plutôt que de tourner en rond.
      */

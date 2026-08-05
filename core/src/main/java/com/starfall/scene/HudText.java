@@ -245,7 +245,18 @@ public final class HudText {
         if (missing > 0) {
             return "EN RECHARGE : " + missing;
         }
-        return arena.rack().holds(tile) ? "RECHARGE " + tile.rechargeCost() : "SUR LA FILE";
+        if (!arena.rack().holds(tile)) {
+            return "SUR LA FILE";
+        }
+        // Troisième endroit où la même question se pose, et le seul qui l'ignorait encore : une
+        // tuile rechargée sur une FILE PLEINE ne se pose pas davantage qu'une tuile en recharge, et
+        // l'infobulle annonçait pourtant son coût comme si elle était disponible. Deux corrections
+        // avaient déjà porté sur cette règle — la couleur de la portée, le halo de survol — et
+        // c'est en la posant à l'arène plutôt qu'en la recopiant qu'on cesse d'en oublier un.
+        if (!arena.canQueue(tile)) {
+            return "FILE PLEINE";
+        }
+        return "RECHARGE " + tile.rechargeCost();
     }
 
     /**

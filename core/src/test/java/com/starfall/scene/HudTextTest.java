@@ -379,4 +379,42 @@ class HudTextTest {
         assertTrue(HudText.hoveringTheTop(single, -1, 0),
                 "l'unique emplacement d'une file d'une tuile est le sommet");
     }
+
+    /**
+     * L'infobulle de râtelier ne dit pas « disponible » quand la file est pleine.
+     *
+     * <p>C'est le <b>troisième</b> endroit où se pose la question « une touche peut-elle poser cette
+     * tuile ». Les deux premiers — la couleur de la portée survolée, le halo de survol — ont été
+     * corrigés en cessant de recopier la règle et en la demandant à l'arène. Celui-ci l'ignorait
+     * encore : il annonçait le coût de recharge d'une tuile prête, c'est-à-dire sa disponibilité,
+     * sur un état où poser rend {@code QUEUE_FULL}.
+     */
+    @Test
+    @DisplayName("Une file pleine ne se lit pas comme une tuile disponible")
+    void afullQueueDoesNotReadAsAnAvailableTile() {
+        Arena arena = ArenaSetup.trainingArena(9, 1);
+        for (Tile tile : Tile.values()) {
+            if (arena.canQueue(tile)) {
+                arena.queueTile(tile);
+            }
+        }
+        assertTrue(arena.queue().isFull(), "la file devait etre pleine");
+
+        Tile spare = null;
+        List<Tile> rack = arena.rack().tiles();
+        for (int slot = 0; slot < rack.size(); slot++) {
+            Tile tile = rack.get(slot);
+            if (!arena.rack().isReady(tile)) {
+                continue;
+            }
+            spare = tile;
+            List<String> lines = HudText.infoLines(arena, slot, -1, -1, null);
+            assertTrue(lines.stream().anyMatch(line -> line.contains("FILE PLEINE")),
+                    "l'infobulle presente « " + tile.label() + " » comme disponible sur une file"
+                            + " pleine : " + lines);
+        }
+        assertTrue(spare != null,
+                "aucune tuile prete hors de la file : ce test ne garde rien dans cette mise en"
+                        + " scene, et c'est exactement le defaut que ce projet collectionne");
+    }
 }

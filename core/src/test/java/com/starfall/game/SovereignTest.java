@@ -516,11 +516,19 @@ class SovereignTest {
     @Test
     @DisplayName("Deux souverains n'invoquent jamais sur la même case")
     void twoSovereignsNeverSummonOntoTheSameCell() {
+        int rivalries = 0;
+
         for (int seed = 0; seed < 200; seed++) {
             Random random = new Random(seed);
-            Arena arena = new Arena(11, 5);
+            // Les deux souverains du MEME cote, le heros loin. Le montage precedent les posait
+            // de part et d'autre : ils fonçaient au premier tour, arrivaient au contact, et
+            // attaquaient jusqu'a la mort du heros. Mesure sur deux cents parties : ATTACK et RUSH
+            // seulement, et pas UNE SEULE invocation. Le test nomme d'apres la collision de deux
+            // invocations n'en avait donc jamais vu une. Du meme cote et a distance, les deux visent
+            // la meme case derriere le heros : c'est ce que la reservation doit departager.
+            Arena arena = new Arena(15, 11);
+            arena.grid().place(0, new Enemy(EnemyKind.SOUVERAIN));
             arena.grid().place(1, new Enemy(EnemyKind.SOUVERAIN));
-            arena.grid().place(9, new Enemy(EnemyKind.SOUVERAIN));
             arena.announceIntentions();
 
             for (int turn = 0; turn < 20 && !arena.isOver(); turn++) {
@@ -530,11 +538,22 @@ class SovereignTest {
                         cells.add(enemy.intention().targetCell());
                     }
                 }
+                if (cells.size() >= 2) {
+                    rivalries++;
+                }
                 assertEquals(cells.size(), new java.util.HashSet<>(cells).size(),
                         "graine " + seed + " tour " + turn + " : deux invocations sur " + cells);
                 arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
             }
         }
+
+        // Sans ce compte, l'assertion ci-dessus est vraie pour rien : une liste de zero ou une
+        // cellule n'a jamais de doublon. Elle ne garde quelque chose que les tours ou les DEUX
+        // souverains annoncent une invocation, et rien ne disait qu'un tel tour existait.
+        assertTrue(rivalries > 0,
+                "aucun tour ou les deux souverains invoquent en meme temps : l'assertion de"
+                        + " doublon n'a jamais rien compare, et casser la reservation la"
+                        + " laisserait verte");
     }
 
     /**
@@ -562,6 +581,8 @@ class SovereignTest {
     @Test
     @DisplayName("Aucun allié ne se pose sur la case d'une invocation annoncée")
     void noAllyStepsOntoAnAnnouncedSummonCell() {
+        int pairs = 0;
+
         for (int seed = 0; seed < 300; seed++) {
             Random random = new Random(seed);
             int width = Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1);
@@ -581,6 +602,7 @@ class SovereignTest {
                     for (Enemy other : arena.enemies()) {
                         if (other != summoner
                                 && other.intention().kind() == Intention.Kind.ADVANCE) {
+                            pairs++;
                             assertTrue(other.intention().targetCell() != cell,
                                     "graine " + seed + " tour " + turn + " : " + other.label()
                                             + " vise la case reservee " + (cell + 1));
@@ -589,6 +611,12 @@ class SovereignTest {
                 }
             }
         }
+
+        // Meme raison qu'a cote : l'assertion ne s'execute que pour un couple « invocateur qui
+        // annonce, camarade qui avance ». Si le montage n'en produit aucun, elle garde le vide.
+        assertTrue(pairs > 0,
+                "aucun camarade en approche pendant qu'une invocation est annoncee : la"
+                        + " reservation n'a jamais ete mise a l'epreuve");
     }
 
     /** La rencontre est la dernière vague : on doit pouvoir y arriver, et la victoire doit exister. */

@@ -77,6 +77,8 @@ class TelegraphTest {
     @Test
     @DisplayName("Aucun coup n'est encaissé sans avoir été annoncé, même en bougeant")
     void noBlowLandsWithoutHavingBeenAnnounced() {
+        int blows = 0;
+
         for (int seed = 0; seed < SEEDS; seed++) {
             Random random = new Random(seed);
             Arena arena = ArenaSetup.trainingArena(
@@ -97,6 +99,7 @@ class TelegraphTest {
                 }
 
                 if (arena.heroHits() > hitsBefore) {
+                    blows++;
                     // Le héros a été touché : il devait se trouver sur une case annoncée, soit
                     // celle qu'il occupait avant de bouger, soit celle où il est arrivé.
                     assertTrue(threatened[arena.heroCell()],
@@ -106,6 +109,13 @@ class TelegraphTest {
                 }
             }
         }
+
+        // « Aucun coup ne tombe sans avoir ete annonce » se verifie coup par coup : zero coup
+        // encaisse, zero verification. Le compte dit que la phrase a ete eprouvee, pas seulement
+        // ecrite.
+        assertTrue(blows > 0,
+                "le heros n'a encaisse aucun coup en " + SEEDS + " parties : rien de ce que ce"
+                        + " test affirme n'a ete verifie");
     }
 
     /**
@@ -133,48 +143,100 @@ class TelegraphTest {
     }
 
     /**
-     * L'invariant par lequel M7 avait rouvert le défaut de M6 : un allié qui entre dans le couloir
-     * d'une charge déjà annoncée l'intercepte, si bien que le coup promis au joueur ne tombe jamais.
-     * Le télégraphe sur-promet alors — on peut dépenser un tour pour esquiver un coup qui n'allait
-     * pas partir.
+     * L'invariant par lequel M7 avait rouvert le défaut de M6 : une intention qui réclame une case
+     * du couloir d'une charge déjà annoncée l'intercepte, si bien que le coup promis au joueur ne
+     * tombe jamais. Le télégraphe sur-promet alors — on peut dépenser un tour pour esquiver un coup
+     * qui n'allait pas partir.
      *
-     * <p>Le test porte sur la propriété plutôt que sur un cas construit à la main : une charge
-     * annoncée <b>réserve</b> son couloir, et aucune autre intention ne doit désigner une case qui
-     * s'y trouve.
+     * <h2>Ce que ce test affirmait, et ce qu'il gardait</h2>
+     *
+     * <p>Il portait sur du jeu aléatoire, qui <b>ne quitte jamais la vague 1</b> : mesuré, seuls le
+     * sabreur et l'archer y paraissent, et aucune charge n'a jamais été annoncée en trois cents
+     * parties. Le triple filtre — une charge, un camarade, un couloir non vide — n'a jamais été
+     * franchi une seule fois. C'est la même racine que le corpus d'interface engendré par jeu
+     * aléatoire : <b>l'échantillon exclut structurellement l'espèce qu'on prétend éprouver</b>.
+     *
+     * <p>Et le montage réparé a montré pire. Le test ne regardait que les intentions
+     * {@code ADVANCE}, alors que sa propre phrase dit « aucune <em>autre intention</em> ». Or une
+     * avance ne peut pas viser un couloir : pour l'atteindre il lui faudrait traverser le chargeur
+     * ou le héros, et {@code isPathClear} le lui interdit déjà. Réservation entièrement retirée,
+     * l'assertion reste verte sur 7 542 cases de couloir. Elle était <b>vraie par construction</b>.
+     *
+     * <p>Ce que la réservation protège vraiment, c'est l'<b>invocation</b> : le souverain choisit sa
+     * case adjacente au héros sans regarder les couloirs, et c'est là qu'il se pose au milieu d'une
+     * charge. Mesuré sur le même montage : réservation active, zéro ; réservation retirée,
+     * <b>1 048 invocations</b> dans un couloir vivant. Le test garde désormais l'appariement qui
+     * porte, sur un montage qui contient l'espèce qui charge — et il compte ce qu'il a vu.
      */
     @Test
     @DisplayName("Aucune intention ne vise une case réservée par une charge annoncée")
     void noIntentionEverTargetsAnAnnouncedChargeCorridor() {
+        int corridorCells = 0;
+        int claimants = 0;
+
         for (int seed = 0; seed < SEEDS; seed++) {
             Random random = new Random(seed);
-            Arena arena = ArenaSetup.trainingArena(
-                    Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1));
+            int width = Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1);
+            Arena arena = new Arena(width, random.nextInt(width));
+            // L'espece qui charge et l'espece qui invoque, toutes deux absentes de la vague 1 : sans
+            // elles ce test ne franchit jamais son premier filtre.
+            placeSomewhere(arena, EnemyKind.LANCIER, random);
+            placeSomewhere(arena, EnemyKind.SOUVERAIN, random);
+            placeSomewhere(arena, EnemyKind.SABREUR, random);
+            arena.announceIntentions();
 
             for (int turn = 0; turn < TURNS_PER_SEED && !arena.isOver(); turn++) {
-                arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
-
                 for (Enemy charger : arena.enemies()) {
-                    if (charger.intention().kind() != Intention.Kind.CHARGE) {
+                    Intention.Kind kind = charger.intention().kind();
+                    if (kind != Intention.Kind.CHARGE && kind != Intention.Kind.RUSH) {
                         continue;
                     }
                     int from = arena.grid().indexOf(charger);
                     int to = charger.intention().targetCell();
                     int step = Integer.signum(to - from);
+                    if (step == 0) {
+                        continue;
+                    }
 
                     for (Enemy other : arena.enemies()) {
-                        if (other == charger || other.intention().kind() != Intention.Kind.ADVANCE) {
+                        Intention.Kind claim = other.intention().kind();
+                        if (other == charger
+                                || (claim != Intention.Kind.ADVANCE
+                                        && claim != Intention.Kind.SUMMON)) {
                             continue;
                         }
+                        claimants++;
                         int destination = other.intention().targetCell();
                         for (int cell = from; cell != to; cell += step) {
+                            corridorCells++;
                             assertTrue(destination != cell,
                                     "graine " + seed + " tour " + turn + " : " + other.label()
-                                            + " veut se poser en " + (destination + 1)
+                                            + " reclame la case " + (destination + 1)
                                             + ", dans le couloir de charge " + (from + 1)
                                             + " vers " + (to + 1));
                         }
                     }
                 }
+                arena.step(random.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
+            }
+        }
+
+        // Trois filtres imbriques separent la boucle de son assertion, et le montage precedent n'en
+        // franchissait aucun : zero charge en trois cents parties. Sans ce compte, le test etait
+        // vert parce qu'il ne regardait rien.
+        assertTrue(corridorCells > 0,
+                "aucune case de couloir examinee : le montage ne produit pas de charge annoncee"
+                        + " avec une intention concurrente, et ce test ne garde rien");
+        assertTrue(claimants > 0, "aucune intention concurrente observee");
+    }
+
+    /** Pose un ennemi sur une case libre au hasard, ou renonce. */
+    private static void placeSomewhere(Arena arena, EnemyKind kind, Random random) {
+        for (int tries = 0; tries < 6; tries++) {
+            int cell = random.nextInt(arena.grid().width());
+            if (arena.grid().isFree(cell)) {
+                arena.grid().place(cell, new Enemy(kind));
+                return;
             }
         }
     }

@@ -33,6 +33,7 @@ class SalvoTest {
     @DisplayName("La première tuile d'une salve fait ce que le préavis annonçait")
     void theFirstTileOfAVolleyDoesWhatWasAnnounced() {
         List<String> failures = new ArrayList<>();
+        int volleyHeads = 0;
 
         for (int seed = 0; seed < 300 && failures.size() <= 5; seed++) {
             Random random = new Random(seed);
@@ -50,6 +51,9 @@ class SalvoTest {
                     continue;
                 }
 
+                if (arena.queue().size() >= 2) {
+                    volleyHeads++;
+                }
                 Tile first = arena.queue().top();
                 TilePreview preview = arena.previewTop();
                 // On ne joue QUE la première tuile, avec le même chemin d'exécution que la salve.
@@ -65,6 +69,12 @@ class SalvoTest {
 
         assertTrue(failures.isEmpty(), "le preavis ment sur la tete de salve :\n  "
                 + String.join("\n  ", failures));
+        // Le nom dit « tete de SALVE » : sur une file d'une seule tuile, previewTop et applyTo
+        // decrivent le meme coup isole, et le test ne dit plus rien de la salve. Il faut donc
+        // savoir qu'on a bien joue des tetes de file d'au moins deux tuiles.
+        assertTrue(volleyHeads > 0,
+                "aucune tete de file d'au moins deux tuiles jouee : ce test n'a eprouve que des"
+                        + " tuiles isolees, pas ce que son nom annonce");
     }
 
     /**
