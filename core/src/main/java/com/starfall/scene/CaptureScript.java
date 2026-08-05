@@ -59,7 +59,38 @@ public final class CaptureScript {
             // une planche qui finissait à un point de vie sur huit.
             a -> a.queueTile(Tile.THRUST),
             a -> a.queueTile(Tile.PUSH),
-            a -> a.unleash());
+            a -> a.unleash(),
+            // ------------------------------------------------------------------ la suite profonde
+            // Les onze gestes ci-dessus s'arrêtent une action trop tôt, et une review l'a prouvé en
+            // rendant la CHARGE visuellement indiscernable d'une frappe : les 463 tests et les 48
+            // planches sont restés verts. L'image 11 montre le lancier qui « prend son élan » —
+            // c'est-à-dire la promesse — et le script se terminait là, sans jamais montrer la tenue
+            // de promesse. Aucune valeur de {@code --frames} ne pouvait le rattraper : il n'y avait
+            // plus de geste à jouer.
+            //
+            // Ces quinze gestes ont été trouvés par une recherche, pas écrits à la main — la même
+            // discipline que l'ouverture, et pour la même raison. Ils font paraître le glyphe de
+            // charge, portent le compte de coups annoncés à QUATRE — au-delà du plafond de trois
+            // que la bande de menace a dû apprendre à ne plus dépasser en silence — et arrivent à
+            // la vague 3 avec cinq points de vie sur huit.
+            //
+            // Ils sont AJOUTÉS et non intercalés : les douze premières images ne bougent pas d'un
+            // octet, donc les planches-contact datées des jalons restent ce qu'elles étaient.
+            a -> a.step(Direction.RIGHT),
+            a -> a.swapWithTarget(),
+            a -> a.step(Direction.RIGHT),
+            a -> a.queueTile(Tile.STRIKE),
+            a -> a.step(Direction.RIGHT),
+            a -> a.queueTile(Tile.PUSH),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.unleash(),
+            a -> a.queueTile(Tile.DASH),
+            a -> a.swapWithTarget(),
+            a -> a.swapWithTarget(),
+            a -> a.queueTile(Tile.PIVOT),
+            a -> a.unleash(),
+            a -> a.swapWithTarget());
 
     /**
      * Tuile du râtelier survolée à chaque image, ou {@code -1}.
@@ -82,6 +113,13 @@ public final class CaptureScript {
             -1,  // le préavis résolu d'une salve
             5,   // la volte-face, qui ne vise aucune case
             -1,  // et la dernière image, que le tableau ne couvrait pas
+            // La suite profonde. L'emplacement 0 — la frappe — n'était survolé sur AUCUNE image :
+            // l'infobulle et la portée de la tuile la plus élémentaire du jeu ne paraissaient nulle
+            // part. C'est réparé ici.
+            0,   // la frappe, enfin montrée
+            -1, -1,
+            0,   // et une seconde fois, sur un terrain différent
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     };
 
     /**
@@ -96,6 +134,11 @@ public final class CaptureScript {
             // montrait donc d'infobulle d'ennemi, alors que c'est la seule raison d'être de ce
             // tableau. Le test qui prétendait le garder ne vérifiait que des bornes.
             -1, -1, -1, -1, -1, 5, -1, -1, -1, -1, -1, -1,
+            // La suite profonde : les survols de plateau y sont laissés à -1. Le tableau est vérifié
+            // image par image — une case survolée doit porter un ennemi à cet instant précis — et
+            // rien n'oblige à en désigner une : ce que la suite profonde vient montrer, c'est le
+            // glyphe de charge et la bande de menace à quatre coups, qui ne demandent aucun survol.
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     };
 
     /** Rejoue les {@code count} premiers gestes sur une arène. */

@@ -126,7 +126,7 @@ static String starfallExitMeaning(int code) {
  * captures/reference n'a pas de date : elle dit « voici ce que le jeu dessine aujourd'hui », et
  * acceptRender ne la régénère que délibérément -- ce qui oblige à regarder les images.
  *
- * <p>NEUF ÉCRANS, ET C'EST QUATRE FOIS UN CORRECTIF. La première version ne gardait que la vague 1
+ * <p>CHAQUE ÉCRAN EST UN CORRECTIF, ET AUCUN N'A ÉTÉ PRÉVU. La première version ne gardait que la vague 1
  * en grille 9. Une review a relevé que le SOUVERAIN -- la rencontre la plus dense à lire, celle qui
  * empile ruée, invocation et sbires -- n'avait aucune référence, ni la mire de calibration : c'était
  * garder le plus facile et laisser le plus difficile. Elle notait ensuite que les dix autres
@@ -157,6 +157,11 @@ ext.renderScenarios = [
         arena          : ['--size', '1280x720', '--frames', '12', '--scene', 'arena'],
         wave2          : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '2'],
         wave3          : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '3'],
+        // La suite profonde du scénario, et c'est l'écran le plus chargé du lot : il est le seul à
+        // montrer le glyphe de CHARGE et la bande de menace au-delà de trois coups. Deux défauts de
+        // câblage qu'aucun des dix écrans précédents ne voyait — prouvés par mutation, suite verte
+        // et planches conformes dans les deux cas.
+        arenaDeep      : ['--size', '1280x720', '--frames', '27', '--scene', 'arena'],
         arenaNarrow    : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
         arenaWide      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],
         arenaEven      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '8'],
@@ -178,7 +183,16 @@ ext.renderReferenceDir = rootProject.file('captures/reference')
  * acceptRender le nettoie. Un reste d'écriture interrompue ne peut donc pas se faire passer pour une
  * référence.
  */
-ext.PENDING_SUFFIX = '.pending' 
+ext.PENDING_SUFFIX = '.pending'
+
+// Le lien entre ce suffixe et la règle d'orphelinat était IMPLICITE : orphanReferences() ne connaît
+// pas PENDING_SUFFIX, et le mécanisme ne tenait que parce qu'aucun écran ne s'appelle « x.pending ».
+// Si l'un s'appelait ainsi, le staging de « x » écraserait sa référence et un reste d'écriture
+// interrompue cesserait d'être vu comme orphelin -- c'est-à-dire exactement ce que le javadoc
+// ci-dessus déclare impossible. Une prémisse tacite est une prémisse qu'on ne verra pas tomber.
+assert renderScenarios.keySet().every { !it.endsWith(PENDING_SUFFIX) } :
+        "un ecran ne peut pas s'appeler « ...${PENDING_SUFFIX} » : son dossier de reference serait" +
+                " confondu avec une ecriture en cours"
 
 /**
  * Ce qui traîne dans la référence sans plus correspondre à aucun écran.
@@ -198,9 +212,12 @@ def orphanReferences() {
         return []
     }
     def known = renderScenarios.keySet()
+    // Un dossier ne compte que s'il ne correspond à aucun écran ; un fichier ne devrait jamais
+    // être là, quel que soit son nom. Une première version enchaînait deux filtres dont le second
+    // était un no-op strict -- prédicat mort dans la fonction dont le javadoc vante la
+    // déduplication d'un prédicat. Une seule condition, écrite une fois.
     return renderReferenceDir.listFiles()
             .findAll { !it.isDirectory() || !known.contains(it.name) }
-            .findAll { it.isDirectory() ? !known.contains(it.name) : true }
             .sort { it.name }
 }
 
@@ -348,8 +365,9 @@ tasks.register('acceptRender') {
         // staging survit dans build/render-accept -- mais le commentaire affirmait qu'aucun état
         // intermédiaire n'était possible, et c'était faux.
         //
-        // Tout est d'abord copié à côté, sous un suffixe. Ce n'est qu'une fois les neuf copies
-        // faites que les anciens dossiers partent et que les nouveaux prennent leur nom. La fenêtre
+        // Tout est d'abord copié à côté, sous un suffixe. Ce n'est qu'une fois les copies
+        // faites -- toutes, quel qu'en soit le nombre -- que les anciens dossiers partent et que
+        // les nouveaux prennent leur nom. La fenêtre
         // vulnérable se réduit à cette bascule, qui ne fait que renommer.
         def pending = [:]
         int written = 0

@@ -97,7 +97,7 @@ echo.
 if %FAILURES%==0 (
   echo [Starfall] lanceur conforme : sept chemins et deux controles statiques sont conformes.
 ) else (
-  echo [Starfall] lanceur NON conforme : %FAILURES% controle^(s^) en echec sur 8.
+  echo [Starfall] lanceur NON conforme : %FAILURES% controle^(s^) en echec sur 9.
 )
 endlocal & exit /b %FAILURES%
 
