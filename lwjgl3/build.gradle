@@ -142,6 +142,12 @@ static String starfallExitMeaning(int code) {
  * 36 planches sont restés verts. Le colosse, le lancier fonceur et le trait explosif ne paraissent
  * qu'en vague 3 : ils traversaient toute la chaîne graphique sans témoin.
  *
+ * <p>Et les trois largeurs gardées étaient toutes IMPAIRES. {@code ArenaLayout.left()} soustrait
+ * {@code gridWidth * (CELL_WIDTH / 2)} : la parité décide de l'alignement du bord de grille sur le
+ * centre, et un décalage propre aux largeurs paires laissait les planches identiques -- mesuré. Il
+ * était rattrapé côté arithmétique par ArenaLayoutTest, mais pas côté câblage, qui est justement ce
+ * que ce garde-fou existe pour voir.
+ *
  * <p>Hors de « test » à dessein : ces tâches demandent un écran, la suite JUnit non.
  *
  *   gradlew :lwjgl3:verifyRender     confronte tous les écrans à la référence
@@ -153,6 +159,7 @@ ext.renderScenarios = [
         wave3          : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '3'],
         arenaNarrow    : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
         arenaWide      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],
+        arenaEven      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '8'],
         sovereign      : ['--size', '1280x720', '--frames', '6', '--scene', 'arena', '--wave', '4'],
         sovereignNarrow: ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--wave', '4',
                           '--grid', '5'],
@@ -162,6 +169,16 @@ ext.renderScenarios = [
 ]
 
 ext.renderReferenceDir = rootProject.file('captures/reference')
+
+/**
+ * Suffixe des dossiers de référence en cours d'écriture.
+ *
+ * <p>Ils sont volontairement <b>reconnus comme orphelins</b> : si acceptRender s'interrompt entre la
+ * copie et la bascule, ce qui reste porte ce suffixe, verifyRender le signale, et un second
+ * acceptRender le nettoie. Un reste d'écriture interrompue ne peut donc pas se faire passer pour une
+ * référence.
+ */
+ext.PENDING_SUFFIX = '.pending' 
 
 /**
  * Ce qui traîne dans la référence sans plus correspondre à aucun écran.
@@ -325,14 +342,35 @@ tasks.register('acceptRender') {
             }
         }
 
+        // Écriture en DEUX TEMPS, et la raison est mesurable. La version précédente faisait
+        // « efface le dossier, recrée-le, copie » écran par écran : une interruption au milieu
+        // laissait une partie de la référence vide. L'échec était bruyant et récupérable -- le
+        // staging survit dans build/render-accept -- mais le commentaire affirmait qu'aucun état
+        // intermédiaire n'était possible, et c'était faux.
+        //
+        // Tout est d'abord copié à côté, sous un suffixe. Ce n'est qu'une fois les neuf copies
+        // faites que les anciens dossiers partent et que les nouveaux prennent leur nom. La fenêtre
+        // vulnérable se réduit à cette bascule, qui ne fait que renommer.
+        def pending = [:]
         int written = 0
         staged.each { scenario, produced ->
+            def staging = new File(renderReferenceDir, scenario + PENDING_SUFFIX)
+            staging.deleteDir()
+            staging.mkdirs()
+            produced.each { file ->
+                new File(staging, file.name).bytes = file.bytes
+                written++
+            }
+            pending[scenario] = staging
+        }
+
+        pending.each { scenario, staging ->
             def reference = new File(renderReferenceDir, scenario)
             reference.deleteDir()
-            reference.mkdirs()
-            produced.each { file ->
-                new File(reference, file.name).bytes = file.bytes
-                written++
+            if (!staging.renameTo(reference)) {
+                throw new GradleException("[Starfall] impossible de renommer " + staging
+                        + " en " + reference + " : la reference est incomplete, relancer"
+                        + " acceptRender.")
             }
         }
         logger.lifecycle("[Starfall] reference remplacee : " + written + " planches sur "

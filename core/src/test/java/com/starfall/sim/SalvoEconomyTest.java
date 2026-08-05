@@ -73,6 +73,18 @@ class SalvoEconomyTest {
             (tile.isFreePlay() ? free : costly).add(tile);
         }
         assertEquals(2, free.size(), "le compte de tuiles Free-Play a change : " + free);
+
+        // La prémisse du « jamais 6 » n'est pas seulement qu'il y a quatre tuiles payantes : c'est
+        // qu'on ne peut pas en poser deux fois la même. TileRack l'interdit par construction, mais
+        // par un chemin que ce test empruntait sans le nommer -- et une prémisse qu'on ne nomme pas
+        // est une prémisse qu'on ne verra pas changer.
+        Arena twice = ArenaSetup.trainingArena(9, 1);
+        Tile first = costly.get(0);
+        twice.queueTile(first);
+        assertTrue(!twice.rack().isReady(first),
+                "le ratelier rend encore « " + first.label() + " » disponible apres l'avoir posee :"
+                        + " une file pleine pourrait alors ne contenir que des tuiles payantes,"
+                        + " et le cout maximal ne serait plus celui qu'on asserte ici");
         assertTrue(costly.size() < ActionQueue.CAPACITY,
                 "il y a desormais assez de tuiles payantes pour remplir la file sans gratuite,"
                         + " donc le cout maximal a change : " + costly);
