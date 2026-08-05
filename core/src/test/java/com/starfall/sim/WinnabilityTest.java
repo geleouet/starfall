@@ -216,9 +216,14 @@ class WinnabilityTest {
                     + "  Un faisceau prouve qu'une victoire existe, jamais qu'elle n'existe pas :\n"
                     + "  elargir BEAM avant d'accuser l'equilibrage.");
 
-            Arena finished = Playout.replay(width, Arena.WAVE_COUNT, win);
-            assertTrue(finished.isVictory(),
-                    "la ligne trouvee en largeur " + width + " ne gagne pas au rejeu");
+            // Pas de « rejoue et verifie que ca gagne » ici : findAWin ne rend une ligne QUE
+            // lorsqu'elle vient d'evaluer ce meme rejeu a vrai, et Playout.replay est pur. Reemettre
+            // l'appel serait une assertion incapable d'echouer -- le defaut exact que ce fichier a
+            // deja eu a corriger trois fois. Ce qui peut echouer, en revanche, c'est la LONGUEUR :
+            // une rencontre qui se durcirait passerait de seize gestes a beaucoup plus sans cesser
+            // d'etre gagnable, et personne ne le verrait.
+            assertTrue(win.size() < MAX_DEPTH - 20, "victoire trouvee en largeur " + width
+                    + " apres " + win.size() + " gestes, trop pres du plafond de " + MAX_DEPTH);
         }
     }
 

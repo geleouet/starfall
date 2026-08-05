@@ -223,66 +223,191 @@ class ArenaLayoutTest {
     }
 
     /**
+     * Les colonnes qu'occupe un repère, telles que le jeu les demande.
+     *
+     * <p>Le mot important est « telles que le jeu les demande » : la version précédente de ces tests
+     * fournissait <em>elle-même</em> les sens {@code +1} et {@code -1}, donc elle ne savait rien de
+     * ceux que la scène passait réellement. La review l'a démontré en inversant les deux appels dans
+     * {@code ArenaScene} : héros regardant derrière lui, cible fuyant le héros — et les 448 tests
+     * restaient verts. Le sens est maintenant déduit dans {@link ArenaLayout} à partir des cases, et
+     * c'est cette déduction-là qui est éprouvée ici.
+     */
+    private static java.util.Set<Integer> columnsOf(java.util.List<ArenaLayout.MarkShape> shapes) {
+        java.util.Set<Integer> columns = new java.util.TreeSet<>();
+        for (ArenaLayout.MarkShape shape : shapes) {
+            for (int x = shape.x(); x < shape.x() + shape.width(); x++) {
+                columns.add(x);
+            }
+        }
+        return columns;
+    }
+
+    /** Les colonnes de la seule pointe, c'est-à-dire tout sauf la barre. */
+    private static java.util.Set<Integer> tipColumnsOf(java.util.List<ArenaLayout.MarkShape> shapes) {
+        return columnsOf(shapes.subList(1, shapes.size()));
+    }
+
+    /**
      * La pointe du héros et celle de sa cible ne partagent aucune colonne.
      *
-     * <p>C'est l'assertion d'une ligne qui manquait, et son absence a coûté un cycle entier. Quand
-     * la cible d'échange est <b>adjacente</b> — le cas le plus courant —, les deux pointes
-     * occupaient exactement les mêmes quatre colonnes, et le héros étant dessiné après, il écrasait
-     * l'autre. On ne voyait pas « deux flèches qui se font face » mais un losange bicolore :
-     * précisément l'ambiguïté que ce repère venait lever.
+     * <p>C'est l'assertion qui manquait, et son absence a coûté un cycle entier. Quand la cible
+     * d'échange est <b>adjacente</b> — le cas le plus courant —, les deux pointes occupaient
+     * exactement les mêmes quatre colonnes, et le héros étant dessiné après, il écrasait l'autre. On
+     * ne voyait pas « deux flèches qui se font face » mais un losange bicolore : précisément
+     * l'ambiguïté que ce repère venait lever.
      *
-     * <p>Le contrôle existant comparait des <em>constantes de bande</em> entre elles ; il ne savait
-     * rien de ce qui était dessiné dedans. Celui-ci compare les colonnes réellement occupées, ce qui
-     * ne demande aucun contexte graphique puisque c'est de l'arithmétique.
+     * <p>Le balayage porte sur <b>toutes les cases et les deux orientations</b>, mais il faut être
+     * honnête sur ce qu'il vaut : la géométrie étant invariante par translation, les cases n'ajoutent
+     * pas de cas distincts — elles vérifient seulement que le calcul reste ancré sur la bonne case.
+     * Ce que ce test garde réellement de neuf, c'est la <b>déduction du sens à partir des cases</b>.
      */
     @Test
     @DisplayName("Les deux pointes tactiques ne partagent jamais une colonne")
     void thetwoTacticalTipsNeverShareAColumn() {
+        ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
         for (int heroCell = 0; heroCell < Grid.MAX_WIDTH; heroCell++) {
-            for (int step : new int[]{-1, 1}) {
-                int target = heroCell + step;
+            for (Direction facing : Direction.values()) {
+                int target = heroCell + facing.step();
                 if (target < 0 || target >= Grid.MAX_WIDTH) {
                     continue;
                 }
-                ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
+                java.util.Set<Integer> hero = tipColumnsOf(layout.heroMark(heroCell, facing));
+                java.util.Set<Integer> cible = tipColumnsOf(layout.targetMark(target, heroCell));
 
-                // La pointe du héros s'affine vers ce qu'il regarde, celle de la cible vers lui.
-                int[] hero = ArenaLayout.markTipColumns(layout.cellLeft(heroCell), step);
-                int[] cible = ArenaLayout.markTipColumns(layout.cellLeft(target), -step);
-
-                java.util.Set<Integer> shared = new java.util.TreeSet<>();
-                for (int a : hero) {
-                    for (int b : cible) {
-                        if (a == b) {
-                            shared.add(a);
-                        }
-                    }
-                }
-                assertTrue(shared.isEmpty(), "heros en " + (heroCell + 1) + " regardant "
-                        + (step > 0 ? "a droite" : "a gauche") + ", cible adjacente : colonnes"
-                        + " partagees " + shared);
+                java.util.Set<Integer> shared = new java.util.TreeSet<>(hero);
+                shared.retainAll(cible);
+                assertTrue(shared.isEmpty(), "heros en " + (heroCell + 1) + " regardant " + facing
+                        + ", cible adjacente : colonnes partagees " + shared);
             }
         }
     }
 
     /**
-     * Et chaque pointe reste dans sa propre case : c'est ce qui garantit le test ci-dessus pour
-     * toute distance, pas seulement pour l'adjacence.
+     * Et chaque repère reste dans sa propre case : c'est ce qui étend le test ci-dessus à
+     * <b>toute</b> distance, et pas seulement à l'adjacence. Deux cases distinctes ayant des plages
+     * de colonnes disjointes par construction, « rien ne sort de sa case » entraîne « rien ne se
+     * rencontre ».
      */
     @Test
-    @DisplayName("Une pointe ne sort jamais de sa case")
-    void amarkTipNeverLeavesItsCell() {
+    @DisplayName("Un repère ne déborde jamais de sa case")
+    void amarkNeverLeavesItsCell() {
         ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
         for (int cell = 0; cell < Grid.MAX_WIDTH; cell++) {
-            for (int step : new int[]{-1, 1}) {
-                int left = layout.cellLeft(cell);
-                for (int column : ArenaLayout.markTipColumns(left, step)) {
-                    assertTrue(column >= left && column < left + ArenaLayout.CELL_WIDTH,
-                            "case " + (cell + 1) + " : la pointe occupe la colonne " + column
-                                    + ", hors de [" + left + ", "
-                                    + (left + ArenaLayout.CELL_WIDTH) + "[");
+            int left = layout.cellLeft(cell);
+            int right = left + ArenaLayout.CELL_WIDTH;
+            for (Direction facing : Direction.values()) {
+                for (int column : columnsOf(layout.heroMark(cell, facing))) {
+                    assertTrue(column >= left && column < right,
+                            "case " + (cell + 1) + " : le repere occupe la colonne " + column
+                                    + ", hors de [" + left + ", " + right + "[");
                 }
             }
         }
+    }
+
+    /**
+     * La pointe tient dans sa propre barre.
+     *
+     * <p>C'est le contrôle qui manquait au retrait. {@code CELL_INSET} existait mais n'était employé
+     * nulle part : les huit sites de dessin gardaient {@code + 2} et {@code - 4} en dur, si bien que
+     * la review a pu porter la constante à 7 sans qu'un test bronche — la pointe se détachait de sa
+     * barre de cinq pixels et flottait à côté, seule sur la ligne.
+     *
+     * <p>« La pointe est incluse dans la barre » est une propriété qu'aucune valeur de retrait ne
+     * peut plus contredire en silence, puisque les deux la lisent désormais au même endroit. Ce test
+     * garde donc l'unicité de la règle autant que sa valeur.
+     */
+    @Test
+    @DisplayName("La pointe d'un repère tient dans sa barre")
+    void themarkTipFitsInsideItsOwnBar() {
+        ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
+        for (int cell = 0; cell < Grid.MAX_WIDTH; cell++) {
+            for (Direction facing : Direction.values()) {
+                var shapes = layout.heroMark(cell, facing);
+                ArenaLayout.MarkShape bar = shapes.get(0);
+                for (int column : tipColumnsOf(shapes)) {
+                    assertTrue(bar.coversColumn(column),
+                            "case " + (cell + 1) + ", " + facing + " : la pointe occupe la colonne "
+                                    + column + ", hors de sa barre [" + bar.x() + ", "
+                                    + (bar.x() + bar.width()) + "[");
+                }
+            }
+        }
+    }
+
+    /** La colonne la plus fine d'un repère, c'est-à-dire le bout de la pointe. */
+    private static int fineColumnOf(java.util.List<ArenaLayout.MarkShape> shapes) {
+        for (ArenaLayout.MarkShape shape : shapes) {
+            if (shape.height() == 1) {
+                return shape.x();
+            }
+        }
+        throw new AssertionError("aucun rectangle d'un pixel de haut : le repere n'a pas de pointe");
+    }
+
+    /**
+     * <b>Les deux pointes se font face.</b> C'est la promesse du repère, et c'était le vrai trou.
+     *
+     * <p>La disjonction des colonnes ne dit rien du <em>sens</em> : deux pointes qui se tournent le
+     * dos sont exactement aussi disjointes que deux pointes qui se regardent, puisqu'aucune ne sort
+     * de sa case. J'ai vérifié la chose plutôt que de la supposer — en inversant la déduction du sens
+     * de la cible, puis celle du héros, la suite entière restait verte. Le test précédent gardait la
+     * <i>séparation</i> et laissait passer l'<i>inversion</i>, qui est le défaut de lecture le plus
+     * grave des deux : un troc affiché à l'envers dit au joueur le contraire de ce qui va arriver.
+     *
+     * <p>La propriété est énoncée <b>sans signe</b>, pour ne pas recopier le calcul qu'elle
+     * éprouve : de toutes les extrémités des deux barres, les deux bouts de pointe doivent être la
+     * paire la plus rapprochée. Une pointe retournée s'éloigne de l'autre, et ça se voit.
+     */
+    @Test
+    @DisplayName("Les deux pointes se font face, et pas dos à dos")
+    void thetwoTipsFaceEachOther() {
+        ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
+        for (int heroCell = 0; heroCell < Grid.MAX_WIDTH; heroCell++) {
+            for (Direction facing : Direction.values()) {
+                for (int distance = 1; distance < Grid.MAX_WIDTH; distance++) {
+                    int target = heroCell + facing.step() * distance;
+                    if (target < 0 || target >= Grid.MAX_WIDTH) {
+                        continue;
+                    }
+                    var hero = layout.heroMark(heroCell, facing);
+                    var cible = layout.targetMark(target, heroCell);
+
+                    int gap = Math.abs(fineColumnOf(hero) - fineColumnOf(cible));
+                    int nearest = nearestEnds(hero.get(0), cible.get(0));
+                    assertEquals(nearest, gap, "heros en " + (heroCell + 1) + " regardant " + facing
+                            + ", cible en " + (target + 1) + " : les pointes sont distantes de " + gap
+                            + " alors que les barres se rapprochent jusqu'a " + nearest
+                            + " -- au moins une pointe est tournee du mauvais cote");
+                }
+            }
+        }
+    }
+
+    /** Le plus petit écart entre une extrémité de la première barre et une de la seconde. */
+    private static int nearestEnds(ArenaLayout.MarkShape first, ArenaLayout.MarkShape second) {
+        int[] a = {first.x(), first.x() + first.width() - 1};
+        int[] b = {second.x(), second.x() + second.width() - 1};
+        int best = Integer.MAX_VALUE;
+        for (int x : a) {
+            for (int y : b) {
+                best = Math.min(best, Math.abs(x - y));
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Et le héros ne peut pas être sa propre cible d'échange.
+     *
+     * <p>Sans cette garde, {@code targetMark} recevrait un sens nul et rendrait une pointe dégénérée
+     * — quatre rectangles empilés sur une seule colonne — au lieu de signaler l'erreur. C'est la
+     * seule entrée du calcul qui n'a pas de forme correcte.
+     */
+    @Test
+    @DisplayName("Une cible d'échange confondue avec le héros est refusée")
+    void aswapTargetOnTheHeroCellIsRefused() {
+        ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
+        assertThrows(IllegalArgumentException.class, () -> layout.targetMark(3, 3));
     }
 }

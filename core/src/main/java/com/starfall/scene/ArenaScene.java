@@ -355,8 +355,8 @@ public final class ArenaScene implements Scene {
         for (int offset : tile.reach()) {
             int cell = hero + offset * step;
             if (arena.grid().contains(cell)) {
-                painter.outline(layout.cellLeft(cell) + 2, ArenaLayout.PREVIEW_Y,
-                        ArenaLayout.CELL_WIDTH - 4, ArenaLayout.PREVIEW_HEIGHT, color);
+                painter.outline(layout.insetLeft(cell), ArenaLayout.PREVIEW_Y,
+                        ArenaLayout.insetWidth(), ArenaLayout.PREVIEW_HEIGHT, color);
             }
         }
     }
@@ -392,8 +392,8 @@ public final class ArenaScene implements Scene {
     }
 
     private void drawReachBar(int cell, Color color, boolean committed) {
-        int x = layout.cellLeft(cell) + 2;
-        int width = ArenaLayout.CELL_WIDTH - 4;
+        int x = layout.insetLeft(cell);
+        int width = ArenaLayout.insetWidth();
         if (committed) {
             painter.fill(x, ArenaLayout.PREVIEW_Y, width, ArenaLayout.PREVIEW_HEIGHT, color);
         } else {
@@ -413,8 +413,8 @@ public final class ArenaScene implements Scene {
      * seule couleur.
      */
     private void drawMissMark(int cell, Color color) {
-        int x = layout.cellLeft(cell) + 2;
-        int width = ArenaLayout.CELL_WIDTH - 4;
+        int x = layout.insetLeft(cell);
+        int width = ArenaLayout.insetWidth();
         painter.outline(x, ArenaLayout.PREVIEW_Y, width, ArenaLayout.PREVIEW_HEIGHT, color);
         for (int i = 0; i < ArenaLayout.PREVIEW_HEIGHT; i++) {
             painter.fill(x + width / 2 - 1 + i, ArenaLayout.PREVIEW_Y + i, 1, 1, color);
@@ -746,7 +746,7 @@ public final class ArenaScene implements Scene {
             int pitch = ArenaLayout.threatBarPitch(blows);
             int barWidth = ArenaLayout.threatBarWidth(blows);
             for (int blow = 0; blow < ArenaLayout.threatBarsDrawn(blows); blow++) {
-                painter.fill(layout.cellLeft(cell) + 2 + blow * pitch,
+                painter.fill(layout.insetLeft(cell) + blow * pitch,
                         ArenaLayout.GROUND_Y + ArenaLayout.GROUND_HEIGHT - 3, barWidth, 2,
                         HudColors.THREAT);
             }
@@ -898,34 +898,26 @@ public final class ArenaScene implements Scene {
      * qui se font face, c'est-à-dire un troc.
      */
     private void drawSwapTargetMark(int cell, int heroCell) {
-        int left = layout.cellLeft(cell) + 2;
-        int width = ArenaLayout.CELL_WIDTH - 4;
-        painter.fill(left, ArenaLayout.MARK_Y, width, ArenaLayout.MARK_HEIGHT, TARGET_MARK);
-
-        // La pointe est dessinée <b>à l'intérieur</b> de la case cible, et c'est un correctif.
-        // Posée à l'extérieur, en miroir de celle du héros, elle occupait exactement les mêmes
-        // quatre colonnes que la sienne dès que la cible était adjacente — c'est-à-dire dans le cas
-        // le plus courant d'une capacité d'échange. Le héros étant dessiné après, il l'écrasait :
-        // on ne voyait pas « deux flèches qui se font face » mais un losange bicolore, exactement
-        // l'ambiguïté que ce repère existe pour lever.
-        drawMarkTip(ArenaLayout.markTipColumns(layout.cellLeft(cell),
-                Integer.signum(heroCell - cell)), TARGET_MARK);
+        paint(layout.targetMark(cell, heroCell), TARGET_MARK);
     }
 
     /**
-     * Pointe d'un repère tactique : quatre colonnes qui montent depuis la ligne des repères.
+     * Peint un repère tactique, sans rien décider de sa forme.
      *
-     * <p>Elle pousse <b>vers le haut</b> et jamais vers le bas. L'ancienne version était centrée
-     * sur la ligne, donc haute de huit pixels sur une bande qui en déclare deux : elle mordait la
-     * bande des portées en dessous et la première ligne des dalles au-dessus, sans qu'aucun test ne
-     * bronche — celui qui garde les bandes compare des constantes, pas le dessin.
+     * <p>C'est volontairement la méthode la plus bête du fichier. La review précédente a montré
+     * pourquoi : tant que la scène calculait le <em>sens</em> des pointes, on pouvait l'inverser —
+     * le héros regardant derrière lui, la cible fuyant le héros — sans qu'un seul des 448 tests ne
+     * rougisse. Les tests gardaient l'arithmétique de {@link ArenaLayout}, jamais son câblage.
      *
-     * @param tip  colonne de la pointe, la plus fine
-     * @param away sens dans lequel la pointe s'épaissit
+     * <p>Il ne reste donc ici aucun retrait, aucun signe, aucune hauteur de pointe : la mise en page
+     * rend des rectangles, et cette boucle les remplit.
+     *
+     * @param shapes rectangles à remplir, en pixels-monde
+     * @param color  couleur du repère
      */
-    private void drawMarkTip(int[] columns, Color color) {
-        for (int i = 0; i < columns.length; i++) {
-            painter.fill(columns[i], ArenaLayout.MARK_Y, 1, i + 1, color);
+    private void paint(java.util.List<ArenaLayout.MarkShape> shapes, Color color) {
+        for (ArenaLayout.MarkShape shape : shapes) {
+            painter.fill(shape.x(), shape.y(), shape.width(), shape.height(), color);
         }
     }
 
@@ -961,14 +953,7 @@ public final class ArenaScene implements Scene {
      * de l'échange, ce qui rend inutile une seconde flèche sur la cible.
      */
     private void drawHeroMark(int cell) {
-        int step = arena.hero().facing().step();
-        int left = layout.cellLeft(cell) + 2;
-        int width = ArenaLayout.CELL_WIDTH - 4;
-        painter.fill(left, ArenaLayout.MARK_Y, width, 2, HERO_MARK);
-
-        // Pointe tournée vers ce qu'il regarde, dessinée à l'intérieur de sa propre case pour la
-        // même raison que celle de la cible : à distance 1, les deux se recouvraient au pixel près.
-        drawMarkTip(ArenaLayout.markTipColumns(layout.cellLeft(cell), step), HERO_MARK);
+        paint(layout.heroMark(cell, arena.hero().facing()), HERO_MARK);
     }
 
     // ------------------------------------------------------------------ file et râtelier

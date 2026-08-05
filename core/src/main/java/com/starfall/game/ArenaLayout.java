@@ -1,5 +1,8 @@
 package com.starfall.game;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Géométrie de l'arène : où tombe chaque case, en pixels-monde.
  *
@@ -143,38 +146,101 @@ public final class ArenaLayout {
     /** Bord supérieur de la bande des repères tactiques, pointes comprises. */
     public static final int MARK_TOP = MARK_Y + MARK_TIP_HEIGHT;
 
-    /** Retrait latéral d'un repère tactique dans sa case, de chaque côté. */
-    public static final int MARK_INSET = 2;
+    /**
+     * Retrait latéral d'un ornement dessiné <em>dans</em> une case, de chaque côté.
+     *
+     * <p>Il vaut pour tout ce qui se pose à l'intérieur d'une case sans être la case : les repères
+     * tactiques, la bande des portées, la croix d'un coup qui rate, les barres de menace. Le retrait
+     * est ce qui empêche deux ornements de cases voisines de se toucher et de se lire comme un seul
+     * trait continu.
+     *
+     * <p>La constante existait déjà, mais <b>elle n'était employée nulle part</b> : les sept sites de
+     * dessin continuaient d'écrire {@code + 2} et {@code - 4} en dur. La review l'a démontré en la
+     * portant à 7 sans qu'un seul test bronche — la pointe se détachait de sa propre barre de cinq
+     * pixels et la suite restait verte. Une règle écrite à deux endroits finit toujours par diverger ;
+     * celle-ci l'était à huit.
+     */
+    public static final int CELL_INSET = 2;
+
+    /** Bord gauche de la zone utile d'une case, retrait compris, en pixels-monde. */
+    public int insetLeft(int cell) {
+        return cellLeft(cell) + CELL_INSET;
+    }
+
+    /** Largeur de la zone utile d'une case, les deux retraits ôtés. */
+    public static int insetWidth() {
+        return CELL_WIDTH - 2 * CELL_INSET;
+    }
 
     /**
-     * Colonnes qu'occupe la pointe d'un repère tactique, en pixels-monde.
+     * Un rectangle plein d'un repère tactique, en pixels-monde.
      *
-     * <p>Elle vit ici, et pas dans le rendu, pour une raison que la review a rendue indiscutable :
-     * la pointe du héros et celle de sa cible se sont recouvertes <b>au pixel près</b> pendant tout
-     * un cycle, sans qu'aucun test ne puisse le voir. Le seul contrôle existant comparait des
-     * <em>constantes de bande</em> entre elles — il ne savait rien de ce qui était dessiné dedans.
-     *
-     * <p>Le correctif a été vérifié à la main, en relisant les pixels d'une capture. C'est mieux que
-     * rien et moins bien qu'un test : une mesure faite une fois ne garde rien. La géométrie est de
-     * l'arithmétique pure, elle n'a jamais eu besoin d'un contexte graphique.
-     *
-     * @param cellLeft bord gauche de la case, en pixels-monde
-     * @param toward   sens vers lequel la pointe s'affine : {@code -1} vers la gauche, {@code +1} vers
-     *                 la droite
-     * @return les colonnes occupées, de la plus fine à la plus épaisse
+     * <p>C'est la seule chose que le rendu reçoit désormais. Il ne calcule plus rien : ni retrait, ni
+     * sens, ni hauteur de pointe. La raison est celle que la review a établie par mutation — en
+     * inversant les deux sens dans la scène, « les deux flèches qui se font face » se retournaient
+     * exactement, et les 448 tests restaient verts. Les tests gardaient l'arithmétique ; le câblage,
+     * lui, n'était gardé par rien, parce que c'était la scène qui décidait du sens.
      */
-    public static int[] markTipColumns(int cellLeft, int toward) {
-        int left = cellLeft + MARK_INSET;
-        int width = CELL_WIDTH - 2 * MARK_INSET;
-        // La pointe est posée sur le bord de la barre situé du côté où elle s'affine, et elle
-        // s'épaissit vers l'intérieur de la case. C'est ce « vers l'intérieur » qui garantit qu'elle
-        // ne sort jamais de sa propre case, donc qu'elle ne peut pas rencontrer celle du voisin.
-        int tip = toward < 0 ? left : left + width - 1;
-        int[] columns = new int[MARK_TIP_HEIGHT];
-        for (int i = 0; i < columns.length; i++) {
-            columns[i] = tip - toward * i;
+    public record MarkShape(int x, int y, int width, int height) {
+
+        /** Vrai si ce rectangle occupe la colonne donnée. */
+        public boolean coversColumn(int column) {
+            return column >= x && column < x + width;
         }
-        return columns;
+    }
+
+    /**
+     * Le repère du héros : un trait, terminé par une pointe du côté qu'il <b>regarde</b>.
+     *
+     * <p>Position et orientation sont dites par une seule forme plutôt que par deux symboles côte à
+     * côte : séparés, ils se télescopaient avec le trait de liaison et l'œil devait démêler trois
+     * signes au même endroit.
+     */
+    public List<MarkShape> heroMark(int heroCell, Direction facing) {
+        return mark(heroCell, facing.step());
+    }
+
+    /**
+     * Le repère de la cible d'échange : le même trait, mais la pointe tournée <b>vers le héros</b>.
+     *
+     * <p>Elle dit « celui-ci vient à toi », ce qui est exactement ce que fait un échange de place.
+     * Avec la pointe du héros qui regarde la cible, les deux se lisent comme une seule phrase — deux
+     * flèches qui se font face, c'est-à-dire un troc.
+     *
+     * <p>Le sens est déduit <b>ici</b> des deux cases, et non reçu du rendu. C'est tout l'objet du
+     * correctif : tant que l'appelant fournissait le signe, il pouvait le fournir à l'envers.
+     */
+    public List<MarkShape> targetMark(int targetCell, int heroCell) {
+        if (targetCell == heroCell) {
+            throw new IllegalArgumentException(
+                    "la cible d'echange et le heros ne peuvent pas occuper la case " + heroCell);
+        }
+        return mark(targetCell, Integer.signum(heroCell - targetCell));
+    }
+
+    /**
+     * Le trait et sa pointe, pour une case et un sens.
+     *
+     * <p>La pointe est posée sur le bord de la barre situé du côté où elle s'affine, et elle
+     * s'épaissit vers l'<b>intérieur</b> de la case. C'est ce « vers l'intérieur » qui garantit
+     * qu'elle ne sort jamais de sa propre case, donc qu'elle ne peut pas rencontrer celle du voisin.
+     *
+     * <p>Posée à l'extérieur, en miroir, elle occupait exactement les mêmes quatre colonnes que celle
+     * du héros dès que la cible était adjacente — le cas le plus courant d'une capacité d'échange. Le
+     * héros étant dessiné après, il l'écrasait : on ne voyait pas deux flèches mais un losange
+     * bicolore, précisément l'ambiguïté que ce repère existe pour lever.
+     */
+    private List<MarkShape> mark(int cell, int toward) {
+        int left = insetLeft(cell);
+        int width = insetWidth();
+        List<MarkShape> shapes = new ArrayList<>(1 + MARK_TIP_HEIGHT);
+        shapes.add(new MarkShape(left, MARK_Y, width, MARK_HEIGHT));
+
+        int tip = toward < 0 ? left : left + width - 1;
+        for (int i = 0; i < MARK_TIP_HEIGHT; i++) {
+            shapes.add(new MarkShape(tip - toward * i, MARK_Y, 1, i + 1));
+        }
+        return List.copyOf(shapes);
     }
 
     /**
