@@ -908,9 +908,8 @@ public final class ArenaScene implements Scene {
         // le plus courant d'une capacité d'échange. Le héros étant dessiné après, il l'écrasait :
         // on ne voyait pas « deux flèches qui se font face » mais un losange bicolore, exactement
         // l'ambiguïté que ce repère existe pour lever.
-        int toHero = Integer.signum(heroCell - cell);
-        int nearEdge = toHero < 0 ? left : left + width - 1;
-        drawMarkTip(nearEdge, -toHero, TARGET_MARK);
+        drawMarkTip(ArenaLayout.markTipColumns(layout.cellLeft(cell),
+                Integer.signum(heroCell - cell)), TARGET_MARK);
     }
 
     /**
@@ -924,9 +923,9 @@ public final class ArenaScene implements Scene {
      * @param tip  colonne de la pointe, la plus fine
      * @param away sens dans lequel la pointe s'épaissit
      */
-    private void drawMarkTip(int tip, int away, Color color) {
-        for (int i = 0; i < ArenaLayout.MARK_TIP_HEIGHT; i++) {
-            painter.fill(tip + away * i, ArenaLayout.MARK_Y, 1, i + 1, color);
+    private void drawMarkTip(int[] columns, Color color) {
+        for (int i = 0; i < columns.length; i++) {
+            painter.fill(columns[i], ArenaLayout.MARK_Y, 1, i + 1, color);
         }
     }
 
@@ -969,8 +968,7 @@ public final class ArenaScene implements Scene {
 
         // Pointe tournée vers ce qu'il regarde, dessinée à l'intérieur de sa propre case pour la
         // même raison que celle de la cible : à distance 1, les deux se recouvraient au pixel près.
-        int nearEdge = step > 0 ? left + width - 1 : left;
-        drawMarkTip(nearEdge, -step, HERO_MARK);
+        drawMarkTip(ArenaLayout.markTipColumns(layout.cellLeft(cell), step), HERO_MARK);
     }
 
     // ------------------------------------------------------------------ file et râtelier

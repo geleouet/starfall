@@ -221,4 +221,68 @@ class ArenaLayoutTest {
         assertTrue(ArenaLayout.PREVIEW_Y >= HudLayout.RACK_Y + HudLayout.TILE_SIZE,
                 "la bande des portees mord sur le ratelier");
     }
+
+    /**
+     * La pointe du héros et celle de sa cible ne partagent aucune colonne.
+     *
+     * <p>C'est l'assertion d'une ligne qui manquait, et son absence a coûté un cycle entier. Quand
+     * la cible d'échange est <b>adjacente</b> — le cas le plus courant —, les deux pointes
+     * occupaient exactement les mêmes quatre colonnes, et le héros étant dessiné après, il écrasait
+     * l'autre. On ne voyait pas « deux flèches qui se font face » mais un losange bicolore :
+     * précisément l'ambiguïté que ce repère venait lever.
+     *
+     * <p>Le contrôle existant comparait des <em>constantes de bande</em> entre elles ; il ne savait
+     * rien de ce qui était dessiné dedans. Celui-ci compare les colonnes réellement occupées, ce qui
+     * ne demande aucun contexte graphique puisque c'est de l'arithmétique.
+     */
+    @Test
+    @DisplayName("Les deux pointes tactiques ne partagent jamais une colonne")
+    void thetwoTacticalTipsNeverShareAColumn() {
+        for (int heroCell = 0; heroCell < Grid.MAX_WIDTH; heroCell++) {
+            for (int step : new int[]{-1, 1}) {
+                int target = heroCell + step;
+                if (target < 0 || target >= Grid.MAX_WIDTH) {
+                    continue;
+                }
+                ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
+
+                // La pointe du héros s'affine vers ce qu'il regarde, celle de la cible vers lui.
+                int[] hero = ArenaLayout.markTipColumns(layout.cellLeft(heroCell), step);
+                int[] cible = ArenaLayout.markTipColumns(layout.cellLeft(target), -step);
+
+                java.util.Set<Integer> shared = new java.util.TreeSet<>();
+                for (int a : hero) {
+                    for (int b : cible) {
+                        if (a == b) {
+                            shared.add(a);
+                        }
+                    }
+                }
+                assertTrue(shared.isEmpty(), "heros en " + (heroCell + 1) + " regardant "
+                        + (step > 0 ? "a droite" : "a gauche") + ", cible adjacente : colonnes"
+                        + " partagees " + shared);
+            }
+        }
+    }
+
+    /**
+     * Et chaque pointe reste dans sa propre case : c'est ce qui garantit le test ci-dessus pour
+     * toute distance, pas seulement pour l'adjacence.
+     */
+    @Test
+    @DisplayName("Une pointe ne sort jamais de sa case")
+    void amarkTipNeverLeavesItsCell() {
+        ArenaLayout layout = new ArenaLayout(Grid.MAX_WIDTH, CENTRE);
+        for (int cell = 0; cell < Grid.MAX_WIDTH; cell++) {
+            for (int step : new int[]{-1, 1}) {
+                int left = layout.cellLeft(cell);
+                for (int column : ArenaLayout.markTipColumns(left, step)) {
+                    assertTrue(column >= left && column < left + ArenaLayout.CELL_WIDTH,
+                            "case " + (cell + 1) + " : la pointe occupe la colonne " + column
+                                    + ", hors de [" + left + ", "
+                                    + (left + ArenaLayout.CELL_WIDTH) + "[");
+                }
+            }
+        }
+    }
 }

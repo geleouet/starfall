@@ -143,6 +143,40 @@ public final class ArenaLayout {
     /** Bord supérieur de la bande des repères tactiques, pointes comprises. */
     public static final int MARK_TOP = MARK_Y + MARK_TIP_HEIGHT;
 
+    /** Retrait latéral d'un repère tactique dans sa case, de chaque côté. */
+    public static final int MARK_INSET = 2;
+
+    /**
+     * Colonnes qu'occupe la pointe d'un repère tactique, en pixels-monde.
+     *
+     * <p>Elle vit ici, et pas dans le rendu, pour une raison que la review a rendue indiscutable :
+     * la pointe du héros et celle de sa cible se sont recouvertes <b>au pixel près</b> pendant tout
+     * un cycle, sans qu'aucun test ne puisse le voir. Le seul contrôle existant comparait des
+     * <em>constantes de bande</em> entre elles — il ne savait rien de ce qui était dessiné dedans.
+     *
+     * <p>Le correctif a été vérifié à la main, en relisant les pixels d'une capture. C'est mieux que
+     * rien et moins bien qu'un test : une mesure faite une fois ne garde rien. La géométrie est de
+     * l'arithmétique pure, elle n'a jamais eu besoin d'un contexte graphique.
+     *
+     * @param cellLeft bord gauche de la case, en pixels-monde
+     * @param toward   sens vers lequel la pointe s'affine : {@code -1} vers la gauche, {@code +1} vers
+     *                 la droite
+     * @return les colonnes occupées, de la plus fine à la plus épaisse
+     */
+    public static int[] markTipColumns(int cellLeft, int toward) {
+        int left = cellLeft + MARK_INSET;
+        int width = CELL_WIDTH - 2 * MARK_INSET;
+        // La pointe est posée sur le bord de la barre situé du côté où elle s'affine, et elle
+        // s'épaissit vers l'intérieur de la case. C'est ce « vers l'intérieur » qui garantit qu'elle
+        // ne sort jamais de sa propre case, donc qu'elle ne peut pas rencontrer celle du voisin.
+        int tip = toward < 0 ? left : left + width - 1;
+        int[] columns = new int[MARK_TIP_HEIGHT];
+        for (int i = 0; i < columns.length; i++) {
+            columns[i] = tip - toward * i;
+        }
+        return columns;
+    }
+
     /**
      * Bande des repères de portée : ce que la prochaine tuile fera, sous les dalles.
      *
