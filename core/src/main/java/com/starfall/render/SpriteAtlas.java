@@ -60,11 +60,11 @@ public final class SpriteAtlas implements Disposable {
         Texture texture = new Texture(imageFile);
         texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 
-        if (texture.getWidth() != index.width() || texture.getHeight() != index.height()) {
+        try {
+            requireSameSize(texture.getWidth(), texture.getHeight(), index.width(), index.height());
+        } catch (ArtFormatException e) {
             texture.dispose();
-            throw new ArtFormatException("l'atlas fait " + texture.getWidth() + "x" + texture.getHeight()
-                    + " mais son index annonce " + index.width() + "x" + index.height()
-                    + " : image et index sont desynchronises");
+            throw e;
         }
 
         SpriteAtlas atlas = new SpriteAtlas(texture, index);
@@ -74,6 +74,30 @@ public final class SpriteAtlas implements Disposable {
                     placement.x(), placement.y(), placement.width(), placement.height()));
         }
         return atlas;
+    }
+
+    /**
+     * L'image et son index doivent parler de la même chose.
+     *
+     * <p>Le contrôle vivait au milieu du chargement, entre une texture GL et un fichier : il était
+     * donc invérifiable sans écran, et il l'est resté dix jalons. Il est ici, sur quatre entiers,
+     * parce que c'est tout ce dont il a besoin — et parce qu'un garde-fou qu'on ne peut pas tester
+     * est un garde-fou qu'on croit sur parole.
+     *
+     * <p>Ce qu'il attrape : un atlas régénéré dont l'image a changé de taille pendant que l'index
+     * livré est resté celui d'avant. Toutes les régions seraient alors décalées, et le jeu
+     * afficherait des morceaux de sprites voisins — un défaut qui se lit comme un bug de rendu et
+     * qu'on cherche du mauvais côté.
+     *
+     * @throws ArtFormatException si les deux tailles diffèrent
+     */
+    static void requireSameSize(int imageWidth, int imageHeight, int indexWidth, int indexHeight) {
+        if (imageWidth == indexWidth && imageHeight == indexHeight) {
+            return;
+        }
+        throw new ArtFormatException("l'atlas fait " + imageWidth + "x" + imageHeight
+                + " mais son index annonce " + indexWidth + "x" + indexHeight
+                + " : image et index sont desynchronises");
     }
 
     /**
