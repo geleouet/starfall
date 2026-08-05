@@ -93,6 +93,46 @@ class SalvoTest {
     }
 
     /**
+     * Et ce qui reste dans la file <b>traverse la vague</b>.
+     *
+     * <p>Le test ci-dessus se joue sur un plateau d'essai, sans campagne : il montre que les tuiles
+     * ne sont pas gaspillées, jamais qu'elles survivent à l'arrivée de la vague suivante. Or c'est
+     * cette moitié-là qui compte, et c'est elle qui m'a fait écrire une démonstration fausse : j'ai
+     * affirmé qu'à la victoire la file est toujours vide, en oubliant que la salve <em>sort</em> de
+     * sa boucle quand le terrain se vide. Sur la dernière vague, cela veut dire une victoire file
+     * garnie — ce qu'une review a démontré et qu'un test tient désormais dans
+     * {@code SilenceAfterTheEndTest}.
+     *
+     * <p>Celui-ci tient l'autre moitié : sur une vague qui n'est pas la dernière, les tuiles
+     * restantes passent de l'autre côté avec le héros.
+     */
+    @Test
+    @DisplayName("Ce qui reste dans la file traverse l'arrivée de la vague suivante")
+    void whatStaysInTheQueueSurvivesTheNextWave() {
+        Arena arena = ArenaSetup.trainingArena(9, 1);
+        while (!arena.enemies().isEmpty()) {
+            arena.grid().clear(arena.grid().indexOf(arena.enemies().get(0)));
+        }
+        arena.grid().place(arena.heroCell() + arena.hero().facing().step(),
+                new Enemy(EnemyKind.SABREUR));
+        arena.announceIntentions();
+
+        arena.queueTile(Tile.THRUST);   // vise à deux cases : ne portera pas
+        arena.queueTile(Tile.STRIKE);   // part la première et vide le plateau
+        int waveBefore = arena.wave();
+
+        arena.unleash();
+
+        assertEquals(waveBefore + 1, arena.wave(),
+                "le terrain vide devait faire venir la vague suivante");
+        assertEquals(1, arena.queue().size(),
+                "l'estoc devait traverser la vague, pas etre gaspille : file "
+                        + arena.queue().fromOldest());
+        assertEquals(Tile.THRUST, arena.queue().fromOldest().get(0),
+                "et c'est bien celle qui n'avait pas porte");
+    }
+
+    /**
      * Poser puis reprendre est un <b>tour de passe</b>, et le javadoc affirmait le contraire.
      *
      * <p>« Il n'y a rien à y gagner », disait-il. En réalité : un tour dépensé, aucune tuile
