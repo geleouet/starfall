@@ -2,7 +2,9 @@ package com.starfall.art;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.starfall.game.ArenaLayout;
 import com.starfall.game.EnemyKind;
+import com.starfall.game.HudLayout;
 import com.starfall.game.Tile;
 
 import java.io.IOException;
@@ -97,8 +99,12 @@ class AtlasCoverageTest {
      *
      * <p>Moins grave — un sprite orphelin ne fait rien disparaître — mais il coûte de la place dans
      * un atlas dont la taille est bornée, et il signale presque toujours un renommage à moitié fait.
-     * Le test ne l'interdit pas, il le <b>nomme</b> : un art de démonstration a le droit d'exister,
-     * mais on doit savoir qu'il est là.
+     *
+     * <p>Le seuil était à « au plus deux », justifié par « la mire de calibration en utilise
+     * quelques-uns qui ne passent pas par une énumération ». <b>C'était factuellement faux</b> :
+     * {@code CalibrationScene} n'emploie que des sprites déjà réclamés par le jeu, et le nombre réel
+     * d'orphelins est zéro. Le mou n'existait donc que pour éviter d'y regarder — et un test dont le
+     * titre dit « aucun sprite ne dort sans qu'on le sache » en laissait dormir deux.
      */
     @Test
     @DisplayName("Aucun sprite orphelin ne dort dans l'atlas sans qu'on le sache")
@@ -113,10 +119,8 @@ class AtlasCoverageTest {
             }
         }
 
-        // La mire de calibration en utilise quelques-uns qui ne passent pas par une énumération.
-        // Au-delà d'une poignée, c'est qu'un renommage n'a été fait qu'à moitié.
-        assertTrue(orphans.size() <= 2,
-                "trop de sprites orphelins dans l'atlas : " + orphans
+        assertTrue(orphans.isEmpty(),
+                "sprites orphelins dans l'atlas : " + orphans
                         + "\n  soit le jeu a cesse de les demander, soit un renommage est incomplet");
     }
 
@@ -152,5 +156,46 @@ class AtlasCoverageTest {
         assertTrue(wrong.isEmpty(), "figures dont la taille contredit la mise en page ("
                 + com.starfall.game.ArenaLayout.FIGURE_WIDTH + "x"
                 + com.starfall.game.ArenaLayout.FIGURE_HEIGHT + ") : " + wrong);
+    }
+
+    /**
+     * Les sprites qui ne sont pas des figures ont eux aussi une taille que la mise en page suppose.
+     *
+     * <p>Le test des figures ne couvrait que six sprites sur quatorze. Les huit autres — la dalle et
+     * les sept tuiles — sont pourtant liés à des constantes tout aussi structurantes :
+     * {@code CELL_WIDTH}, {@code GROUND_HEIGHT}, {@code HudLayout.TILE_SIZE}. Une dalle d'un pixel
+     * de trop laisserait une couture entre les cases, et une icône de tuile hors gabarit déborderait
+     * de son emplacement. Exactement la faute que ce fichier existe pour empêcher, laissée ouverte
+     * sur plus de la moitié de l'atlas.
+     */
+    @Test
+    @DisplayName("La dalle et les tuiles ont la taille que la mise en page suppose")
+    void thegroundAndTilesHaveTheSizeTheLayoutAssumes() throws IOException {
+        AtlasIndex atlas = index();
+        List<String> wrong = new ArrayList<>();
+
+        AtlasLayout.Placement ground = atlas.region("ground/plain");
+        if (ground.width() != ArenaLayout.CELL_WIDTH
+                || ground.height() != ArenaLayout.GROUND_HEIGHT) {
+            wrong.add("ground/plain fait " + ground.width() + "x" + ground.height()
+                    + " pour une case de " + ArenaLayout.CELL_WIDTH
+                    + "x" + ArenaLayout.GROUND_HEIGHT);
+        }
+
+        List<String> tiles = new ArrayList<>();
+        for (Tile tile : Tile.values()) {
+            tiles.add(tile.spriteName());
+        }
+        tiles.add("tile/empty");
+        for (String name : tiles) {
+            AtlasLayout.Placement placement = atlas.region(name);
+            if (placement.width() != HudLayout.TILE_SIZE
+                    || placement.height() != HudLayout.TILE_SIZE) {
+                wrong.add(name + " fait " + placement.width() + "x" + placement.height());
+            }
+        }
+
+        assertTrue(wrong.isEmpty(), "sprites hors gabarit (tuile attendue en "
+                + HudLayout.TILE_SIZE + "x" + HudLayout.TILE_SIZE + ") : " + wrong);
     }
 }

@@ -94,13 +94,27 @@ class SpriteAtlasTest {
         }
     }
 
-    /** Largeur et hauteur d'un PNG, lues dans son bloc {@code IHDR}. */
+    /**
+     * Largeur et hauteur d'un PNG, lues dans son bloc {@code IHDR}.
+     *
+     * <p>La signature est vérifiée <b>en entier</b> — huit octets, y compris le
+     * {@code \r\n\x1a\n} qui sert justement à détecter un transfert qui aurait abîmé les fins de
+     * ligne — et le <b>type du bloc</b> l'est aussi. La version précédente contrôlait quatre octets
+     * sur huit et lisait deux entiers à des positions codées en dur sans jamais vérifier que le bloc
+     * qui s'y trouve est bien {@code IHDR} : sur un fichier abîmé, elle aurait rendu deux nombres
+     * arbitraires avec l'assurance d'une mesure. Le tableau de bord annonçait par ailleurs « huit
+     * octets de signature », ce qui n'était pas le cas.
+     */
     private static int[] readPngSize(byte[] png) {
         assertTrue(png.length > 24, "fichier trop court pour etre un PNG");
-        assertEquals((byte) 0x89, png[0], "signature PNG absente");
-        assertEquals('P', png[1]);
-        assertEquals('N', png[2]);
-        assertEquals('G', png[3]);
+        byte[] signature = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'};
+        for (int i = 0; i < signature.length; i++) {
+            assertEquals(signature[i], png[i], "signature PNG abimee a l'octet " + i);
+        }
+        assertEquals('I', png[12], "premier bloc different de IHDR");
+        assertEquals('H', png[13]);
+        assertEquals('D', png[14]);
+        assertEquals('R', png[15]);
         return new int[]{readInt(png, 16), readInt(png, 20)};
     }
 

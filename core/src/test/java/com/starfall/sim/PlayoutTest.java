@@ -129,19 +129,23 @@ class PlayoutTest {
     void stalledGamesLeaveTheAveragesAndAreAnnounced() {
         BalanceReport report = BalanceReport.measure(Policy.thoughtful(), 15, 1, 12);
 
-        assertTrue(report.stalled() >= 0 && report.stalled() <= report.games());
+        // On EXIGE que le cas annoncé soit visité, au lieu de le vérifier sous un « if ». Les deux
+        // assertions qui portaient quelque chose étaient conditionnelles : un rééquilibrage qui
+        // ferait gagner la politique une seule fois aurait désactivé la moitié du test en silence,
+        // et « stalled >= 0 » ne dit rien du tout.
+        assertTrue(report.stalled() > 0,
+                "aucune partie enlisee sur cette configuration : le test ne mesure plus rien."
+                        + " Si la politique s'est ameliorée, choisir une configuration ou elle"
+                        + " s'enlise encore, ou retirer ce test.");
         assertTrue(report.wins() <= report.games() - report.stalled(),
                 "plus de victoires que de parties reellement jouees : "
                         + report.wins() + " pour " + (report.games() - report.stalled()));
-        if (report.stalled() > 0) {
-            assertTrue(report.line().contains("ENLISÉES"),
-                    "le bilan tait " + report.stalled() + " partie(s) enlisee(s) : " + report.line());
-        }
+        assertTrue(report.line().contains("ENLISÉES"),
+                "le bilan tait " + report.stalled() + " partie(s) enlisee(s) : " + report.line());
+        assertEquals(0, report.wins(), "montage invalide : cette politique ne doit pas gagner ici");
         // « 0,0 » quand personne ne gagne se lirait comme « on gagne a zero point de vie ».
-        if (report.wins() == 0) {
-            assertTrue(report.line().contains("s.o."),
-                    "une marge de vie sans objet doit se dire, pas s'ecrire zero : " + report.line());
-        }
+        assertTrue(report.line().contains("s.o."),
+                "une marge de vie sans objet doit se dire, pas s'ecrire zero : " + report.line());
     }
 
     @Test

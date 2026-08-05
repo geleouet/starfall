@@ -3,6 +3,10 @@ package com.starfall.sim;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.starfall.game.Arena;
+import com.starfall.game.Enemy;
+import com.starfall.game.Intention;
+import com.starfall.game.Occupant;
+import com.starfall.game.Tile;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -37,8 +41,19 @@ import org.junit.jupiter.api.Test;
  */
 class WinnabilityTest {
 
-    /** Largeur du faisceau. Assez pour trouver, assez peu pour rester une poignée de secondes. */
-    private static final int BEAM = 140;
+    /**
+     * Largeur du faisceau.
+     *
+     * <p>Elle était à 140, et la review a montré que c'était <b>1,75× le seuil de rupture</b> : à
+     * 80 la recherche échouait déjà. Un garde-fou posé si près de sa propre limite vire au rouge
+     * pour la première retouche venue de {@link Policy#score} — c'est-à-dire pour une raison qui
+     * n'est pas « le jeu est devenu impossible », exactement le « crier au loup » que ce test
+     * prétend éviter en préférant une recherche à une partie enregistrée.
+     *
+     * <p>La marge est désormais <b>mesurée et non supposée</b> : {@code searchFindsAWinWellAboveItsBreakingPoint}
+     * vérifie qu'un faisceau de moitié trouve encore.
+     */
+    private static final int BEAM = 400;
     /** Profondeur maximale en gestes, gratuits compris. Une tranche gagnée en fait moins de 80. */
     private static final int MAX_DEPTH = 110;
 
@@ -57,10 +72,14 @@ class WinnabilityTest {
      * @return la suite de gestes gagnante, ou {@code null} si le faisceau n'a rien trouvé
      */
     private static List<String> findAWin(int gridWidth, int startWave) {
+        return findAWin(gridWidth, startWave, BEAM, MAX_DEPTH);
+    }
+
+    private static List<String> findAWin(int gridWidth, int startWave, int beamWidth, int maxDepth) {
         List<Line> beam = new ArrayList<>();
         beam.add(new Line(List.of(), 0));
 
-        for (int depth = 0; depth < MAX_DEPTH; depth++) {
+        for (int depth = 0; depth < maxDepth; depth++) {
             List<Line> next = new ArrayList<>();
             // Deux lignes qui aboutissent au même plateau sont la même ligne : dédupliquer sur
             // l'état, et non sur la suite de gestes, est ce qui tue les cycles de « pose puis
@@ -91,29 +110,60 @@ class WinnabilityTest {
                 return null;
             }
             next.sort((a, b) -> b.score() - a.score());
-            beam = next.subList(0, Math.min(BEAM, next.size()));
+            beam = next.subList(0, Math.min(beamWidth, next.size()));
         }
         return null;
     }
 
-    /** Deux plateaux identiques ont la même signature. Le détail compte : il décide de l'élagage. */
+    /**
+     * Deux plateaux <b>réellement</b> identiques ont la même signature.
+     *
+     * <h2>Ce qu'elle a manqué, et pourquoi ça comptait</h2>
+     *
+     * <p>La première version se contentait de la <em>première lettre</em> du libellé de chaque
+     * occupant, de la vie du héros et des recharges. Elle jetait donc les points de vie ennemis et
+     * l'<b>intention annoncée</b> — les deux informations sur lesquelles tout le projet est bâti
+     * depuis M6 — et confondait le sabreur avec le souverain, tous deux réduits à un {@code 's'},
+     * dans la vague même où le souverain <em>invoque des sabreurs</em>.
+     *
+     * <p>Conséquence mesurée par la review : 781 collisions sur une seule recherche, dont un
+     * souverain à 4 points de vie qui fonce fusionné avec un souverain à 5 qui invoque. Le test
+     * passait <b>grâce à</b> cette perte d'information : avec une signature honnête, le même
+     * faisceau de 140 échouait.
+     *
+     * <p>Le risque était unilatéral — une fusion ne peut qu'élaguer, jamais certifier une fausse
+     * victoire, puisque celle-ci est constatée sur une arène rejouée. Mais élaguer des états
+     * distincts rendait la recherche artificiellement rapide, et « moins d'une seconde » était un
+     * chiffre obtenu en ne cherchant pas.
+     */
     private static String signature(Arena arena) {
         StringBuilder state = new StringBuilder();
         for (int cell = 0; cell < arena.grid().width(); cell++) {
-            var occupant = arena.grid().occupantAt(cell);
+            Occupant occupant = arena.grid().occupantAt(cell);
             if (occupant == null) {
                 state.append('.');
             } else if (occupant == arena.hero()) {
                 state.append('H');
+            } else if (occupant instanceof Enemy enemy) {
+                // L'archétype par son rang, jamais par une initiale : sabreur et souverain
+                // commencent tous deux par la même lettre.
+                state.append(enemy.kind().ordinal()).append(':').append(enemy.health());
+                Intention intention = enemy.intention();
+                state.append(':').append(intention.kind().ordinal())
+                        .append('@').append(intention.targetCell());
+                if (enemy.isStunned()) {
+                    state.append('!');
+                }
             } else {
-                state.append(occupant.label().charAt(0));
+                state.append('?');
             }
+            state.append(',');
         }
         state.append('|').append(arena.hero().health())
                 .append('|').append(arena.hero().facing())
                 .append('|').append(arena.wave())
                 .append('|').append(arena.queue().fromOldest());
-        for (var tile : arena.rack().tiles()) {
+        for (Tile tile : arena.rack().tiles()) {
             state.append('|').append(arena.rack().missingPoints(tile));
         }
         return state.toString();
@@ -133,7 +183,11 @@ class WinnabilityTest {
                         + "  Un faisceau prouve qu'une victoire existe, jamais qu'elle n'existe pas :\n"
                         + "  elargir BEAM avant d'accuser l'equilibrage. Si un faisceau large ne\n"
                         + "  trouve toujours rien, c'est la tranche qui est devenue impossible.");
-        assertTrue(win.size() <= MAX_DEPTH, "victoire trouvee en " + win.size() + " gestes");
+        // Strictement inférieur, et c'est le point : « <= MAX_DEPTH » était vrai par construction,
+        // la boucle ne pouvant pas produire plus long. Cette version-ci tombe si la victoire n'est
+        // atteinte qu'en frôlant le plafond, c'est-à-dire si la rencontre s'est durcie.
+        assertTrue(win.size() < MAX_DEPTH - 20,
+                "victoire trouvee en " + win.size() + " gestes, trop pres du plafond de " + MAX_DEPTH);
     }
 
     /**
@@ -153,12 +207,69 @@ class WinnabilityTest {
 
         Arena finished = Playout.replay(9, 1, win);
         assertTrue(finished.isVictory(), "la ligne trouvee doit vraiment gagner, rejeu a l'appui");
-        assertTrue(finished.wave() == Arena.WAVE_COUNT,
-                "la victoire doit venir de la derniere vague, obtenu " + finished.wave());
-        // La marge est ce qui distingue « gagnable » de « jouable ». On ne fixe pas un seuil serré
-        // — l'équilibrage bougera — mais gagner à zéro point de vie signalerait un jeu au fil du
-        // rasoir, et c'est le genre de bascule qu'on veut voir arriver.
-        assertTrue(finished.hero().health() >= 1,
-                "victoire obtenue a " + finished.hero().health() + " point de vie");
+
+        // On rejoue la ligne geste par geste et on relève les vagues traversées. Affirmer
+        // « finished.wave() == WAVE_COUNT » était une tautologie : settle ne déclare la victoire
+        // que sous cette condition. Ce qui n'est PAS acquis, c'est que la ligne soit réellement
+        // passée par toutes les vagues plutôt que d'en sauter une par un chemin qu'on n'a pas prévu.
+        Set<Integer> traversed = new LinkedHashSet<>();
+        for (int step = 0; step <= win.size(); step++) {
+            traversed.add(Playout.replay(9, 1, win.subList(0, step)).wave());
+        }
+        for (int wave = 1; wave <= Arena.WAVE_COUNT; wave++) {
+            assertTrue(traversed.contains(wave),
+                    "la ligne gagnante n'est jamais passee par la vague " + wave
+                            + " : vagues traversees " + traversed);
+        }
+
+        // Volontairement AUCUNE assertion sur la marge de vie, et c'est le fruit d'une erreur qu'il
+        // vaut mieux consigner que taire.
+        //
+        // La version précédente exigeait « au moins 1 point de vie ». C'était une tautologie :
+        // settle rend DEFEAT avant le bloc de victoire dès que la vie tombe à zéro, donc une
+        // victoire implique déjà une vie non nulle. En la remplaçant par un seuil qui pouvait
+        // tomber — trois points — le test est devenu rouge : cette recherche gagne à deux.
+        //
+        // Or ce n'est pas la marge du JEU, c'est celle de cette recherche. Elle trie sur
+        // Policy.score, qui optimise la progression ; une évaluation orientée survie fait bien
+        // mieux — la review du jalon d'équilibrage a mesuré des lignes gagnantes à huit points de
+        // vie sur huit. Un seuil ici mesurerait donc la qualité de l'heuristique et rougirait à
+        // chaque retouche de celle-ci, pour une raison qui n'a rien à voir avec la jouabilité.
+        //
+        // Ce test répond à « existe-t-il encore un chemin ». La marge est une mesure, pas un
+        // garde-fou, et elle a sa place dans le bilan d'équilibrage.
+    }
+
+    /**
+     * Le contrôle négatif : <b>cette recherche sait-elle échouer ?</b>
+     *
+     * <p>Le projet s'est donné cette règle en M6 — « un test qui ne casse pas sur le bug qu'il vise
+     * ne vaut rien » — et l'a appliquée en réintroduisant le défaut du colosse pour voir le test
+     * rougir. Le garde-fou le plus cher du lot n'avait jamais eu droit à ce traitement.
+     *
+     * <p>On lui donne donc une profondeur où aucune victoire n'est possible, et on exige qu'il le
+     * dise. Sans cela, un {@code findAWin} qui rendrait n'importe quoi de non-{@code null} ferait
+     * passer les deux autres tests sans jamais chercher.
+     */
+    @Test
+    @DisplayName("La recherche sait rendre échec quand il n'y a rien à trouver")
+    void theSearchKnowsHowToFail() {
+        assertTrue(findAWin(9, 1, BEAM, 3) == null,
+                "une victoire annoncee en trois gestes : la recherche ne cherche pas");
+    }
+
+    /**
+     * La marge du faisceau, mesurée plutôt que supposée.
+     *
+     * <p>À 140, la review a montré que la recherche échouait dès 80 — soit une marge de 1,75×, assez
+     * faible pour que la première retouche de l'évaluation fasse rougir le garde-fou pour une
+     * mauvaise raison. On vérifie donc qu'un faisceau de <b>moitié</b> trouve encore.
+     */
+    @Test
+    @DisplayName("La recherche trouve encore avec un faisceau deux fois plus étroit")
+    void searchFindsAWinWellAboveItsBreakingPoint() {
+        assertTrue(findAWin(9, 1, BEAM / 2, MAX_DEPTH) != null,
+                "un faisceau de " + (BEAM / 2) + " ne trouve plus : le garde-fou est pose trop pres"
+                        + " de sa limite, il rougira pour la mauvaise raison");
     }
 }

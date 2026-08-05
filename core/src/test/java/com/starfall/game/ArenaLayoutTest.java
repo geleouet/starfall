@@ -209,8 +209,15 @@ class ArenaLayoutTest {
                 "la bande des portees mord sur celle des reperes tactiques : "
                         + (ArenaLayout.PREVIEW_Y + ArenaLayout.PREVIEW_HEIGHT)
                         + " > " + ArenaLayout.MARK_Y);
-        assertTrue(ArenaLayout.MARK_Y + ArenaLayout.MARK_HEIGHT <= ArenaLayout.GROUND_Y,
-                "les reperes tactiques mordent sur les dalles");
+        // On compare la bande REELLEMENT occupee - pointes comprises - et non la seule epaisseur
+        // du trait. La version precedente comparait MARK_HEIGHT, soit deux pixels, alors que les
+        // pointes en occupaient huit et enjambaient les deux bandes voisines. Un test de bandes
+        // qui ignore la moitie de ce qui est dessine ne garde rien.
+        assertTrue(ArenaLayout.MARK_TOP <= ArenaLayout.GROUND_Y,
+                "les reperes tactiques, pointes comprises, montent a " + ArenaLayout.MARK_TOP
+                        + " et mordent sur les dalles qui commencent a " + ArenaLayout.GROUND_Y);
+        assertTrue(ArenaLayout.MARK_TIP_HEIGHT >= ArenaLayout.MARK_HEIGHT,
+                "une pointe plus fine que son propre trait ne se verrait pas");
         assertTrue(ArenaLayout.PREVIEW_Y >= HudLayout.RACK_Y + HudLayout.TILE_SIZE,
                 "la bande des portees mord sur le ratelier");
     }

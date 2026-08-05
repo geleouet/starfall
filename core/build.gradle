@@ -38,3 +38,17 @@ tasks.register('generateAtlas', JavaExec) {
 tasks.named('build') {
     dependsOn tasks.named('generateAtlas')
 }
+
+// Et les TESTS en dependent aussi, depuis que deux d'entre eux relisent l'atlas livre pour
+// verifier qu'il correspond a ce que le jeu reclame.
+//
+// « build.dependsOn generateAtlas » ne suffisait pas : ca declare une dependance, pas un ORDRE.
+// Gradle ordonnancait donc :core:test AVANT :core:generateAtlas, et comme assets/generated/ n'est
+// pas versionne, la suite ne passait que sur une machine ou quelqu'un avait deja lance le jeu.
+// Sur un depot fraichement clone, « gradlew test » ET « gradlew build » echouaient tous les deux.
+//
+// C'est le pire endroit ou se tromper : la commande que le tableau de bord donne au relecteur
+// etait celle qui ne marchait pas chez lui.
+tasks.named('test') {
+    dependsOn tasks.named('generateAtlas')
+}

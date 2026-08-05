@@ -139,12 +139,30 @@ class CaptureScriptTest {
     void theScriptedHoverCoversTheWholeScript() {
         int frames = CaptureScript.ACTIONS.size() + 1;
 
-        assertTrue(CaptureScript.HOVERED_RACK_SLOT.length >= frames - 1,
+        // La MEME borne pour les deux tableaux. La version precedente en demandait « frames - 1 »
+        // au ratelier et « frames » aux cases : deux exigences differentes pour deux tableaux qui
+        // couvrent les memes images, et la premiere avait ete relachee d'exactement un pour
+        // accepter que la derniere planche perde son survol. Le test benissait ce qu'il pretendait
+        // interdire.
+        assertTrue(CaptureScript.HOVERED_RACK_SLOT.length >= frames,
                 "le survol du ratelier s'arrete a l'image "
                         + CaptureScript.HOVERED_RACK_SLOT.length + " pour " + frames + " images");
         assertTrue(CaptureScript.HOVERED_CELL.length >= frames,
                 "le survol des cases s'arrete a l'image "
                         + CaptureScript.HOVERED_CELL.length + " pour " + frames + " images");
+
+        // Et surtout : une case survolee doit porter quelqu'un. Le seul survol de plateau du
+        // scenario visait une case VIDE, donc aucune planche livree ne montrait l'infobulle
+        // d'ennemi - la seule raison d'etre de ce tableau. Verifier des bornes ne suffit pas.
+        for (int frame = 0; frame < CaptureScript.HOVERED_CELL.length; frame++) {
+            int cell = CaptureScript.cellAt(frame);
+            if (cell < 0) {
+                continue;
+            }
+            assertTrue(after(frame).grid().occupantAt(cell) instanceof com.starfall.game.Enemy,
+                    "image " + frame + " : la case survolee " + (cell + 1)
+                            + " ne porte aucun ennemi, l'infobulle ne montrera rien");
+        }
 
         for (int slot : CaptureScript.HOVERED_RACK_SLOT) {
             assertTrue(slot >= -1 && slot < 6, "emplacement de ratelier hors bornes : " + slot);

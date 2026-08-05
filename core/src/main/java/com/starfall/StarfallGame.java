@@ -11,6 +11,7 @@ import com.badlogic.gdx.math.Matrix4;
 import com.starfall.render.PixelFont;
 import com.starfall.render.PixelPainter;
 import com.starfall.render.PixelViewport;
+import com.starfall.render.WindowedSize;
 import com.starfall.render.SpriteAtlas;
 import com.starfall.scene.ArenaScene;
 import com.starfall.scene.CalibrationScene;
@@ -67,6 +68,7 @@ public class StarfallGame extends ApplicationAdapter {
 
     public StarfallGame(LaunchOptions options) {
         this.options = options;
+        this.windowed = new WindowedSize(options.width, options.height);
         this.scene = sceneFor(options.scene);
     }
 
@@ -109,24 +111,17 @@ public class StarfallGame extends ApplicationAdapter {
     public void resize(int width, int height) {
         viewport.update(width, height, false);
         scene.resize(width, height);
-        if (!Gdx.graphics.isFullscreen()) {
-            // On retient la dernière taille en fenêtre pour savoir où revenir. Voir le plein écran.
-            windowedWidth = width;
-            windowedHeight = height;
-        }
+        windowed.remember(width, height, Gdx.graphics.isFullscreen());
     }
 
     /**
      * Dernière taille de la fenêtre avant le plein écran.
      *
-     * <p>Le retour du plein écran repassait par la taille de <em>lancement</em>, ce qui jetait
-     * silencieusement le redimensionnement que le joueur avait fait avant d'appuyer sur la touche :
-     * on agrandit sa fenêtre, on passe en plein écran, on en revient — et on se retrouve à la taille
-     * du double-clic. C'est le genre de perte qu'on ne comprend pas et qu'on n'arrive pas à
-     * reproduire, parce qu'il faut avoir redimensionné <em>avant</em>.
+     * <p>La règle vit dans {@link WindowedSize}, hors de la couche fenêtre, parce qu'il n'y a rien
+     * de graphique dans « quelle taille rendre » — et parce qu'un correctif qu'on ne peut pas
+     * tester est un correctif qu'on croit sur parole.
      */
-    private int windowedWidth;
-    private int windowedHeight;
+    private final WindowedSize windowed;
 
     @Override
     public void render() {
@@ -198,9 +193,7 @@ public class StarfallGame extends ApplicationAdapter {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.F11)) {
             if (Gdx.graphics.isFullscreen()) {
-                Gdx.graphics.setWindowedMode(
-                        windowedWidth > 0 ? windowedWidth : options.width,
-                        windowedHeight > 0 ? windowedHeight : options.height);
+                Gdx.graphics.setWindowedMode(windowed.width(), windowed.height());
             } else {
                 Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
             }

@@ -900,15 +900,33 @@ public final class ArenaScene implements Scene {
     private void drawSwapTargetMark(int cell, int heroCell) {
         int left = layout.cellLeft(cell) + 2;
         int width = ArenaLayout.CELL_WIDTH - 4;
-        painter.fill(left, ArenaLayout.MARK_Y, width, 2, TARGET_MARK);
+        painter.fill(left, ArenaLayout.MARK_Y, width, ArenaLayout.MARK_HEIGHT, TARGET_MARK);
 
-        // Pointe vers le héros : quatre colonnes qui s'affinent, comme celle du héros mais à
-        // contresens. Même grammaire, sens inverse.
-        int step = Integer.signum(heroCell - cell);
-        int tip = step > 0 ? left + width : left - 1;
-        for (int i = 0; i < 4; i++) {
-            int height = 8 - 2 * i;
-            painter.fill(tip + step * i, ArenaLayout.MARK_Y + 1 - height / 2, 1, height, TARGET_MARK);
+        // La pointe est dessinée <b>à l'intérieur</b> de la case cible, et c'est un correctif.
+        // Posée à l'extérieur, en miroir de celle du héros, elle occupait exactement les mêmes
+        // quatre colonnes que la sienne dès que la cible était adjacente — c'est-à-dire dans le cas
+        // le plus courant d'une capacité d'échange. Le héros étant dessiné après, il l'écrasait :
+        // on ne voyait pas « deux flèches qui se font face » mais un losange bicolore, exactement
+        // l'ambiguïté que ce repère existe pour lever.
+        int toHero = Integer.signum(heroCell - cell);
+        int nearEdge = toHero < 0 ? left : left + width - 1;
+        drawMarkTip(nearEdge, -toHero, TARGET_MARK);
+    }
+
+    /**
+     * Pointe d'un repère tactique : quatre colonnes qui montent depuis la ligne des repères.
+     *
+     * <p>Elle pousse <b>vers le haut</b> et jamais vers le bas. L'ancienne version était centrée
+     * sur la ligne, donc haute de huit pixels sur une bande qui en déclare deux : elle mordait la
+     * bande des portées en dessous et la première ligne des dalles au-dessus, sans qu'aucun test ne
+     * bronche — celui qui garde les bandes compare des constantes, pas le dessin.
+     *
+     * @param tip  colonne de la pointe, la plus fine
+     * @param away sens dans lequel la pointe s'épaissit
+     */
+    private void drawMarkTip(int tip, int away, Color color) {
+        for (int i = 0; i < ArenaLayout.MARK_TIP_HEIGHT; i++) {
+            painter.fill(tip + away * i, ArenaLayout.MARK_Y, 1, i + 1, color);
         }
     }
 
@@ -920,6 +938,13 @@ public final class ArenaScene implements Scene {
      * comme ce qu'il est — un lien, et non un repère de case.
      */
     private void drawAimLink(int hero, int target) {
+        if (Math.abs(target - hero) < 2) {
+            // Deux cases qui se touchent n'ont rien à relier, et il n'y a de toute façon pas la
+            // place : le pointillé courait alors entièrement sous les deux barres, invisible. Un
+            // trait qu'on ne voit pas n'est pas un trait discret, c'est un trait qui ment sur ce
+            // que le dessin contient.
+            return;
+        }
         int from = Math.min(cellCentre(hero), cellCentre(target));
         int to = Math.max(cellCentre(hero), cellCentre(target));
 
@@ -942,12 +967,10 @@ public final class ArenaScene implements Scene {
         int width = ArenaLayout.CELL_WIDTH - 4;
         painter.fill(left, ArenaLayout.MARK_Y, width, 2, HERO_MARK);
 
-        // Pointe : quatre colonnes qui s'affinent vers l'extérieur, centrées sur le trait.
-        int tip = step > 0 ? left + width : left - 1;
-        for (int i = 0; i < 4; i++) {
-            int height = 8 - 2 * i;
-            painter.fill(tip + step * i, ArenaLayout.MARK_Y + 1 - height / 2, 1, height, HERO_MARK);
-        }
+        // Pointe tournée vers ce qu'il regarde, dessinée à l'intérieur de sa propre case pour la
+        // même raison que celle de la cible : à distance 1, les deux se recouvraient au pixel près.
+        int nearEdge = step > 0 ? left + width - 1 : left;
+        drawMarkTip(nearEdge, -step, HERO_MARK);
     }
 
     // ------------------------------------------------------------------ file et râtelier

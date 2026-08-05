@@ -128,6 +128,22 @@ public final class ArenaLayout {
     public static final int MARK_HEIGHT = 2;
 
     /**
+     * Hauteur des <b>pointes</b> posées sur cette bande — celle du héros, celle de sa cible.
+     *
+     * <p>Elle manquait, et son absence a fait mentir le test de bandes pendant six jalons : il
+     * comparait {@code MARK_Y + MARK_HEIGHT} à la bande voisine, c'est-à-dire deux pixels, alors
+     * que les pointes en occupaient huit et enjambaient à la fois la bande des portées en dessous
+     * et la première ligne des dalles au-dessus. Le test vérifiait des <em>constantes</em>, pas le
+     * dessin.
+     *
+     * <p>Les pointes poussent maintenant vers le haut depuis la ligne des repères, sans jamais
+     * descendre : la bande va de {@link #MARK_Y} à {@link #MARK_TOP}, et rien n'en sort.
+     */
+    public static final int MARK_TIP_HEIGHT = 4;
+    /** Bord supérieur de la bande des repères tactiques, pointes comprises. */
+    public static final int MARK_TOP = MARK_Y + MARK_TIP_HEIGHT;
+
+    /**
      * Bande des repères de portée : ce que la prochaine tuile fera, sous les dalles.
      *
      * <p>Elle a sa propre hauteur, quatre pixels sous celle des repères tactiques. Les y mêler

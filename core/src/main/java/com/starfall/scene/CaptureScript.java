@@ -75,12 +75,13 @@ public final class CaptureScript {
             -1,  // rien de survolé : le préavis résolu du sommet
             2,   // la poussée
             3,   // l'élan, dont la portée dépend du terrain
-            -1,
+            -1,  // image 5 : c'est une case du plateau qui est survolée, pas le râtelier
             4,   // le pas de côté, tuile Free-Play
             -1,
             -1,
             -1,  // le préavis résolu d'une salve
             5,   // la volte-face, qui ne vise aucune case
+            -1,  // et la dernière image, que le tableau ne couvrait pas
     };
 
     /**
@@ -91,7 +92,10 @@ public final class CaptureScript {
      * nulle part, et on les apprenait en prenant des coups.
      */
     public static final int[] HOVERED_CELL = {
-            -1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1,
+            // L'image 5 visait la case 2, qui est VIDE à ce moment-là : aucune planche livrée ne
+            // montrait donc d'infobulle d'ennemi, alors que c'est la seule raison d'être de ce
+            // tableau. Le test qui prétendait le garder ne vérifiait que des bornes.
+            -1, -1, -1, -1, -1, 5, -1, -1, -1, -1, -1, -1,
     };
 
     /** Rejoue les {@code count} premiers gestes sur une arène. */
