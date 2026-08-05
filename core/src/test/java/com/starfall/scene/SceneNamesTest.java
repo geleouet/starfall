@@ -55,6 +55,13 @@ class SceneNamesTest {
             names.add(scene.name());
         }
 
+        // En tete, et sur la liste que l'on deduplique - pas sur la table parallele. Posee
+        // apres la comparaison de comptes, elle n'etait jamais atteinte : c'est la premiere qui
+        // tombait, et une garde qui ne peut pas parler est une garde qu'on croit sur parole.
+        // Comparer un compte a son compte distinct ne dit rien au-dessous de deux elements.
+        assertTrue(names.size() >= 2,
+                "le jeu ne construit que " + names.size() + " scene(s) : l'assertion de doublon"
+                        + " plus bas ne comparerait plus rien");
         assertEquals(LaunchOptions.SCENES.size(), names.size(),
                 "la table des scenes en annonce " + LaunchOptions.SCENES.size()
                         + " et le jeu en construit " + names.size() + " : " + names);

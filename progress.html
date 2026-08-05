@@ -308,6 +308,17 @@
 
 <h2>Journal de review</h2>
 
+<div class="rev pass">
+  <div class="hd">Apr&egrave;s M10 &mdash; <b>La tautologie : un angle jamais balay&eacute;</b></div>
+  <p>Plus rien &agrave; trancher, la dix-septi&egrave;me review enti&egrave;rement trait&eacute;e. J&rsquo;ai donc ouvert un angle neuf, le seul de la liste des motifs que je n&rsquo;avais jamais cherch&eacute; <em>syst&eacute;matiquement</em> : les assertions dont la <b>valeur attendue est produite par le code qu&rsquo;elles testent</b>. Balayage m&eacute;canique de toute la suite, cinq candidates.</p>
+
+  <p><b>Trois sont l&eacute;gitimes, et il faut le dire aussi.</b> Un compte d&rsquo;ennemis compar&eacute; &agrave; son compte distinct &mdash; mais pr&eacute;c&eacute;d&eacute; d&rsquo;un <code>size() &ge; 2</code> qui garantit qu&rsquo;il y a quelque chose &agrave; comparer. Un alignement d&rsquo;emplacements compar&eacute; &agrave; un pas <em>constant</em>, ind&eacute;pendant de la fonction &eacute;prouv&eacute;e. Et le contrat entre l&rsquo;&eacute;num&eacute;ration et le pr&eacute;dicat, qui confronte deux impl&eacute;mentations et non une &agrave; elle-m&ecirc;me. Un balayage qui ne rend que des vrais n&eacute;gatifs reste un balayage utile.</p>
+
+  <p><b>La quatri&egrave;me portait la m&ecirc;me forme que le d&eacute;faut de la seizi&egrave;me review</b> : « autant d&rsquo;&eacute;l&eacute;ments que d&rsquo;&eacute;l&eacute;ments distincts » sur la file, <b>trivialement vrai en dessous de deux tuiles</b>. Mesur&eacute; : elle en atteint deux ou plus <b>1 097 fois sur 6 754</b> &mdash; l&rsquo;assertion porte donc r&eacute;ellement, mais rien ne le garantissait, et c&rsquo;est exactement ainsi que sa jumelle avait v&eacute;cu vide pendant des mois. La profondeur atteinte est d&eacute;sormais assert&eacute;e : capacit&eacute; ramen&eacute;e &agrave; une tuile, le test rougit en le nommant.</p>
+
+  <p style="margin-bottom:0"><b>Et la cinqui&egrave;me m&rsquo;a fait recommencer une erreur que la review venait de me reprocher.</b> J&rsquo;avais pos&eacute; la m&ecirc;me garde sur la table des sc&egrave;nes &mdash; <em>apr&egrave;s</em> une comparaison de comptes qui tombe la premi&egrave;re. Elle n&rsquo;&eacute;tait donc jamais atteinte : un garde-fou d&rsquo;apparence, le d&eacute;faut num&eacute;ro cinq du rapport pr&eacute;c&eacute;dent, reproduit dans le commit qui le corrigeait. Elle est maintenant <b>en t&ecirc;te</b>, et sur la liste que l&rsquo;on d&eacute;duplique plut&ocirc;t que sur la table parall&egrave;le : r&eacute;duire les sc&egrave;nes construites &agrave; une seule la fait parler la premi&egrave;re, avec son propre diagnostic. <b>508 tests, 84 planches sur 12 &eacute;crans.</b></p>
+</div>
+
 <div class="rev fail">
   <div class="hd">Apr&egrave;s M10 &mdash; <b>Verdict : refus&eacute;e en l&rsquo;&eacute;tat</b> (dix-septi&egrave;me review : trois d&eacute;fauts dans ce que je venais d&rsquo;&eacute;crire)</div>
   <p>Cinq d&eacute;fauts, et le plus instructif est celui-ci : <b>le correctif qui fermait un motif l&rsquo;a r&eacute;introduit deux lignes plus loin</b>.</p>

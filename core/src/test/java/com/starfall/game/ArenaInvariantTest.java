@@ -30,6 +30,8 @@ class ArenaInvariantTest {
     @Test
     @DisplayName("Les invariants tiennent sur 80 000 actions aléatoires")
     void invariantsHoldUnderRandomPlay() {
+        deepestQueueSeen = 0;
+
         for (int seed = 0; seed < SEEDS; seed++) {
             Random random = new Random(seed);
             int gridWidth = Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1);
@@ -43,7 +45,15 @@ class ArenaInvariantTest {
                 checkTimeMovesForward(arena, turnsBefore, seed, step);
             }
         }
+
+        assertTrue(deepestQueueSeen >= 2,
+                "la file n'a jamais depasse " + deepestQueueSeen + " tuile(s) : l'invariant"
+                        + " « aucune tuile deux fois sur la file » n'a rien compare, un ensemble"
+                        + " de zero ou une tuile n'ayant jamais de doublon");
     }
+
+    /** Profondeur maximale atteinte par la file pendant le dernier fuzz. */
+    private static int deepestQueueSeen;
 
     private static void applyRandomAction(Arena arena, Random random) {
         List<Tile> tiles = arena.rack().tiles();
@@ -88,8 +98,15 @@ class ArenaInvariantTest {
 
         // La file ne déborde pas, et ne porte jamais deux fois la même tuile.
         List<Tile> queued = arena.queue().fromOldest();
+        deepestQueueSeen = Math.max(deepestQueueSeen, queued.size());
         assertTrue(queued.size() <= ActionQueue.CAPACITY,
                 where + "file de " + queued.size() + " tuiles");
+        // « autant d'elements que d'elements distincts » est trivialement vrai en dessous de DEUX
+        // tuiles : la seizieme review a trouve cet idiome exactement vide ailleurs, sur une liste
+        // qui n'atteignait jamais deux. Ici il porte - mesure : 1 097 observations a deux tuiles
+        // ou plus sur 6 754 - mais rien ne le garantissait. La profondeur atteinte est desormais
+        // assertee a la fin du fuzz, comme l'exige la voisine qui pose « size() >= 2 » avant le
+        // meme idiome.
         assertEquals(queued.size(), new HashSet<>(queued).size(),
                 where + "une tuile est deux fois sur la file : " + queued);
 
