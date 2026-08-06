@@ -176,6 +176,13 @@ ext.renderScenarios = [
         // capture ne deroulant jamais. Huit images : cinq de chargement, TROIS de deroule - la
         // fenetre a dabord ete posee a sept, et le dernier temps ny figurait pas.
         arenaSalvo     : ['--size', '1280x720', '--frames', '8', '--scene', 'salvo'],
+        // La salve qui GAGNE, deroulee. Trois images : l'etat au repos avec sa banniere de
+        // victoire, puis les deux temps de la salve finale - ou la banniere doit se TAIRE.
+        // Sans cet ecran, la regle « la fin appartient au repos » n'avait aucun temoin :
+        // la salve ordinaire ne gagne rien, et « VICTOIRE » se peignait des la premiere
+        // image du deroule, donc avant le coup qui l'avait gagnee.
+        arenaWin       : ['--size', '1280x720', '--frames', '3', '--from', '33',
+                          '--scene', 'arena'],
         arenaNarrow    : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
         arenaWide      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],
         arenaEven      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '8'],

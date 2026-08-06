@@ -77,6 +77,9 @@ class HudTextTest {
      */
     private static void collect(Arena arena, Set<String> panel, Set<String> banner) {
         banner.add(HudText.banner(arena));
+        // Et sa forme PENDANT un deroule, ou menace et invocation se taisent : c'est une phrase
+        // que l'interface peut produire, donc elle doit passer les memes regles que les autres.
+        banner.add(HudText.banner(arena, false));
         for (ActionResult result : ActionResult.values()) {
             for (int combo : new int[]{0, 1, 3}) {
                 panel.add(HudText.lastAction(result, combo));

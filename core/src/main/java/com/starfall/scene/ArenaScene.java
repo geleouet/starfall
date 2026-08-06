@@ -373,7 +373,13 @@ public final class ArenaScene implements Scene {
         // l'inverse.
         drawBanner();
         drawInfoPanel();
-        drawOutcome();
+        if (settled) {
+            // La bannière de fin appartient à l'état au repos, et c'est le cas où cela compte le
+            // plus : sans cette garde, « VICTOIRE » se peignait dès la première image du déroulé,
+            // c'est-à-dire AVANT qu'on ait vu le coup qui l'a gagnée. Le moment le plus important
+            // du jeu était annoncé avant d'être montré.
+            drawOutcome();
+        }
         drawHelp();
         painter.color(Color.WHITE);
     }
@@ -626,7 +632,7 @@ public final class ArenaScene implements Scene {
 
         String hint = HudText.HELP_HINT;
         int hintWidth = PixelFont.widthOf(hint, 1);
-        drawLine(HudText.banner(arena), left, HudLayout.BANNER_TOP, HudColors.TEXT,
+        drawLine(HudText.banner(arena, !playback.isRunning()), left, HudLayout.BANNER_TOP, HudColors.TEXT,
                 width - hintWidth - 6);
         drawLine(hint, left + width - hintWidth, HudLayout.BANNER_TOP, HudColors.TEXT_DIM, hintWidth);
     }

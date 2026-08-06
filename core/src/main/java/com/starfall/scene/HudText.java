@@ -81,16 +81,30 @@ public final class HudText {
      * compteur de coups ne peut pas dire, puisque rien ne tombe sur la case.
      */
     public static String banner(Arena arena) {
+        return banner(arena, true);
+    }
+
+    /**
+     * Le bandeau, en précisant si la scène est <b>au repos</b>.
+     *
+     * <p>Menace et invocation sont des <em>annonces</em> : elles décrivent la phase ennemie qui
+     * vient. Pendant qu'une action se déroule sous les yeux, le plateau montre un instant passé —
+     * et une annonce peinte sur un plateau d'hier ne décrit rien. C'est le même raisonnement qui a
+     * fait taire les glyphes d'intention et le repère du héros, tenu jusqu'au bandeau.
+     *
+     * <p>La vague et les points de vie restent : ils situent la partie, ils n'annoncent rien.
+     */
+    public static String banner(Arena arena, boolean settled) {
         StringBuilder line = new StringBuilder();
         line.append("VAGUE ").append(arena.wave()).append('/').append(arena.waveCount())
                 .append("  PV ").append(arena.hero().health()).append('/').append(Hero.MAX_HEALTH);
         // Rien à annoncer quand plus rien ne sera joué : « MENACE 2 » s'affichait au-dessus de
         // « PARTIE PERDUE ».
-        int threat = arena.isOver() ? 0 : arena.threatCount(arena.heroCell());
+        int threat = arena.isOver() || !settled ? 0 : arena.threatCount(arena.heroCell());
         if (threat > 0) {
             line.append("  MENACE ").append(threat);
         }
-        if (!arena.isOver() && arena.anySummonAnnounced()) {
+        if (settled && !arena.isOver() && arena.anySummonAnnounced()) {
             line.append("  INVOCATION");
         }
         return line.toString();

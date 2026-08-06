@@ -32,6 +32,9 @@ public final class CaptureScript {
     private CaptureScript() {
     }
 
+    /** Temps de la salve finale : deux tuiles chargées, donc deux temps. */
+    public static final int WINNING_BEATS = 2;
+
     /**
      * Les gestes joués, dans l'ordre.
      *
@@ -124,6 +127,24 @@ public final class CaptureScript {
         @Override
         public java.util.List<java.util.function.Function<Arena, ActionResult>> actions() {
             return ACTIONS;
+        }
+
+        /**
+         * Deux temps de plus, après le dernier geste : ceux de la salve qui <b>gagne</b>.
+         *
+         * <p>La bannière de fin appartient à l'état au repos — sans cette garde, « VICTOIRE » se
+         * peignait dès la première image du déroulé, donc AVANT le coup qui l'a gagnée. Cette
+         * règle-là n'avait aucun témoin : l'écran de la salve ordinaire ne gagne rien. Ces deux
+         * images le donnent, et c'est la seule ligne du projet qui gagne.
+         */
+        @Override
+        public int lastFrame() {
+            return ACTIONS.size() + WINNING_BEATS;
+        }
+
+        @Override
+        public int playbackBeatAt(int frameIndex) {
+            return frameIndex <= ACTIONS.size() ? 0 : frameIndex - ACTIONS.size();
         }
 
         @Override

@@ -193,8 +193,13 @@ class LaunchOptionsTest {
         @Test
         @DisplayName("Une première image au-delà du scénario est refusée")
         void aFirstFrameBeyondTheScriptIsRejected() {
-            int last = com.starfall.scene.CaptureScript.ACTIONS.size();
-            // La dernière image du scénario est celle qui suit le dernier geste : elle est légale.
+            // La borne vient du SCENARIO, et non du nombre de gestes. Les deux ont coincide
+            // longtemps ; ils ont cesse le jour ou la ligne gagnante a recu les temps de sa salve
+            // finale - des images qui ne rejouent aucun geste de plus, mais egrenent la
+            // resolution. Ce test tenait le nombre de gestes pour la derniere image et a refuse
+            // le changement : il avait raison de le refuser, et tort de le calculer lui-meme.
+            int last = com.starfall.scene.CaptureScenario.forScene(
+                    com.starfall.scene.CaptureScript.SCENE_NAME).lastFrame();
             assertEquals(last, parse("--screenshot", "captures/fin", "--from", String.valueOf(last),
                     "--frames", "1").firstFrame);
 
