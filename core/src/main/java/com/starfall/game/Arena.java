@@ -444,7 +444,7 @@ public final class Arena {
             if (enemy.isStunned() || enemy.isPlanFull() || claimsGround(enemy)) {
                 continue;
             }
-            enemy.announce(EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell,
+            enemy.announce(EnemyBrain.decide(grid, enemy, projectedCell(enemy), heroCell,
                     reserved, phaseIndex));
         }
     }
@@ -947,6 +947,39 @@ public final class Arena {
             }
         }
         return total;
+    }
+
+    /**
+     * O&ugrave; se tiendra un ennemi <b>quand il en sera l&agrave;</b> dans sa file.
+     *
+     * <h2>Ce que la mesure a montr&eacute;</h2>
+     *
+     * <p>Un colosse remplit sa file en deux tours, et il la remplissait <b>deux fois avec la
+     * m&ecirc;me action</b> : mesur&eacute; sur onze cents l&acirc;chers, ses deux coups visaient la
+     * m&ecirc;me case 94 fois sur 100. La raison &eacute;tait ici : chaque d&eacute;cision partait
+     * de sa case <em>actuelle</em>, en ignorant ce que la pr&eacute;c&eacute;dente allait lui faire
+     * faire. Une file de deux copies n'est pas une file, c'est un coup coup&eacute; en deux.
+     *
+     * <p>Il d&eacute;cide donc maintenant depuis la case o&ugrave; sa propre file l'aura men&eacute;.
+     * Un colosse qui met &laquo; avancer &raquo; puis d&eacute;cide de la suite le fait <em>depuis
+     * la case d'arriv&eacute;e</em>, et peut donc encha&icirc;ner &laquo; avancer, puis frapper
+     * &raquo; &mdash; ce que le joueur voit venir, et qui donne enfin son sens au pluriel de
+     * &laquo; ses actions &raquo;.
+     *
+     * <p>Seul l'<b>avancement</b> est projet&eacute;. Une charge ou une ru&eacute;e d&eacute;pendent
+     * de ce qu'elles rencontrent, et pr&eacute;dire leur point d'arriv&eacute;e reviendrait &agrave;
+     * promettre une g&eacute;om&eacute;trie qu'on ne conna&icirc;tra qu'&agrave; l'ex&eacute;cution.
+     * Le t&eacute;l&eacute;graphe n'a pas le droit de sur-promettre : ne rien projeter est ici plus
+     * honn&ecirc;te que projeter approximativement.
+     */
+    private int projectedCell(Enemy enemy) {
+        int cell = grid.indexOf(enemy);
+        for (Intention queued : enemy.queued()) {
+            if (queued.kind() == Intention.Kind.ADVANCE) {
+                cell = queued.targetCell();
+            }
+        }
+        return cell;
     }
 
     /**

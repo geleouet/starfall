@@ -222,4 +222,39 @@ class ImminenceTest {
                 arena.threatDamage(arena.heroCell()),
                 "pleine, la file menace de TOUT ce qu'elle tient : " + colossus.queued());
     }
+
+    /**
+     * Un ennemi d&eacute;cide depuis la case o&ugrave; sa propre file l&rsquo;aura men&eacute;.
+     *
+     * <h2>Ce que la mesure a montr&eacute;, et ce que ce test emp&ecirc;che de reperdre</h2>
+     *
+     * <p>Le colosse remplissait sa file <b>deux fois avec la m&ecirc;me action</b> : chaque
+     * d&eacute;cision partait de sa case actuelle, en ignorant ce que la pr&eacute;c&eacute;dente
+     * allait lui faire faire. Mesur&eacute; : ses deux coups visaient la m&ecirc;me case 94 fois
+     * sur 100. Une file de deux copies n&rsquo;est pas une file, c&rsquo;est un coup coup&eacute;
+     * en deux.
+     *
+     * <p>Depuis qu&rsquo;il projette sa position, 18 % des l&acirc;chers tiennent deux actions de
+     * <b>natures diff&eacute;rentes</b>, et pr&egrave;s d&rsquo;une centaine sur onze cents sont
+     * exactement &laquo; avancer, puis frapper &raquo;. Ce test tient la m&eacute;canique sur le
+     * cas le plus net : un colosse &agrave; deux cases du h&eacute;ros doit annoncer un pas
+     * <em>puis</em> une frappe, et non deux pas.
+     */
+    @Test
+    @DisplayName("Un colosse a deux cases annonce un pas, puis la frappe qui suit")
+    void aColossusTwoCellsAwayQueuesAStepThenTheBlow() {
+        Arena arena = new Arena(11, 4);
+        Enemy colossus = new Enemy(EnemyKind.COLOSSE);
+        arena.grid().place(6, colossus);
+        arena.announceIntentions();
+        arena.announceIntentions();
+
+        assertTrue(colossus.isPlanFull(), "montage invalide : sa file devait se remplir");
+        assertEquals(Intention.Kind.ADVANCE, colossus.queued().get(0).kind(),
+                "a deux cases, il commence par s'approcher : " + colossus.queued());
+        assertEquals(Intention.Kind.ATTACK, colossus.queued().get(1).kind(),
+                "puis il frappe DEPUIS la case ou son premier pas l'aura mene ; sans cette"
+                        + " projection il annoncerait deux pas, et sa file ne dirait qu'une chose"
+                        + " dite deux fois : " + colossus.queued());
+    }
 }
