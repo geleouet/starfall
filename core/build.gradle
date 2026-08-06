@@ -68,4 +68,10 @@ tasks.named('test') {
     // dormirait exactement quand elle devrait parler.
     inputs.file(rootProject.file('progress.html')).withPropertyName('dashboard')
     inputs.dir(rootProject.file('captures/reference')).withPropertyName('referencePlates')
+    // Et les planches que le tableau de bord donne pour actuelles. Cette ligne-ci a ete ecrite
+    // APRES coup, et par une mutation qui a refuse de mordre : j'avais glisse une planche perimee
+    // dans captures/actuel, le test aurait du rougir, et Gradle a servi un resultat en cache parce
+    // que rien ne lui disait que ce dossier comptait. Une garde qui ne tourne pas quand change ce
+    // qu'elle garde n'est pas une garde ; c'est une ligne verte de plus.
+    inputs.dir(rootProject.file('captures/actuel')).withPropertyName('currentPlates')
 }

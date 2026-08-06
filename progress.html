@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 531 tests verts · 98 planches sur 14 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 532 tests verts · 98 planches sur 14 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -247,8 +247,10 @@
 
 <div class="banner">
   <span class="k">Ces planches sont datées, et c'est voulu</span>
-  <p>Chaque planche documente <b>son jalon tel qu'il a été livré</b>. Elles ne sont pas rafraîchies quand un jalon ultérieur change le jeu — les recapturer reviendrait à réécrire l'histoire, et une planche de M8 qui montrerait l'interface de M10 ne prouverait plus rien de ce que M8 avait fait. Les trois dernières ne portent pas de numéro de jalon : elles datent du travail fait <i>depuis</i> M10 — l’axe des dégâts et l’animation — qui n’a pas encore été découpé en jalon. Elles suivent la même règle : elles ne seront pas rafraîchies.</p>
-  <p>Il faut donc les lire ainsi, et le dire franchement plutôt que de laisser croire : <b>les planches antérieures à M10 montrent une économie de tours qui n'existe plus.</b> Celle de M8 affiche même, dans son aide, <code>1 À 6 : POSER UNE TUILE SUR LA FILE (GRATUIT)</code> — la règle exacte que M10 a renversée, et <code>VAGUE 1/3</code> quand la tranche en compte quatre. <b>La seule planche qui montre le jeu tel qu'il est aujourd'hui est celle de M10, en tête.</b></p>
+  <p>Chaque planche documente <b>son jalon tel qu'il a été livré</b>. Elles ne sont pas rafraîchies quand un jalon ultérieur change le jeu — les recapturer reviendrait à réécrire l'histoire, et une planche de M8 qui montrerait l'interface de M10 ne prouverait plus rien de ce que M8 avait fait. Six d’entre elles ne portent pas de numéro de jalon : elles datent du travail fait <i>depuis</i> M10 &mdash; l’axe des dégâts, puis l’animation &mdash; qui n’a pas encore été découpé en jalon.</p>
+  <p>Il faut donc les lire ainsi, et le dire franchement plut&ocirc;t que de laisser croire : <b>les planches ant&eacute;rieures &agrave; M10 montrent une &eacute;conomie de tours qui n&rsquo;existe plus.</b> Celle de M8 affiche m&ecirc;me, dans son aide, <code>1 &agrave; 6 : POSER UNE TUILE SUR LA FILE (GRATUIT)</code> &mdash; la r&egrave;gle exacte que M10 a renvers&eacute;e, et <code>VAGUE 1/3</code> quand la tranche en compte quatre. Celle de M10 elle-m&ecirc;me a vieilli depuis : ses tuiles ne portent pas encore le chiffre des d&eacute;g&acirc;ts.</p>
+
+  <p style="margin-bottom:0"><b>Trois planches, et trois seulement, montrent le jeu tel qu&rsquo;il est aujourd&rsquo;hui : celles de <code>captures/actuel</code>.</b> Ce dossier n&rsquo;est pas une convention de rangement, c&rsquo;est une <b>promesse v&eacute;rifiable</b>, et un test la v&eacute;rifie : chacune de ses images doit &ecirc;tre identique, octet pour octet, &agrave; une planche de r&eacute;f&eacute;rence &mdash; c&rsquo;est-&agrave;-dire &agrave; ce que le jeu dessine <i>maintenant</i>. Le jour o&ugrave; les visuels changeront, elles cesseront de correspondre et le test rougira : il faudra les reprendre, ou renoncer &agrave; la promesse. Cette phrase-ci existait avant le test et d&eacute;signait la planche de M10 ; elle est devenue fausse en silence, parce que rien ne la reliait &agrave; quoi que ce soit.</p>
 </div>
 
 
@@ -324,21 +326,33 @@
 </figure>
 
 <figure class="sheet">
-  <img src="captures/anim-fluide/fente.png" alt="Starfall, une fente d&rsquo;estoc &agrave; mi-course">
+  <img src="captures/actuel/fente.png" alt="Starfall, une fente d&rsquo;estoc &agrave; mi-course">
   <figcaption><b>Une fente d&rsquo;estoc, saisie &agrave; 35 % de son temps.</b> Le h&eacute;ros ne se d&eacute;place pas : il se penche vers sa cible et reviendra. La distance est <b>fixe</b>, un peu moins d&rsquo;une demi-case, et non une fraction du chemin jusqu&rsquo;&agrave; la cible &mdash; la premi&egrave;re version faisait la seconde, et cette planche l&rsquo;a d&eacute;mentie : l&rsquo;estoc portant &agrave; deux cases, la fente d&eacute;posait le h&eacute;ros dans la case interm&eacute;diaire, celle-l&agrave; m&ecirc;me que l&rsquo;estoc <i>ne frappe pas</i>. C&rsquo;est le cadre pos&eacute; sous la case vis&eacute;e qui dit jusqu&rsquo;o&ugrave;, et lui seul est en droit de le dire.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/anim-fluide/apres-contact.png" alt="Starfall, juste apr&egrave;s le contact">
+  <img src="captures/actuel/apres-contact.png" alt="Starfall, juste apr&egrave;s le contact">
   <figcaption><b>Le m&ecirc;me temps &agrave; 60 % : apr&egrave;s le contact.</b> La cible s&rsquo;efface en s&rsquo;affaissant au lieu d&rsquo;&ecirc;tre retir&eacute;e d&rsquo;une image &agrave; l&rsquo;autre, et ses points de vie ont d&eacute;j&agrave; disparu &mdash; un compte &agrave; demi effac&eacute; se lirait de travers plut&ocirc;t que de ne pas se lire. Un seul nombre s&eacute;pare les deux moiti&eacute;s de chaque temps : avant lui la fente part, apr&egrave;s lui la victime encaisse. C&rsquo;est ce qui fait qu&rsquo;on <b>voit la cause avant l&rsquo;effet</b> au lieu de voir les deux ensemble.</figcaption>
 </figure>
 
 <figure class="sheet">
-  <img src="captures/anim-fluide/glissement.png" alt="Starfall, un pas de c&ocirc;t&eacute; &agrave; mi-chemin">
+  <img src="captures/actuel/glissement.png" alt="Starfall, un pas de c&ocirc;t&eacute; &agrave; mi-chemin">
   <figcaption><b>Un pas de c&ocirc;t&eacute; &agrave; mi-chemin entre ses deux cases, au sommet de son saut.</b> Trois pixels de soul&egrave;vement sur une figure de seize : assez pour que le glissement ne soit pas plat, trop peu pour qu&rsquo;on croie &agrave; un bond. Le h&eacute;ros n&rsquo;est sur <i>aucune</i> case &mdash; un &eacute;tat que ce jeu ne savait pas dessiner il y a une heure, puisque le mod&egrave;le n&rsquo;en connait aucun.</figcaption>
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>&laquo; La seule planche qui montre le jeu d&rsquo;aujourd&rsquo;hui &raquo; ne le montrait plus</b></div>
+  <p>D&eacute;p&ocirc;t propre, rien en attente, 531 tests verts, 98 planches conformes. Le contr&ocirc;le demande aussi que rien ici n&rsquo;affirme ce que le code ne fait plus &mdash; et une phrase de ce tableau le faisait, pour la <b>deuxi&egrave;me fois de suite</b>.</p>
+
+  <p>Les planches-contact sont <b>dat&eacute;es</b> : chacune documente son jalon tel qu&rsquo;il a &eacute;t&eacute; livr&eacute;, et les rafra&icirc;chir reviendrait &agrave; r&eacute;&eacute;crire l&rsquo;histoire. La r&egrave;gle est bonne, mais elle laisse un lecteur sans rep&egrave;re : aucune de ces images ne montre le jeu d&rsquo;aujourd&rsquo;hui, et rien ne dit de combien chacune a vieilli. Le bandeau r&eacute;pondait donc en d&eacute;signant une planche &mdash; &laquo; la seule qui montre le jeu tel qu&rsquo;il est aujourd&rsquo;hui &raquo;. <b>Elle d&eacute;signait celle de M10, dont les tuiles ne portent pas le chiffre des d&eacute;g&acirc;ts</b>, ajout&eacute; depuis. La m&ecirc;me phrase annon&ccedil;ait &laquo; trois planches sans num&eacute;ro de jalon &raquo; quand il y en avait six.</p>
+
+  <p><b>Une d&eacute;signation qui n&rsquo;est reli&eacute;e &agrave; rien ne survit pas au travail qu&rsquo;elle est cens&eacute;e suivre.</b> C&rsquo;est le m&ecirc;me motif que la ligne d&rsquo;aide corrig&eacute;e ce matin, et le correctif est le m&ecirc;me : <code>captures/actuel</code> cesse d&rsquo;&ecirc;tre une convention de rangement pour devenir une <b>promesse v&eacute;rifiable</b>. Ses images doivent &ecirc;tre identiques, octet pour octet, &agrave; des planches de r&eacute;f&eacute;rence &mdash; c&rsquo;est-&agrave;-dire &agrave; ce que le jeu dessine maintenant. Le jour o&ugrave; les visuels changeront, elles cesseront de correspondre et le test rougira : il faudra les reprendre, ou renoncer &agrave; la promesse.</p>
+
+  <p style="margin-bottom:0"><b>La mutation a refus&eacute; de mordre, et c&rsquo;&eacute;tait la meilleure nouvelle du contr&ocirc;le.</b> J&rsquo;ai gliss&eacute; la planche de M10 dans <code>captures/actuel</code> ; le test aurait d&ucirc; rougir ; il est rest&eacute; vert en sept cent vingt millisecondes. Gradle avait servi un r&eacute;sultat en cache, parce que rien ne lui disait que ce dossier comptait parmi les entr&eacute;es de la t&acirc;che de test. <b>Une garde qui ne tourne pas quand change ce qu&rsquo;elle garde n&rsquo;est pas une garde</b> &mdash; c&rsquo;est une ligne verte de plus. L&rsquo;entr&eacute;e d&eacute;clar&eacute;e, la mutation mord et nomme le fichier fautif. Le d&eacute;faut valait mieux que le test : c&rsquo;est le troisi&egrave;me garde-fou de ce projet qui dormait au lieu de veiller, et le premier que sa propre mutation a r&eacute;veill&eacute;.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Apr&egrave;s M10 &mdash; <b>Le mouvement devient continu, et surtout s&eacute;parable</b></div>
