@@ -63,4 +63,9 @@ tasks.named('test') {
     // ne tenait pas : cet index est produit par une tache dont test depend, donc c'est une entree
     // declaree. Ici il n'y en avait aucune.
     inputs.file(rootProject.file('lwjgl3/build.gradle')).withPropertyName('renderScenarios')
+    // Le tableau de bord et les planches qu'il compte : sans ces entrees, Gradle servirait
+    // un resultat en cache apres qu'un ecran a ete ajoute, et la garde de l'en-tete
+    // dormirait exactement quand elle devrait parler.
+    inputs.file(rootProject.file('progress.html')).withPropertyName('dashboard')
+    inputs.dir(rootProject.file('captures/reference')).withPropertyName('referencePlates')
 }

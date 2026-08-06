@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 5 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 517 tests verts · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 5 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 518 tests verts · 95 planches sur 14 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -133,7 +133,7 @@
   <tr><td><span class="pill p-done">revu</span></td><td><b>M7 — Résolution du combat</b><span class="why">Points de vie, dégâts, collisions qui blessent et étourdissent, combo kills, <b>les trois premières</b> vagues enchaînées, victoire et défaite. <b>Review indépendante passée : refusée en l’état, puis corrigée.</b> 8 défauts relevés, tous traités ; 366 tests verts.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M8 — Interface</b><span class="why">L'interface quitte le bandeau de diagnostic et passe en pixels-monde : bandeau d'état, panneau d'information, <b>portées d'attaque</b>, infobulles, aide en français. Au cœur, le <b>préavis</b> : il n'accompagne pas le code d'exécution, il <i>est</i> le code d'exécution, si bien que ce que l'interface annonce d'une tuile ne peut pas s'écarter de ce que la tuile fait. <b>Review indépendante passée : « tient avec réserves ».</b> 11 défauts relevés, tous traités ; 388 tests verts.</span></td></tr>
   <tr><td><span class="pill p-done">revu</span></td><td><b>M9 — Boss</b><span class="why">Le <b>souverain</b>, cinquième archétype et quatrième vague. Deux verbes nouveaux : la <b>ruée</b> — charge, frappe et repousse — et l'<b>invocation</b>, annoncée case par case et refusable. Il renverse la question de toutes les vagues précédentes : contre lui, s'éloigner n'est pas se mettre à l'abri. <b>Review indépendante passée : refusée en l'état, puis corrigée.</b> 8 défauts relevés, tous traités ; 408 tests verts.</span></td></tr>
-  <tr><td><span class="pill p-done">revu</span></td><td><b>M10 — Équilibrage file de 5</b><span class="why">Un <b>instrument de mesure</b> d'abord — trois politiques qui jouent, <code>--simulate N</code> — puis la découverte qu'il a permise : <b>la file n'avait aucune économie</b>. Poser était gratuit, chaque exécution coûtait un tour, donc cinq tuiles coûtaient cinq tours exactement comme cinq actions séparées. Désormais <b>charger coûte un tour par tuile et la salve entière n'en coûte qu'un</b> : le décalage que le tableau de bord promettait depuis M5 existe enfin. <b>Review indépendante passée : refusée en l'état, puis corrigée.</b> 8 défauts relevés, tous traités. Le travail qui a suivi a lui-même été relu et refusé : voir le journal. 517 tests verts.</span></td></tr>
+  <tr><td><span class="pill p-done">revu</span></td><td><b>M10 — Équilibrage file de 5</b><span class="why">Un <b>instrument de mesure</b> d'abord — trois politiques qui jouent, <code>--simulate N</code> — puis la découverte qu'il a permise : <b>la file n'avait aucune économie</b>. Poser était gratuit, chaque exécution coûtait un tour, donc cinq tuiles coûtaient cinq tours exactement comme cinq actions séparées. Désormais <b>charger coûte un tour par tuile et la salve entière n'en coûte qu'un</b> : le décalage que le tableau de bord promettait depuis M5 existe enfin. <b>Review indépendante passée : refusée en l'état, puis corrigée.</b> 8 défauts relevés, tous traités. Le travail qui a suivi a lui-même été relu et refusé : voir le journal. 518 tests verts.</span></td></tr>
 </table>
 
 <h2>En cours de construction</h2>
@@ -324,6 +324,15 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Apr&egrave;s M10 &mdash; <b>Le tableau de bord se compte lui-m&ecirc;me</b></div>
+  <p>Deux fois de suite j&rsquo;ai affirm&eacute; sans v&eacute;rifier : une mutation qui ne mutait rien, puis un message de commit annon&ccedil;ant une phrase que le fichier ne contenait pas. Et cette page a d&eacute;j&agrave; d&eacute;riv&eacute; sur ses chiffres &mdash; un compte de planches rest&eacute; en arri&egrave;re, un ratio faux d&rsquo;un facteur douze. Chaque fois, c&rsquo;est une <b>review</b> qui l&rsquo;a vu. Une m&eacute;moire qu&rsquo;on ne peut v&eacute;rifier qu&rsquo;en la relisant n&rsquo;est pas gard&eacute;e.</p>
+
+  <p><b>Le nombre de planches est le seul de ces chiffres qui soit exactement v&eacute;rifiable</b> : il est sur le disque. Il figure d&eacute;sormais en <b>t&ecirc;te de page</b>, et un test le confronte au contenu de <code>captures/reference</code>. Annoncer une planche de moins fait rougir ; <em>ajouter un &eacute;cran sans toucher &agrave; l&rsquo;en-t&ecirc;te</em> fait rougir aussi &mdash; et c&rsquo;est le cas qui compte, celui o&ugrave; le chiffre vieillissait en silence.</p>
+
+  <p style="margin-bottom:0"><b>Ce qu&rsquo;il ne v&eacute;rifie pas est &eacute;crit dans son javadoc</b>, parce que la distinction est le fond de l&rsquo;affaire : les entr&eacute;es du <em>journal</em> portent les comptes de leur &eacute;poque &mdash; 71 planches sur 11, 84 sur 12 &mdash; et ce sont des relev&eacute;s dat&eacute;s, comme les planches-contact. Les rafra&icirc;chir reviendrait &agrave; r&eacute;&eacute;crire l&rsquo;histoire. Seule la ligne d&rsquo;en-t&ecirc;te parle du pr&eacute;sent ; c&rsquo;est donc la seule que ce test lit. Deux entr&eacute;es ont &eacute;t&eacute; d&eacute;clar&eacute;es &agrave; Gradle au passage &mdash; la page et le dossier des planches &mdash; sans quoi il aurait servi un r&eacute;sultat en cache apr&egrave;s l&rsquo;ajout d&rsquo;un &eacute;cran, et la garde aurait dormi exactement quand elle devait parler. <b>518 tests, 95 planches sur 14 &eacute;crans.</b></p>
+</div>
 
 <div class="rev pass">
   <div class="hd">Apr&egrave;s M10 &mdash; <b>Trois fuites de la m&ecirc;me famille : le rel&eacute;v&eacute; complet</b></div>
