@@ -1158,6 +1158,9 @@ public final class ArenaScene implements Scene {
             int x = hud.queueSlotX(slot);
             if (slot < tiles.size()) {
                 painter.sprite(context.atlas().region(tiles.get(slot).spriteName()), x, HudLayout.QUEUE_Y);
+                // Le meme nombre sur la file : c'est la que le joueur relit sa salve avant
+                // de la lacher, et « combien » y compte autant qu'au moment de poser.
+                drawDamage(tiles.get(slot), x, HudLayout.QUEUE_Y, true);
                 // Une tuile de la file se REPREND, et le seul refus possible est la fin de
                 // partie : unqueueAt ne connaît pas d'autre motif. Le commentaire qui vivait ici
                 // parlait de recharge et de file pleine — deux notions qui n'ont pas de sens pour
@@ -1227,6 +1230,29 @@ public final class ArenaScene implements Scene {
      * utile : le joueur doit voir <em>laquelle</em> lui manque. L'infobulle dit le reste — combien
      * de points il reste à attendre, et ce que la tuile fera quand elle reviendra.
      */
+    /**
+     * Le nombre de d&eacute;g&acirc;ts, pos&eacute; sur la tuile elle-m&ecirc;me.
+     *
+     * <p>C'est la moiti&eacute; manquante de l'axe des d&eacute;g&acirc;ts. Le nombre vivait dans
+     * l'infobulle, donc il fallait <em>survoler</em> pour savoir si un coup tue &mdash; alors que
+     * la question « celui-ci suffit-il ? » se pose sur toute la main &agrave; la fois, au moment de
+     * choisir. Chez la source, ce nombre est l'information la plus grosse de l'&eacute;cran.
+     *
+     * <p>Les tuiles qui ne frappent pas ne portent rien plut&ocirc;t qu'un z&eacute;ro : un
+     * z&eacute;ro se lirait comme une faiblesse au lieu d'une autre nature, et c'est le m&ecirc;me
+     * choix que dans l'infobulle. La teinte suit la disponibilit&eacute; &mdash; un nombre vif sur
+     * une tuile en recharge promettrait un coup qu'on ne peut pas jouer.
+     */
+    private void drawDamage(Tile tile, int x, int y, boolean available) {
+        if (tile.damage() <= 0) {
+            return;
+        }
+        context.batch().setColor(available ? HudColors.TEXT : HudColors.TEXT_DIM);
+        font.draw(context.batch(), String.valueOf(tile.damage()), x + 1,
+                y + HudLayout.TILE_SIZE, 1);
+        context.batch().setColor(Color.WHITE);
+    }
+
     private void drawRack() {
         List<Tile> tiles = arena.rack().tiles();
         for (int i = 0; i < tiles.size(); i++) {
@@ -1234,11 +1260,13 @@ public final class ArenaScene implements Scene {
             int x = hud.rackSlotX(i);
             var region = context.atlas().region(tile.spriteName());
 
-            if (arena.rack().isReady(tile)) {
+            boolean ready = arena.rack().isReady(tile);
+            if (ready) {
                 painter.sprite(region, x, HudLayout.RACK_Y);
             } else {
                 painter.spriteTinted(region, x, HudLayout.RACK_Y, HudColors.DIMMED);
             }
+            drawDamage(tile, x, HudLayout.RACK_Y, ready);
 
             int missing = arena.rack().missingPoints(tile);
             if (missing > 0) {
