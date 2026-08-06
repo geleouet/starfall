@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 543 tests verts · 104 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 543 tests verts · 106 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -356,6 +356,18 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>L&rsquo;axe de d&eacute;g&acirc;ts ennemi est en place</b></div>
+  <p>Troisi&egrave;me tentative, et la bonne. Les ennemis ne retirent plus tous un point : <b>sabreur 1, archer 1, lancier 2, colosse 2, souverain 2</b>. La force suit la lenteur, comme les points de vie &mdash; ce qui frappe fort laisse le temps de s&rsquo;&eacute;carter, la m&ecirc;me &eacute;conomie que la file du joueur o&ugrave; l&rsquo;estoc co&ucirc;te plus de recharge que la frappe. Le trait <b>rapide</b> multiplie les coups et non leur force ; les deux axes se composent sans se confondre.</p>
+
+  <p><b>Deux compteurs l&agrave; o&ugrave; un seul suffisait.</b> Le <i>compte de coups</i> porte l&rsquo;invariant du t&eacute;l&eacute;graphe &mdash; ce qui est annonc&eacute; est exactement ce qui est jou&eacute;, coup pour coup. Le <i>compte de points</i> est ce que le joueur lit pour d&eacute;cider s&rsquo;il reste. J&rsquo;avais commenc&eacute; par tordre le premier en second ; les tests du t&eacute;l&eacute;graphe l&rsquo;ont refus&eacute; imm&eacute;diatement, et ils avaient raison.</p>
+
+  <p><b>Ce qui bloquait deux contr&ocirc;les durant n&rsquo;&eacute;tait pas le mod&egrave;le.</b> C&rsquo;&eacute;taient trois t&eacute;moins calibr&eacute;s sur l&rsquo;ancien &eacute;quilibre : la ligne de d&eacute;monstration de la capture, une ligne de quatorze gestes qui gagnait la derni&egrave;re vague file garnie, et une graine qui finissait sur une invocation annonc&eacute;e. Tous trois retrouv&eacute;s par recherche &mdash; 35 gestes pour la premi&egrave;re, 9 pour la deuxi&egrave;me, la graine 142 pour la troisi&egrave;me.</p>
+
+  <p style="margin-bottom:0"><b>La le&ccedil;on des deux &eacute;checs pr&eacute;c&eacute;dents tient en un mot : d&eacute;duplication.</b> Mes recherches &agrave; la main comparaient des <i>suites de gestes</i> ; le faisceau du garde-fou de jouabilit&eacute; compare des <b>&eacute;tats</b>, avec une signature qui porte les points de vie ennemis et l&rsquo;intention annonc&eacute;e. Sans elle, la largeur se remplit de permutations de la m&ecirc;me position et ne cherche plus rien. L&rsquo;outil existait ; j&rsquo;en ai &eacute;crit deux autres avant d&rsquo;aller le lire. Et une premi&egrave;re ligne, gagnante &agrave; un point de vie, a &eacute;t&eacute; <b>refus&eacute;e par le garde-fou</b> &mdash; &laquo; trop juste pour que les planches montrent un jeu qui se joue &raquo; : biaiser la recherche vers la sant&eacute; a donn&eacute; 35 gestes, 32 tours, 4 points de vie.</p>
+</div>
+
 
 <div class="rev warn">
   <div class="hd">D&eacute;cision prise, travail <b>rendu &agrave; l&rsquo;&eacute;tat vert</b> &mdash; l&rsquo;axe de d&eacute;g&acirc;ts ennemi bute sur la ligne de d&eacute;monstration</div>

@@ -519,7 +519,7 @@ public final class Arena {
             }
             case ATTACK -> {
                 for (int blow = 0; blow < enemy.strikesPerAttack(); blow++) {
-                    strike(intention.targetCell());
+                    strike(intention.targetCell(), enemy);
                 }
             }
             case WIND_UP -> enemy.setWindingUp(true);
@@ -561,7 +561,7 @@ public final class Arena {
         // Autant de coups que la charge en porterait : le compteur de menaces les compte, donc
         // les oublier ferait sous-promettre le télégraphe dès qu'un souverain porterait un trait.
         for (int blow = 0; blow < enemy.strikesPerAttack(); blow++) {
-            strike(target);
+            strike(target, enemy);
         }
         // La poussée est différée à la fin de la phase — voir pendingPush.
         pendingPushFrom = target;
@@ -644,15 +644,15 @@ public final class Arena {
         }
         enemy.setWindingUp(false);
         for (int blow = 0; blow < enemy.strikesPerAttack(); blow++) {
-            strike(target);
+            strike(target, enemy);
         }
     }
 
     /** Résout une frappe ennemie sur une case. */
-    private void strike(int cell) {
+    private void strike(int cell, Enemy enemy) {
         if (grid.occupantAt(cell) == hero) {
             heroHits++;
-            hero.damage(1);
+            hero.damage(enemy.blowDamage());
         }
     }
 
@@ -887,6 +887,27 @@ public final class Arena {
             }
         }
         return count;
+    }
+
+    /**
+     * Points de vie que le héros perdrait s'il restait sur cette case.
+     *
+     * <p>Distinct de {@link #threatCount(int)}, et il faut que les deux existent. Le <b>compte de
+     * coups</b> est ce sur quoi porte l'invariant du télégraphe : ce qui est annoncé est exactement
+     * ce qui est joué, coup pour coup. Le <b>compte de points</b> est ce que le joueur lit pour
+     * décider s'il reste. Tant que tout coup ennemi retirait un point, les deux étaient le même
+     * nombre et un seul suffisait ; depuis que la force varie, les confondre ferait lire « deux »
+     * à qui va en encaisser quatre. C'est l'erreur que j'ai faite d'abord, et ce sont les tests du
+     * télégraphe qui l'ont relevée.
+     */
+    public int threatDamage(int cell) {
+        int total = 0;
+        for (Enemy enemy : enemiesLeftToRight()) {
+            if (enemy.intention().threatens(cell)) {
+                total += enemy.announcedDamage();
+            }
+        }
+        return total;
     }
 
     /** Case du héros. Toujours valide : le héros ne quitte jamais la grille. */

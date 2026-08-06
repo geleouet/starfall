@@ -46,7 +46,7 @@ class SilenceAfterTheEndTest {
     private static final int ENTERS_FOURTH_WAVE = 27;
 
     /** Graine qui finit une partie de vague 4 avec une invocation encore annoncée. */
-    private static final int WITNESS_SEED = 568;
+    private static final int WITNESS_SEED = 142;
 
     /**
      * Une arène perdue, avec une file garnie et des ennemis qui avaient annoncé quelque chose.
@@ -89,9 +89,7 @@ class SilenceAfterTheEndTest {
      */
     private static Arena victoriousWithALoadedQueue() {
         Arena arena = Playout.replay(5, Arena.WAVE_COUNT, List.of(
-                "pas droite", "échange", "poser frappe", "poser poussée", "poser volte-face",
-                "salve", "échange", "poser frappe", "poser poussée", "poser volte-face", "salve",
-                "poser estoc", "poser frappe", "salve"));
+                "échange", "poser estoc", "poser poussée", "poser volte-face", "salve", "poser frappe", "poser poussée", "échange", "salve"));
         return arena;
     }
 

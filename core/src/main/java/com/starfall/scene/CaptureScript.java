@@ -46,27 +46,16 @@ public final class CaptureScript {
      * puis 87 — et {@code ACTIONS.size()} le dit sans jamais se tromper.
      */
     public static final List<Function<Arena, ActionResult>> ACTIONS = List.of(
-            // Ligne retrouvee par la recherche du garde-fou de jouabilite apres l'arrivee de
-            // l'AXE DES DEGATS, exactement comme la precedente l'avait ete apres l'economie de
-            // salve. L'ancienne, calibree sur des tuiles a un degat et des sabreurs a un point de
-            // vie, mourait desormais en vague 2 : c'est le test de ce fichier qui l'a dit.
-            //
-            // Elle est plus courte de moitie - 33 gestes contre 87 - et c'est l'axe qui le fait :
-            // un estoc a trois degats abat d'un coup ce qui demandait trois frappes. On y lit la
-            // nouvelle economie a l'oeil nu, l'estoc revenant toutes les quatre recharges et la
-            // frappe comblant l'intervalle.
+            a -> a.step(Direction.RIGHT),
             a -> a.swapWithTarget(),
-            a -> a.queueTile(Tile.THRUST),
-            a -> a.queueTile(Tile.SIDESTEP),
+            a -> a.queueTile(Tile.STRIKE),
+            a -> a.queueTile(Tile.PUSH),
             a -> a.queueTile(Tile.PIVOT),
             a -> a.unleash(),
-            a -> a.queueTile(Tile.STRIKE),
-            a -> a.queueTile(Tile.DASH),
-            a -> a.unleash(),
             a -> a.queueTile(Tile.THRUST),
             a -> a.queueTile(Tile.SIDESTEP),
             a -> a.unleash(),
-            a -> a.queueTile(Tile.STRIKE),
+            a -> a.queueTile(Tile.PUSH),
             a -> a.queueTile(Tile.DASH),
             a -> a.unleash(),
             a -> a.queueTile(Tile.THRUST),
@@ -74,44 +63,38 @@ public final class CaptureScript {
             a -> a.swapWithTarget(),
             a -> a.swapWithTarget(),
             a -> a.swapWithTarget(),
-            a -> a.queueTile(Tile.THRUST),
+            a -> a.queueTile(Tile.PUSH),
             a -> a.queueTile(Tile.PIVOT),
+            a -> a.unleash(),
+            a -> a.queueTile(Tile.THRUST),
             a -> a.unleash(),
             a -> a.queueTile(Tile.PUSH),
             a -> a.unleash(),
             a -> a.queueTile(Tile.STRIKE),
+            a -> a.unleash(),
             a -> a.queueTile(Tile.PUSH),
+            a -> a.queueTile(Tile.THRUST),
+            a -> a.unleash(),
+            a -> a.queueTile(Tile.STRIKE),
+            a -> a.swapWithTarget(),
             a -> a.unleash(),
             a -> a.step(Direction.RIGHT),
             a -> a.queueTile(Tile.THRUST),
-            a -> a.unleash(),
-            a -> a.queueTile(Tile.STRIKE),
-            a -> a.queueTile(Tile.PUSH),
-            a -> a.unleash()
-    );
+            a -> a.unleash());
 
     /** Emplacement de râtelier survolé à chaque image, ou -1. Une entrée par image. */
     public static final int[] HOVERED_RACK_SLOT = {
-            -1, 0, -1, 5, -1, -1, -1, -1, -1, 1,
-            -1, -1, -1, -1, -1, 2, -1, -1, -1, -1,
-            3, -1, -1, -1, -1, 4, -1, -1, -1, -1,
-            -1, 0, -1, 2,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     };
 
     /** Case de plateau survolée, ou -1. Chacune porte un ennemi : un survol qui ne survole rien ne se voit ni sur la planche, ni dans ce tableau. */
     public static final int[] HOVERED_CELL = {
-            -1, -1, -1, -1, -1, -1, 4, -1, -1, -1,
-            -1, -1, -1, 3, -1, -1, -1, -1, -1, -1,
-            -1, 1, -1, -1, -1, -1, -1, 3, -1, -1,
-            -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     };
 
     /** Emplacement de file survolé, ou -1. Chacun est occupé à son image. */
     public static final int[] HOVERED_QUEUE_SLOT = {
-            -1, -1, -1, -1, 2, -1, -1, -1, -1, -1,
-            1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, 0, -1, -1, -1,
-            -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     };
 
     /** Nom de scène qui sélectionne cette ligne, côté ligne de commande. */

@@ -169,7 +169,7 @@ ext.renderScenarios = [
         // mène la tranche jusqu'à la victoire en 87 gestes, mais versionner 88 planches rendrait
         // « regarder les images avant d'adopter » impraticable -- et une référence qu'on adopte sans
         // regarder est pire qu'aucune référence. C'est à cela que sert « --from ».
-        arenaVictory   : ['--size', '1280x720', '--frames', '8', '--from', '26', '--scene', 'arena'],
+        arenaVictory   : ['--size', '1280x720', '--frames', '10', '--from', '26', '--scene', 'arena'],
         // La salve qui se DEROULE : une image par temps. C'est le seul temoin des deux
         // regles de l'animation - les figures qui reculent dans le temps, les calques du
         // repos qui se taisent - qu'aucune planche ne pouvait attraper jusqu'ici, le mode
@@ -182,7 +182,7 @@ ext.renderScenarios = [
         // Sans cet ecran, la regle « la fin appartient au repos » n'avait aucun temoin :
         // la salve ordinaire ne gagne rien, et « VICTOIRE » se peignait des la premiere
         // image du deroule, donc avant le coup qui l'avait gagnee.
-        arenaWin       : ['--size', '1280x720', '--frames', '3', '--from', '33',
+        arenaWin       : ['--size', '1280x720', '--frames', '3', '--from', '35',
                           '--scene', 'arena'],
         arenaNarrow    : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
         arenaWide      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],

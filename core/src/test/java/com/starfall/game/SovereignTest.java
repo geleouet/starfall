@@ -209,7 +209,10 @@ class SovereignTest {
             arena.step(arena.hero().facing().opposite());
 
             assertEquals(1, announced, "une ruee annonce un coup et un seul");
-            assertEquals(1, healthBefore - arena.hero().health(),
+            // Un COUP, et le prix de ce coup. Les deux etaient le meme nombre tant que tout coup
+            // ennemi retirait un point ; mesurer des coups en points de vie ferait desormais lire
+            // « deux blessures » la ou il y a une frappe qui en coute deux.
+            assertEquals(boss.announcedDamage(), healthBefore - arena.hero().health(),
                     "heros en " + (heroCell + 1) + " : la ruee a coute plus que le coup annonce");
         }
     }
@@ -295,11 +298,14 @@ class SovereignTest {
             arena.announceIntentions();
 
             int announced = arena.threatCount(arena.heroCell());
+            // Le prix annonce se lit AVANT le geste, comme le compte de coups : apres, les ennemis
+            // ont deja annonce le tour suivant et le nombre ne decrit plus le coup qu'on mesure.
+            int announcedDamage = arena.threatDamage(arena.heroCell());
             int before = arena.hero().health();
             arena.step(arena.hero().facing().opposite());
 
             assertEquals(2, announced, "montage invalide : deux coups doivent etre annonces");
-            assertEquals(announced, before - arena.hero().health(),
+            assertEquals(announcedDamage, before - arena.hero().health(),
                     "souverain " + (sovereignFirst ? "a gauche" : "a droite")
                             + " : le meme chiffre affiche doit donner le meme resultat");
         }

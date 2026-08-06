@@ -14,7 +14,7 @@ package com.starfall.game;
 public enum EnemyKind {
 
     /** Portée 1. Avance tant qu'il n'est pas au contact. La menace de base. */
-    SABREUR("sabreur", "enemy/sabreur", 1, 2) {
+    SABREUR("sabreur", "enemy/sabreur", 1, 1, 2) {
         @Override
         boolean actsThisPhase(int phaseIndex) {
             return true;
@@ -27,7 +27,7 @@ public enum EnemyKind {
      * <p>Il inverse la question posée par le sabreur : contre lui, s'approcher est la bonne réponse,
      * et c'est ce qui rend une ligne mixte intéressante à lire.
      */
-    ARCHER("archer", "enemy/archer", 3, 1) {
+    ARCHER("archer", "enemy/archer", 3, 1, 1) {
         @Override
         boolean actsThisPhase(int phaseIndex) {
             return true;
@@ -45,7 +45,7 @@ public enum EnemyKind {
      * <p>Le seul dont la menace est décalée d'un tour : il annonce, on a un tour pour s'écarter ou
      * pour le tuer.
      */
-    LANCIER("lancier", "enemy/lancier", 1, 3) {
+    LANCIER("lancier", "enemy/lancier", 1, 2, 3) {
         @Override
         boolean actsThisPhase(int phaseIndex) {
             return true;
@@ -62,7 +62,7 @@ public enum EnemyKind {
      *
      * <p>Sa lenteur est sa lisibilité : on peut le contourner, à condition de compter.
      */
-    COLOSSE("colosse", "enemy/colosse", 1, 3) {
+    COLOSSE("colosse", "enemy/colosse", 1, 2, 3) {
         @Override
         boolean actsThisPhase(int phaseIndex) {
             return phaseIndex % 2 == 0;
@@ -90,7 +90,7 @@ public enum EnemyKind {
      * de garder ses distances. Contre lui, s'éloigner est ce qui remplit le plateau. Et rester
      * collé, c'est accepter d'être pris en tenaille par ce qu'on a laissé apparaître.
      */
-    SOUVERAIN("souverain", "enemy/souverain", 1, 5) {
+    SOUVERAIN("souverain", "enemy/souverain", 1, 2, 5) {
         @Override
         boolean actsThisPhase(int phaseIndex) {
             return true;
@@ -105,13 +105,37 @@ public enum EnemyKind {
     private final String label;
     private final String spriteName;
     private final int range;
+    private final int damage;
     private final int health;
 
-    EnemyKind(String label, String spriteName, int range, int health) {
+    EnemyKind(String label, String spriteName, int range, int damage, int health) {
         this.label = label;
         this.spriteName = spriteName;
         this.range = range;
+        this.damage = damage;
         this.health = health;
+    }
+
+    /**
+     * Points de vie qu'un de ses coups retire.
+     *
+     * <p>L'axe existait c&ocirc;t&eacute; joueur &mdash; frappe &agrave; 1, estoc &agrave; 3 &mdash;
+     * et pas c&ocirc;t&eacute; adversaire : tout coup ennemi co&ucirc;tait exactement un point, si
+     * bien que la question qui se pose devant une ligne mixte, <b>lequel fait le plus mal</b>,
+     * n'avait pas de r&eacute;ponse.
+     *
+     * <p>La force suit la <b>lenteur</b>, comme les points de vie. Le sabreur et l'archer frappent
+     * &agrave; chaque phase et retirent un point ; le lancier annonce sa charge un tour &agrave;
+     * l'avance, le colosse ne joue qu'une phase sur deux, le souverain se paie de son invocation
+     * &mdash; les trois en retirent deux. Ce qui frappe fort laisse le temps de s'&eacute;carter,
+     * et c'est la m&ecirc;me &eacute;conomie que la file du joueur, o&ugrave; l'estoc co&ucirc;te
+     * plus de recharge que la frappe.
+     *
+     * <p>Le trait <b>rapide</b> multiplie les coups et non leur force : un rapide porte deux fois
+     * la m&ecirc;me frappe. Les deux axes se composent sans se confondre.
+     */
+    public int damage() {
+        return damage;
     }
 
     /** Libellé affichable, en français. */

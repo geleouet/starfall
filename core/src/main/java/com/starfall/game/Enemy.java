@@ -145,6 +145,21 @@ public final class Enemy implements Occupant {
         return strikesPerAttack();
     }
 
+    /** Points de vie qu'un seul de ses coups retire. */
+    public int blowDamage() {
+        return kind.damage();
+    }
+
+    /**
+     * Points de vie que sa frappe annoncée retirera <b>en tout</b>.
+     *
+     * <p>Le produit des deux axes : combien de coups, et combien chacun coûte. « Deux coups » et
+     * « deux points » ne sont la même chose que chez le sabreur.
+     */
+    public int announcedDamage() {
+        return kind.damage() * strikesPerAttack();
+    }
+
     /** Invocations restantes. L'interface les affiche : un compte à rebours se joue autrement. */
     public int summonsLeft() {
         return summonsLeft;
