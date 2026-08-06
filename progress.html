@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 536 tests verts · 104 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 538 tests verts · 104 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -346,6 +346,20 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>La branche que le h&eacute;ros emprunte &agrave; chaque coup re&ccedil;u n&rsquo;avait pas de t&eacute;moin</b></div>
+  <p>D&eacute;p&ocirc;t propre, 104 planches conformes, plus aucun processus orphelin. J&rsquo;ai cherch&eacute; le trou dans le code le plus r&eacute;cent, celui de l&rsquo;animation, en relisant non pas ce que les tests couvrent mais <b>ce qu&rsquo;ils ne couvrent pas</b>.</p>
+
+  <p>Reculer demande de savoir <i>de quoi</i>. Une tuile le dit &mdash; sa case vis&eacute;e est la direction du coup. La <b>riposte ennemie</b> ne le dit pas : plusieurs ennemis frappent, des deux c&ocirc;t&eacute;s, et l&rsquo;agr&eacute;gat ne d&eacute;signe aucune case. Choisir un sens inventerait une information que le mod&egrave;le n&rsquo;a pas. Le tressaillement devient donc <b>vertical</b> quand il n&rsquo;y a pas de cible.</p>
+
+  <p><b>Cette branche joue chaque fois que le h&eacute;ros encaisse</b>, c&rsquo;est-&agrave;-dire &agrave; l&rsquo;&eacute;v&eacute;nement de d&eacute;g&acirc;ts le plus fr&eacute;quent du jeu &mdash; et elle n&rsquo;avait aucun test. Les deux seuls cas sans case vis&eacute;e du corpus &eacute;taient un glissement et une absence de changement : ni l&rsquo;un ni l&rsquo;autre bless&eacute;. Le corpus paraissait couvrir <code>aim &lt; 0</code>, et il ne couvrait que la moiti&eacute; qui ne fait rien.</p>
+
+  <p>Deux tests &eacute;crits en <b>miroir</b> : sans cible on tressaille sur place et jamais de c&ocirc;t&eacute; ; avec cible on recule de c&ocirc;t&eacute; et jamais en s&rsquo;enfon&ccedil;ant. Chacun affirme ce que l&rsquo;autre branche <i>ne fait pas</i>, faute de quoi un test vert ne dirait pas laquelle a jou&eacute;. Trois mutations, trois morsures, chacune sur le test pr&eacute;vu &mdash; et celle qui fait para&icirc;tre le coup avant son contact en rougit deux.</p>
+
+  <p style="margin-bottom:0"><b>Et une le&ccedil;on d&rsquo;outillage, pay&eacute;e sur-le-champ.</b> Le script qui met &agrave; jour cette page a refus&eacute; son ancre &mdash; &laquo; 536 tests verts &raquo; figurait aussi dans deux entr&eacute;es de journal, qui portent les comptes de leur &eacute;poque. Le commit, lui, est parti quand m&ecirc;me : les deux commandes &eacute;taient encha&icirc;n&eacute;es par un saut de ligne et non par un <code>&amp;&amp;</code>. Le d&eacute;p&ocirc;t a donc port&eacute; pendant une minute un tableau annon&ccedil;ant 536 pour une suite qui en comptait 538. <b>Un chiffre du pr&eacute;sent s&rsquo;ancre sur la ligne du pr&eacute;sent</b>, jamais sur sa valeur nue &mdash; c&rsquo;est la troisi&egrave;me fois que ce projet le r&eacute;apprend, apr&egrave;s la phrase d&rsquo;aide cit&eacute;e dans son propre javadoc.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Le garde-fou du lanceur ne se suspendait pas : il &eacute;num&eacute;rait le disque</b></div>
