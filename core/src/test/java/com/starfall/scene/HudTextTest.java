@@ -17,6 +17,7 @@ import com.starfall.game.Tile;
 import com.starfall.render.PixelFont;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
@@ -166,6 +167,36 @@ class HudTextTest {
 
         assertTrue(failures.isEmpty(), "la police sauterait ces caracteres en silence :\n  "
                 + String.join("\n  ", failures));
+    }
+
+    /**
+     * L'aide promettait un coût que le modèle ne prend pas.
+     *
+     * <p>« 1 À 6 : CHARGER UNE TUILE - UN TOUR CHACUNE » était faux pour deux tuiles sur six le
+     * jour de son écriture : le pas de côté et la volte-face sont Free-Play. Rien ne reliait la
+     * phrase au modèle, alors elle a survécu à toutes les relectures.
+     *
+     * <p>Ce test tient le lien. Il n'essaie pas de comprendre la phrase : il constate que le
+     * râtelier <b>mélange</b> deux coûts de pose, et exige alors que l'aide nomme l'exception. La
+     * prémisse est <b>assertée</b>, pas supposée — un {@code assumeTrue} ferait un garde-fou qui
+     * se tait le jour où il cesse de s'appliquer, et sa disparition passerait pour un succès. S'il
+     * rougit un jour parce que toutes les tuiles ont fini par coûter pareil, ce sera la bonne
+     * nouvelle qu'il faut : la phrase peut redevenir simple.
+     */
+    @Test
+    @DisplayName("L'aide n'annonce un coût uniforme que si le modèle l'applique à tous")
+    void theHelpDoesNotPromiseAUniformCostTheModelDoesNotCharge() {
+        boolean someAreFree = Arrays.stream(Tile.values()).anyMatch(Tile::isFreePlay);
+        boolean someCost = Arrays.stream(Tile.values()).anyMatch(tile -> !tile.isFreePlay());
+        assertTrue(someAreFree && someCost,
+                "le ratelier n'a plus deux couts de pose : la phrase d'aide peut redevenir simple,"
+                        + " et ce test doit disparaitre avec l'exception qu'il gardait");
+
+        String help = String.join(" | ", HudText.help());
+        assertTrue(help.contains("GRATUIT"),
+                "des tuiles se posent sans consommer de tour et l'aide n'en dit rien : elle promet"
+                        + " donc un cout que le modele ne prend pas. Aide lue :\n  "
+                        + String.join("\n  ", HudText.help()));
     }
 
     @Test

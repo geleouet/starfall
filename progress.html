@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 5 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 518 tests verts · 95 planches sur 14 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 519 tests verts · 95 planches sur 14 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -324,6 +324,20 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Apr&egrave;s M10 &mdash; <b>L&rsquo;aide disait un tour pour toutes ; deux ne co&ucirc;taient rien</b></div>
+  <p>Le contr&ocirc;le p&eacute;riodique demande que le tableau de bord n&rsquo;affirme rien que le code ne fasse plus. Cette fois j&rsquo;ai appliqu&eacute; la m&ecirc;me question &agrave; la seule page que le <em>joueur</em> lit : le panneau F1. Une ligne sur huit &eacute;tait fausse. &laquo; <code>1 &Agrave; 6 : CHARGER UNE TUILE - UN TOUR CHACUNE</code> &raquo; &mdash; or le <b>pas de c&ocirc;t&eacute;</b> et la <b>volte-face</b> sont Free-Play et se glissent dans la file sans consommer de tour. Deux tuiles sur six.</p>
+
+  <p><b>Elle n&rsquo;a pas vieilli : elle &eacute;tait fausse le jour de son &eacute;criture.</b> C&rsquo;est ce qui la rend int&eacute;ressante. La r&egrave;gle Free-Play existait avant l&rsquo;&eacute;conomie de salve ; la phrase a &eacute;t&eacute; &eacute;crite <em>par-dessus</em>, et personne ne l&rsquo;a relev&eacute;e &mdash; ni moi, ni dix-huit reviews ind&eacute;pendantes. On relit une aide pour savoir si elle est <em>claire</em>, pas si elle est <em>vraie</em>. Elle est courte, elle est correcte en fran&ccedil;ais, elle passe.</p>
+
+  <p>La phrase dit d&eacute;sormais &laquo; <code>UN TOUR, SAUF GRATUITE</code> &raquo;. Le mot est celui que <b>l&rsquo;infobulle porte d&eacute;j&agrave;</b> sur ces deux tuiles : l&rsquo;aide envoie vers un mot que le joueur retrouvera, au lieu d&rsquo;en inventer un second pour la m&ecirc;me chose. Elle devient la ligne la plus large du panneau &mdash; la garde de d&eacute;bordement, qui mesure chaque phrase d&rsquo;interface &agrave; la police r&eacute;elle, l&rsquo;a laiss&eacute;e passer, et la planche le confirme &agrave; l&rsquo;&oelig;il.</p>
+
+  <p><b>Le correctif utile n&rsquo;est pas la phrase, c&rsquo;est le lien.</b> Rien ne reliait l&rsquo;aide au mod&egrave;le, donc rien ne pouvait la contredire. Un test le tient maintenant : il ne cherche pas &agrave; <em>comprendre</em> le texte, il constate que le r&acirc;telier m&eacute;lange deux co&ucirc;ts de pose et exige alors que l&rsquo;aide nomme l&rsquo;exception. La pr&eacute;misse est <b>assert&eacute;e</b>, pas suppos&eacute;e : un <code>assumeTrue</code> ferait un garde-fou qui se tait le jour o&ugrave; il cesse de s&rsquo;appliquer, et sa disparition passerait pour un succ&egrave;s. S&rsquo;il rougit un jour parce que toutes les tuiles co&ucirc;tent pareil, ce sera la bonne nouvelle : la phrase peut redevenir simple.</p>
+
+  <p style="margin-bottom:0"><b>&Eacute;prouv&eacute; par mutation</b>, et la mutation a mordu son auteur. J&rsquo;ai remis l&rsquo;ancienne phrase : un seul test rougit, le bon. Puis le retour en arri&egrave;re a &eacute;chou&eacute; &mdash; le javadoc que je venais d&rsquo;&eacute;crire <em>cite</em> la phrase fautive, donc l&rsquo;ancre du remplacement inverse en trouvait deux. Le fichier est rest&eacute; mut&eacute; une minute de plus. C&rsquo;est la troisi&egrave;me fois de ce projet qu&rsquo;expliquer une erreur dans un commentaire rend l&rsquo;erreur plus difficile &agrave; retirer du code : une ancre de mutation doit porter sur la <b>ligne de code</b>, guillemets compris, jamais sur la prose qui la raconte.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Apr&egrave;s M10 &mdash; <b>Le nombre passe sur la tuile</b></div>

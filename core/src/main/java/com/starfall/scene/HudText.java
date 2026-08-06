@@ -374,12 +374,23 @@ public final class HudText {
      * <p>Elle est ouverte au départ et se referme au premier geste. Un jeu au tour par tour dont
      * les commandes ne sont écrites nulle part n'est pas jouable ; un jeu qui les affiche en
      * permanence gaspille la moitié de son écran.
+     *
+     * <p>La ligne de chargement <b>nomme son exception</b>. Elle a dit « UN TOUR CHACUNE » pendant
+     * toute la vie de l'économie de salve, et c'était faux pour deux tuiles sur six : le pas de
+     * côté et la volte-face se glissent dans la file sans rien coûter. La phrase n'est pas devenue
+     * fausse en vieillissant — elle l'était le jour de son écriture, et personne ne l'a vue parce
+     * que rien ne reliait l'aide au modèle. On relit une aide pour savoir si elle est <em>claire</em>,
+     * pas si elle est <em>vraie</em>. Ce lien manquant est désormais dans un test.
+     *
+     * <p>Le mot est « GRATUITE » parce que c'est celui que l'infobulle porte déjà sur ces deux
+     * tuiles : l'aide envoie vers un mot que le joueur retrouvera, au lieu d'en inventer un second
+     * pour la même chose.
      */
     public static List<String> help() {
         return List.of(
                 "AIDE - STARFALL",
                 "FLÈCHES OU A/D : SE TOURNER, PUIS AVANCER",
-                "1 À 6 : CHARGER UNE TUILE - UN TOUR CHACUNE",
+                "1 À 6 : CHARGER UNE TUILE - UN TOUR, SAUF GRATUITE",
                 "ESPACE : LANCER LA SALVE - TOUTE LA FILE, UN TOUR",
                 "RETOUR ARRIÈRE OU CLIC SUR LA FILE : REPRENDRE",
                 "E : ÉCHANGER DE PLACE AVEC LA CIBLE VISÉE",
