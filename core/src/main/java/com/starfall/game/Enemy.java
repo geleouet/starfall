@@ -2,6 +2,7 @@ package com.starfall.game;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -143,6 +144,30 @@ public final class Enemy implements Occupant {
     /** Nombre de coups qu'une de ses frappes portera. Sert à l'infobulle. */
     public int blowsPerAttack() {
         return strikesPerAttack();
+    }
+
+    /**
+     * Ce que cet ennemi a mis dans sa file, du plus proche au plus lointain.
+     *
+     * <p>Un ennemi n'annonce aujourd'hui qu'<b>une</b> action &agrave; la fois &mdash; sauf le
+     * lancier, qui en tient deux : il prend son &eacute;lan, puis il charge. Cette suite existait
+     * dans le mod&egrave;le depuis M6, cach&eacute;e dans un bool&eacute;en, et rien &agrave;
+     * l'&eacute;cran ne la montrait : on voyait « il se charge », jamais « il se charge <em>pour
+     * une charge</em> ». Le joueur apprenait ce qui venait en le prenant.
+     *
+     * <p>La rendre lisible demande de la <b>nommer</b>, et c'est ce que fait cette liste. Elle en
+     * contient une pour tout le monde et deux pour un lancier qui prend son &eacute;lan ; c'est le
+     * premier pas d'une file ennemie plus large, et elle est d&eacute;j&agrave; exacte pour ce
+     * qu'elle couvre.
+     */
+    public List<Intention> plan() {
+        if (intention.kind() == Intention.Kind.WIND_UP) {
+            // Ce qui suit l'elan est connu d'avance et sans condition : le lancier « tient sa
+            // promesse, quoi qu'il arrive ». La case visee, elle, ne l'est pas - elle sera
+            // recalculee au moment de charger - donc on annonce la NATURE sans promettre l'endroit.
+            return List.of(intention, Intention.of(Intention.Kind.CHARGE));
+        }
+        return List.of(intention);
     }
 
     /** Points de vie qu'un seul de ses coups retire. */

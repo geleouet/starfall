@@ -1,5 +1,6 @@
 package com.starfall.game;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -105,5 +106,39 @@ class ImminenceTest {
         assertTrue(banner.contains("MENACE " + points),
                 "le bandeau dit « " + banner + " » : il devrait annoncer " + points + " points,"
                         + " le prix de ce qui vient, et non " + blows + " assaillant(s)");
+    }
+
+    /**
+     * La file d&rsquo;un ennemi : ce qu&rsquo;il tient, et non seulement ce qu&rsquo;il fait.
+     *
+     * <p>Le lancier en tient deux &mdash; l&rsquo;&eacute;lan, puis la charge &mdash; et cette suite
+     * existait dans le mod&egrave;le depuis M6, cach&eacute;e dans un bool&eacute;en. Rien &agrave;
+     * l&rsquo;&eacute;cran ne la montrait : on voyait « il se charge », jamais « il se charge
+     * <em>pour une charge</em> », et le joueur apprenait ce qui venait en le prenant.
+     */
+    @Test
+    @DisplayName("Un lancier qui prend son élan tient deux actions, les autres une seule")
+    void aWindingLancerHoldsTwoActions() {
+        Arena arena = new Arena(11, 1);
+        Enemy lancer = new Enemy(EnemyKind.LANCIER);
+        Enemy sabreur = new Enemy(EnemyKind.SABREUR);
+        arena.grid().place(6, lancer);
+        // DERRIERE le lancier : place entre lui et le heros, il lui bouchait la ligne et le
+        // lancier avancait au lieu de prendre son elan. Un montage qui ne produit pas l'etat
+        // qu'il pretend eprouver ne prouve rien - la premisse ci-dessous le dit desormais.
+        arena.grid().place(9, sabreur);
+        arena.announceIntentions();
+
+        assertEquals(Intention.Kind.WIND_UP, lancer.intention().kind(),
+                "montage invalide : le lancier devait prendre son elan");
+        assertEquals(2, lancer.plan().size(),
+                "l'elan est le premier temps d'une suite de deux : la charge qui suit est promise"
+                        + " sans condition, et ne rien en dire la laisse invisible");
+        assertEquals(Intention.Kind.CHARGE, lancer.plan().get(1).kind(),
+                "ce qui suit un elan est une charge, et rien d'autre");
+
+        // La contre-epreuve. Sans elle, une file qui rendrait toujours deux entrees passerait.
+        assertEquals(1, sabreur.plan().size(),
+                "un sabreur ne tient qu'une action : " + sabreur.plan());
     }
 }

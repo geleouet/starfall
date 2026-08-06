@@ -1046,6 +1046,28 @@ public final class ArenaScene implements Scene {
     }
 
     /**
+     * Ce qui attend derri&egrave;re, dans la file d'un ennemi.
+     *
+     * <p>Une plaque plus &eacute;troite et sans nombre : elle dit <em>ce qui vient ensuite</em>,
+     * pas ce qui tombe maintenant. Lui donner le m&ecirc;me poids qu'&agrave; l'action de t&ecirc;te
+     * ferait h&eacute;siter le joueur entre deux menaces dont une seule est pour ce tour-ci &mdash;
+     * c'est le d&eacute;faut que la plaque a &eacute;t&eacute; invent&eacute;e pour corriger, et il
+     * serait comique de le r&eacute;introduire en la r&eacute;p&eacute;tant.
+     */
+    private void drawPending(int centre, int y, Intention pending, Color color) {
+        int half = PLAQUE_HALF - 3;
+        painter.outline(centre - half, y - 2, half * 2 + 1, ArenaLayout.INTENT_HEIGHT, color);
+        // La double pointe de la charge, en petit : la meme forme que sur la plaque de tete,
+        // pour que « ce qui vient » et « ce qui tombe » se reconnaissent d'un seul vocabulaire.
+        if (pending.kind() == Intention.Kind.CHARGE || pending.kind() == Intention.Kind.RUSH) {
+            painter.fill(centre - 2, y, 2, 2, color);
+            painter.fill(centre + 1, y, 2, 2, color);
+        } else {
+            painter.fill(centre - 1, y, 3, 2, color);
+        }
+    }
+
+    /**
      * Le nombre de points que cette frappe retirera, pos&eacute; en haut de la plaque.
      *
      * <p>Au-dessus du glyphe et non &agrave; c&ocirc;t&eacute; : une case fait vingt pixels de
@@ -1111,6 +1133,16 @@ public final class ArenaScene implements Scene {
                     || intention.kind() == Intention.Kind.SUMMON;
             if (lands || loading) {
                 drawPlaque(centre, y, loading, plaqueColor(enemy));
+            }
+            // LA FILE, quand il y en a une. Un lancier qui prend son elan tient deux actions :
+            // l'elan, puis la charge. La seconde etait connue du modele depuis toujours et
+            // n'apparaissait nulle part - on voyait « il se charge », jamais « il se charge POUR
+            // UNE CHARGE ». Elle se pose au-dessus, plus petite : ce qui vient apres compte moins
+            // que ce qui vient maintenant, et la pile se lit de bas en haut comme celle du joueur.
+            List<Intention> plan = enemy.plan();
+            for (int rank = 1; rank < plan.size(); rank++) {
+                drawPending(centre, y + rank * (PLAQUE_HEIGHT + 2), plan.get(rank),
+                        plaqueColor(enemy));
             }
             // LE NOMBRE, la moitie qui manquait. La plaque disait « un coup part » et « d'ou » ;
             // elle ne disait pas COMBIEN, et depuis que la force varie par archetype c'est la

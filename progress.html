@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 545 tests verts · 105 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 546 tests verts · 105 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -250,7 +250,7 @@
   <p>Chaque planche documente <b>son jalon tel qu'il a été livré</b>. Elles ne sont pas rafraîchies quand un jalon ultérieur change le jeu — les recapturer reviendrait à réécrire l'histoire, et une planche de M8 qui montrerait l'interface de M10 ne prouverait plus rien de ce que M8 avait fait. Sept d’entre elles ne portent pas de numéro de jalon : elles datent du travail fait <i>depuis</i> M10 &mdash; l’axe des dégâts, puis l’animation &mdash; qui n’a pas encore été découpé en jalon.</p>
   <p>Il faut donc les lire ainsi, et le dire franchement plut&ocirc;t que de laisser croire : <b>les planches ant&eacute;rieures &agrave; M10 montrent une &eacute;conomie de tours qui n&rsquo;existe plus.</b> Celle de M8 affiche m&ecirc;me, dans son aide, <code>1 &agrave; 6 : POSER UNE TUILE SUR LA FILE (GRATUIT)</code> &mdash; la r&egrave;gle exacte que M10 a renvers&eacute;e, et <code>VAGUE 1/3</code> quand la tranche en compte quatre. Celle de M10 elle-m&ecirc;me a vieilli depuis : ses tuiles ne portent pas encore le chiffre des d&eacute;g&acirc;ts.</p>
 
-  <p style="margin-bottom:0"><b>Six planches, et six seulement, montrent le jeu tel qu&rsquo;il est aujourd&rsquo;hui : celles de <code>captures/actuel</code>.</b> Ce dossier n&rsquo;est pas une convention de rangement, c&rsquo;est une <b>promesse v&eacute;rifiable</b>, et un test la v&eacute;rifie : chacune de ses images doit &ecirc;tre identique, octet pour octet, &agrave; une planche de r&eacute;f&eacute;rence &mdash; c&rsquo;est-&agrave;-dire &agrave; ce que le jeu dessine <i>maintenant</i>. Le jour o&ugrave; les visuels changeront, elles cesseront de correspondre et le test rougira : il faudra les reprendre, ou renoncer &agrave; la promesse. Cette phrase-ci existait avant le test et d&eacute;signait la planche de M10 ; elle est devenue fausse en silence, parce que rien ne la reliait &agrave; quoi que ce soit.</p>
+  <p style="margin-bottom:0"><b>Sept planches, et sept seulement, montrent le jeu tel qu&rsquo;il est aujourd&rsquo;hui : celles de <code>captures/actuel</code>.</b> Ce dossier n&rsquo;est pas une convention de rangement, c&rsquo;est une <b>promesse v&eacute;rifiable</b>, et un test la v&eacute;rifie : chacune de ses images doit &ecirc;tre identique, octet pour octet, &agrave; une planche de r&eacute;f&eacute;rence &mdash; c&rsquo;est-&agrave;-dire &agrave; ce que le jeu dessine <i>maintenant</i>. Le jour o&ugrave; les visuels changeront, elles cesseront de correspondre et le test rougira : il faudra les reprendre, ou renoncer &agrave; la promesse. Cette phrase-ci existait avant le test et d&eacute;signait la planche de M10 ; elle est devenue fausse en silence, parce que rien ne la reliait &agrave; quoi que ce soit.</p>
 </div>
 
 
@@ -355,7 +355,22 @@
   <figcaption><b>La plaque <i>pleine</i> : il charge, rien ne tombe.</b> Le souverain pr&eacute;pare une invocation ; le losange est d&eacute;coup&eacute; en creux dans le rouge au lieu d&rsquo;&ecirc;tre pos&eacute; dessus. Ajour&eacute;e ou pleine, la plaque fait de la question &laquo; est-ce que quelque chose me tombe dessus ? &raquo; une <b>cat&eacute;gorie</b> et non une nuance &mdash; le glyphe garde tout ce qu&rsquo;il disait, mais il n&rsquo;a plus &agrave; porter seul la question qui se pose en premier.</figcaption>
 </figure>
 
+<figure class="sheet">
+  <img src="captures/actuel/file-ennemie.png" alt="Starfall, la file d&rsquo;un lancier">
+  <figcaption><b>La file d&rsquo;un ennemi, enfin visible.</b> Le lancier prend son &eacute;lan &mdash; plaque <b>pleine</b>, donc rien ne tombe ce tour-ci &mdash; et la petite carte pos&eacute;e au-dessus porte la double pointe de la <b>charge qui suit</b>. Cette suite existait dans le mod&egrave;le depuis M6, cach&eacute;e dans un bool&eacute;en : on voyait &laquo; il se charge &raquo;, jamais &laquo; il se charge <i>pour une charge</i> &raquo;, et le joueur apprenait ce qui venait en le prenant. La carte du dessus est plus &eacute;troite et sans nombre : ce qui vient <i>ensuite</i> ne doit pas peser autant que ce qui tombe <i>maintenant</i>.</figcaption>
+</figure>
+
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Premier pas de la <b>file ennemie</b> &mdash; celui qui ne co&ucirc;te aucun r&eacute;&eacute;quilibrage</div>
+  <p>Demande re&ccedil;ue : <i>on doit voir l&rsquo;ennemi mettre ses actions dans sa file, puis pr&eacute;parer l&rsquo;ex&eacute;cution de l&rsquo;ensemble, puis ex&eacute;cuter</i>. C&rsquo;est un changement de mod&egrave;le, et j&rsquo;ai commenc&eacute; par le bout qui n&rsquo;en est pas un.</p>
+
+  <p><b>Le lancier accumule d&eacute;j&agrave;.</b> &Eacute;lan puis charge : une file de deux, jou&eacute;e &agrave; la main depuis M6 et invisible &agrave; l&rsquo;&eacute;cran. La nommer &mdash; <code>Enemy.plan()</code> &mdash; et la dessiner en pile ne change <b>ni le mod&egrave;le, ni l&rsquo;&eacute;quilibre, ni la ligne gagnante</b> : une seule planche sur cent cinq a boug&eacute;, celle o&ugrave; un lancier prend son &eacute;lan. Les trois &eacute;tats que la demande r&eacute;clame se lisent d&eacute;j&agrave; dessus : il remplit (plaque pleine), ce qui suit est annonc&eacute; (la carte du dessus), et le cadre dor&eacute; dira l&rsquo;ex&eacute;cution au tour suivant.</p>
+
+  <p style="margin-bottom:0"><b>Le montage du test s&rsquo;est fait prendre en premier</b>, et c&rsquo;est bon signe : j&rsquo;avais plac&eacute; le second ennemi <i>entre</i> le lancier et le h&eacute;ros, ce qui lui bouchait la ligne &mdash; il avan&ccedil;ait au lieu de prendre son &eacute;lan, et le test n&rsquo;&eacute;prouvait pas l&rsquo;&eacute;tat qu&rsquo;il pr&eacute;tendait &eacute;prouver. La pr&eacute;misse le dit maintenant elle-m&ecirc;me, et une contre-&eacute;preuve v&eacute;rifie qu&rsquo;un sabreur ne tient bien qu&rsquo;une action : sans elle, une file qui rendrait toujours deux entr&eacute;es passerait. <b>Reste &agrave; faire</b>, et c&rsquo;est l&agrave; que le p&eacute;rim&egrave;tre bouge : des files de plus d&rsquo;une action pour les autres arch&eacute;types, l&rsquo;invariant du t&eacute;l&eacute;graphe port&eacute; d&rsquo;un coup &agrave; une s&eacute;quence, et le r&eacute;&eacute;quilibrage qui suivra.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Rapport de jeu &mdash; <b>&laquo; L&rsquo;archer ne tire jamais &raquo;</b></div>
