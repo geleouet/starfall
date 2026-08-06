@@ -215,6 +215,67 @@ class ChoreographyTest {
                     "un ennemi a la GAUCHE du heros recule vers la gauche, or il est en " + left);
         }
 
+        /**
+         * Encaisser sans savoir d'où vient le coup.
+         *
+         * <p>Reculer demande de savoir <em>de quoi</em>. Une tuile le dit : sa case visée est la
+         * direction du coup. La <b>riposte ennemie</b> ne le dit pas — plusieurs ennemis frappent,
+         * des deux côtés, et l'agrégat ne désigne aucune case. Choisir un sens serait inventer une
+         * information que le modèle n'a pas, dans un jeu dont toute la tension tient à ce que
+         * l'annoncé et le joué coïncident.
+         *
+         * <p>Le tressaillement devient donc vertical. C'est la branche qui joue <b>chaque fois que
+         * le héros encaisse</b>, c'est-à-dire à l'événement de dégâts le plus fréquent du jeu — et
+         * elle n'avait aucun témoin : les deux seuls cas sans case visée du corpus étaient un
+         * glissement et une absence de changement, ni l'un ni l'autre blessé.
+         */
+        @Test
+        @DisplayName("Sans case visée, celui qui encaisse tressaille sur place, jamais de côté")
+        void withoutAnAimTheWoundedFlinchInPlace() {
+            List<Arena.Figure> before = List.of(hero(1, 4), figure(2, 6, 3));
+            List<Arena.Figure> after = List.of(new Arena.Figure(1, 4, "hero/idle",
+                    Direction.RIGHT, 6, 8, true, false), figure(2, 6, 3));
+
+            for (int step = 0; step <= 10; step++) {
+                float t = step / 10f;
+                Choreography.Placement hit = of(Choreography.at(before, after, -1, t), 1);
+
+                assertEquals(4f, position(hit), 1e-6f,
+                        "a t=" + t + " le heros a derive horizontalement : sans case visee, aucun"
+                                + " sens n'est connu, et en choisir un inventerait la direction du"
+                                + " coup");
+                assertTrue(hit.lift() <= 0f,
+                        "a t=" + t + " le tressaillement souleve au lieu d'enfoncer : encaisser"
+                                + " ne fait pas bondir");
+            }
+
+            assertEquals(0f, of(Choreography.at(before, after, -1, 0f), 1).lift(), 1e-6f,
+                    "rien avant le contact : montrer l'effet avant sa cause est le defaut que le"
+                            + " moment du contact existe pour eviter");
+            assertTrue(of(Choreography.at(before, after, -1, 0.5f), 1).lift() < 0f,
+                    "apres le contact, le coup doit se VOIR : sans quoi seules les pastilles de"
+                            + " points de vie changent, et rien ne dit quand");
+            assertEquals(0f, of(Choreography.at(before, after, -1, 1f), 1).lift(), 1e-6f,
+                    "et il faut se relever : un heros qui reste enfonce a la fin d'un temps"
+                            + " resterait enfonce au repos, puisque c'est la meme image");
+        }
+
+        @Test
+        @DisplayName("Avec une case visée, le tressaillement est horizontal et ne s'enfonce pas")
+        void withAnAimTheFlinchIsHorizontalAndNeverSinks() {
+            // Le complement du precedent : les deux branches doivent se distinguer, sans quoi un
+            // test vert ne dirait pas laquelle a joue.
+            List<Arena.Figure> before = List.of(hero(1, 3), figure(2, 5, 3));
+            List<Arena.Figure> after = List.of(hero(1, 3), figure(2, 5, 1));
+
+            Choreography.Placement hit = of(Choreography.at(before, after, 5, 0.5f), 2);
+
+            assertTrue(position(hit) > 5f, "avec une case visee, le recul est horizontal");
+            assertEquals(0f, hit.lift(), 1e-6f,
+                    "et seulement horizontal : les deux formes de tressaillement se distinguent"
+                            + " par ce qu'elles ne font pas autant que par ce qu'elles font");
+        }
+
         @Test
         @DisplayName("Celui qui tombe reste entier jusqu'au contact, puis s'efface")
         void theOneWhoFallsStaysWholeUntilTheBlowLands() {
