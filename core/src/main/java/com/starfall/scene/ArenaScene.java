@@ -73,13 +73,6 @@ public final class ArenaScene implements Scene {
     private final Color figureTint = new Color();
 
     /**
-     * Dur&eacute;e d'un demi-battement de l'or, en secondes.
-     *
-     * <p>Assez lent pour ne pas fatiguer, assez vif pour dire l'urgence.
-     */
-    private static final float BLINK_SECONDS = 0.42f;
-
-    /**
      * O&ugrave; en est le battement de l'or.
      *
      * <p>Il n'avance qu'en mode interactif. En capture il reste &agrave; z&eacute;ro, donc au temps
@@ -183,7 +176,10 @@ public final class ArenaScene implements Scene {
             return;
         }
         float delta = Playback.frameStep(time - lastTime);
-        blink += delta;
+        // Ramene dans un cycle complet plutot que de laisser un flottant grandir toute une
+        // partie : la couleur ne depend que de la parite du demi-battement, donc rien ne change a
+        // l'ecran, et le compteur cesse de perdre en precision a mesure qu'on joue.
+        blink = (blink + delta) % (2f * HudColors.BLINK_SECONDS);
         lastTime = time;
         if (playback.isRunning()) {
             // Le déroulé BLOQUE les entrées tant qu'il court. Sans cela, le joueur agirait sur un
@@ -1066,11 +1062,7 @@ public final class ArenaScene implements Scene {
      * d&eacute;g&acirc;ts, qui ne portent rien plut&ocirc;t qu'un z&eacute;ro.
      */
     private Color plaqueColor(Enemy enemy) {
-        if (!arena.willAct(enemy)) {
-            return HudColors.THREAT;
-        }
-        boolean lit = (int) (blink / BLINK_SECONDS) % 2 == 0;
-        return lit ? HudColors.IMMINENT : HudColors.IMMINENT_DIM;
+        return HudColors.plaque(arena.willAct(enemy), blink);
     }
 
     private void drawIntentions() {

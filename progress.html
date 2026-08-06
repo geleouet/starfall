@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 540 tests verts · 104 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 543 tests verts · 104 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -356,6 +356,20 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Une r&egrave;gle d&rsquo;apparence que les cent quatre planches ne pouvaient pas voir</b></div>
+  <p>D&eacute;p&ocirc;t propre, 540 tests verts, 104 planches conformes. Le seul point en attente est une d&eacute;cision de <i>game design</i> &mdash; l&rsquo;axe de d&eacute;g&acirc;ts c&ocirc;t&eacute; ennemi &mdash; donc j&rsquo;ai avanc&eacute; sur ce qui n&rsquo;en d&eacute;pend pas : le trou du travail que je venais de livrer.</p>
+
+  <p><b>Le cadre dor&eacute; n&rsquo;avait de t&eacute;moin que sur sa moiti&eacute; dor&eacute;e.</b> La plaque est or quand l&rsquo;ennemi joue &agrave; la phase qui vient, rouge quand il annonce sans &ecirc;tre imminent &mdash; or dans <em>tous</em> les sc&eacute;narios captur&eacute;s, les ennemis agissent. Aucune planche ne montre l&rsquo;&eacute;tat rouge. Ce projet garde son apparence par l&rsquo;image ; cette r&egrave;gle-l&agrave; y &eacute;chappait, et pas par oubli : par construction.</p>
+
+  <p><b>La d&eacute;monstration a &eacute;t&eacute; faite en cassant.</b> J&rsquo;ai supprim&eacute; le cas rouge &mdash; tout devient or, quelle que soit l&rsquo;imminence. Le garde-fou d&rsquo;images a r&eacute;pondu <code>rendu conforme &agrave; la r&eacute;f&eacute;rence : 104 planches sur 15 &eacute;crans</code>. <b>Pas un octet n&rsquo;a boug&eacute;</b>, et la distinction la plus utile de l&rsquo;&eacute;cran &mdash; &laquo; j&rsquo;ai un tour de r&eacute;pit &raquo; contre &laquo; &ccedil;a tombe maintenant &raquo; &mdash; avait disparu en silence. Un choix de couleur qu&rsquo;aucune image ne peut d&eacute;partager doit &ecirc;tre d&eacute;partag&eacute; par un test.</p>
+
+  <p><b>La r&egrave;gle descend donc l&agrave; o&ugrave; elle s&rsquo;&eacute;prouve</b>, hors de la sc&egrave;ne qui l&rsquo;appelle &mdash; c&rsquo;est le m&ecirc;me d&eacute;placement que le pas de temps, pass&eacute; dans le d&eacute;roul&eacute; pour la m&ecirc;me raison. Une r&egrave;gle vit l&agrave; o&ugrave; elle s&rsquo;&eacute;prouve, pas l&agrave; o&ugrave; elle s&rsquo;utilise. Trois mutations, trois morsures : tout-en-or, battement qui repasse par le rouge, cadre qui ne bat plus.</p>
+
+  <p style="margin-bottom:0">Et une pr&eacute;misse ass&eacute;r&eacute;e plut&ocirc;t que suppos&eacute;e : le test qui exige que le battement <i>reste</i> dans l&rsquo;or serait vrai pour rien si le cadre ne battait pas du tout. Un troisi&egrave;me test v&eacute;rifie donc que les deux temps paraissent, sur trois cycles &eacute;chantillonn&eacute;s fin &mdash; une parit&eacute; mal &eacute;crite se trahit sur un bord. Au passage, le compteur du battement est ramen&eacute; dans un cycle : rien ne change &agrave; l&rsquo;&eacute;cran, mais un flottant cesse de grandir toute une partie.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">D&rsquo;apr&egrave;s les captures &mdash; <b>Trois &eacute;tats au-dessus de la t&ecirc;te, au lieu de sept glyphes du m&ecirc;me poids</b></div>

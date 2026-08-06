@@ -69,6 +69,38 @@ public final class HudColors {
     public static final Color IMMINENT_DIM = new Color(0xa8792cff);
 
     /**
+     * Dur&eacute;e d'un demi-battement de l'or, en secondes.
+     *
+     * <p>Assez lent pour ne pas fatiguer, assez vif pour dire l'urgence.
+     */
+    public static final float BLINK_SECONDS = 0.42f;
+
+    /**
+     * La couleur d'une plaque d'intention : rouge si c'est annonc&eacute;, or si &ccedil;a part
+     * maintenant.
+     *
+     * <p>Elle vit ici, et non dans la sc&egrave;ne qui l'appelle, pour la raison qui a d&eacute;j&agrave;
+     * fait descendre le pas de temps dans le d&eacute;roul&eacute; : <b>ici elle s'&eacute;prouve
+     * sans &eacute;cran</b>. Aucune planche ne montre l'&eacute;tat rouge &mdash; dans tous les
+     * sc&eacute;narios captur&eacute;s les ennemis agissent &agrave; la phase qui vient &mdash; si
+     * bien qu'une version rendant l'or en toute circonstance passerait le garde-fou d'images sans
+     * qu'une seule ligne rougisse. Un choix de couleur qu'aucune image ne peut d&eacute;partager
+     * doit &ecirc;tre d&eacute;partag&eacute; par un test.
+     *
+     * @param imminent vrai si l'ennemi joue r&eacute;ellement &agrave; la phase qui vient
+     * @param seconds  o&ugrave; en est le battement, en secondes accumul&eacute;es
+     */
+    public static Color plaque(boolean imminent, float seconds) {
+        if (!imminent) {
+            return THREAT;
+        }
+        // Le battement ne quitte jamais l'or : voir IMMINENT. Il repart de zero a chaque cycle
+        // complet, ce qui evite qu'un compteur de secondes grandisse sans fin pendant une partie.
+        boolean lit = (int) (seconds / BLINK_SECONDS) % 2 == 0;
+        return lit ? IMMINENT : IMMINENT_DIM;
+    }
+
+    /**
      * Ce que <b>ma</b> prochaine tuile va faire : portée, case visée, trajectoire d'une poussée.
      *
      * <p>Un violet, et le choix compte : le rouge appartient à ce qui va m'arriver, le violet à ce
