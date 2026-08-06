@@ -71,7 +71,7 @@ public final class HudLayout {
      * <p>Le panneau <b>grandit vers le bas</b> depuis ce bord. Son plancher est donc ce qui limite
      * le nombre de lignes, et {@link #MAX_INFO_LINES} le fixe une fois pour toutes.
      */
-    public static final int INFO_TOP = 162;
+    public static final int INFO_TOP = 166;
 
     /**
      * Nombre maximal de lignes du panneau d'information.

@@ -1002,10 +1002,10 @@ public final class ArenaScene implements Scene {
      * de cinq pixels de part et d'autre, la charge de six &agrave; gauche et trois &agrave; droite,
      * et une plaque qui rognerait son glyphe serait pire que pas de plaque.
      */
-    private static final int PLAQUE_HALF = 7;
+    private static final int PLAQUE_HALF = ArenaLayout.PLAQUE_HALF;
 
     /** Hauteur de la plaque : le glyphe, plus deux pixels d'air au-dessus et au-dessous. */
-    private static final int PLAQUE_HEIGHT = ArenaLayout.INTENT_HEIGHT + 12;
+    private static final int PLAQUE_HEIGHT = ArenaLayout.PLAQUE_HEIGHT;
 
     /** Hauteur du chiffre de d&eacute;g&acirc;ts port&eacute; par une plaque. */
     private static final int PLAQUE_DIGIT_TOP = ArenaLayout.INTENT_HEIGHT + 8;
@@ -1141,7 +1141,7 @@ public final class ArenaScene implements Scene {
             // que ce qui vient maintenant, et la pile se lit de bas en haut comme celle du joueur.
             List<Intention> plan = enemy.plan();
             for (int rank = 1; rank < plan.size(); rank++) {
-                drawPending(centre, y + rank * (PLAQUE_HEIGHT + 2), plan.get(rank),
+                drawPending(centre, y + rank * ArenaLayout.PLAQUE_STACK_STEP, plan.get(rank),
                         plaqueColor(enemy));
             }
             // LE NOMBRE, la moitie qui manquait. La plaque disait « un coup part » et « d'ou » ;

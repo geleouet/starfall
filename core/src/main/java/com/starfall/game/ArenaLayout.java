@@ -107,7 +107,40 @@ public final class ArenaLayout {
      */
     public static final int INTENT_Y = FIGURE_Y + FIGURE_HEIGHT + 6;
     public static final int INTENT_HEIGHT = 6;
-    public static final int INTENT_TOP = INTENT_Y + INTENT_HEIGHT;
+    /**
+     * Demi-largeur de la plaque qui porte une intention. Voir {@code ArenaScene.drawPlaque}.
+     *
+     * <p>Elle vit ici, avec le reste de la g&eacute;om&eacute;trie, et non dans la sc&egrave;ne qui
+     * la dessine : c'est {@link #INTENT_TOP} qui en d&eacute;pend, et une borne calcul&eacute;e loin
+     * de ce qu'elle borne ne le borne pas longtemps.
+     */
+    public static final int PLAQUE_HALF = 7;
+
+    /** Hauteur de la plaque : le glyphe, le nombre de d&eacute;g&acirc;ts, et l'air autour. */
+    public static final int PLAQUE_HEIGHT = INTENT_HEIGHT + 10;
+
+    /** &Eacute;cart entre la plaque de t&ecirc;te et la carte de ce qui suit dans la file. */
+    public static final int PLAQUE_STACK_STEP = PLAQUE_HEIGHT + 2;
+
+    /**
+     * Le haut de <b>tout ce qui se dessine au-dessus d'un ennemi</b>.
+     *
+     * <h2>Ce que cette constante disait, et ce qu'elle dit maintenant</h2>
+     *
+     * <p>Elle valait {@code INTENT_Y + INTENT_HEIGHT}, c'est-&agrave;-dire le haut du <em>glyphe</em>
+     * &mdash; exact tant qu'un glyphe nu flottait au-dessus des t&ecirc;tes. Depuis, le glyphe a
+     * re&ccedil;u une <b>plaque</b>, la plaque un <b>nombre</b>, et la file une <b>carte de
+     * plus</b> : ce qui est peint l&agrave;-haut monte dix-huit pixels plus loin que ce que la
+     * borne annon&ccedil;ait.
+     *
+     * <p>Cela comptait, parce qu'un test s'en sert pour garantir que le panneau d'information ne
+     * recouvre pas le t&eacute;l&eacute;graphe &mdash; l'occultation que les jalons pr&eacute;c&eacute;dents
+     * ont pay&eacute;e deux fois. <b>Il gardait donc une fronti&egrave;re que le dessin avait
+     * franchie sans lui</b>, et serait rest&eacute; vert jusqu'&agrave; ce que la carte du dessus
+     * disparaisse sous le panneau. Un second test ass&eacute;rait m&ecirc;me l'ancienne formule,
+     * ce qui la rendait vraie par construction : une tautologie ne garde rien.
+     */
+    public static final int INTENT_TOP = INTENT_Y - 2 + PLAQUE_HEIGHT;
 
     /**
      * Bande des points de vie, juste au-dessus des têtes.

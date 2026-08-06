@@ -543,7 +543,14 @@ class TelegraphTest {
                 "les glyphes doivent etre au-dessus des tetes");
         assertTrue(ArenaLayout.INTENT_TOP < com.starfall.StarfallGame.MIN_WORLD_HEIGHT,
                 "les glyphes doivent tenir dans la zone garantie");
-        assertEquals(ArenaLayout.INTENT_Y + ArenaLayout.INTENT_HEIGHT, ArenaLayout.INTENT_TOP);
+        // La borne doit couvrir TOUT ce qui se dessine au-dessus d'un ennemi, plaque et carte
+        // de file comprises. L'assertion precedente reprenait la formule mot pour mot - une
+        // tautologie, vraie par construction, qui n'a rien dit quand la plaque a fait monter le
+        // dessin de dix-huit pixels au-dessus d'elle.
+        assertTrue(ArenaLayout.INTENT_TOP > ArenaLayout.INTENT_Y + ArenaLayout.INTENT_HEIGHT,
+                "la borne haute du telegraphe ne compte que le glyphe nu : la plaque qui le porte"
+                        + " monte plus haut, et c'est elle que le panneau d'information risque de"
+                        + " recouvrir");
 
         // Les points de vie ont leur propre bande : ils etaient d'abord poses sur la ligne des
         // barres de menace, deux informations vitales au meme pixel.
