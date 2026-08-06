@@ -40,9 +40,17 @@ public final class RiposteScript {
     /** Nom de scène qui sélectionne ce scénario. */
     public static final String SCENE_NAME = "riposte";
 
-    /** Un pas, et rien d'autre. Ce qui suit n'est plus du joueur. */
+    /**
+     * Un demi-tour, et rien d'autre.
+     *
+     * <p>Il consomme un tour <b>sans déplacer le héros</b>, ce qui est exactement ce
+     * qu'il faut : l'archer reste à trois cases, donc à sa portée, et tire. Un pas
+     * vers la droite l'aurait sorti de portée et la riposte n'aurait montré qu'un
+     * déplacement &mdash; ce que cet écran faisait, et c'est pourquoi la fente des
+     * assaillants n'avait aucun témoin.
+     */
     public static final List<Function<Arena, ActionResult>> ACTIONS = List.of(
-            a -> a.step(Direction.RIGHT));
+            a -> a.step(Direction.LEFT));
 
     /** Première image qui montre un temps du déroulé. */
     public static final int FIRST_BEAT_FRAME = ACTIONS.size();
@@ -55,10 +63,9 @@ public final class RiposteScript {
      * quand ce jeu n'animait rien.
      */
     public static final float[][] MOMENTS = {
-            {1f, 0.50f},
+            {1f, 0.35f},
+            {1f, 0.60f},
             {1f, 1f},
-            {2f, 0.50f},
-            {2f, 1f},
     };
 
     private RiposteScript() {

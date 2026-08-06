@@ -4,6 +4,7 @@ import com.starfall.game.Arena;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
 
@@ -117,6 +118,26 @@ public final class Choreography {
      */
     public static List<Placement> at(List<Arena.Figure> before, List<Arena.Figure> after,
             int aim, float t) {
+        return at(before, after, aim, t, Set.of());
+    }
+
+    /**
+     * La m&ecirc;me chose, en sachant <b>qui a frapp&eacute;</b>.
+     *
+     * <p>La fente &eacute;tait r&eacute;serv&eacute;e au h&eacute;ros, parce qu'une tuile dit sa
+     * case vis&eacute;e et que la riposte ennemie n'en d&eacute;signe aucune. Cons&eacute;quence :
+     * pendant toute la phase ennemie, <b>aucun assaillant ne faisait le moindre geste</b>. Un
+     * sabreur au contact s'en tirait &mdash; le tressaillement du h&eacute;ros arrive juste
+     * &agrave; c&ocirc;t&eacute; de lui, et l'&oelig;il fait le lien. L'archer non : il tire de
+     * trois cases et reste parfaitement immobile, si bien qu'on jurerait qu'il ne tire jamais.
+     * Mesure : il annonce une attaque quatre fois sur cinq.
+     *
+     * <p>Les num&eacute;ros donn&eacute;s ici sont ceux qui ont touch&eacute;. Ils se fendent vers
+     * le h&eacute;ros, du m&ecirc;me geste que lui &mdash; c'est la m&ecirc;me phrase visuelle, dite
+     * dans l'autre sens.
+     */
+    public static List<Placement> at(List<Arena.Figure> before, List<Arena.Figure> after,
+            int aim, float t, Set<Long> strikers) {
         float time = Math.min(1f, Math.max(0f, t));
         Map<Long, Arena.Figure> was = index(before);
         Map<Long, Arena.Figure> now = index(after);
@@ -139,6 +160,10 @@ public final class Choreography {
             } else if (figure.hero() && lunges) {
                 placements.add(new Placement(figure, figure.cell(), aim,
                         lunge(time, Math.abs(aim - figure.cell())), 0f, 1f));
+            } else if (strikers.contains(figure.id()) && heroCell != Integer.MIN_VALUE) {
+                placements.add(new Placement(figure, figure.cell(),
+                        figure.cell() + Integer.signum(heroCell - figure.cell()),
+                        lunge(time, 1), 0f, 1f));
             } else if (figure.health() < previous.health()) {
                 // Reculer demande de savoir DE QUOI l'on recule. Une tuile le dit - sa case visee
                 // est la direction du coup. La riposte ennemie ne le dit pas : plusieurs ennemis

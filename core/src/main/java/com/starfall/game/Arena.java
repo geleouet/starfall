@@ -1,6 +1,8 @@
 package com.starfall.game;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.List;
 
 /**
@@ -279,6 +281,9 @@ public final class Arena {
 
     private final List<Beat> beats = new ArrayList<>();
 
+    /** Ceux qui ont touch&eacute; le h&eacute;ros pendant l'action en cours. Voir {@link #strikers()}. */
+    private final Set<Long> strikers = new LinkedHashSet<>();
+
     /** Le plateau tel qu'il était juste avant l'action en cours. Voir {@link #opening()}. */
     private List<Figure> opening = List.of();
 
@@ -286,6 +291,7 @@ public final class Arena {
     private void beginAction() {
         killsThisAction = 0;
         beats.clear();
+        strikers.clear();
         // Le plateau AVANT que quoi que ce soit ne bouge. Les temps disent chacun l'état qui suit
         // la tuile qui vient de jouer ; il manquait celui qui précède la première, sans quoi le
         // premier temps d'une salve n'a rien à quoi se comparer et sa figure apparaît déjà arrivée.
@@ -653,7 +659,22 @@ public final class Arena {
         if (grid.occupantAt(cell) == hero) {
             heroHits++;
             hero.damage(enemy.blowDamage());
+            strikers.add(enemy.id());
         }
+    }
+
+    /**
+     * Qui a port&eacute; un coup au h&eacute;ros pendant la derni&egrave;re action.
+     *
+     * <p>Le mod&egrave;le n'en a pas besoin ; la <b>vue</b> si, et c'est la seule raison. Un ennemi
+     * qui frappe sans se d&eacute;placer ne bougeait pas d'un pixel : le h&eacute;ros perdait des
+     * points et rien ne disait d'o&ugrave;. Le cas limite est l'<b>archer</b>, qui tire de trois
+     * cases et reste parfaitement immobile &mdash; mesur&eacute; sur cinq mille observations, il
+     * annonce une attaque quatre fois sur cinq, et pourtant on jurerait qu'il ne tire jamais.
+     * C'&eacute;tait vrai de tous les assaillants, l'archer le rendait seulement visible.
+     */
+    public Set<Long> strikers() {
+        return Set.copyOf(strikers);
     }
 
     /**

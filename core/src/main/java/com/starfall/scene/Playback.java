@@ -3,6 +3,7 @@ package com.starfall.scene;
 import com.starfall.game.Arena;
 
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.List;
 
 /**
@@ -42,6 +43,8 @@ public final class Playback {
     private List<Arena.Figure> opening = List.of();
     /** Rang du temps de riposte, ou {@code -1} : voir {@link #showsResponse()}. */
     private int response = -1;
+    /** Ceux qui ont touch&eacute; le h&eacute;ros : ils se fendent sur le temps de riposte. */
+    private Set<Long> strikers = Set.of();
     private int index;
     private float elapsed;
 
@@ -54,6 +57,13 @@ public final class Playback {
      */
     public void start(List<Arena.Beat> actionBeats, List<Arena.Figure> openingBoard,
             List<Arena.Figure> settledBoard) {
+        start(actionBeats, openingBoard, settledBoard, Set.of());
+    }
+
+    /** La m&ecirc;me chose, en sachant qui a touch&eacute; le h&eacute;ros. */
+    public void start(List<Arena.Beat> actionBeats, List<Arena.Figure> openingBoard,
+            List<Arena.Figure> settledBoard, Set<Long> whoStruck) {
+        strikers = Set.copyOf(whoStruck);
         List<Arena.Beat> kept = keepWhatMoves(actionBeats, openingBoard, settledBoard);
         if (kept.isEmpty()) {
             settle();
@@ -236,7 +246,11 @@ public final class Playback {
         }
         Arena.Beat beat = beats.get(index);
         List<Arena.Figure> before = index == 0 ? opening : beats.get(index - 1).board();
-        return Choreography.at(before, beat.board(), beat.cell(), progress());
+        // Les assaillants ne se fendent que sur le temps de la RIPOSTE : c'est le seul ou ils ont
+        // frappe. Les leur donner sur les temps de tuiles les ferait attaquer pendant la salve du
+        // joueur, ce qui serait un mensonge de plus au lieu d'un de moins.
+        return Choreography.at(before, beat.board(), beat.cell(), progress(),
+                showsResponse() ? strikers : Set.of());
     }
 
     /**
@@ -273,6 +287,7 @@ public final class Playback {
         beats = List.of();
         opening = List.of();
         response = -1;
+        strikers = Set.of();
         index = 0;
         elapsed = 0f;
     }

@@ -225,7 +225,8 @@ public final class ArenaScene implements Scene {
         // Le déroulé démarre ici pour la raison qui a fait mettre l'aide ici : c'est le seul
         // endroit par lequel passent les huit gestes qui déclenchent une action. Réparti sur
         // chacun, il aurait été oublié par le neuvième.
-        playback.start(arena.beats(), arena.opening(), arena.snapshot());
+        playback.start(arena.beats(), arena.opening(), arena.snapshot(),
+                    arena.strikers());
         return true;
     }
 
@@ -261,7 +262,8 @@ public final class ArenaScene implements Scene {
         playback.settle();
         int beat = scenario.playbackBeatAt(frameIndex);
         if (beat > 0) {
-            playback.start(arena.beats(), arena.opening(), arena.snapshot());
+            playback.start(arena.beats(), arena.opening(), arena.snapshot(),
+                    arena.strikers());
             playback.seek(beat, scenario.playbackProgressAt(frameIndex));
         }
         if (frameIndex > scenario.size() && !exhaustionReported) {

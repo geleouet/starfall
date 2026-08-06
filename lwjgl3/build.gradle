@@ -176,7 +176,7 @@ ext.renderScenarios = [
         // capture ne deroulant jamais. Huit images : cinq de chargement, TROIS de deroule - la
         // fenetre a dabord ete posee a sept, et le dernier temps ny figurait pas.
         arenaSalvo     : ['--size', '1280x720', '--frames', '11', '--scene', 'salvo'],
-        arenaRiposte   : ['--size', '1280x720', '--frames', '6', '--scene', 'riposte'],
+        arenaRiposte   : ['--size', '1280x720', '--frames', '5', '--scene', 'riposte'],
         // La salve qui GAGNE, deroulee. Trois images : l'etat au repos avec sa banniere de
         // victoire, puis les deux temps de la salve finale - ou la banniere doit se TAIRE.
         // Sans cet ecran, la regle « la fin appartient au repos » n'avait aucun temoin :

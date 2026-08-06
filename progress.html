@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 545 tests verts · 106 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 545 tests verts · 105 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -342,7 +342,7 @@
 
 <figure class="sheet">
   <img src="captures/actuel/riposte.png" alt="Starfall, la riposte ennemie &agrave; mi-course">
-  <figcaption><b>La riposte ennemie, saisie &agrave; mi-course &mdash; un temps qui n&rsquo;existait pas.</b> Le h&eacute;ros a fait un pas ; l&rsquo;ennemi r&eacute;pond en avan&ccedil;ant d&rsquo;une case, et on le voit passer. Le panneau nomme le moment : <code>TEMPS 2/2 &middot; RIPOSTE</code>, et non le nom d&rsquo;une tuile, puisque ce temps-l&agrave; n&rsquo;est pas du joueur. Remarquer ce qui <b>manque</b> : ni bande de menace, ni glyphe d&rsquo;intention, ni rep&egrave;re de h&eacute;ros &mdash; les calques du repos se taisent pendant un d&eacute;roul&eacute;, et cette planche le v&eacute;rifie sur un &eacute;cran de plus.</figcaption>
+  <figcaption><b>&laquo; L&rsquo;archer ne tire jamais &raquo; &mdash; il tirait, mais rien ne le montrait.</b> Mesure : sur cinq mille observations il annonce une attaque <b>quatre fois sur cinq</b>, et il touche d&egrave;s le premier tour. Le d&eacute;faut &eacute;tait &agrave; l&rsquo;&eacute;cran : la fente &eacute;tait r&eacute;serv&eacute;e au h&eacute;ros, si bien qu&rsquo;<b>aucun assaillant ne faisait le moindre geste</b> pendant la riposte. Un sabreur au contact s&rsquo;en tirait &mdash; le tressaillement du h&eacute;ros arrive juste &agrave; c&ocirc;t&eacute; de lui et l&rsquo;&oelig;il fait le lien. L&rsquo;archer, &agrave; trois cases, restait parfaitement immobile. Ici les deux se fendent vers lui, du m&ecirc;me geste que le sien : la m&ecirc;me phrase visuelle, dite dans l&rsquo;autre sens.</figcaption>
 </figure>
 
 <figure class="sheet">
@@ -356,6 +356,18 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Rapport de jeu &mdash; <b>&laquo; L&rsquo;archer ne tire jamais &raquo;</b></div>
+  <p><b>Il tirait.</b> Mesure avant diagnostic : sur cinq mille observations, l&rsquo;archer annonce une attaque <b>4274 fois</b>, avance 27 fois, attend 738 fois. Il touche d&egrave;s le premier tour d&rsquo;une partie ordinaire, huit points de vie &agrave; sept. Le mod&egrave;le n&rsquo;avait rien.</p>
+
+  <p><b>Le d&eacute;faut &eacute;tait dans ce que l&rsquo;&eacute;cran montre</b>, et il &eacute;tait g&eacute;n&eacute;ral : la fente &eacute;tait r&eacute;serv&eacute;e au h&eacute;ros, parce qu&rsquo;une tuile d&eacute;signe sa case vis&eacute;e et que la riposte ennemie n&rsquo;en d&eacute;signe aucune. Pendant toute la phase ennemie, <b>aucun assaillant ne bougeait d&rsquo;un pixel</b>. Un sabreur au contact s&rsquo;en tirait par accident &mdash; le tressaillement du h&eacute;ros arrive juste &agrave; c&ocirc;t&eacute; de lui, et l&rsquo;&oelig;il fait le lien tout seul. L&rsquo;archer, lui, tire de trois cases : rien ne reliait son coup &agrave; sa cible. Il rendait visible un d&eacute;faut qui les concernait tous.</p>
+
+  <p>Le mod&egrave;le sait d&eacute;sormais <b>qui</b> a touch&eacute; &mdash; une concession de plus &agrave; la vue, et la troisi&egrave;me seulement, apr&egrave;s le num&eacute;ro des figures et l&rsquo;imminence. Ceux-l&agrave; se fendent vers le h&eacute;ros sur le temps de la riposte, et sur ce temps uniquement : les leur donner pendant la salve du joueur les ferait attaquer quand ce n&rsquo;est pas leur tour, soit un mensonge de plus au lieu d&rsquo;un de moins.</p>
+
+  <p style="margin-bottom:0"><b>Et la correction n&rsquo;avait aucun t&eacute;moin</b> : les 106 planches sont rest&eacute;es conformes apr&egrave;s l&rsquo;avoir pos&eacute;e, parce que sur l&rsquo;&eacute;cran de riposte l&rsquo;ennemi <i>avan&ccedil;ait</i> au lieu de frapper. Cet &eacute;cran joue maintenant un <b>demi-tour</b> : il consomme un tour sans d&eacute;placer le h&eacute;ros, donc l&rsquo;archer reste &agrave; port&eacute;e et tire. V&eacute;rifi&eacute; par mesure de pixels et non &agrave; l&rsquo;&oelig;il &mdash; treize mille pixels de diff&eacute;rence entre la mi-course et l&rsquo;&eacute;tat pos&eacute;, sur les deux bandes o&ugrave; se tiennent les assaillants.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Deux nombres, deux unit&eacute;s, une seule question</b></div>
