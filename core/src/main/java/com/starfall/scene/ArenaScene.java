@@ -1003,7 +1003,10 @@ public final class ArenaScene implements Scene {
     private static final int PLAQUE_HALF = 7;
 
     /** Hauteur de la plaque : le glyphe, plus deux pixels d'air au-dessus et au-dessous. */
-    private static final int PLAQUE_HEIGHT = ArenaLayout.INTENT_HEIGHT + 4;
+    private static final int PLAQUE_HEIGHT = ArenaLayout.INTENT_HEIGHT + 12;
+
+    /** Hauteur du chiffre de d&eacute;g&acirc;ts port&eacute; par une plaque. */
+    private static final int PLAQUE_DIGIT_TOP = ArenaLayout.INTENT_HEIGHT + 8;
 
     /**
      * La plaque qui porte l'intention d'un ennemi, et sa pointe vers son propri&eacute;taire.
@@ -1038,6 +1041,20 @@ public final class ArenaScene implements Scene {
         }
         painter.fill(centre - 1, bottom - 1, 3, 1, color);
         painter.fill(centre, bottom - 2, 1, 1, color);
+    }
+
+    /**
+     * Le nombre de points que cette frappe retirera, pos&eacute; en haut de la plaque.
+     *
+     * <p>Au-dessus du glyphe et non &agrave; c&ocirc;t&eacute; : une case fait vingt pixels de
+     * large, la plaque quinze, et le glyphe de la charge en occupe d&eacute;j&agrave; dix. Il n'y
+     * avait pas de place horizontale sans mordre sur la case voisine, o&ugrave; se tient un autre
+     * ennemi avec sa propre plaque. La verticale, elle, &eacute;tait libre.
+     */
+    private void drawPlaqueDamage(int centre, int y, int damage, Color color) {
+        context.batch().setColor(color);
+        font.draw(context.batch(), String.valueOf(damage), centre - 2, y + PLAQUE_DIGIT_TOP, 1);
+        context.batch().setColor(Color.WHITE);
     }
 
     /**
@@ -1092,6 +1109,17 @@ public final class ArenaScene implements Scene {
                     || intention.kind() == Intention.Kind.SUMMON;
             if (lands || loading) {
                 drawPlaque(centre, y, loading, plaqueColor(enemy));
+            }
+            // LE NOMBRE, la moitie qui manquait. La plaque disait « un coup part » et « d'ou » ;
+            // elle ne disait pas COMBIEN, et depuis que la force varie par archetype c'est la
+            // question qui decide : ce coup-ci me prend-il la moitie de ce qui me reste ? Le
+            // total d'une frappe, coups multiples compris - un lancier rapide annonce quatre.
+            //
+            // Rien sur une plaque pleine : elle dit deja que rien ne tombe ce tour-ci, et un
+            // nombre y promettrait un coup qui n'arrive pas. Meme choix que les tuiles sans
+            // degats, qui ne portent rien plutot qu'un zero.
+            if (lands) {
+                drawPlaqueDamage(centre, y, enemy.announcedDamage(), plaqueColor(enemy));
             }
             // Sur une plaque pleine, le glyphe se decoupe en creux. C'est la meme forme qu'ailleurs,
             // lue a l'envers : elle reste reconnaissable sans concurrencer la plaque qui la porte.

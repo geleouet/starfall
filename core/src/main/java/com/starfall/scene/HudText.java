@@ -342,7 +342,12 @@ public final class HudText {
      * prenant des coups.
      */
     public static String enemyHead(Enemy enemy) {
-        return enemy.label().toUpperCase() + "   PORTÉE " + enemy.reach()
+        // Les DEGATS viennent avant la portee, comme sur les tuiles du joueur : « celui-ci fait-il
+        // mal ? » se demande avant « jusqu'ou porte-t-il ? ». Le nombre est le TOTAL d'une frappe,
+        // coups multiples compris : c'est ce que le heros perd, et non une arithmetique a faire.
+        return enemy.label().toUpperCase() + "   " + enemy.announcedDamage() + " DÉGÂT"
+                + (enemy.announcedDamage() > 1 ? "S" : "")
+                + "   PORTÉE " + enemy.reach()
                 + "   PV " + enemy.health() + "/" + enemy.maxHealth();
     }
 
