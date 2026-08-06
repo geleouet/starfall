@@ -3,6 +3,8 @@ package com.starfall.game;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.starfall.scene.HudText;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -69,5 +71,39 @@ class ImminenceTest {
                 "un ennemi etourdi saute son activation : son intention reste affichee, mais elle"
                         + " ne tombe pas ce tour-ci, et confondre les deux fait lire un danger"
                         + " immediat la ou il y a un tour de repit");
+    }
+
+    /**
+     * Le bandeau annonce ce que le h&eacute;ros perd, pas combien d'ennemis frappent.
+     *
+     * <p>La plaque pos&eacute;e au-dessus d'un ennemi annonce son prix en points. Le bandeau, lui,
+     * comptait les <em>coups</em> : un lancier seul affichait « 2 » sur sa plaque et « MENACE 1 »
+     * en haut de l'&eacute;cran. Deux nombres pour la m&ecirc;me question, dans deux unit&eacute;s,
+     * dont un que le joueur lit d'un coup d'&oelig;il pour d&eacute;cider s'il reste.
+     *
+     * <p>Ce test ne vaut que parce que les deux comptes <b>diff&egrave;rent</b> sur le montage
+     * choisi : la pr&eacute;misse est ass&eacute;r&eacute;e, faute de quoi il serait vert avec
+     * l'ancienne version comme avec la nouvelle.
+     */
+    @Test
+    @DisplayName("Le bandeau annonce des points, pas un nombre d'assaillants")
+    void theBannerAnnouncesPointsRatherThanAttackers() {
+        Arena arena = new Arena(11, 4);
+        arena.grid().place(5, new Enemy(EnemyKind.LANCIER));
+        arena.announceIntentions();
+
+        int blows = arena.threatCount(arena.heroCell());
+        int points = arena.threatDamage(arena.heroCell());
+
+        // La premisse : sur un montage ou les deux comptes coincident, ce test passerait quelle
+        // que soit l'unite choisie, et ne distinguerait donc rien.
+        assertTrue(points > blows,
+                "montage invalide : " + blows + " coup(s) pour " + points + " point(s), les deux"
+                        + " comptes coincident et ce test ne departage plus les deux unites");
+
+        String banner = HudText.banner(arena, true);
+        assertTrue(banner.contains("MENACE " + points),
+                "le bandeau dit « " + banner + " » : il devrait annoncer " + points + " points,"
+                        + " le prix de ce qui vient, et non " + blows + " assaillant(s)");
     }
 }

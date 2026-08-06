@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 544 tests verts · 106 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 545 tests verts · 106 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -347,7 +347,7 @@
 
 <figure class="sheet">
   <img src="captures/actuel/plaques.png" alt="Starfall, deux plaques d&rsquo;intention dor&eacute;es">
-  <figcaption><b>Deux coups partent &agrave; la fin de ce tour, des deux c&ocirc;t&eacute;s.</b> Chaque ennemi qui a quelque chose &agrave; annoncer porte une <b>plaque</b> au-dessus de la t&ecirc;te, avec une pointe vers son propri&eacute;taire : sur une ligne serr&eacute;e, il ne faut pas avoir &agrave; deviner &agrave; qui appartient un glyphe. Le carte porte <b>2</b> : c&rsquo;est ce que chacun retire, total d&rsquo;une frappe compris. Le cadre est <b>dor&eacute;</b> parce que ces deux-l&agrave; jouent &agrave; la phase qui vient ; il serait rouge pour une menace annonc&eacute;e qui ne tombe pas encore. Les deux ennemis de gauche avancent seulement : pas de plaque, parce qu&rsquo;encadrer &laquo; rien &raquo; ajoute du bruit l&agrave; o&ugrave; il n&rsquo;y a pas de d&eacute;cision.</figcaption>
+  <figcaption><b>Deux coups partent &agrave; la fin de ce tour, des deux c&ocirc;t&eacute;s.</b> Chaque ennemi qui a quelque chose &agrave; annoncer porte une <b>plaque</b> au-dessus de la t&ecirc;te, avec une pointe vers son propri&eacute;taire : sur une ligne serr&eacute;e, il ne faut pas avoir &agrave; deviner &agrave; qui appartient un glyphe. La carte porte <b>2</b> : c&rsquo;est ce que chacun retire, total d&rsquo;une frappe compris &mdash; et le bandeau annonce <b>MENACE 4</b>, leur somme, dans la m&ecirc;me unit&eacute;. Le h&eacute;ros a quatre points : la situation se lit d&rsquo;un coup d&rsquo;&oelig;il. Le cadre est <b>dor&eacute;</b> parce que ces deux-l&agrave; jouent &agrave; la phase qui vient ; il serait rouge pour une menace annonc&eacute;e qui ne tombe pas encore. Les deux ennemis de gauche avancent seulement : pas de plaque, parce qu&rsquo;encadrer &laquo; rien &raquo; ajoute du bruit l&agrave; o&ugrave; il n&rsquo;y a pas de d&eacute;cision.</figcaption>
 </figure>
 
 <figure class="sheet">
@@ -356,6 +356,16 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Deux nombres, deux unit&eacute;s, une seule question</b></div>
+  <p>D&eacute;p&ocirc;t propre, 544 tests verts, 106 planches conformes. En relisant ce que j&rsquo;avais livr&eacute; l&rsquo;heure pr&eacute;c&eacute;dente, une contradiction : la <b>plaque</b> annonce d&eacute;sormais des points, le <b>bandeau</b> comptait toujours des coups. Un lancier seul affichait <code>2</code> sur sa plaque et <code>MENACE 1</code> en haut de l&rsquo;&eacute;cran &mdash; deux nombres pour la m&ecirc;me question, dans deux unit&eacute;s, dont un que le joueur lit d&rsquo;un coup d&rsquo;&oelig;il pour d&eacute;cider s&rsquo;il reste.</p>
+
+  <p>Le bandeau compte des <b>points</b> : c&rsquo;est le prix qui d&eacute;cide, pas le nombre d&rsquo;assaillants. La planche le montre &mdash; <code>MENACE 4</code> en haut, deux plaques &agrave; <code>2</code> en bas, quatre points de vie au h&eacute;ros.</p>
+
+  <p style="margin-bottom:0"><b>Les cercles pos&eacute;s au sol continuent de compter les coups</b>, et ce n&rsquo;est pas une incoh&eacute;rence oubli&eacute;e : ils r&eacute;pondent &agrave; une autre question &mdash; <i>combien de choses me tombent dessus ici</i>, et non <i>combien cela me co&ucirc;te</i>. Un cercle par point ferait un halo illisible pour une seule charge. La raison est &eacute;crite &agrave; c&ocirc;t&eacute; du choix, faute de quoi elle passerait pour un oubli. Le test qui garde l&rsquo;unit&eacute; du bandeau ass&egrave;re d&rsquo;abord que les deux comptes <b>diff&egrave;rent</b> sur son montage : sans cela il serait vert avec l&rsquo;ancienne version comme avec la nouvelle. Au passage, une coquille corrig&eacute;e dans la l&eacute;gende ci-dessus &mdash; &laquo; Le carte &raquo; &mdash; introduite en &eacute;pissant cette m&ecirc;me phrase il y a une heure.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Le t&eacute;l&eacute;graphe n&rsquo;&eacute;tait plus gard&eacute; qu&rsquo;&agrave; moiti&eacute;</b></div>

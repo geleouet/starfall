@@ -110,7 +110,16 @@ public final class HudText {
                 .append("  PV ").append(arena.hero().health()).append('/').append(Hero.MAX_HEALTH);
         // Rien à annoncer quand plus rien ne sera joué : « MENACE 2 » s'affichait au-dessus de
         // « PARTIE PERDUE ».
-        int threat = arena.isOver() || !settled ? 0 : arena.threatCount(arena.heroCell());
+        // DES POINTS, et non des coups. La plaque pos&eacute;e au-dessus de chaque ennemi annonce
+        // ce qu'il retire ; ce bandeau annon&ccedil;ait combien d'ennemis frappent. Un lancier
+        // seul affichait donc « 2 » sur sa plaque et « MENACE 1 » ici : deux nombres sur le meme
+        // ecran pour la meme question, dans deux unites, dont un que le joueur lit d'un coup
+        // d'oeil pour decider s'il reste. C'est le prix qui decide, pas le nombre d'assaillants.
+        //
+        // Les cercles poses AU SOL, eux, comptent toujours les coups, et c'est une autre question :
+        // « combien de choses me tombent dessus ici », pas « combien cela me coute ». Un cercle par
+        // point ferait un halo illisible pour une seule charge.
+        int threat = arena.isOver() || !settled ? 0 : arena.threatDamage(arena.heroCell());
         if (threat > 0) {
             line.append("  MENACE ").append(threat);
         }
