@@ -83,7 +83,11 @@ public final class SalvoScript {
 
         @Override
         public int rackSlotAt(int frameIndex) {
-            return -1;
+            // Un survol de râtelier PENDANT le déroulé : sans lui, la règle qui éteint les halos
+            // n'aurait pas de témoin — les autres écrans ne survolent rien sur leurs images de
+            // déroulé. Ici la souris reste posée sur la première tuile, et son halo doit rester
+            // éteint tant que les entrées sont bloquées.
+            return frameIndex > FIRST_BEAT_FRAME ? 0 : -1;
         }
 
         @Override

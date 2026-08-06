@@ -337,7 +337,25 @@ public final class ArenaScene implements Scene {
     public void drawWorld() {
         drawBackdrop();
         drawGround();
-        // PENDANT LE DEROULE, les calques du repos se taisent. Ils décrivent tous l'état
+        // PENDANT LE DEROULE, les calques du repos se taisent. Ce qui suit est le relevé
+        // COMPLET de ce que la scène lit, et de ce qu'on en fait — il a fallu trois relectures
+        // pour trouver trois fuites de la même famille, une par une. La liste vaut mieux que la
+        // vigilance.
+        //
+        //   Rejoué depuis le temps  : les figures, la file. Ce sont les choses que l'action
+        //                             CONSOMME sous les yeux ; leur déroulement EST l'animation.
+        //   Tu pendant le déroulé   : menaces, intentions, repère du héros, portée survolée,
+        //                             bannière de fin, menace du bandeau, halos de survol. Tous
+        //                             annoncent ce qui vient ou ce qu'un geste ferait — peints
+        //                             sur un plateau d'hier, ils ne décrivent rien. Les halos s'y
+        //                             ajoutent pour une autre raison : les entrées sont bloquées,
+        //                             et montrer une prise qu'on ne peut pas saisir est une
+        //                             promesse en trop.
+        //   Laissé vivant           : la vague et les points de vie du bandeau, qui SITUENT sans
+        //                             annoncer ; et les points de recharge du râtelier, qui
+        //                             disent ce qui sera disponible au tour suivant. Les faire
+        //                             reculer suggérerait qu'on peut encore agir, ce que le
+        //                             blocage des entrées dément. Ils décrivent tous l'état
         // <em>au repos</em> — la phase ennemie qui vient, la case qu'un clic atteindrait, le
         // repère du héros — et ils lisent l'arène VIVANTE, alors que les figures viennent d'un
         // instant passé. Les laisser produisait deux sources de vérité sur le même écran : le
@@ -1144,7 +1162,7 @@ public final class ArenaScene implements Scene {
                 // partie : unqueueAt ne connaît pas d'autre motif. Le commentaire qui vivait ici
                 // parlait de recharge et de file pleine — deux notions qui n'ont pas de sens pour
                 // un emplacement déjà rempli. Il décrivait le voisin, pas ce bloc.
-                if (hoveredQueueSlot == slot && !arena.isOver()) {
+                if (hoveredQueueSlot == slot && !arena.isOver() && !playback.isRunning()) {
                     painter.outline(x - 1, HudLayout.QUEUE_Y - 1,
                             HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
                 }
@@ -1235,7 +1253,7 @@ public final class ArenaScene implements Scene {
             // Un clic sur le râtelier ne fait quelque chose que si la tuile est rechargée ET
             // qu'il reste de la place : sinon queueTile rend NOT_READY ou QUEUE_FULL. Le halo
             // suivait la partie finie et rien d'autre.
-            if (hoveredRackSlot == i && arena.canQueue(tile)) {
+            if (hoveredRackSlot == i && arena.canQueue(tile) && !playback.isRunning()) {
                 painter.outline(x - 1, HudLayout.RACK_Y - 1,
                         HudLayout.TILE_SIZE + 2, HudLayout.TILE_SIZE + 2, HOVER_MARK);
             }
