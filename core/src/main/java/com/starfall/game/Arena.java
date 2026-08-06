@@ -194,6 +194,26 @@ public final class Arena {
                       List<Tile> queued) {
     }
 
+    /*
+     * CE QUE CE JOURNAL COUTE, ET POURQUOI IL EST PAYE PARTOUT.
+     *
+     * Chaque tuile d'une salve photographie le plateau et la file. La recherche par faisceau et
+     * les fuzz rejouent des dizaines de milliers de salves sans que personne n'anime jamais rien :
+     * ils paient donc pour une donnee qu'eux seuls ne liront pas. Mesure, suite complete relancee
+     * en force : 19,57 s avec les instantanes, 17,01 s sans - environ 15 %.
+     *
+     * Ce n'est pas rendu conditionnel, et c'est un choix. Un drapeau « enregistre ou non » creerait
+     * DEUX chemins d'execution : celui que les cinq cent dix-huit tests eprouvent, et celui que le
+     * joueur voit. Ce projet vient precisement de payer cette lecon - deduplication qui vide un
+     * contrat, regle recopiee qui diverge - et quinze pour cent d'une suite de vingt secondes
+     * achetent moins qu'un chemin unique.
+     *
+     * L'autre economie possible serait de ne rien enregistrer quand la salve n'a qu'une tuile,
+     * puisque le deroule ne montre alors rien. Elle est ecartee pour la meme raison : la regle
+     * « moins de deux temps, pas de deroule » vit dans Playback, et la recopier ici la ferait
+     * diverger le jour ou l'une des deux bougerait.
+     */
+
     /**
      * Une figure sur le plateau, telle qu'il faut la dessiner — et rien de plus.
      *
