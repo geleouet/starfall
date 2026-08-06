@@ -181,4 +181,45 @@ class ImminenceTest {
                         + lancer.intention().kind() + " : la carte posee au-dessus de l'ennemi est"
                         + " une promesse, et le telegraphe interdit qu'une promesse soit dementie");
     }
+
+    /**
+     * Une file qui se remplit ne menace personne.
+     *
+     * <h2>La sur-promesse, et pourquoi elle co&ucirc;te plus cher que l&rsquo;inverse</h2>
+     *
+     * <p>Un colosse met deux tours &agrave; remplir sa file. Pendant le premier, il tient
+     * d&eacute;j&agrave; une action &mdash; mais elle ne part pas. La compter comme une menace
+     * ferait <b>fuir le joueur d&rsquo;une case o&ugrave; rien ne tombe</b>, et lui co&ucirc;terait
+     * un tour pour rien ; ce projet appelle cela sur-promettre, et c&rsquo;est la faute que le
+     * t&eacute;l&eacute;graphe existe pour interdire.
+     *
+     * <p>Le test tient les deux moiti&eacute;s : rien tant qu&rsquo;elle se remplit, <b>tout</b>
+     * d&egrave;s qu&rsquo;elle est pleine. La seconde est la contre-&eacute;preuve de la
+     * premi&egrave;re &mdash; un compteur qui rendrait toujours z&eacute;ro satisferait l&rsquo;une
+     * sans rien garder.
+     */
+    @Test
+    @DisplayName("Une file qui se remplit ne menace rien ; pleine, elle menace tout")
+    void aFillingPlanThreatensNothingAndAFullOneThreatensAll() {
+        Arena arena = new Arena(11, 4);
+        Enemy colossus = new Enemy(EnemyKind.COLOSSE);
+        arena.grid().place(5, colossus);
+        arena.announceIntentions();
+
+        assertTrue(EnemyKind.COLOSSE.planSize() > 1,
+                "montage invalide : sans file de plusieurs actions, il n'y a pas de remplissage"
+                        + " a eprouver");
+        assertFalse(colossus.isPlanFull(), "il devait n'avoir rempli qu'a moitie");
+        assertEquals(0, arena.threatDamage(arena.heroCell()),
+                "une file qui se remplit annonce deja un coup, mais il ne part pas ce tour-ci :"
+                        + " le compter ferait fuir le joueur d'une case ou rien ne tombe");
+
+        // Un tour passe : la file se remplit, et ce qu'elle tient part maintenant.
+        arena.step(arena.hero().facing().opposite());
+
+        assertTrue(colossus.isPlanFull(), "sa file devait etre pleine apres un tour de plus");
+        assertEquals(colossus.queued().size() * colossus.announcedDamage(),
+                arena.threatDamage(arena.heroCell()),
+                "pleine, la file menace de TOUT ce qu'elle tient : " + colossus.queued());
+    }
 }

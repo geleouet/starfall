@@ -370,9 +370,6 @@ public final class Arena {
             // activation » : le consommer sur une phase où l'ennemi se reposait de toute façon
             // reviendrait à ne rien lui coûter, et c'est précisément le colosse — le seul à trois
             // points de vie — que le joueur est censé gérer en poussant plutôt qu'en tuant.
-            if (!enemy.kind().actsThisPhase(phaseIndex)) {
-                continue;
-            }
             if (enemy.isStunned()) {
                 enemy.setStunned(false);
                 continue;
@@ -496,8 +493,7 @@ public final class Arena {
      * possibles dans un jeu de placement.
      */
     public boolean willAct(Enemy enemy) {
-        return !enemy.isStunned() && enemy.kind().actsThisPhase(phaseIndex)
-                && enemy.isPlanFull();
+        return !enemy.isStunned() && enemy.isPlanFull();
     }
 
     /** Marque le terrain qu'une intention réclame : un couloir de charge, ou une case d'invocation. */

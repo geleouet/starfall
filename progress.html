@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 547 tests verts · 105 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 548 tests verts · 105 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -361,6 +361,16 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Deux fa&ccedil;ons d&rsquo;&ecirc;tre lent, dont une vide</b></div>
+  <p>La file du colosse a remplac&eacute; son compteur de phases au cycle pr&eacute;c&eacute;dent. V&eacute;rification faite, <code>actsThisPhase</code> rend d&eacute;sormais <b>vrai pour les cinq arch&eacute;types</b> : un crochet qui ne discrimine plus rien. Le garder inviterait &agrave; y remettre un rythme <b>invisible</b> &mdash; exactement ce que ce travail venait de supprimer. Retir&eacute; : cinq surcharges, une d&eacute;claration, deux appels. Une seule fa&ccedil;on d&rsquo;&ecirc;tre lent, et elle se voit.</p>
+
+  <p><b>Et la sur-promesse que la file rend possible est d&eacute;sormais gard&eacute;e.</b> Un colosse met deux tours &agrave; remplir ; pendant le premier il tient d&eacute;j&agrave; une action, mais elle ne part pas. La compter comme une menace ferait <i>fuir le joueur d&rsquo;une case o&ugrave; rien ne tombe</i> et lui co&ucirc;terait un tour pour rien. Le test tient les deux moiti&eacute;s : rien tant qu&rsquo;elle se remplit, <b>tout</b> d&egrave;s qu&rsquo;elle est pleine &mdash; la seconde &eacute;tant la contre-&eacute;preuve de la premi&egrave;re, sans quoi un compteur bloqu&eacute; &agrave; z&eacute;ro satisferait l&rsquo;une sans rien garder.</p>
+
+  <p style="margin-bottom:0">Deux mutations, et elles r&eacute;v&egrave;lent que la r&egrave;gle est tenue &agrave; <b>trois</b> endroits &agrave; la fois : faire menacer une file qui se remplit, ou ne faire menacer que sa premi&egrave;re action, rougit le test neuf <em>et</em> les deux gardes du t&eacute;l&eacute;graphe. C&rsquo;est le signe qu&rsquo;on cherche &mdash; une r&egrave;gle centrale doit &ecirc;tre difficile &agrave; casser en silence.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>La file ennemie tient plusieurs actions</b></div>

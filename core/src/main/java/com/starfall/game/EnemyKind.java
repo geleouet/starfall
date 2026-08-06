@@ -15,11 +15,7 @@ public enum EnemyKind {
 
     /** Portée 1. Avance tant qu'il n'est pas au contact. La menace de base. */
     SABREUR("sabreur", "enemy/sabreur", 1, 1, 2) {
-        @Override
-        boolean actsThisPhase(int phaseIndex) {
-            return true;
-        }
-    },
+        },
 
     /**
      * Portée 3, et <b>recule</b> si on le colle.
@@ -28,11 +24,6 @@ public enum EnemyKind {
      * et c'est ce qui rend une ligne mixte intéressante à lire.
      */
     ARCHER("archer", "enemy/archer", 3, 1, 1) {
-        @Override
-        boolean actsThisPhase(int phaseIndex) {
-            return true;
-        }
-
         @Override
         boolean retreatsWhenAdjacent() {
             return true;
@@ -47,11 +38,6 @@ public enum EnemyKind {
      */
     LANCIER("lancier", "enemy/lancier", 1, 2, 3) {
         @Override
-        boolean actsThisPhase(int phaseIndex) {
-            return true;
-        }
-
-        @Override
         boolean windsUp() {
             return true;
         }
@@ -63,11 +49,6 @@ public enum EnemyKind {
      * <p>Sa lenteur est sa lisibilité : on peut le contourner, à condition de compter.
      */
     COLOSSE("colosse", "enemy/colosse", 1, 1, 3) {
-        @Override
-        boolean actsThisPhase(int phaseIndex) {
-            return true;
-        }
-
         @Override
         int planSize() {
             return 2;
@@ -96,11 +77,6 @@ public enum EnemyKind {
      * collé, c'est accepter d'être pris en tenaille par ce qu'on a laissé apparaître.
      */
     SOUVERAIN("souverain", "enemy/souverain", 1, 2, 5) {
-        @Override
-        boolean actsThisPhase(int phaseIndex) {
-            return true;
-        }
-
         @Override
         int summons() {
             return 1;
@@ -168,14 +144,7 @@ public enum EnemyKind {
         return health;
     }
 
-    /**
-     * Vrai si l'archétype agit à cette phase.
-     *
-     * <p>Le colosse n'y répond plus : sa lenteur ne vient plus d'un compteur de phases mais de sa
-     * <b>file</b>, qu'il met deux tours à remplir. Le rythme est devenu une donnée au lieu d'un cas
-     * particulier, et il se voit à l'écran au lieu de se deviner.
-     */
-    abstract boolean actsThisPhase(int phaseIndex);
+    
 
     /**
      * Combien d'actions cet archétype accumule avant de les lâcher <b>toutes ensemble</b>.
