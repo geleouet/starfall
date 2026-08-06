@@ -91,9 +91,23 @@ set STARFALL_FAIL_BEFORE_RUN=1
 call :expect 1 "double-clic, sans aucun argument"
 set STARFALL_FAIL_BEFORE_RUN=
 
+rem Annonce, ici aussi. Ce fichier dit plus haut qu'un garde-fou qui suspend sans dire ou est
+rem pire qu'un garde-fou absent -- et c'etait vrai partout SAUF sur cette derniere ligne droite,
+rem la seule qui n'annoncait rien. Un lancement interrompu apres le dernier chemin dynamique etait
+rem donc indiscernable d'un lancement suspendu dedans : mesure, vingt minutes perdues a chercher
+rem si le blocage venait du septieme scenario ou de ce qui le suit.
+echo   ...  controles statiques
 rem Les deux branches doivent appeler LA MEME tache. C'est ce que le cas dynamique ne peut pas voir.
 set BRANCHES=0
-for /f %%A in ('findstr /C:":lwjgl3:run" "%HERE%run.bat" ^| find /c /v ""') do set BRANCHES=%%A
+rem Compte SANS « find ». La version precedente faisait « findstr ... ^| find /c /v "" », et
+rem c'etait un piege : « find » n'est pas qualifie, donc il est resolu par le PATH. Lance depuis
+rem un environnement qui porte les outils POSIX -- Git Bash, une CI, un agent --, il tombe sur
+rem GNU findutils, qui prend « /c » et « /v » pour des CHEMINS et se met a parcourir tout le
+rem disque. Mesure : le journal se remplissait de « find: '/c/.Bin/...': Permission
+rem denied » et le controle ne rendait jamais la main. Il ne se suspendait pas, il enumerait la
+rem machine. Double-clique par un humain, ce garde-fou marchait ; conduit par un script, il ne
+rem finissait pas -- et c'est justement conduit par un script qu'un garde-fou sert.
+for /f %%A in ('findstr /C:":lwjgl3:run" "%HERE%run.bat"') do set /a BRANCHES+=1
 if not "!BRANCHES!"=="2" (
   echo   ECHEC run.bat n'appelle plus :lwjgl3:run sur ses deux branches ^(!BRANCHES! trouvee^(s^)^)
   set /a FAILURES+=1

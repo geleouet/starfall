@@ -348,6 +348,18 @@
 <h2>Journal de review</h2>
 
 <div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Le garde-fou du lanceur ne se suspendait pas : il &eacute;num&eacute;rait le disque</b></div>
+  <p>D&eacute;p&ocirc;t propre, 536 tests verts, 104 planches conformes. Une chose me g&ecirc;nait du contr&ocirc;le pr&eacute;c&eacute;dent : le garde-fou de lancement s&rsquo;&eacute;tait arr&ecirc;t&eacute; <b>deux fois au m&ecirc;me endroit</b>, apr&egrave;s le septi&egrave;me chemin dynamique, sans jamais atteindre ses deux contr&ocirc;les statiques ni sa ligne de verdict. Deux arr&ecirc;ts identiques ne sont pas un hasard.</p>
+
+  <p><b>La cause &eacute;tait dans le journal depuis le d&eacute;but, et je l&rsquo;avais filtr&eacute;e comme du bruit</b> &mdash; deux lignes <code>find: &lsquo;/c/.Bin/&hellip;&rsquo;: Permission denied</code>. Le contr&ocirc;le statique comptait les branches de <code>run.bat</code> par <code>findstr &hellip; | find /c /v ""</code>, et <code>find</code> n&rsquo;y est pas qualifi&eacute; : il est r&eacute;solu par le PATH. Lanc&eacute; depuis un environnement qui porte les outils POSIX &mdash; Git Bash, une CI, un agent &mdash; il tombe sur <b>GNU findutils</b>, qui prend <code>/c</code> et <code>/v</code> pour des <i>chemins</i> et se met &agrave; parcourir tout le disque. Le garde-fou ne se suspendait pas : il &eacute;num&eacute;rait la machine.</p>
+
+  <p><b>Le pi&egrave;ge n&rsquo;&eacute;tait pas de cette session.</b> Trois processus <code>find /c /v ""</code> orphelins tournaient encore, dat&eacute;s de la veille &agrave; 22 h 40, 22 h 45, et du matin m&ecirc;me &agrave; 6 h 52. Chaque lancement depuis un shell POSIX en laissait un derri&egrave;re lui. Double-cliqu&eacute; par un humain, ce garde-fou marchait ; <b>conduit par un script, il ne finissait pas</b> &mdash; et c&rsquo;est justement conduit par un script qu&rsquo;un garde-fou sert.</p>
+
+  <p style="margin-bottom:0"><b>La d&eacute;pendance est retir&eacute;e plut&ocirc;t qu&rsquo;&eacute;pingl&eacute;e</b> : le comptage se fait en batch pur, sans <code>find</code>, ce qui &ocirc;te un maillon au lieu de le clouer &agrave; un chemin absolu. V&eacute;rifi&eacute; sur trois fichiers t&eacute;moins &mdash; 3, 0, et les 2 de <code>run.bat</code>. Le garde-fou rend d&eacute;sormais son verdict : <i>sept chemins et deux contr&ocirc;les statiques sont conformes</i>, code 0. Et une ligne d&rsquo;annonce a &eacute;t&eacute; ajout&eacute;e devant les contr&ocirc;les statiques : ce fichier affirmait qu&rsquo;<b>un garde-fou qui suspend sans dire o&ugrave; est pire qu&rsquo;un garde-fou absent</b>, et c&rsquo;&eacute;tait vrai partout sauf sur sa derni&egrave;re ligne droite, la seule qui n&rsquo;annon&ccedil;ait rien. C&rsquo;est cette ligne qui a permis de distinguer &laquo; bloqu&eacute; dans le septi&egrave;me sc&eacute;nario &raquo; de &laquo; bloqu&eacute; apr&egrave;s &raquo;.</p>
+</div>
+
+
+<div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Deux dettes du travail pr&eacute;c&eacute;dent, pay&eacute;es</b></div>
   <p>D&eacute;p&ocirc;t propre, 535 tests verts, 104 planches conformes, en-t&ecirc;te juste. Le garde-fou de <b>lancement</b> relanc&eacute; puisque la table des sc&egrave;nes avait chang&eacute; : sept chemins dynamiques, tous conformes.</p>
 
