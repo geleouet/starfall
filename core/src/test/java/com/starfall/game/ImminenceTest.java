@@ -141,4 +141,44 @@ class ImminenceTest {
         assertEquals(1, sabreur.plan().size(),
                 "un sabreur ne tient qu'une action : " + sabreur.plan());
     }
+
+    /**
+     * Ce que la file promet est ce que le cerveau joue.
+     *
+     * <h2>Pourquoi ce test existe</h2>
+     *
+     * <p>La r&egrave;gle &laquo; apr&egrave;s un &eacute;lan vient une charge &raquo; est
+     * &eacute;crite &agrave; <b>deux endroits</b> : dans {@code Enemy.plan()}, qui la montre au
+     * joueur, et dans {@code EnemyBrain}, qui la joue. Ce projet a pay&eacute; neuf fois pour
+     * savoir ce qu&rsquo;il advient d&rsquo;une r&egrave;gle &eacute;crite &agrave; deux endroits ;
+     * ici le prix serait plus lourd qu&rsquo;ailleurs, parce que la carte pos&eacute;e au-dessus de
+     * l&rsquo;ennemi est une <b>promesse</b>, et qu&rsquo;une promesse d&eacute;mentie est
+     * exactement ce que le t&eacute;l&eacute;graphe interdit.
+     *
+     * <p>Les deux &eacute;critures ne peuvent pas &ecirc;tre fusionn&eacute;es sans faire remonter
+     * le cerveau dans la vue. Elles sont donc <b>confront&eacute;es</b> : on annonce, on laisse la
+     * phase se jouer, et on v&eacute;rifie que ce qui arrive est ce qui avait &eacute;t&eacute;
+     * montr&eacute;.
+     */
+    @Test
+    @DisplayName("Ce que la file annonce après l'élan est bien ce qui vient")
+    void whatThePlanPromisesIsWhatTheBrainPlays() {
+        Arena arena = new Arena(11, 1);
+        Enemy lancer = new Enemy(EnemyKind.LANCIER);
+        arena.grid().place(6, lancer);
+        arena.announceIntentions();
+
+        assertEquals(Intention.Kind.WIND_UP, lancer.intention().kind(),
+                "montage invalide : le lancier devait prendre son elan");
+        Intention.Kind promised = lancer.plan().get(1).kind();
+
+        // Un demi-tour : il consomme un tour sans deplacer le heros, donc la phase ennemie se joue
+        // et le lancier passe de l'elan a ce qui suit.
+        arena.step(arena.hero().facing().opposite());
+
+        assertEquals(promised, lancer.intention().kind(),
+                "la file annoncait " + promised + " et le cerveau joue "
+                        + lancer.intention().kind() + " : la carte posee au-dessus de l'ennemi est"
+                        + " une promesse, et le telegraphe interdit qu'une promesse soit dementie");
+    }
 }

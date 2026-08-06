@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 546 tests verts · 105 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 547 tests verts · 105 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -361,6 +361,16 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Une promesse &eacute;crite &agrave; deux endroits</b></div>
+  <p>La carte pos&eacute;e au-dessus d&rsquo;un lancier dit &laquo; une charge suit &raquo;. Cette r&egrave;gle est &eacute;crite <b>deux fois</b> : dans <code>Enemy.plan()</code>, qui la montre, et dans <code>EnemyBrain</code>, qui la joue. Ce projet a pay&eacute; neuf fois pour savoir ce qu&rsquo;il advient d&rsquo;une r&egrave;gle &eacute;crite &agrave; deux endroits &mdash; et ici le prix serait plus lourd qu&rsquo;ailleurs, parce que cette carte est une <b>promesse</b>, et qu&rsquo;une promesse d&eacute;mentie est pr&eacute;cis&eacute;ment ce que le t&eacute;l&eacute;graphe interdit.</p>
+
+  <p>Les deux &eacute;critures ne peuvent pas fusionner sans faire remonter le cerveau dans la vue. Elles sont donc <b>confront&eacute;es</b> : on annonce, on laisse la phase se jouer, on v&eacute;rifie que ce qui arrive est ce qui avait &eacute;t&eacute; montr&eacute;. Deux mutations &mdash; la file qui promet une ru&eacute;e, la file qui ne promet plus rien &mdash; font rougir les deux tests concern&eacute;s.</p>
+
+  <p style="margin-bottom:0"><b>Ce cycle n&rsquo;a pas ouvert les files de plusieurs actions</b>, et c&rsquo;est d&eacute;lib&eacute;r&eacute;. La machinerie touche l&rsquo;ex&eacute;cution, l&rsquo;annonce, l&rsquo;imminence, les deux compteurs de menace, l&rsquo;&eacute;quilibre et la ligne gagnante ; j&rsquo;ai d&eacute;j&agrave; rendu l&rsquo;arbre &agrave; son &eacute;tat vert deux fois aujourd&rsquo;hui pour avoir sous-estim&eacute; une cha&icirc;ne de cette longueur. Poser d&rsquo;abord le garde-fou de la promesse rend l&rsquo;&eacute;tape suivante moins ch&egrave;re : quand le lancier ne sera plus le seul &agrave; tenir plusieurs actions, ce test dira imm&eacute;diatement si la pile montr&eacute;e correspond &agrave; la pile jou&eacute;e.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Une borne qui ne bornait plus rien, et l&rsquo;occultation qu&rsquo;elle cachait</b></div>
