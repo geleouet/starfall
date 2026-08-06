@@ -357,6 +357,18 @@
 
 <h2>Journal de review</h2>
 
+<div class="rev warn">
+  <div class="hd">D&eacute;cision prise, travail <b>rendu &agrave; l&rsquo;&eacute;tat vert</b> &mdash; l&rsquo;axe de d&eacute;g&acirc;ts ennemi bute sur la ligne de d&eacute;monstration</div>
+  <p><b>La question tranch&eacute;e :</b> les ennemis peuvent retirer plus d&rsquo;un point de vie. L&rsquo;axe existait c&ocirc;t&eacute; joueur &mdash; frappe &agrave; 1, estoc &agrave; 3 &mdash; et pas c&ocirc;t&eacute; adversaire, si bien que la question qui se pose devant une ligne mixte, <i>lequel fait le plus mal</i>, n&rsquo;avait pas de r&eacute;ponse.</p>
+
+  <p><b>Ce qui a &eacute;t&eacute; construit et mesur&eacute;.</b> Une force par arch&eacute;type, suivant la lenteur comme le font d&eacute;j&agrave; les points de vie : sabreur et archer &agrave; 1, lancier, colosse et souverain &agrave; 2 &mdash; ce qui frappe fort laisse le temps de s&rsquo;&eacute;carter. Le trait <b>rapide</b> multiplie les coups et non leur force ; les deux axes se composent sans se confondre. Deux compteurs distincts, aussi, l&agrave; o&ugrave; un seul suffisait : le <b>compte de coups</b>, sur lequel porte l&rsquo;invariant du t&eacute;l&eacute;graphe, et le <b>compte de points</b>, que le joueur lit pour d&eacute;cider s&rsquo;il reste. Les confondre ferait lire &laquo; deux &raquo; &agrave; qui va en encaisser quatre &mdash; et c&rsquo;est l&rsquo;erreur que j&rsquo;ai faite d&rsquo;abord, relev&eacute;e par les tests du t&eacute;l&eacute;graphe.</p>
+
+  <p><b>Le garde-fou de jouabilit&eacute; a dit oui</b> : la rencontre du souverain reste gagnable sur les six largeurs jouables. L&rsquo;&eacute;quilibre tient. Ce qui ne tient plus, c&rsquo;est la <b>ligne de d&eacute;monstration</b> du mode capture &mdash; trente-trois gestes trouv&eacute;s par recherche quand tout coup ennemi co&ucirc;tait un point. Elle meurt d&eacute;sormais au tour 26, en vague 4.</p>
+
+  <p style="margin-bottom:0"><b>Deux recherches par faisceau ont &eacute;chou&eacute;</b> &mdash; 260 puis 900 &eacute;tats de large, 70 puis 95 gestes de profondeur, la seconde avec une heuristique corrig&eacute;e qui r&eacute;compense enfin de nettoyer une vague. Aucune ligne gagnante. Adoucir le souverain &agrave; 1 n&rsquo;a pas suffi non plus. <b>J&rsquo;ai donc rendu l&rsquo;arbre &agrave; son &eacute;tat vert plut&ocirc;t que de laisser un travail &agrave; moiti&eacute; fait</b> : 543 tests, 104 planches, rien de rouge. La d&eacute;cision et les valeurs sont consign&eacute;es ici pour &ecirc;tre reprises ; ce qu&rsquo;il manque n&rsquo;est pas le mod&egrave;le, c&rsquo;est une recherche capable de retrouver une ligne gagnante dans un jeu devenu plus dur.</p>
+</div>
+
+
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Une r&egrave;gle d&rsquo;apparence que les cent quatre planches ne pouvaient pas voir</b></div>
   <p>D&eacute;p&ocirc;t propre, 540 tests verts, 104 planches conformes. Le seul point en attente est une d&eacute;cision de <i>game design</i> &mdash; l&rsquo;axe de d&eacute;g&acirc;ts c&ocirc;t&eacute; ennemi &mdash; donc j&rsquo;ai avanc&eacute; sur ce qui n&rsquo;en d&eacute;pend pas : le trou du travail que je venais de livrer.</p>
