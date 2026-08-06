@@ -3,6 +3,7 @@ package com.starfall;
 import com.starfall.scene.CalibrationScene;
 import com.starfall.scene.CaptureScenario;
 import com.starfall.scene.CaptureScript;
+import com.starfall.scene.SalvoScript;
 import com.starfall.scene.ShowcaseScript;
 
 
@@ -42,7 +43,7 @@ public final class LaunchOptions {
     /** Scènes connues. La mire de calibration reste atteignable : c'est une preuve de non-régression. */
     public static final List<String> SCENES =
             List.of(CaptureScript.SCENE_NAME, CalibrationScene.SCENE_NAME,
-                    ShowcaseScript.SCENE_NAME);
+                    ShowcaseScript.SCENE_NAME, SalvoScript.SCENE_NAME);
 
     /** Dossier de sortie des captures, ou {@code null} en fonctionnement normal. */
     public final String screenshotDir;
@@ -216,7 +217,7 @@ public final class LaunchOptions {
             // La borne vient du scénario de CETTE scène : les deux n'ont pas la même longueur, et
             // une borne unique aurait laissé passer un --from hors sujet. Les longueurs ne sont pas
             // écrites ici — elles ont déjà vieilli ailleurs.
-            int available = CaptureScenario.forScene(scene).size();
+            int available = CaptureScenario.forScene(scene).lastFrame();
             int last = firstFrame + frames - 1;
             if (last > available) {
                 throw new IllegalArgumentException("--from " + firstFrame + " avec --frames "

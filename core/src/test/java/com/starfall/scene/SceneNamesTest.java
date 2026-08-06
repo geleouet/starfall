@@ -33,6 +33,7 @@ class SceneNamesTest {
         List<Scene> scenes = new ArrayList<>();
         scenes.add(new ArenaScene());
         scenes.add(new ArenaScene(ShowcaseScript.SCENARIO));
+        scenes.add(new ArenaScene(SalvoScript.SCENARIO));
         scenes.add(new CalibrationScene());
         return scenes;
     }

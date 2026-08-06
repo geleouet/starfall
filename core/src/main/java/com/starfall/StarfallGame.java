@@ -18,6 +18,7 @@ import com.starfall.scene.CalibrationScene;
 import com.starfall.scene.CaptureScript;
 import com.starfall.scene.Scene;
 import com.starfall.scene.SceneContext;
+import com.starfall.scene.SalvoScript;
 import com.starfall.scene.ShowcaseScript;
 
 import java.util.List;
@@ -85,6 +86,10 @@ public class StarfallGame extends ApplicationAdapter {
             // La vitrine rejoue la MEME scene, sur un autre scenario : ce qui est garde est le
             // rendu du jeu, pas une maquette a cote.
             case ShowcaseScript.SCENE_NAME -> new ArenaScene(ShowcaseScript.SCENARIO);
+            // Et la salve qui se deroule : meme scene encore, sur un scenario qui montre un TEMPS
+            // par image au lieu d'un geste. C'est le seul temoin possible des deux regles de
+            // l'animation, que le mode capture ne pouvait pas atteindre jusqu'ici.
+            case SalvoScript.SCENE_NAME -> new ArenaScene(SalvoScript.SCENARIO);
             case CalibrationScene.SCENE_NAME -> new CalibrationScene();
             default -> throw new IllegalArgumentException("Scène inconnue : " + name);
         };

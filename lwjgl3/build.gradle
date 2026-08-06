@@ -170,6 +170,11 @@ ext.renderScenarios = [
         // « regarder les images avant d'adopter » impraticable -- et une référence qu'on adopte sans
         // regarder est pire qu'aucune référence. C'est à cela que sert « --from ».
         arenaVictory   : ['--size', '1280x720', '--frames', '8', '--from', '26', '--scene', 'arena'],
+        // La salve qui se DEROULE : une image par temps. C'est le seul temoin des deux
+        // regles de l'animation - les figures qui reculent dans le temps, les calques du
+        // repos qui se taisent - qu'aucune planche ne pouvait attraper jusqu'ici, le mode
+        // capture ne deroulant jamais. Sept images : quatre de chargement, trois de deroule.
+        arenaSalvo     : ['--size', '1280x720', '--frames', '7', '--scene', 'salvo'],
         arenaNarrow    : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '5'],
         arenaWide      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '15'],
         arenaEven      : ['--size', '1280x720', '--frames', '4', '--scene', 'arena', '--grid', '8'],

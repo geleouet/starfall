@@ -222,6 +222,18 @@ public final class ArenaScene implements Scene {
         if (replayed != null) {
             lastResult = replayed;
         }
+        // Le déroulé, en mode capture, avancé d'un nombre ENTIER de temps : une planche montre le
+        // temps n, jamais un entre-deux, sinon elle cesserait d'être reproductible. C'est ce qui
+        // donne enfin un témoin aux deux règles de l'animation — les figures qui reculent dans le
+        // temps, et les calques du repos qui se taisent.
+        playback.settle();
+        int beat = scenario.playbackBeatAt(frameIndex);
+        if (beat > 0) {
+            playback.start(arena.beats());
+            for (int step = 1; step < beat; step++) {
+                playback.advance(Playback.BEAT_SECONDS);
+            }
+        }
         if (frameIndex > scenario.size() && !exhaustionReported) {
             // Le dire plutôt que de laisser un relecteur croire que deux images identiques
             // signalent un rendu figé.

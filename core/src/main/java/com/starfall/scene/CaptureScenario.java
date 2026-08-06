@@ -41,6 +41,35 @@ public interface CaptureScenario {
     /** Case du plateau survolée à cette image, ou {@code -1}. */
     int cellAt(int frameIndex);
 
+    /**
+     * Rang du temps de déroulé à montrer sur cette image, à partir de 1, ou {@code 0} pour aucun.
+     *
+     * <p>Par défaut, aucun : une planche est un <b>état au repos</b>, et c'est ce qui la rend
+     * reproductible. Un scénario peut pourtant vouloir capturer le déroulé lui-même — et il le
+     * faut, parce que sans cela la règle qui fait taire les calques du repos pendant l'animation
+     * <em>n'a aucun témoin</em>. Le mode capture ne déroulant jamais, les planches ne peuvent pas
+     * l'attraper, et ce projet a appris ce que vaut un garde-fou qu'on croit sur parole.
+     *
+     * <p>Le déroulé reste déterministe : la scène l'avance d'un nombre <b>entier</b> de temps, pas
+     * d'une durée écoulée. Une image montre le temps {@code n}, jamais un entre-deux.
+     */
+    default int playbackBeatAt(int frameIndex) {
+        return 0;
+    }
+
+    /**
+     * Numéro de la <b>dernière image</b> que ce scénario sait rendre.
+     *
+     * <p>Par défaut le nombre de gestes : l'image {@code n} montre l'état après les {@code n}
+     * premiers, et rien au-delà. Mais un scénario qui <em>déroule</em> continue après son dernier
+     * geste — ses images suivantes montrent les temps de la résolution, pas des gestes de plus.
+     * La borne vient donc du scénario, et non d'un calcul fait chez l'appelant : c'est la même
+     * raison qui avait fait descendre les longueurs ici plutôt que dans {@code LaunchOptions}.
+     */
+    default int lastFrame() {
+        return size();
+    }
+
     /** Nombre de gestes. La dernière image porte le numéro {@code size()}. */
     default int size() {
         return actions().size();
@@ -66,6 +95,9 @@ public interface CaptureScenario {
     static CaptureScenario forScene(String scene) {
         if (ShowcaseScript.SCENE_NAME.equals(scene)) {
             return ShowcaseScript.SCENARIO;
+        }
+        if (SalvoScript.SCENE_NAME.equals(scene)) {
+            return SalvoScript.SCENARIO;
         }
         if (CaptureScript.SCENE_NAME.equals(scene)) {
             return CaptureScript.SCENARIO;
