@@ -257,4 +257,38 @@ class ImminenceTest {
                         + " projection il annoncerait deux pas, et sa file ne dirait qu'une chose"
                         + " dite deux fois : " + colossus.queued());
     }
+
+    /**
+     * Une file dont la t&ecirc;te manque ne se lit pas.
+     *
+     * <p>La plaque n&rsquo;&eacute;tait dessin&eacute;e que pour ce qui frappe ou ce qui se
+     * charge ; la <em>pile</em>, elle, l&rsquo;&eacute;tait d&egrave;s qu&rsquo;un ennemi tenait
+     * plus d&rsquo;une action. Un colosse qui met &laquo; avancer, puis frapper &raquo; se
+     * retrouvait donc avec une carte flottant seule au-dessus de sa t&ecirc;te, rattach&eacute;e
+     * &agrave; rien.
+     *
+     * <p>Ce cas n&rsquo;existait pas la veille : c&rsquo;est la projection de la position,
+     * pos&eacute;e au cycle pr&eacute;c&eacute;dent, qui l&rsquo;a rendu atteignable &mdash;
+     * quatre-vingt-quatorze fois sur onze cents l&acirc;chers. <b>Une correction qui ouvre un cas
+     * de dessin que le dessin ne pr&eacute;voyait pas</b>, et que seule une planche montrant
+     * exactement cette file aurait attrap&eacute;e. Aucune ne la montre ; le test la garde.
+     */
+    @Test
+    @DisplayName("Une file de plusieurs actions porte toujours sa plaque de tête")
+    void aMultiActionPlanAlwaysCarriesItsHeadPlaque() {
+        // Un avancement seul ne merite pas de plaque : encadrer « rien » ajoute du bruit la ou il
+        // n'y a pas de decision. C'est la premisse, et elle rend la suivante non triviale.
+        assertFalse(Intention.needsPlaque(Intention.Kind.ADVANCE, 1),
+                "un simple pas n'a rien a encadrer");
+        assertFalse(Intention.needsPlaque(Intention.Kind.WAIT, 1),
+                "attendre non plus");
+
+        assertTrue(Intention.needsPlaque(Intention.Kind.ADVANCE, 2),
+                "un pas SUIVI d'autre chose est une file : sans plaque de tete, la carte du"
+                        + " dessus flotte seule et ne se rattache a rien");
+        assertTrue(Intention.needsPlaque(Intention.Kind.ATTACK, 1),
+                "un coup qui part garde sa plaque");
+        assertTrue(Intention.needsPlaque(Intention.Kind.WIND_UP, 1),
+                "ce qui se prepare aussi");
+    }
 }

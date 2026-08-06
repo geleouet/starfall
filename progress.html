@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 549 tests verts · 105 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 550 tests verts · 105 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -361,6 +361,16 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Une correction qui ouvre un cas que le dessin ne pr&eacute;voyait pas</b></div>
+  <p>La projection de position pos&eacute;e au cycle pr&eacute;c&eacute;dent rend possible une file &laquo; <i>avancer, puis frapper</i> &raquo; &mdash; c&rsquo;&eacute;tait tout son objet, et c&rsquo;est mesur&eacute; &agrave; quatre-vingt-quatorze occurrences sur onze cents l&acirc;chers. Mais l&rsquo;avancement <b>ne porte pas de plaque</b> : encadrer &laquo; rien &raquo; ajouterait du bruit l&agrave; o&ugrave; il n&rsquo;y a pas de d&eacute;cision. La carte de ce qui suit, elle, &eacute;tait dessin&eacute;e d&egrave;s qu&rsquo;un ennemi tenait plus d&rsquo;une action.</p>
+
+  <p><b>R&eacute;sultat : une carte flottant seule au-dessus d&rsquo;une t&ecirc;te, rattach&eacute;e &agrave; rien.</b> Trois planches de r&eacute;f&eacute;rence la montraient d&eacute;j&agrave; &mdash; elles ont chang&eacute; en corrigeant, ce qui prouve que le d&eacute;faut &eacute;tait livr&eacute; et non th&eacute;orique.</p>
+
+  <p style="margin-bottom:0"><b>La r&egrave;gle est devenue une seule question</b>, pos&eacute;e l&agrave; o&ugrave; elle s&rsquo;&eacute;prouve sans &eacute;cran : <i>faut-il une plaque ?</i> Oui si un coup part, oui si quelque chose se pr&eacute;pare, et oui si une file en tient plus d&rsquo;une &mdash; parce que la plaque est ce qui dit &laquo; ceci est une file &raquo;, et qu&rsquo;une file dont la t&ecirc;te manque ne se lit pas. Elle vivait dans la sc&egrave;ne sous la forme de deux bool&eacute;ens lus l&rsquo;un apr&egrave;s l&rsquo;autre, et le troisi&egrave;me cas y manquait. La mutation qui lui retire la file mord ; la pr&eacute;misse ass&egrave;re d&rsquo;abord qu&rsquo;un pas seul, lui, n&rsquo;a rien &agrave; encadrer, sans quoi une plaque partout satisferait le test.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Une file de deux copies n&rsquo;est pas une file</b></div>

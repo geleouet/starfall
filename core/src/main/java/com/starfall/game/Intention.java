@@ -71,6 +71,34 @@ public record Intention(Kind kind, int targetCell) {
         }
     }
 
+    /**
+     * Vrai si cette nature d'intention doit &ecirc;tre encadr&eacute;e d'une <b>plaque</b>.
+     *
+     * <h2>Pourquoi la r&egrave;gle vit ici</h2>
+     *
+     * <p>Elle vivait dans la sc&egrave;ne, sous la forme de deux bool&eacute;ens lus l'un
+     * apr&egrave;s l'autre, et elle y &eacute;tait <b>incompl&egrave;te</b> : la plaque n'&eacute;tait
+     * dessin&eacute;e que pour ce qui frappe ou ce qui se charge, tandis que la <em>pile</em>
+     * &mdash; la carte de ce qui suit &mdash; l'&eacute;tait d&egrave;s qu'un ennemi tenait plus
+     * d'une action. Un colosse qui met &laquo; avancer, puis frapper &raquo; n'avait donc aucune
+     * plaque de t&ecirc;te et une carte flottant seule au-dessus de sa t&ecirc;te, rattach&eacute;e
+     * &agrave; rien.
+     *
+     * <p>Ce cas n'existait pas la veille : c'est la projection de la position, pos&eacute;e au
+     * cycle pr&eacute;c&eacute;dent, qui l'a rendu atteignable &mdash; mesur&eacute; &agrave;
+     * quatre-vingt-quatorze occurrences sur onze cents l&acirc;chers. Une correction qui ouvre un
+     * cas de dessin que le dessin ne pr&eacute;voyait pas.
+     *
+     * <p>La r&egrave;gle est donc devenue une seule question, pos&eacute;e ici o&ugrave; elle
+     * s'&eacute;prouve sans &eacute;cran : <b>faut-il une plaque ?</b> Oui si un coup part, oui si
+     * quelque chose se pr&eacute;pare, et oui si une file en tient plus d'une &mdash; parce que la
+     * plaque est ce qui dit &laquo; ceci est une file &raquo;, et qu'une file dont la t&ecirc;te
+     * manque ne se lit pas.
+     */
+    public static boolean needsPlaque(Kind head, int planSize) {
+        return head.threatens() || head == Kind.WIND_UP || head == Kind.SUMMON || planSize > 1;
+    }
+
     /** Intention qui ne vise aucune case. */
     public static Intention of(Kind kind) {
         return new Intention(kind, -1);

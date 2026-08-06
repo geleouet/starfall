@@ -1131,7 +1131,8 @@ public final class ArenaScene implements Scene {
             boolean lands = intention.kind().threatens();
             boolean loading = intention.kind() == Intention.Kind.WIND_UP
                     || intention.kind() == Intention.Kind.SUMMON;
-            if (lands || loading) {
+            List<Intention> plan = enemy.plan();
+            if (Intention.needsPlaque(intention.kind(), plan.size())) {
                 drawPlaque(centre, y, loading, plaqueColor(enemy));
             }
             // LA FILE, quand il y en a une. Un lancier qui prend son elan tient deux actions :
@@ -1139,7 +1140,6 @@ public final class ArenaScene implements Scene {
             // n'apparaissait nulle part - on voyait « il se charge », jamais « il se charge POUR
             // UNE CHARGE ». Elle se pose au-dessus, plus petite : ce qui vient apres compte moins
             // que ce qui vient maintenant, et la pile se lit de bas en haut comme celle du joueur.
-            List<Intention> plan = enemy.plan();
             for (int rank = 1; rank < plan.size(); rank++) {
                 drawPending(centre, y + rank * ArenaLayout.PLAQUE_STACK_STEP, plan.get(rank),
                         plaqueColor(enemy));
