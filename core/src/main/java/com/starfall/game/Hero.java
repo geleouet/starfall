@@ -16,8 +16,15 @@ public final class Hero implements Occupant {
      */
     public static final int MAX_HEALTH = 8;
 
+    private final long id = Identities.next();
+
     private int health = MAX_HEALTH;
     private Direction facing = Direction.RIGHT;
+
+    @Override
+    public long id() {
+        return id;
+    }
 
     /** Points de vie restants. À zéro, la partie est perdue. */
     public int health() {

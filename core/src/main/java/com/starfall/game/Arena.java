@@ -222,8 +222,8 @@ public final class Arena {
      * l'occupant vivant, et c'est tout l'objet : un instantané qui pointerait vers l'objet réel
      * montrerait l'état d'aujourd'hui sous prétexte de montrer celui d'hier.
      */
-    public record Figure(int cell, String sprite, Direction facing, int health, int maxHealth,
-                         boolean hero, boolean explosive) {
+    public record Figure(long id, int cell, String sprite, Direction facing, int health,
+                         int maxHealth, boolean hero, boolean explosive) {
     }
 
     /**
@@ -238,14 +238,14 @@ public final class Arena {
         for (int cell : grid.occupiedCells()) {
             Occupant occupant = grid.occupantAt(cell);
             if (occupant == hero) {
-                figures.add(new Figure(cell, hero.spriteName(), hero.facing(), hero.health(),
-                        Hero.MAX_HEALTH, true, false));
+                figures.add(new Figure(hero.id(), cell, hero.spriteName(), hero.facing(),
+                        hero.health(), Hero.MAX_HEALTH, true, false));
             } else if (occupant instanceof Enemy enemy) {
-                figures.add(new Figure(cell, enemy.spriteName(), enemy.facing(), enemy.health(),
-                        enemy.maxHealth(), false, enemy.has(Trait.EXPLOSIF)));
+                figures.add(new Figure(enemy.id(), cell, enemy.spriteName(), enemy.facing(),
+                        enemy.health(), enemy.maxHealth(), false, enemy.has(Trait.EXPLOSIF)));
             } else {
-                figures.add(new Figure(cell, occupant.spriteName(), Direction.LEFT, 0, 0, false,
-                        false));
+                figures.add(new Figure(occupant.id(), cell, occupant.spriteName(),
+                        Direction.LEFT, 0, 0, false, false));
             }
         }
         return List.copyOf(figures);
@@ -262,12 +262,34 @@ public final class Arena {
         return List.copyOf(beats);
     }
 
+    /**
+     * Le plateau tel qu'il était juste AVANT la dernière action du joueur.
+     *
+     * <p>Chaque temps porte l'état qui <em>suit</em> la tuile qui vient de jouer. Le premier n'a
+     * donc rien à quoi se comparer, et sans ce plateau d'ouverture la première tuile d'une salve
+     * apparaîtrait déjà résolue pendant que les suivantes s'animent : le coup le plus important
+     * de la salve serait le seul qu'on ne verrait pas partir.
+     *
+     * <p>Il coûte un instantané par action, là où les temps en coûtent un par tuile. La mesure
+     * qui accompagne {@link #beats()} vaut donc a fortiori pour lui.
+     */
+    public List<Figure> opening() {
+        return opening;
+    }
+
     private final List<Beat> beats = new ArrayList<>();
+
+    /** Le plateau tel qu'il était juste avant l'action en cours. Voir {@link #opening()}. */
+    private List<Figure> opening = List.of();
 
     /** Ouvre une action du joueur : c'est ici que le compteur de morts repart de zéro. */
     private void beginAction() {
         killsThisAction = 0;
         beats.clear();
+        // Le plateau AVANT que quoi que ce soit ne bouge. Les temps disent chacun l'état qui suit
+        // la tuile qui vient de jouer ; il manquait celui qui précède la première, sans quoi le
+        // premier temps d'une salve n'a rien à quoi se comparer et sa figure apparaît déjà arrivée.
+        opening = snapshot();
     }
 
     private ActionResult settle(ActionResult result) {

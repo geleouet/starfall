@@ -49,6 +49,31 @@ public final class SalvoScript {
     /** Nombre de temps de la salve : autant que de tuiles chargées. */
     public static final int BEATS = 3;
 
+    /**
+     * Les instants saisis, un par image : le rang du temps, puis où il en est.
+     *
+     * <p>Trois images suffisaient tant que le déroulé sautait d'une case à l'autre — il n'existait
+     * rien <em>entre</em> deux temps. Depuis que le mouvement est continu, une planche prise à la
+     * fin de chaque temps montre exactement ce que le jeu montrait quand il n'animait rien : elle
+     * garde le résultat, et laisse le mouvement sans témoin. Ce sont les <b>mi-courses</b> qui le
+     * gardent.
+     *
+     * <p>Les instants ne sont pas répartis régulièrement, ils sont choisis. {@code 0,35} sur le
+     * premier temps prend la fente à son extension, juste avant le contact ; {@code 0,60} la prend
+     * après, quand la victime recule et que celui qui tombe s'efface — les deux moitiés que
+     * {@link Choreography#IMPACT} sépare. {@code 0,50} sur le deuxième prend le pas de côté à
+     * mi-chemin entre ses deux cases, au sommet de son saut. Le troisième n'est qu'une volte-face :
+     * elle ne déplace rien, et une mi-course n'y montrerait qu'une figure immobile.
+     */
+    public static final float[][] MOMENTS = {
+            {1f, 0.35f},
+            {1f, 0.60f},
+            {1f, 1f},
+            {2f, 0.50f},
+            {2f, 1f},
+            {3f, 1f},
+    };
+
     private SalvoScript() {
     }
 
@@ -67,18 +92,31 @@ public final class SalvoScript {
 
         @Override
         public int lastFrame() {
-            // Les gestes, PUIS un temps par tuile de la salve. C'est tout l'objet de cet écran :
-            // ses dernières images ne rejouent aucun geste de plus, elles égrènent la résolution.
-            return ACTIONS.size() + BEATS;
+            // Les gestes, PUIS un instant par image. C'est tout l'objet de cet écran : ses
+            // dernières images ne rejouent aucun geste de plus, elles égrènent la résolution.
+            return ACTIONS.size() + MOMENTS.length;
         }
 
         @Override
         public int playbackBeatAt(int frameIndex) {
             // Les images du chargement montrent l'état au repos ; celles d'après égrènent les
-            // temps. Le rejeu de la scène applique tous les gestes dès que l'image dépasse leur
+            // instants. Le rejeu de la scène applique tous les gestes dès que l'image dépasse leur
             // nombre, si bien que ces images-là partent toutes du même état final et ne diffèrent
-            // que par le temps montré. C'est ce qui les rend reproductibles.
-            return frameIndex <= FIRST_BEAT_FRAME ? 0 : frameIndex - FIRST_BEAT_FRAME;
+            // que par l'instant montré. C'est ce qui les rend reproductibles.
+            float[] moment = momentAt(frameIndex);
+            return moment == null ? 0 : (int) moment[0];
+        }
+
+        @Override
+        public float playbackProgressAt(int frameIndex) {
+            float[] moment = momentAt(frameIndex);
+            return moment == null ? 1f : moment[1];
+        }
+
+        /** L'instant saisi par cette image, ou {@code null} si elle montre le chargement. */
+        private float[] momentAt(int frameIndex) {
+            int rank = frameIndex - FIRST_BEAT_FRAME - 1;
+            return rank >= 0 && rank < MOMENTS.length ? MOMENTS[rank] : null;
         }
 
         @Override

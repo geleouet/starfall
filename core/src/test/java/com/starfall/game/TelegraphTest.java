@@ -28,7 +28,14 @@ import org.junit.jupiter.api.Test;
 class TelegraphTest {
 
     /** Obstacle inerte : un ennemi bougerait pendant la phase et fausserait la mesure. */
-    private record Rock(String label) implements Occupant {
+    private record Rock(String label, long id) implements Occupant {
+        // Le numero est un COMPOSANT, et non un « return Identities.next() » dans
+        // l'accesseur : ce dernier rendrait un numero neuf a chaque lecture, soit
+        // l'exact contraire de ce qu'un numero d'identite promet.
+        Rock(String label) {
+            this(label, Identities.next());
+        }
+
         @Override
         public String spriteName() {
             return "enemy/colosse";

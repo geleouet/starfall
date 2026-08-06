@@ -87,8 +87,35 @@ public final class PixelPainter implements Disposable {
 
     /** Dessine un sprite, coin bas-gauche en coordonnées monde, sans teinte. */
     public void sprite(TextureRegion region, int x, int y) {
+        sprite(region, x, y, false, Color.WHITE);
+    }
+
+    /**
+     * Dessine un sprite, retourné ou non, teinté ou non.
+     *
+     * <p>Les trois formes courtes ci-dessus s'y ramènent toutes. Le retournement et la teinte
+     * étaient auparavant deux méthodes qui ne se combinaient pas — il n'existait aucun moyen de
+     * dessiner une figure à la fois tournée vers la gauche et en train de s'effacer, ce que le
+     * déroulé d'une salve demande à chaque ennemi qui tombe. Les écrire séparément aurait donné
+     * quatre méthodes pour une seule règle de retournement, donc quatre endroits où elle pouvait
+     * diverger.
+     *
+     * <p>La teinte porte aussi l'<b>opacité</b> : son canal alpha traverse jusqu'au batch, qui
+     * mélange. C'est ce qui permet à une figure de disparaître en fondu plutôt que d'être retirée
+     * d'une image à l'autre.
+     */
+    public void sprite(TextureRegion region, int x, int y, boolean flip, Color tint) {
+        batch.setColor(tint);
+        if (flip) {
+            // Le retournement se fait sur la région, pas sur les coordonnées : la position du coin
+            // reste entière, donc le sprite retourné tombe exactement sur les mêmes pixels que le
+            // sprite normal.
+            batch.draw(region, x + region.getRegionWidth(), y,
+                    -region.getRegionWidth(), region.getRegionHeight());
+        } else {
+            batch.draw(region, x, y, region.getRegionWidth(), region.getRegionHeight());
+        }
         batch.setColor(Color.WHITE);
-        batch.draw(region, x, y, region.getRegionWidth(), region.getRegionHeight());
     }
 
     /**
@@ -98,22 +125,12 @@ public final class PixelPainter implements Disposable {
      * continuer à voir <em>quelle</em> tuile lui manque, pas seulement qu'il lui en manque une.
      */
     public void spriteTinted(TextureRegion region, int x, int y, Color tint) {
-        batch.setColor(tint);
-        batch.draw(region, x, y, region.getRegionWidth(), region.getRegionHeight());
-        batch.setColor(Color.WHITE);
+        sprite(region, x, y, false, tint);
     }
 
-    /**
-     * Dessine un sprite en le retournant horizontalement.
-     *
-     * <p>Le retournement se fait sur la région, pas sur les coordonnées : la position du coin reste
-     * entière, donc le sprite retourné tombe exactement sur les mêmes pixels que le sprite normal.
-     */
+    /** Dessine un sprite en le retournant horizontalement. */
     public void spriteFlipped(TextureRegion region, int x, int y) {
-        batch.setColor(Color.WHITE);
-        batch.draw(region,
-                x + region.getRegionWidth(), y,
-                -region.getRegionWidth(), region.getRegionHeight());
+        sprite(region, x, y, true, Color.WHITE);
     }
 
     private static Texture solidTexture() {

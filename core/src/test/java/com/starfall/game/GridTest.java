@@ -18,7 +18,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 class GridTest {
 
     /** Occupant inerte, juste de quoi remplir une case. */
-    private record Pawn(String label) implements Occupant {
+    private record Pawn(String label, long id) implements Occupant {
+        // Le numero est un COMPOSANT, et non un « return Identities.next() » dans
+        // l'accesseur : ce dernier rendrait un numero neuf a chaque lecture, soit
+        // l'exact contraire de ce qu'un numero d'identite promet.
+        Pawn(String label) {
+            this(label, Identities.next());
+        }
+
         @Override
         public String spriteName() {
             return "enemy/melee";

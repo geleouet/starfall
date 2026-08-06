@@ -12,8 +12,15 @@ import java.util.Set;
  */
 public final class Enemy implements Occupant {
 
+    private final long id = Identities.next();
+
     private final EnemyKind kind;
     private final Set<Trait> traits;
+
+    @Override
+    public long id() {
+        return id;
+    }
 
     private int health;
     /** Étourdi : il passera sa prochaine activation. */

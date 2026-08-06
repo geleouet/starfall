@@ -53,6 +53,24 @@ public final class ArenaScene implements Scene {
 
     private static final Color CELL_LINE = new Color(0x39456bff);
     private static final Color HERO_MARK = new Color(0x54d6ffff);
+
+    /**
+     * Amplitude du saut d'une figure qui glisse, en pixels-monde.
+     *
+     * <p>Trois pixels sur une figure de seize : assez pour que le glissement ne soit pas plat,
+     * trop peu pour qu'on croie à un bond. Le mouvement lisible est ici horizontal ; ceci n'est que
+     * ce qui l'empêche de ressembler à un objet poussé sur une table.
+     */
+    private static final int HOP = 3;
+
+    /**
+     * La teinte des figures, réécrite à chaque dessin plutôt que réallouée.
+     *
+     * <p>Une couleur par figure et par image, à soixante images par seconde, ferait quelques
+     * milliers d'objets par seconde pour trois flottants. Le ramasse-miettes s'en accommoderait ;
+     * ce jeu n'a simplement aucune raison de le lui demander.
+     */
+    private final Color figureTint = new Color();
     private static final Color TARGET_MARK = new Color(0xffcc33ff);
     private static final Color HOVER_MARK = HudColors.HOVER;
 
@@ -193,7 +211,7 @@ public final class ArenaScene implements Scene {
         // Le déroulé démarre ici pour la raison qui a fait mettre l'aide ici : c'est le seul
         // endroit par lequel passent les huit gestes qui déclenchent une action. Réparti sur
         // chacun, il aurait été oublié par le neuvième.
-        playback.start(arena.beats());
+        playback.start(arena.beats(), arena.opening());
         return true;
     }
 
@@ -229,10 +247,8 @@ public final class ArenaScene implements Scene {
         playback.settle();
         int beat = scenario.playbackBeatAt(frameIndex);
         if (beat > 0) {
-            playback.start(arena.beats());
-            for (int step = 1; step < beat; step++) {
-                playback.advance(Playback.BEAT_SECONDS);
-            }
+            playback.start(arena.beats(), arena.opening());
+            playback.seek(beat, scenario.playbackProgressAt(frameIndex));
         }
         if (frameIndex > scenario.size() && !exhaustionReported) {
             // Le dire plutôt que de laisser un relecteur croire que deux images identiques
@@ -818,14 +834,31 @@ public final class ArenaScene implements Scene {
     }
 
     /**
+     * La teinte d'une figure a une opacite donnee.
+     *
+     * <p>Rend {@link Color#WHITE} tel quel pour le cas courant &mdash; une figure etablie &mdash;
+     * de sorte que le dessin au repos passe exactement par ou il passait avant que ce jeu sache
+     * animer quoi que ce soit. C'est ce qui garantit que les planches de reference au repos n'ont
+     * pas bouge d'un octet.
+     */
+    private Color fade(float alpha) {
+        if (alpha >= 1f) {
+            return Color.WHITE;
+        }
+        figureTint.set(1f, 1f, 1f, alpha);
+        return figureTint;
+    }
+
+    /**
      * Points de vie, en pastilles sous chaque figure.
      *
      * <p>Des pastilles et non une barre : à cette échelle, compter trois carrés est plus rapide que
      * mesurer une longueur, et la différence entre « il lui en reste deux » et « il lui en reste
      * trois » est exactement la décision que le joueur doit prendre.
      */
-    private void drawHealth(int cell, int health, int maxHealth, Color color) {
-        int left = layout.cellLeft(cell) + (ArenaLayout.CELL_WIDTH - (maxHealth * 3 - 1)) / 2;
+    private void drawHealth(int cell, int shift, int health, int maxHealth, Color color) {
+        int left = layout.cellLeft(cell) + shift
+                + (ArenaLayout.CELL_WIDTH - (maxHealth * 3 - 1)) / 2;
         for (int point = 0; point < maxHealth; point++) {
             painter.fill(left + point * 3, ArenaLayout.HEALTH_Y, 2, ArenaLayout.HEALTH_HEIGHT,
                     point < health ? color : HudColors.DIMMED);
@@ -841,33 +874,46 @@ public final class ArenaScene implements Scene {
      * L'état vivant n'est ici qu'un instantané de plus, celui de l'instant présent.
      */
     private void drawOccupants() {
-        Arena.Beat beat = playback.current();
-        for (Arena.Figure figure : beat != null ? beat.board() : arena.snapshot()) {
+        for (Choreography.Placement placement : playback.placements(arena.snapshot())) {
+            Arena.Figure figure = placement.figure();
             int cell = figure.cell();
             var region = context.atlas().region(figure.sprite());
-            int x = layout.figureLeft(cell);
+
+            // Le seul endroit du jeu ou une fraction devient un pixel. La choregraphie dit
+            // « a 60 % du chemin de la case 3 vers la case 4 » sans savoir ce que vaut ce chemin ;
+            // c'est ici, et une seule fois, que l'arrondi tombe. Une case fait plusieurs dizaines
+            // de pixels, donc un glissement traverse plusieurs dizaines de positions ENTIERES : la
+            // fluidite vient de leur nombre, jamais d'un sous-pixel que ce jeu ne dessine pas.
+            int fromX = layout.figureLeft(placement.fromCell());
+            int toX = layout.figureLeft(placement.toCell());
+            int x = fromX + Math.round((toX - fromX) * placement.slide());
+            int y = ArenaLayout.FIGURE_Y + Math.round(placement.lift() * HOP);
 
             // Chaque figure est retournée selon son orientation. Le héros est dessiné tourné à
             // droite, les ennemis tournés à gauche : ils arrivent face à lui.
             boolean flip = figure.hero()
                     ? figure.facing() == Direction.LEFT
                     : figure.facing() == Direction.RIGHT;
-            if (flip) {
-                painter.spriteFlipped(region, x, ArenaLayout.FIGURE_Y);
-            } else {
-                painter.sprite(region, x, ArenaLayout.FIGURE_Y);
-            }
+            painter.sprite(region, x, y, flip, fade(placement.fade()));
 
+            // Jauges et lisere accompagnent la figure : ils la decrivent, ils ne decrivent pas sa
+            // case. Une figure qui n'est pas pleinement opaque est en train d'arriver ou de
+            // tomber ; ses points de vie ne se lisent pas encore, et un compte a demi efface se
+            // lirait de travers plutot que de ne pas se lire.
+            if (placement.fade() < 1f) {
+                continue;
+            }
+            int shift = x - layout.figureLeft(cell);
             if (figure.hero()) {
-                drawHealth(cell, figure.health(), Hero.MAX_HEALTH, HERO_MARK);
+                drawHealth(cell, shift, figure.health(), Hero.MAX_HEALTH, HERO_MARK);
             } else {
-                drawHealth(cell, figure.health(), figure.maxHealth(), HudColors.THREAT);
+                drawHealth(cell, shift, figure.health(), figure.maxHealth(), HudColors.THREAT);
                 if (figure.explosive()) {
                     // Un explosif coûte deux points de vie à qui le tue au contact, soit 40 % de la
                     // santé du héros — et son sprite est celui de son archétype, donc rien ne le
                     // distinguait. Le seul indice était une ligne de texte, l'une des premières
                     // tronquées sur une petite fenêtre.
-                    painter.outline(x - 1, ArenaLayout.FIGURE_Y - 1,
+                    painter.outline(x - 1, y - 1,
                             ArenaLayout.FIGURE_WIDTH + 2, ArenaLayout.FIGURE_HEIGHT + 2,
                             HudColors.RECHARGE);
                 }

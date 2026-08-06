@@ -58,6 +58,29 @@ public interface CaptureScenario {
     }
 
     /**
+     * O&ugrave; en est ce temps-l&agrave;, de 0 &mdash; il commence &mdash; &agrave; 1 &mdash; il
+     * est jou&eacute;.
+     *
+     * <p>Un temps ne saute plus d'une case &agrave; l'autre : il se d&eacute;roule, et une planche
+     * peut donc le saisir <b>&agrave; mi-course</b>. C'est le seul moyen de garder par l'image ce
+     * qu'une animation fait, puisqu'une planche prise &agrave; la fin de chaque temps montre
+     * exactement ce que montrait le jeu quand il n'animait rien.
+     *
+     * <p>La valeur par d&eacute;faut est <b>1</b>, et ce choix n'est pas neutre : il fait que tous
+     * les sc&eacute;narios &eacute;crits avant l'animation continuent de rendre, au pixel
+     * pr&egrave;s, ce qu'ils rendaient. Un d&eacute;faut &agrave; z&eacute;ro aurait fait montrer
+     * &agrave; chaque planche l'&eacute;tat d'AVANT le temps qu'elle annonce &mdash; un
+     * d&eacute;calage d'un temps sur quatre-vingt-quinze planches, qu'il aurait fallu accepter sans
+     * le comprendre.
+     *
+     * <p>La position est <b>pos&eacute;e</b> et non atteinte par accumulation : voir
+     * {@link Playback#seek(int, float)}.
+     */
+    default float playbackProgressAt(int frameIndex) {
+        return 1f;
+    }
+
+    /**
      * Numéro de la <b>dernière image</b> que ce scénario sait rendre.
      *
      * <p>Par défaut le nombre de gestes : l'image {@code n} montre l'état après les {@code n}

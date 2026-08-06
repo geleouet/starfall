@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 519 tests verts · 95 planches sur 14 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 531 tests verts · 98 planches sur 14 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -323,7 +323,40 @@
   <figcaption><b>Dernier temps, file vide.</b> La volte-face ferme la salve. Cette image a failli ne pas exister : la fen&ecirc;tre de capture avait &eacute;t&eacute; pos&eacute;e &agrave; sept images et s&rsquo;arr&ecirc;tait au deuxi&egrave;me temps sur trois &mdash; d&eacute;faut vu en <i>regardant</i> les planches, pas en relisant le calcul. C&rsquo;est la raison d&rsquo;&ecirc;tre de ce tableau.</figcaption>
 </figure>
 
+<figure class="sheet">
+  <img src="captures/anim-fluide/fente.png" alt="Starfall, une fente d&rsquo;estoc &agrave; mi-course">
+  <figcaption><b>Une fente d&rsquo;estoc, saisie &agrave; 35 % de son temps.</b> Le h&eacute;ros ne se d&eacute;place pas : il se penche vers sa cible et reviendra. La distance est <b>fixe</b>, un peu moins d&rsquo;une demi-case, et non une fraction du chemin jusqu&rsquo;&agrave; la cible &mdash; la premi&egrave;re version faisait la seconde, et cette planche l&rsquo;a d&eacute;mentie : l&rsquo;estoc portant &agrave; deux cases, la fente d&eacute;posait le h&eacute;ros dans la case interm&eacute;diaire, celle-l&agrave; m&ecirc;me que l&rsquo;estoc <i>ne frappe pas</i>. C&rsquo;est le cadre pos&eacute; sous la case vis&eacute;e qui dit jusqu&rsquo;o&ugrave;, et lui seul est en droit de le dire.</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/anim-fluide/apres-contact.png" alt="Starfall, juste apr&egrave;s le contact">
+  <figcaption><b>Le m&ecirc;me temps &agrave; 60 % : apr&egrave;s le contact.</b> La cible s&rsquo;efface en s&rsquo;affaissant au lieu d&rsquo;&ecirc;tre retir&eacute;e d&rsquo;une image &agrave; l&rsquo;autre, et ses points de vie ont d&eacute;j&agrave; disparu &mdash; un compte &agrave; demi effac&eacute; se lirait de travers plut&ocirc;t que de ne pas se lire. Un seul nombre s&eacute;pare les deux moiti&eacute;s de chaque temps : avant lui la fente part, apr&egrave;s lui la victime encaisse. C&rsquo;est ce qui fait qu&rsquo;on <b>voit la cause avant l&rsquo;effet</b> au lieu de voir les deux ensemble.</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/anim-fluide/glissement.png" alt="Starfall, un pas de c&ocirc;t&eacute; &agrave; mi-chemin">
+  <figcaption><b>Un pas de c&ocirc;t&eacute; &agrave; mi-chemin entre ses deux cases, au sommet de son saut.</b> Trois pixels de soul&egrave;vement sur une figure de seize : assez pour que le glissement ne soit pas plat, trop peu pour qu&rsquo;on croie &agrave; un bond. Le h&eacute;ros n&rsquo;est sur <i>aucune</i> case &mdash; un &eacute;tat que ce jeu ne savait pas dessiner il y a une heure, puisque le mod&egrave;le n&rsquo;en connait aucun.</figcaption>
+</figure>
+
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Apr&egrave;s M10 &mdash; <b>Le mouvement devient continu, et surtout s&eacute;parable</b></div>
+  <p>Deux demandes en une : rendre les actions fluides, et <b>pr&eacute;parer le code &agrave; un changement complet de visuels</b>. La seconde commande la premi&egrave;re. &Eacute;crire l&rsquo;interpolation dans le code de dessin aurait donn&eacute; le m&ecirc;me r&eacute;sultat &agrave; l&rsquo;&eacute;cran et rien du tout &agrave; garder : elle serait partie avec les sprites qu&rsquo;elle accompagne.</p>
+
+  <p><b>La sc&egrave;ne cesse de d&eacute;duire ; elle ne fait plus qu&rsquo;exprimer.</b> Une classe nouvelle, sans pixel ni sprite ni libGDX ni horloge, diffe deux instantan&eacute;s du plateau et dit qui bouge, d&rsquo;o&ugrave;, vers o&ugrave;, et o&ugrave; il en est. Elle rend des fractions &mdash; « &agrave; 60 % du chemin de la case 3 vers la case 4 », « soulev&eacute; de 0,8 », « opaque &agrave; 30 % » &mdash; et la sc&egrave;ne, seule, d&eacute;cide ce qu&rsquo;elles valent en pixels. Le jour o&ugrave; les visuels changeront, ce qui sera r&eacute;&eacute;crit tient en une trentaine de lignes ; la d&eacute;rivation ne bougera pas, et elle emporte avec elle <b>tous ses tests</b>, qui n&rsquo;ont jamais eu besoin d&rsquo;un &eacute;cran pour tourner.</p>
+
+  <p><b>La fluidit&eacute; ne vient pas du sous-pixel.</b> Ce jeu dessine &agrave; l&rsquo;&eacute;chelle enti&egrave;re et n&rsquo;a aucune intention d&rsquo;arr&ecirc;ter. Une case fait vingt pixels-monde : un glissement d&rsquo;une case, c&rsquo;est vingt positions enti&egrave;res successives, et &agrave; quatre-vingts pixels &eacute;cran, l&rsquo;&oelig;il lit un mouvement continu sans que la grille soit trahie une seule fois. L&rsquo;arrondi tombe une fois, au dernier moment, &agrave; un seul endroit du programme.</p>
+
+  <p><b>Il a fallu donner un num&eacute;ro aux figures</b>, et c&rsquo;est la seule concession du mod&egrave;le &agrave; la vue. Animer le passage d&rsquo;un temps au suivant demande de savoir que le sabreur de la case 4 est <i>le m&ecirc;me</i> que celui de la case 3 juste avant. Les rapprocher par leur sprite suffirait tant qu&rsquo;aucun plateau ne porte deux ennemis identiques ; le n&ocirc;tre en porte, et une pouss&eacute;e qui d&eacute;cale l&rsquo;un dans la case que l&rsquo;autre vient de quitter transforme le rapprochement en tirage au sort. Le num&eacute;ro n&rsquo;est <b>ni ordonn&eacute;, ni affich&eacute;, ni reproductible</b> d&rsquo;une ex&eacute;cution &agrave; l&rsquo;autre &mdash; affirmation fragile, qui serait fausse au premier tri ou au premier parcours de table, donc <b>gard&eacute;e par un test</b> : deux ar&egrave;nes b&acirc;ties s&eacute;par&eacute;ment, aux num&eacute;ros donc diff&eacute;rents, jouent la m&ecirc;me ligne et doivent donner la m&ecirc;me chor&eacute;graphie. La mutation qui remplace le parcours du plateau par celui d&rsquo;une table de hachage le fait rougir.</p>
+
+  <p><b>La meilleure preuve que rien n&rsquo;a &eacute;t&eacute; cass&eacute; est un non-&eacute;v&eacute;nement</b> : apr&egrave;s la refonte, les 95 planches sont rest&eacute;es conformes <i>octet pour octet</i>. Le d&eacute;faut d&rsquo;un sc&eacute;nario de capture est de saisir la <b>fin</b> d&rsquo;un temps, et &agrave; la fin d&rsquo;un temps la chor&eacute;graphie rend exactement le plateau d&rsquo;apr&egrave;s. Ce choix de d&eacute;faut n&rsquo;est pas neutre : &agrave; z&eacute;ro, chaque planche aurait montr&eacute; l&rsquo;&eacute;tat d&rsquo;<i>avant</i> le temps qu&rsquo;elle annonce, soit un d&eacute;calage d&rsquo;un temps sur quatre-vingt-quinze images qu&rsquo;il aurait fallu accepter sans le comprendre. Les trois temps pos&eacute;s de l&rsquo;&eacute;cran de salve sont d&rsquo;ailleurs rest&eacute;s identiques &agrave; l&rsquo;octet apr&egrave;s l&rsquo;ajout des mi-courses : ils ont seulement chang&eacute; d&rsquo;indice.</p>
+
+  <p><b>Une planche est un point ; un mouvement est continu.</b> Les trois mi-courses ajout&eacute;es prouvent qu&rsquo;&agrave; 35 % du premier temps l&rsquo;&eacute;cran ressemble &agrave; ceci, et rien de plus. Que le mouvement parte de la bonne case, arrive &agrave; l&rsquo;autre, ne d&eacute;passe jamais, ne recule pas, et que la fente revienne &agrave; son point de d&eacute;part : cela se parcourt, et douze tests le parcourent. Trois mutations pos&eacute;es, trois morsures, chacune sur le test pr&eacute;vu.</p>
+
+  <p style="margin-bottom:0"><b>Un instrument s&rsquo;est fait prendre au passage.</b> Un test comparait deux num&eacute;ros de figure par <code>assertSame</code> &mdash; sur des <code>long</code> emball&eacute;s, cela ne compare que des bo&icirc;tes. Il &eacute;tait vert lanc&eacute; seul, o&ugrave; les petits num&eacute;ros partagent leurs bo&icirc;tes, et rouge dans la suite compl&egrave;te, o&ugrave; le compteur est haut. Un instrument qui ne dit vrai que sur les petits nombres ne d&eacute;montre rien ; c&rsquo;est la quatri&egrave;me fois que ce projet le rel&egrave;ve, et la premi&egrave;re o&ugrave; c&rsquo;est la suite compl&egrave;te qui le rel&egrave;ve toute seule.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Apr&egrave;s M10 &mdash; <b>L&rsquo;aide disait un tour pour toutes ; deux ne co&ucirc;taient rien</b></div>

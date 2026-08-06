@@ -14,4 +14,12 @@ public interface Occupant {
 
     /** Nom affichable, en français. */
     String label();
+
+    /**
+     * Numéro unique et stable, pour toute la vie de cet occupant.
+     *
+     * <p>Le modèle ne s'en sert jamais. Il existe pour que la vue puisse <b>suivre une figure</b>
+     * d'un instantané au suivant et l'animer entre les deux : voir {@link Identities}.
+     */
+    long id();
 }

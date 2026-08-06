@@ -38,6 +38,7 @@ public final class Playback {
     public static final float BEAT_SECONDS = 0.18f;
 
     private List<Arena.Beat> beats = List.of();
+    private List<Arena.Figure> opening = List.of();
     private int index;
     private float elapsed;
 
@@ -48,12 +49,13 @@ public final class Playback {
      * le cas ne se produit pas en jeu — mais l'écrire ainsi évite qu'un appel de trop empile deux
      * déroulés dont l'un ne finirait jamais.
      */
-    public void start(List<Arena.Beat> actionBeats) {
+    public void start(List<Arena.Beat> actionBeats, List<Arena.Figure> openingBoard) {
         if (actionBeats.size() < 2) {
             settle();
             return;
         }
         beats = List.copyOf(actionBeats);
+        opening = List.copyOf(openingBoard);
         index = 0;
         elapsed = 0f;
     }
@@ -89,6 +91,56 @@ public final class Playback {
         return isRunning() ? beats.get(index) : null;
     }
 
+    /**
+     * Où en est le temps à l'écran, de 0 — il commence — à 1 — il est joué.
+     *
+     * <p>C'est ce qui manquait pour que le mouvement soit continu : sans lui, la scène ne pouvait
+     * que montrer le plateau du temps <em>n</em> puis celui du temps <em>n+1</em>, et les figures
+     * sautaient d'une case à l'autre.
+     */
+    public float progress() {
+        return isRunning() ? Math.min(1f, elapsed / BEAT_SECONDS) : 1f;
+    }
+
+    /**
+     * Où en est chaque figure, maintenant.
+     *
+     * <p>Point de passage <b>unique</b> vers le dessin des figures : au repos comme en plein
+     * déroulé, la scène lit cette liste et rien d'autre. C'est la même exigence que l'instantané
+     * unique dont ce déroulé est né, poussée d'un cran — une règle écrite à deux endroits finit par
+     * diverger, et « où se trouve une figure » est exactement le genre de règle qui coûte cher à
+     * écrire deux fois.
+     *
+     * @param resting le plateau vivant, montré quand rien ne se déroule
+     */
+    public List<Choreography.Placement> placements(List<Arena.Figure> resting) {
+        if (!isRunning()) {
+            return Choreography.resting(resting);
+        }
+        Arena.Beat beat = beats.get(index);
+        List<Arena.Figure> before = index == 0 ? opening : beats.get(index - 1).board();
+        return Choreography.at(before, beat.board(), beat.cell(), progress());
+    }
+
+    /**
+     * Se place sur un temps donné, à une fraction donnée de son déroulement.
+     *
+     * <p>Existe pour la <b>capture</b>, qui doit pouvoir montrer un mouvement à mi-course sans
+     * dépendre d'une horloge. Y arriver par {@code advance} serait possible mais piégeux : avancer
+     * d'exactement une durée de temps bascule sur le temps suivant, si bien qu'on ne peut pas
+     * demander « la fin du temps 2 » par accumulation. Ici la position est posée, pas atteinte.
+     *
+     * @param beat     rang du temps, à partir de 1
+     * @param fraction où en est ce temps, de 0 à 1
+     */
+    public void seek(int beat, float fraction) {
+        if (beats.isEmpty()) {
+            return;
+        }
+        index = Math.max(0, Math.min(beats.size() - 1, beat - 1));
+        elapsed = Math.max(0f, Math.min(1f, fraction)) * BEAT_SECONDS;
+    }
+
     /** Rang du temps à l'écran, à partir de 1, ou 0 si rien ne se déroule. */
     public int step() {
         return isRunning() ? index + 1 : 0;
@@ -102,6 +154,7 @@ public final class Playback {
     /** Termine le déroulé sur-le-champ. */
     public void settle() {
         beats = List.of();
+        opening = List.of();
         index = 0;
         elapsed = 0f;
     }
