@@ -190,7 +190,8 @@ public final class Arena {
      * @param result ce qu'elle a produit
      * @param cell   la case visée, ou {@code -1} quand la tuile n'en vise aucune
      */
-    public record Beat(Tile tile, ActionResult result, int cell, List<Figure> board) {
+    public record Beat(Tile tile, ActionResult result, int cell, List<Figure> board,
+                      List<Tile> queued) {
     }
 
     /**
@@ -1098,7 +1099,10 @@ public final class Arena {
             // Le plateau APRES le coup : c'est l'effet de cette tuile-ci qu'il faut montrer, pas
             // l'état qui la précédait. Le premier temps montre donc déjà quelque chose, et le
             // dernier montre l'état final — celui que la scène retrouvera de toute façon au repos.
-            beats.add(new Beat(tile, result, cell, snapshot()));
+            // La file telle qu'elle est APRES ce coup : elle se vide tuile par tuile sous les
+            // yeux, au lieu de se vider d'un bloc pendant que la salve s'égrène. C'est le même
+            // décalage que celui des figures, sur l'autre moitié de l'écran.
+            beats.add(new Beat(tile, result, cell, snapshot(), queue.fromOldest()));
             rack.giveBackSpent(tile);
             fired++;
             last = result;

@@ -329,6 +329,15 @@ class SalvoTest {
         assertEquals(0, standingAfterThrust,
                 "au second temps l'estoc l'a abattu : " + beats.get(1).board());
 
+        // ET LA FILE SE VIDE AU MEME RYTHME. Sans cela elle apparait videe d'un bloc pendant que
+        // les tuiles partent une a une : l'autre moitie de l'ecran raconterait une autre histoire
+        // que le plateau, et l'on perdrait de vue laquelle vient de jouer.
+        assertEquals(1, beats.get(0).queued().size(),
+                "apres la poussee il reste l'estoc dans la file : " + beats.get(0).queued());
+        assertEquals(Tile.THRUST, beats.get(0).queued().get(0));
+        assertTrue(beats.get(1).queued().isEmpty(),
+                "apres le dernier coup la file est vide : " + beats.get(1).queued());
+
         // Et le heros figure dans les deux, sans quoi le plateau anime serait borgne.
         assertTrue(beats.get(0).board().stream().anyMatch(Arena.Figure::hero),
                 "le heros manque au premier temps");

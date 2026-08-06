@@ -325,12 +325,34 @@ public final class ArenaScene implements Scene {
     public void drawWorld() {
         drawBackdrop();
         drawGround();
-        drawThreats();
+        // PENDANT LE DEROULE, les calques du repos se taisent. Ils décrivent tous l'état
+        // <em>au repos</em> — la phase ennemie qui vient, la case qu'un clic atteindrait, le
+        // repère du héros — et ils lisent l'arène VIVANTE, alors que les figures viennent d'un
+        // instant passé. Les laisser produisait deux sources de vérité sur le même écran : le
+        // repère du héros se posait sur sa case finale pendant que sa figure occupait encore la
+        // précédente, et un glyphe d'intention flottait au-dessus d'une case vide.
+        //
+        // Ce n'est pas un ajustement d'esthétique. Le télégraphe est l'invariant de ce projet :
+        // une annonce doit décrire ce qui va se produire, et une annonce peinte sur un plateau
+        // d'hier n'en décrit rien. Se taire est la seule réponse honnête tant que l'action se
+        // résout ; tout revient au repos, un dixième de seconde plus tard.
+        //
+        // Ce garde-fou-là n'a pas de témoin automatique, et il faut le dire : le mode capture ne
+        // déroule jamais, donc les 84 planches ne peuvent pas l'attraper. Sa seule défense est
+        // d'être écrit à UN endroit — celui-ci — plutôt que réparti dans les cinq méthodes.
+        boolean settled = !playback.isRunning();
+        if (settled) {
+            drawThreats();
+        }
         drawPlayback();
-        drawReach();
+        if (settled) {
+            drawReach();
+        }
         drawOccupants();
-        drawIntentions();
-        drawTacticalMarks();
+        if (settled) {
+            drawIntentions();
+            drawTacticalMarks();
+        }
         // Le râtelier d'abord : ses repères ne doivent jamais pouvoir recouvrir ceux de la file,
         // même si les deux bandes venaient à se croiser un jour.
         drawRack();
@@ -1084,7 +1106,10 @@ public final class ArenaScene implements Scene {
      */
     private void drawQueue() {
         var empty = context.atlas().region("tile/empty");
-        List<Tile> tiles = arena.queue().fromOldest();
+        // Pendant le déroulé, la file de CE temps-là : sans cela elle apparaît vidée d'un bloc
+        // pendant que les tuiles partent une à une, et l'on perd de vue laquelle vient de jouer.
+        Arena.Beat beat = playback.current();
+        List<Tile> tiles = beat != null ? beat.queued() : arena.queue().fromOldest();
 
         for (int slot = 0; slot < ActionQueue.CAPACITY; slot++) {
             int x = hud.queueSlotX(slot);
