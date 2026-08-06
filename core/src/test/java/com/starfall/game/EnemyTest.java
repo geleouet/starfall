@@ -169,9 +169,13 @@ class EnemyTest {
             passTurn(arena);
             int afterThird = arena.grid().indexOf(colosse);
 
-            assertNotEquals(4, afterFirst, "il agit a la premiere phase");
-            assertEquals(afterFirst, afterSecond, "puis il passe son tour");
-            assertNotEquals(afterSecond, afterThird, "puis il repart");
+            // Le rythme n'a pas change - une phase sur deux - mais il est DECALE, et pour une
+            // bonne raison : la lenteur du colosse ne vient plus d'un compteur de phases, elle
+            // vient de sa FILE, qu'il met deux tours a remplir. Il commence donc par accumuler,
+            // ce qui se voit a l'ecran, la ou il commencait par agir apres un silence inexplique.
+            assertEquals(4, afterFirst, "il remplit sa file d'abord, il ne bouge pas");
+            assertNotEquals(afterFirst, afterSecond, "puis il lache tout");
+            assertEquals(afterSecond, afterThird, "puis il recommence a remplir");
         }
     }
 

@@ -153,6 +153,13 @@ class SovereignTest {
         for (int i = 0; i < budget; i++) {
             boss.spendSummon();
         }
+        // Sa file est VERROUILLEE tant qu'elle est pleine : ce qui y est ne change plus, et c'est
+        // ce qui rend l'annonce tenable. Depenser le budget dans son dos ne retracte donc pas une
+        // invocation deja promise - et c'est tant mieux, car une promesse retractee est exactement
+        // ce que le telegraphe interdit. La question de ce test se pose au moment ou il DECIDE,
+        // pas au milieu d'un engagement en cours ; en jeu, le budget ne se depense qu'en jouant
+        // l'invocation, ce qui vide la file du meme geste.
+        boss.clearPlan();
         arena.announceIntentions();
 
         assertEquals(0, boss.summonsLeft());

@@ -377,7 +377,13 @@ public final class Arena {
                 enemy.setStunned(false);
                 continue;
             }
-            execute(enemy);
+            if (!enemy.isPlanFull()) {
+                continue; // sa file se remplit encore : rien ne part ce tour-ci
+            }
+            for (Intention queued : enemy.queued()) {
+                execute(enemy, queued);
+            }
+            enemy.clearPlan();
         }
         resolvePendingPush();
         phaseIndex++;
@@ -416,9 +422,12 @@ public final class Arena {
         // annoncé au joueur ne tombait jamais. Une intention est un engagement — les autres
         // ennemis doivent le respecter, sans quoi le télégraphe sur-promet.
         boolean[] reserved = new boolean[grid.width()];
+        // L'ETOURDI perd ce qu'il avait prevu. C'etait deja le cas quand un ennemi ne tenait
+        // qu'une action ; avec une file, l'ecrire autrement lui laisserait ses coups en reserve et
+        // ferait de l'etourdissement un simple report.
         for (Enemy enemy : enemies) {
-            if (!willAct(enemy)) {
-                enemy.announce(Intention.of(Intention.Kind.WAIT));
+            if (enemy.isStunned()) {
+                enemy.resetPlan(Intention.of(Intention.Kind.WAIT));
             }
         }
         // Les charges d'abord, les invocations ensuite, le reste en dernier. L'ordre des deux
@@ -430,8 +439,12 @@ public final class Arena {
         announceGroundClaims(enemies, heroCell, reserved, Enemy::isWindingUp);
         announceGroundClaims(enemies, heroCell, reserved, e -> e.kind().summons() > 0);
 
+        // ANNONCER n'est plus AGIR. Un ennemi remplit sa file tant qu'elle n'est pas pleine, et
+        // il la joue quand elle l'est : les deux questions se posaient au meme moment tant que
+        // toutes les files tenaient une action, et il a fallu les separer pour que le colosse
+        // puisse se voir accumuler.
         for (Enemy enemy : enemies) {
-            if (!willAct(enemy) || claimsGround(enemy)) {
+            if (enemy.isStunned() || enemy.isPlanFull() || claimsGround(enemy)) {
                 continue;
             }
             enemy.announce(EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell,
@@ -443,7 +456,12 @@ public final class Arena {
     private void announceGroundClaims(List<Enemy> enemies, int heroCell, boolean[] reserved,
                                       java.util.function.Predicate<Enemy> selector) {
         for (Enemy enemy : enemies) {
-            if (!willAct(enemy) || !selector.test(enemy)) {
+            // « Peut annoncer », et non « va agir ». Les deux etaient la meme question tant que
+            // chaque ennemi ne tenait qu'une action ; depuis la file, un ennemi dont la file se
+            // remplit encore ANNONCE sans AGIR - et gouverner cette passe par « va agir » lui
+            // faisait sauter son annonce, si bien que charges et invocations retombaient sur
+            // WAIT. C'est la moitie de la separation que j'avais oubliee.
+            if (enemy.isStunned() || enemy.isPlanFull() || !selector.test(enemy)) {
                 continue;
             }
             Intention claim = EnemyBrain.decide(grid, enemy, grid.indexOf(enemy), heroCell,
@@ -478,7 +496,8 @@ public final class Arena {
      * possibles dans un jeu de placement.
      */
     public boolean willAct(Enemy enemy) {
-        return !enemy.isStunned() && enemy.kind().actsThisPhase(phaseIndex);
+        return !enemy.isStunned() && enemy.kind().actsThisPhase(phaseIndex)
+                && enemy.isPlanFull();
     }
 
     /** Marque le terrain qu'une intention réclame : un couloir de charge, ou une case d'invocation. */
@@ -511,12 +530,11 @@ public final class Arena {
      * <p>Si le joueur s'est écarté de la case visée, l'attaque part dans le vide — c'est exactement
      * ainsi qu'on esquive, et c'est pour cela que rien n'est recalculé ici.
      */
-    private void execute(Enemy enemy) {
+    private void execute(Enemy enemy, Intention intention) {
         int cell = grid.indexOf(enemy);
         if (cell < 0) {
             return; // tué entre-temps
         }
-        Intention intention = enemy.intention();
         switch (intention.kind()) {
             case ADVANCE -> {
                 if (grid.isFree(intention.targetCell())) {
@@ -903,8 +921,10 @@ public final class Arena {
     public int threatCount(int cell) {
         int count = 0;
         for (Enemy enemy : enemiesLeftToRight()) {
-            if (enemy.intention().threatens(cell)) {
-                count += enemy.strikesPerAttack();
+            for (Intention queued : threatening(enemy)) {
+                if (queued.threatens(cell)) {
+                    count += enemy.strikesPerAttack();
+                }
             }
         }
         return count;
@@ -924,11 +944,25 @@ public final class Arena {
     public int threatDamage(int cell) {
         int total = 0;
         for (Enemy enemy : enemiesLeftToRight()) {
-            if (enemy.intention().threatens(cell)) {
-                total += enemy.announcedDamage();
+            for (Intention queued : threatening(enemy)) {
+                if (queued.threatens(cell)) {
+                    total += enemy.announcedDamage();
+                }
             }
         }
         return total;
+    }
+
+    /**
+     * Ce qu'un ennemi fera <b>&agrave; la phase qui vient</b>, ou rien.
+     *
+     * <p>Une file qui se remplit encore ne menace personne : ses actions partiront, mais pas
+     * maintenant. Les compter comme des menaces ferait sur-promettre le t&eacute;l&eacute;graphe
+     * &mdash; le joueur fuirait une case o&ugrave; rien ne tombe. Une file pleine, elle, part en
+     * entier, et chacune de ses actions compte.
+     */
+    private List<Intention> threatening(Enemy enemy) {
+        return willAct(enemy) ? enemy.queued() : List.of();
     }
 
     /** Case du héros. Toujours valide : le héros ne quitte jamais la grille. */

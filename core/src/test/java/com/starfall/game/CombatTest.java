@@ -76,8 +76,11 @@ class CombatTest {
             // Ce qui est difficile a tuer doit etre facile a eviter, sans quoi il n'y a pas de
             // decision a prendre.
             assertTrue(EnemyKind.COLOSSE.health() > EnemyKind.SABREUR.health());
-            assertFalse(EnemyKind.COLOSSE.actsThisPhase(1));
-            assertTrue(EnemyKind.SABREUR.actsThisPhase(1));
+            // La lenteur ne se lit plus dans un compteur de phases mais dans la FILE : le colosse
+            // met deux tours a la remplir avant de la lacher, le sabreur la lache a chaque tour.
+            // Le rythme est le meme ; il est devenu une donnee, et il se voit.
+            assertTrue(EnemyKind.COLOSSE.planSize() > EnemyKind.SABREUR.planSize(),
+                    "la lenteur du colosse doit se lire quelque part");
         }
     }
 

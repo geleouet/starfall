@@ -357,10 +357,22 @@
 
 <figure class="sheet">
   <img src="captures/actuel/file-ennemie.png" alt="Starfall, la file d&rsquo;un lancier">
-  <figcaption><b>La file d&rsquo;un ennemi, enfin visible.</b> Le lancier prend son &eacute;lan &mdash; plaque <b>pleine</b>, donc rien ne tombe ce tour-ci &mdash; et la petite carte pos&eacute;e au-dessus porte la double pointe de la <b>charge qui suit</b>. Cette suite existait dans le mod&egrave;le depuis M6, cach&eacute;e dans un bool&eacute;en : on voyait &laquo; il se charge &raquo;, jamais &laquo; il se charge <i>pour une charge</i> &raquo;, et le joueur apprenait ce qui venait en le prenant. La carte du dessus est plus &eacute;troite et sans nombre : ce qui vient <i>ensuite</i> ne doit pas peser autant que ce qui tombe <i>maintenant</i>.</figcaption>
+  <figcaption><b>La file d&rsquo;un ennemi, pleine et pr&ecirc;te &agrave; partir.</b> Le colosse tient <b>deux</b> actions : il met deux tours &agrave; les accumuler, puis les l&acirc;che ensemble. Sa cadence n&rsquo;a pas chang&eacute; &mdash; une phase sur deux, comme avant &mdash; mais elle vient d&eacute;sormais de sa <b>file</b> et non d&rsquo;un compteur de phases, si bien qu&rsquo;elle se voit au lieu de se deviner : on le regarde remplir, puis l&acirc;cher, l&agrave; o&ugrave; il alternait entre une menace et un tour de silence que rien n&rsquo;expliquait. Sa force par coup est pass&eacute;e de deux &agrave; un : deux coups d&rsquo;un point valent les deux qu&rsquo;il retirait d&rsquo;un seul. <b>Le total ne bouge pas ; la lecture, si.</b></figcaption>
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>La file ennemie tient plusieurs actions</b></div>
+  <p>Diff&eacute;r&eacute;e deux fois, ouverte cette fois : le colosse <b>accumule deux actions puis les l&acirc;che ensemble</b>. Sa lenteur ne vient plus d&rsquo;un compteur de phases mais de sa file, qu&rsquo;il met deux tours &agrave; remplir. Le rythme est identique ; il est devenu une <i>donn&eacute;e</i>, et il se voit.</p>
+
+  <p><b>Le total de d&eacute;g&acirc;ts ne bouge pas</b> &mdash; deux coups d&rsquo;un point pour les deux points qu&rsquo;il retirait d&rsquo;un seul &mdash; mais une nuance de jeu appara&icirc;t sans qu&rsquo;on l&rsquo;ait cherch&eacute;e : ses deux coups visent les cases annonc&eacute;es <em>au moment o&ugrave; il les a mises en file</em>, donc le plus ancien porte souvent &agrave; c&ocirc;t&eacute;. S&rsquo;&eacute;carter t&ocirc;t en esquive un ; s&rsquo;&eacute;carter tard les esquive tous les deux.</p>
+
+  <p><b>Deux fois j&rsquo;ai s&eacute;par&eacute; &agrave; moiti&eacute; deux questions qui n&rsquo;en faisaient qu&rsquo;une.</b> &laquo; Il annonce &raquo; et &laquo; il agit &raquo; &eacute;taient le m&ecirc;me pr&eacute;dicat tant qu&rsquo;une file tenait une action ; avec la file, un ennemi remplit sans jouer. J&rsquo;ai corrig&eacute; la boucle principale et oubli&eacute; la passe qui r&eacute;serve le terrain des charges et des invocations &mdash; r&eacute;sultat, elles retombaient toutes sur <code>WAIT</code>. Puis j&rsquo;ai fait <b>ex&eacute;cuter la file montr&eacute;e au lieu de la file jou&eacute;e</b> : celle du lancier contient une charge <i>promise</i> et pas encore mise en file, et le mod&egrave;le la jouait. Les deux fautes ont &eacute;t&eacute; rendues par les tests en quelques secondes.</p>
+
+  <p style="margin-bottom:0"><b>Trois t&eacute;moins encodaient l&rsquo;ancien m&eacute;canisme</b> plut&ocirc;t que le rythme observable, et deux ont &eacute;t&eacute; reformul&eacute;s sur ce qui se voit. Le troisi&egrave;me a r&eacute;v&eacute;l&eacute; une r&egrave;gle : d&eacute;penser le budget d&rsquo;invocation d&rsquo;un souverain dans son dos ne r&eacute;tracte pas une invocation d&eacute;j&agrave; promise, parce qu&rsquo;<b>une file pleine est verrouill&eacute;e</b>. C&rsquo;est le t&eacute;l&eacute;graphe : une promesse r&eacute;tract&eacute;e est exactement ce qu&rsquo;il interdit. Le test pose maintenant sa question au moment o&ugrave; l&rsquo;ennemi d&eacute;cide, pas au milieu d&rsquo;un engagement en cours. 547 tests verts, ligne gagnante intacte, garde-fou de jouabilit&eacute; intact.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Une promesse &eacute;crite &agrave; deux endroits</b></div>

@@ -62,10 +62,15 @@ public enum EnemyKind {
      *
      * <p>Sa lenteur est sa lisibilité : on peut le contourner, à condition de compter.
      */
-    COLOSSE("colosse", "enemy/colosse", 1, 2, 3) {
+    COLOSSE("colosse", "enemy/colosse", 1, 1, 3) {
         @Override
         boolean actsThisPhase(int phaseIndex) {
-            return phaseIndex % 2 == 0;
+            return true;
+        }
+
+        @Override
+        int planSize() {
+            return 2;
         }
     },
 
@@ -163,8 +168,35 @@ public enum EnemyKind {
         return health;
     }
 
-    /** Vrai si l'archétype agit à cette phase. Le colosse n'agit qu'une fois sur deux. */
+    /**
+     * Vrai si l'archétype agit à cette phase.
+     *
+     * <p>Le colosse n'y répond plus : sa lenteur ne vient plus d'un compteur de phases mais de sa
+     * <b>file</b>, qu'il met deux tours à remplir. Le rythme est devenu une donnée au lieu d'un cas
+     * particulier, et il se voit à l'écran au lieu de se deviner.
+     */
     abstract boolean actsThisPhase(int phaseIndex);
+
+    /**
+     * Combien d'actions cet archétype accumule avant de les lâcher <b>toutes ensemble</b>.
+     *
+     * <h2>Ce que la file change</h2>
+     *
+     * <p>Un ennemi à file de un annonce puis frappe, tour après tour : c'est tout le monde sauf le
+     * colosse, et c'était tout le monde sans exception jusqu'ici. Le colosse en tient <b>deux</b>.
+     * Il ne frappe donc qu'un tour sur deux — exactement la cadence qu'il avait — mais les deux
+     * tours se lisent au lieu d'un seul : on le voit <em>remplir</em>, puis <em>lâcher</em>, là où
+     * il alternait entre une menace et un tour de silence que rien n'expliquait.
+     *
+     * <p>Sa force par coup passe de deux à un : deux coups d'un point valent les deux points qu'il
+     * retirait d'un seul, et la cadence est inchangée. <b>Le total ne bouge pas ; la lecture,
+     * si.</b> Et une nuance de jeu apparaît sans qu'on l'ait cherchée : ses deux coups visent les
+     * cases annoncées <em>au moment où il les a mises en file</em>, donc le plus ancien porte
+     * souvent à côté. S'écarter tôt en esquive un ; s'écarter tard les esquive tous les deux.
+     */
+    int planSize() {
+        return 1;
+    }
 
     /** Vrai si l'archétype prépare sa frappe un tour à l'avance. */
     boolean windsUp() {

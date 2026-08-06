@@ -2,6 +2,7 @@ package com.starfall.game;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -29,6 +30,9 @@ public final class Enemy implements Occupant {
 
     private Direction facing = Direction.LEFT;
     private Intention intention = Intention.of(Intention.Kind.WAIT);
+
+    /** Ce qu'il a mis en file, dans l'ordre où il le jouera. Voir {@link EnemyKind#planSize()}. */
+    private final List<Intention> plan = new ArrayList<>();
     /** Vrai quand un lancier a pris son élan et chargera à sa prochaine activation. */
     private boolean windingUp;
     /** Invocations qu'il lui reste. Zéro pour tout le monde sauf le souverain. */
@@ -87,8 +91,49 @@ public final class Enemy implements Occupant {
         return intention;
     }
 
+    /**
+     * Met une action dans la file, si elle n'est pas pleine.
+     *
+     * <p>Une file pleine est <b>verrouillée</b> : ce qui y est ne change plus, et c'est ce qui rend
+     * l'annonce tenable. Ajouter à une file pleine reviendrait à réécrire une promesse déjà faite
+     * au joueur, ce que le télégraphe interdit depuis M6.
+     */
     void announce(Intention intention) {
-        this.intention = intention;
+        if (plan.size() >= kind.planSize()) {
+            return;
+        }
+        plan.add(intention);
+        this.intention = plan.get(0);
+    }
+
+    /** Vide la file et n'y met que cela. Sert à l'étourdissement, qui efface ce qui était prévu. */
+    void resetPlan(Intention only) {
+        plan.clear();
+        plan.add(only);
+        this.intention = only;
+    }
+
+    /** Vrai quand la file est pleine : elle part à la prochaine activation, en entier. */
+    public boolean isPlanFull() {
+        return plan.size() >= kind.planSize();
+    }
+
+    /**
+     * La file <b>réelle</b>, telle que le modèle la jouera.
+     *
+     * <p>Distincte de {@link #plan()}, qui est la file <em>montrée</em> : celle-là ajoute, pour un
+     * lancier qui prend son élan, la charge qu'il tiendra ensuite — une action qui n'est pas encore
+     * dans la file mais qui est promise sans condition. Confondre les deux fait exécuter une
+     * promesse au lieu de l'annoncer, ce qui est exactement le contraire de ce qu'elle est.
+     */
+    List<Intention> queued() {
+        return List.copyOf(plan);
+    }
+
+    /** Vide la file : appelé une fois qu'elle a été jouée. */
+    void clearPlan() {
+        plan.clear();
+        intention = Intention.of(Intention.Kind.WAIT);
     }
 
     boolean isWindingUp() {
@@ -161,6 +206,9 @@ public final class Enemy implements Occupant {
      * qu'elle couvre.
      */
     public List<Intention> plan() {
+        if (plan.size() > 1) {
+            return List.copyOf(plan);
+        }
         if (intention.kind() == Intention.Kind.WIND_UP) {
             // Ce qui suit l'elan est connu d'avance et sans condition : le lancier « tient sa
             // promesse, quoi qu'il arrive ». La case visee, elle, ne l'est pas - elle sera
