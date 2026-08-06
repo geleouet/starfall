@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 543 tests verts · 106 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 544 tests verts · 106 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -356,6 +356,16 @@
 </figure>
 
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>Le t&eacute;l&eacute;graphe n&rsquo;&eacute;tait plus gard&eacute; qu&rsquo;&agrave; moiti&eacute;</b></div>
+  <p>D&eacute;p&ocirc;t propre, 543 tests verts, 106 planches conformes. La promesse centrale du jeu &mdash; <i>ce qui est annonc&eacute; est exactement ce qui est jou&eacute;</i> &mdash; &eacute;tait gard&eacute;e en <b>coups</b>. C&rsquo;&eacute;tait la promesse enti&egrave;re tant que tout coup ennemi retirait un point ; depuis l&rsquo;axe de d&eacute;g&acirc;ts, ce n&rsquo;en est plus qu&rsquo;une moiti&eacute;. La plaque affiche d&eacute;sormais un <b>nombre de points</b>, et c&rsquo;est sur lui que le joueur d&eacute;cide de rester ou de fuir. Un coup annonc&eacute; juste qui retirerait deux points au lieu d&rsquo;un tiendrait la promesse compt&eacute;e en coups et la trahirait l&agrave; o&ugrave; elle se lit.</p>
+
+  <p><b>Le test a d&rsquo;abord accus&eacute; la plaque &agrave; tort</b>, et la mesure a tranch&eacute; : &laquo; 2 annonc&eacute;s, 1 perdu, <code>pv 1 -&gt; 0</code> &raquo;. La sant&eacute; se borne &agrave; z&eacute;ro &mdash; un h&eacute;ros &agrave; un point qui en encaisse deux n&rsquo;en perd qu&rsquo;un. C&rsquo;&eacute;tait mon instrument, pas le jeu. Le test voisin y &eacute;chappait sans y penser parce qu&rsquo;il compte des coups, que rien ne borne. Le coup qui tue est donc exclu, et la raison est &eacute;crite &agrave; c&ocirc;t&eacute; de l&rsquo;exclusion.</p>
+
+  <p style="margin-bottom:0"><b>Puis la mutation a pris ma pr&eacute;misse en flagrant d&eacute;lit.</b> J&rsquo;avais &eacute;crit &laquo; sans plusieurs valeurs distinctes, cette comparaison ne distingue pas un axe de d&eacute;g&acirc;ts d&rsquo;une constante &raquo;. Aplatir les cinq arch&eacute;types &agrave; un point <b>n&rsquo;a pas fait rougir le fichier</b> : plusieurs totaux distincts subsistent, parce qu&rsquo;un ennemi rapide frappe deux fois et que deux ennemis peuvent viser la m&ecirc;me case. Mon titre promettait plus que mon corps n&rsquo;ass&eacute;rait &mdash; le d&eacute;faut que ce projet rel&egrave;ve le plus souvent, et il vaut aussi pour les pr&eacute;misses. Une seconde assertion garde d&eacute;sormais l&rsquo;axe lui-m&ecirc;me, et la mutation mord. Trois mutations, trois morsures : le coup qui retire toujours un, l&rsquo;annonce qui oublie les coups multiples, l&rsquo;axe aplati.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>La carte porte enfin son nombre</b></div>

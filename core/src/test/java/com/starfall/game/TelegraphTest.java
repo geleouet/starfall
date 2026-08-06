@@ -4,10 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.TreeSet;
+import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +47,92 @@ class TelegraphTest {
 
     private static final int SEEDS = 300;
     private static final int TURNS_PER_SEED = 60;
+
+    /**
+     * Le t&eacute;l&eacute;graphe, en <b>points</b> et non plus seulement en coups.
+     *
+     * <p>Le test voisin garde la promesse centrale du jeu compt&eacute;e en <em>coups</em> : ce qui
+     * est annonc&eacute; est exactement ce qui est jou&eacute;. C'&eacute;tait la promesse
+     * enti&egrave;re tant que tout coup ennemi retirait un point.
+     *
+     * <p>Depuis l'axe de d&eacute;g&acirc;ts, ce n'est plus qu'une moiti&eacute;. La plaque
+     * pos&eacute;e au-dessus de chaque ennemi affiche d&eacute;sormais un <b>nombre de points</b>,
+     * et c'est sur lui que le joueur d&eacute;cide de rester ou de fuir. Un coup annonc&eacute;
+     * juste qui retirerait deux points au lieu d'un tiendrait la promesse compt&eacute;e en coups
+     * et la trahirait l&agrave; o&ugrave; elle se lit. Ce test-ci garde l'autre moiti&eacute;.
+     */
+    @Test
+    @DisplayName("Les points annoncés sur la case du héros sont exactement ceux qu'il perd")
+    void announcedDamageIsExactlyTheDamageTaken() {
+        List<String> failures = new ArrayList<>();
+        Set<Integer> announcedValues = new TreeSet<>();
+
+        for (int startWave = 1; startWave <= Arena.WAVE_COUNT; startWave++) {
+            for (int seed = 0; seed < SEEDS; seed++) {
+                Random random = new Random(seed);
+                Arena arena = ArenaSetup.trainingArena(
+                        Grid.MIN_WIDTH + random.nextInt(Grid.MAX_WIDTH - Grid.MIN_WIDTH + 1),
+                        startWave);
+
+                for (int turn = 0; turn < TURNS_PER_SEED && !arena.isOver()
+                        && !arena.enemies().isEmpty(); turn++) {
+                    int heroCell = arena.heroCell();
+                    int announced = arena.threatDamage(heroCell);
+                    int healthBefore = arena.hero().health();
+                    int turnsBefore = arena.turnsTaken();
+
+                    // Le demi-tour, pour la meme raison que le test voisin : le seul geste qui
+                    // consomme un tour sans deplacer le heros ni toucher a la grille. Il reste
+                    // donc exactement sur la case dont on vient de lire le prix.
+                    arena.step(arena.hero().facing().opposite());
+                    if (arena.turnsTaken() == turnsBefore) {
+                        continue;
+                    }
+                    // LE COUP QUI TUE NE SE MESURE PAS EN POINTS PERDUS. La sante se borne a zero :
+                    // un heros a un point qui en encaisse deux n'en perd qu'un, et la promesse
+                    // paraitrait trahie alors qu'elle est tenue. Le test voisin y echappe sans y
+                    // penser parce qu'il compte des COUPS, que rien ne borne. Mesure : c'est la
+                    // seule forme d'ecart que cet echantillon produisait, toutes a « pv 1 -> 0 ».
+                    if (arena.hero().health() == 0) {
+                        continue;
+                    }
+                    announcedValues.add(announced);
+
+                    int lost = healthBefore - arena.hero().health();
+                    if (lost != announced) {
+                        failures.add("graine " + seed + " vague " + startWave + " tour " + turn
+                                + " : " + announced + " point(s) annonce(s) sur la case "
+                                + (heroCell + 1) + ", " + lost + " perdu(s), pv " + healthBefore
+                                + " -> " + arena.hero().health());
+                    }
+                    if (failures.size() > 5) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        assertTrue(failures.isEmpty(),
+                "la plaque ment sur ce qu'elle coute :\n  " + String.join("\n  ", failures));
+
+        // PREMIERE PREMISSE : l'echantillon n'est pas degenere. Si threatDamage rendait toujours
+        // zero, ou si aucune case menacee n'etait jamais occupee, la comparaison ci-dessus serait
+        // vraie sans rien avoir eprouve. Elle ne dit QUE cela - voir juste en dessous pourquoi la
+        // formulation d'origine en promettait davantage.
+        assertTrue(announcedValues.size() >= 3,
+                "l'echantillon n'a vu que " + announcedValues + " comme prix annonces : il est"
+                        + " degenere, et la comparaison ci-dessus ne porte plus sur grand-chose");
+
+        // ET L'AXE LUI-MEME. L'assertion ci-dessus ne le garde PAS, contrairement a ce que sa
+        // premiere version pretendait : ramener les cinq archetypes a un point laisse encore
+        // plusieurs totaux distincts, parce qu'un ennemi rapide frappe deux fois et que deux
+        // ennemis peuvent viser la meme case. Mesure : la mutation qui aplatit l'axe ne faisait
+        // pas rougir ce fichier. Un titre qui promet plus que son corps n'assere est le defaut
+        // que ce projet releve le plus souvent ; il vaut aussi pour les premisses.
+        assertTrue(Arrays.stream(EnemyKind.values()).map(EnemyKind::damage).distinct().count() >= 2,
+                "tous les archetypes retirent le meme nombre de points : l'axe de degats ennemi a"
+                        + " ete aplati, et rien d'autre dans cette suite ne le dirait");
+    }
 
     @Test
     @DisplayName("Les coups annoncés sur la case du héros sont exactement ceux qu'il encaisse")
