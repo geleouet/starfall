@@ -102,10 +102,19 @@ class HudTextTest {
         // phrase que l'interface peut produire et que le corpus ignore est une phrase non gardee.
         for (Tile tile : Tile.values()) {
             for (ActionResult result : ActionResult.values()) {
-                panel.addAll(HudText.beatLines(tile, result, 1, ActionQueue.CAPACITY));
+                panel.addAll(HudText.beatLines(tile, result, 1, ActionQueue.CAPACITY, false));
                 panel.addAll(HudText.beatLines(tile, result, ActionQueue.CAPACITY,
-                        ActionQueue.CAPACITY));
+                        ActionQueue.CAPACITY, false));
             }
+        }
+        // Les temps SANS TUILE : le geste du joueur, et la riposte des ennemis. Le corpus les
+        // ignorait parce qu'ils n'existaient pas ; les oublier maintenant laisserait deux phrases
+        // que l'interface produit a chaque salve hors des deux regles gardees ici. Le compte monte
+        // d'un cran au-dela de la file : une salve pleine et sa riposte font un temps de plus.
+        for (boolean response : new boolean[] {false, true}) {
+            panel.addAll(HudText.beatLines(null, null, 1, ActionQueue.CAPACITY + 1, response));
+            panel.addAll(HudText.beatLines(null, null, ActionQueue.CAPACITY + 1,
+                    ActionQueue.CAPACITY + 1, response));
         }
         if (arena.isOver()) {
             panel.addAll(HudText.outcome(arena));

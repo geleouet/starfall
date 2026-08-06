@@ -18,6 +18,7 @@ import com.starfall.scene.CalibrationScene;
 import com.starfall.scene.CaptureScript;
 import com.starfall.scene.Scene;
 import com.starfall.scene.SceneContext;
+import com.starfall.scene.RiposteScript;
 import com.starfall.scene.SalvoScript;
 import com.starfall.scene.ShowcaseScript;
 
@@ -90,6 +91,10 @@ public class StarfallGame extends ApplicationAdapter {
             // par image au lieu d'un geste. C'est le seul temoin possible des deux regles de
             // l'animation, que le mode capture ne pouvait pas atteindre jusqu'ici.
             case SalvoScript.SCENE_NAME -> new ArenaScene(SalvoScript.SCENARIO);
+            // Et le pas suivi de sa riposte : le geste le plus frequent du jeu, et la reponse
+            // qu il paie. La ligne de la salve ne pouvait montrer ni l un ni l autre - sa
+            // derniere tuile ne deplace personne, et l ennemi qui lui survit non plus.
+            case RiposteScript.SCENE_NAME -> new ArenaScene(RiposteScript.SCENARIO);
             case CalibrationScene.SCENE_NAME -> new CalibrationScene();
             default -> throw new IllegalArgumentException("Scène inconnue : " + name);
         };

@@ -2,6 +2,7 @@ package com.starfall.scene;
 
 import com.starfall.game.Arena;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,6 +40,8 @@ public final class Playback {
 
     private List<Arena.Beat> beats = List.of();
     private List<Arena.Figure> opening = List.of();
+    /** Rang du temps de riposte, ou {@code -1} : voir {@link #showsResponse()}. */
+    private int response = -1;
     private int index;
     private float elapsed;
 
@@ -49,15 +52,108 @@ public final class Playback {
      * le cas ne se produit pas en jeu — mais l'écrire ainsi évite qu'un appel de trop empile deux
      * déroulés dont l'un ne finirait jamais.
      */
-    public void start(List<Arena.Beat> actionBeats, List<Arena.Figure> openingBoard) {
-        if (actionBeats.size() < 2) {
+    public void start(List<Arena.Beat> actionBeats, List<Arena.Figure> openingBoard,
+            List<Arena.Figure> settledBoard) {
+        List<Arena.Beat> kept = keepWhatMoves(actionBeats, openingBoard, settledBoard);
+        if (kept.isEmpty()) {
             settle();
             return;
         }
-        beats = List.copyOf(actionBeats);
+        beats = kept;
         opening = List.copyOf(openingBoard);
+        response = respondsAtEnd(actionBeats, settledBoard) ? kept.size() - 1 : -1;
         index = 0;
         elapsed = 0f;
+    }
+
+    /**
+     * Vrai quand le temps &agrave; l'&eacute;cran est celui de la <b>riposte</b>.
+     *
+     * <p>Trois natures de temps se ressemblent trop pour qu'on les devine : une tuile qui joue, le
+     * geste du joueur, et la r&eacute;ponse des ennemis. Les deux derni&egrave;res ne portent
+     * aucune tuile, et le panneau les nommerait pareil. Or elles disent le contraire l'une de
+     * l'autre &mdash; « voil&agrave; ce que tu viens de faire » et « voil&agrave; ce qu'on te
+     * fait ».
+     */
+    public boolean showsResponse() {
+        return isRunning() && index == response;
+    }
+
+    /** Vrai si un temps de riposte a &eacute;t&eacute; ajout&eacute; ET retenu. */
+    private static boolean respondsAtEnd(List<Arena.Beat> actionBeats,
+            List<Arena.Figure> settledBoard) {
+        return !actionBeats.isEmpty()
+                && moves(actionBeats.get(actionBeats.size() - 1).board(), settledBoard);
+    }
+
+    /**
+     * Les temps qui valent d'être montrés, et le temps final qui manquait.
+     *
+     * <h2>Le temps final</h2>
+     *
+     * <p>Le modèle enregistre un temps par tuile, puis la <b>phase ennemie</b> se joue — c'est là
+     * que le temps passe — et enfin une vague peut apparaître. Rien de tout cela n'était enregistré,
+     * si bien que le déroulé s'achevait sur le plateau d'avant la riposte et que la scène, en se
+     * reposant, basculait d'un coup sur l'état vrai : ennemis déplacés, points de vie du héros en
+     * moins, vague neuve. <b>L'illisibilité que ce déroulé devait supprimer avait simplement été
+     * repoussée à la fin.</b> Le plateau établi forme donc un dernier temps, et tout ce qu'aucune
+     * tuile n'explique s'y montre comme le reste.
+     *
+     * <h2>Ce qui ne se déroule pas</h2>
+     *
+     * <p>La règle disait « une action d'un seul temps ne se déroule pas ». Elle a été écrite quand
+     * un déroulé n'était qu'une suite d'images figées : avec un seul temps, il n'y avait rien à
+     * égrener. Depuis que le mouvement est continu, cet argument ne couvre plus rien — un temps
+     * unique a un trajet, et c'est justement le cas du <em>pas</em>, le geste le plus fréquent du
+     * jeu.
+     *
+     * <p>La règle devient donc : <b>un temps où rien ne bouge ne prend pas de place</b>. Bouger
+     * veut dire changer de case, de santé, ou apparaître et disparaître — pas se retourner, qui est
+     * instantané et qu'aucune attente n'aiderait à lire. Un demi-tour sur place ne coûte donc
+     * aucune latence, et un pas en gagne une qu'il n'avait pas.
+     */
+    private static List<Arena.Beat> keepWhatMoves(List<Arena.Beat> actionBeats,
+            List<Arena.Figure> openingBoard, List<Arena.Figure> settledBoard) {
+        List<Arena.Beat> all = new ArrayList<>(actionBeats);
+        if (!actionBeats.isEmpty()) {
+            Arena.Beat last = actionBeats.get(actionBeats.size() - 1);
+            if (moves(last.board(), settledBoard)) {
+                // Le temps final ne porte aucune tuile, et la file qu'il montre est celle du
+                // dernier temps : la riposte ennemie ne touche pas a la file du joueur.
+                all.add(new Arena.Beat(null, null, -1, List.copyOf(settledBoard), last.queued()));
+            }
+        }
+
+        List<Arena.Beat> kept = new ArrayList<>(all.size());
+        List<Arena.Figure> previous = openingBoard;
+        for (Arena.Beat beat : all) {
+            // Une tuile qui a joue garde son temps, MEME si le plateau n'en garde aucune trace.
+            // La volte-face ne deplace personne, et la premiere version l'ecartait : la tuile
+            // partait, le panneau ne la nommait jamais, et le joueur voyait sa salve compter deux
+            // temps pour trois tuiles. Le panneau qui nomme un coup EST l'information, autant que
+            // le mouvement qui l'accompagne quand il y en a un.
+            if (beat.tile() != null || moves(previous, beat.board())) {
+                kept.add(beat);
+                previous = beat.board();
+            }
+        }
+        return List.copyOf(kept);
+    }
+
+    /** Vrai si quelque chose a bougé, au sens de ce qui vaut la peine d'être regardé bouger. */
+    private static boolean moves(List<Arena.Figure> before, List<Arena.Figure> after) {
+        if (before.size() != after.size()) {
+            return true;
+        }
+        for (int i = 0; i < before.size(); i++) {
+            Arena.Figure was = before.get(i);
+            Arena.Figure now = after.get(i);
+            if (was.id() != now.id() || was.cell() != now.cell()
+                    || was.health() != now.health()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -155,6 +251,7 @@ public final class Playback {
     public void settle() {
         beats = List.of();
         opening = List.of();
+        response = -1;
         index = 0;
         elapsed = 0f;
     }

@@ -57,7 +57,17 @@ public final class HudText {
      * produit. C'est la moitié écrite de la lecture que le déroulé apporte, et c'est elle qui
      * permet de nommer un coup qu'on n'aurait fait qu'entrevoir.
      */
-    public static List<String> beatLines(Tile tile, ActionResult result, int step, int total) {
+    public static List<String> beatLines(Tile tile, ActionResult result, int step, int total,
+            boolean response) {
+        if (tile == null) {
+            // Un temps sans tuile n'est pas une tuile manquante. C'est soit le GESTE du joueur -
+            // son pas, son echange - soit la RIPOSTE des ennemis, et les deux disent le contraire
+            // l'un de l'autre : « voila ce que tu viens de faire » et « voila ce qu'on te fait ».
+            // Les nommer pareil serait pire que de ne rien dire.
+            return List.of("TEMPS " + step + "/" + total, response ? "RIPOSTE" : "GESTE");
+        }
+        // « SALVE » et non « TEMPS » : le compte inclut la riposte, mais cette ligne-ci nomme une
+        // tuile, et le joueur lit le rang pour savoir ou il en est, pas pour compter ses tuiles.
         return List.of("SALVE " + step + "/" + total + " : " + tile.label().toUpperCase(),
                 result.label().toUpperCase());
     }

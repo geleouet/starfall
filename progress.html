@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 532 tests verts · 98 planches sur 14 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 535 tests verts · 104 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -247,10 +247,10 @@
 
 <div class="banner">
   <span class="k">Ces planches sont datées, et c'est voulu</span>
-  <p>Chaque planche documente <b>son jalon tel qu'il a été livré</b>. Elles ne sont pas rafraîchies quand un jalon ultérieur change le jeu — les recapturer reviendrait à réécrire l'histoire, et une planche de M8 qui montrerait l'interface de M10 ne prouverait plus rien de ce que M8 avait fait. Six d’entre elles ne portent pas de numéro de jalon : elles datent du travail fait <i>depuis</i> M10 &mdash; l’axe des dégâts, puis l’animation &mdash; qui n’a pas encore été découpé en jalon.</p>
+  <p>Chaque planche documente <b>son jalon tel qu'il a été livré</b>. Elles ne sont pas rafraîchies quand un jalon ultérieur change le jeu — les recapturer reviendrait à réécrire l'histoire, et une planche de M8 qui montrerait l'interface de M10 ne prouverait plus rien de ce que M8 avait fait. Sept d’entre elles ne portent pas de numéro de jalon : elles datent du travail fait <i>depuis</i> M10 &mdash; l’axe des dégâts, puis l’animation &mdash; qui n’a pas encore été découpé en jalon.</p>
   <p>Il faut donc les lire ainsi, et le dire franchement plut&ocirc;t que de laisser croire : <b>les planches ant&eacute;rieures &agrave; M10 montrent une &eacute;conomie de tours qui n&rsquo;existe plus.</b> Celle de M8 affiche m&ecirc;me, dans son aide, <code>1 &agrave; 6 : POSER UNE TUILE SUR LA FILE (GRATUIT)</code> &mdash; la r&egrave;gle exacte que M10 a renvers&eacute;e, et <code>VAGUE 1/3</code> quand la tranche en compte quatre. Celle de M10 elle-m&ecirc;me a vieilli depuis : ses tuiles ne portent pas encore le chiffre des d&eacute;g&acirc;ts.</p>
 
-  <p style="margin-bottom:0"><b>Trois planches, et trois seulement, montrent le jeu tel qu&rsquo;il est aujourd&rsquo;hui : celles de <code>captures/actuel</code>.</b> Ce dossier n&rsquo;est pas une convention de rangement, c&rsquo;est une <b>promesse v&eacute;rifiable</b>, et un test la v&eacute;rifie : chacune de ses images doit &ecirc;tre identique, octet pour octet, &agrave; une planche de r&eacute;f&eacute;rence &mdash; c&rsquo;est-&agrave;-dire &agrave; ce que le jeu dessine <i>maintenant</i>. Le jour o&ugrave; les visuels changeront, elles cesseront de correspondre et le test rougira : il faudra les reprendre, ou renoncer &agrave; la promesse. Cette phrase-ci existait avant le test et d&eacute;signait la planche de M10 ; elle est devenue fausse en silence, parce que rien ne la reliait &agrave; quoi que ce soit.</p>
+  <p style="margin-bottom:0"><b>Quatre planches, et quatre seulement, montrent le jeu tel qu&rsquo;il est aujourd&rsquo;hui : celles de <code>captures/actuel</code>.</b> Ce dossier n&rsquo;est pas une convention de rangement, c&rsquo;est une <b>promesse v&eacute;rifiable</b>, et un test la v&eacute;rifie : chacune de ses images doit &ecirc;tre identique, octet pour octet, &agrave; une planche de r&eacute;f&eacute;rence &mdash; c&rsquo;est-&agrave;-dire &agrave; ce que le jeu dessine <i>maintenant</i>. Le jour o&ugrave; les visuels changeront, elles cesseront de correspondre et le test rougira : il faudra les reprendre, ou renoncer &agrave; la promesse. Cette phrase-ci existait avant le test et d&eacute;signait la planche de M10 ; elle est devenue fausse en silence, parce que rien ne la reliait &agrave; quoi que ce soit.</p>
 </div>
 
 
@@ -340,7 +340,28 @@
   <figcaption><b>Un pas de c&ocirc;t&eacute; &agrave; mi-chemin entre ses deux cases, au sommet de son saut.</b> Trois pixels de soul&egrave;vement sur une figure de seize : assez pour que le glissement ne soit pas plat, trop peu pour qu&rsquo;on croie &agrave; un bond. Le h&eacute;ros n&rsquo;est sur <i>aucune</i> case &mdash; un &eacute;tat que ce jeu ne savait pas dessiner il y a une heure, puisque le mod&egrave;le n&rsquo;en connait aucun.</figcaption>
 </figure>
 
+<figure class="sheet">
+  <img src="captures/actuel/riposte.png" alt="Starfall, la riposte ennemie &agrave; mi-course">
+  <figcaption><b>La riposte ennemie, saisie &agrave; mi-course &mdash; un temps qui n&rsquo;existait pas.</b> Le h&eacute;ros a fait un pas ; l&rsquo;ennemi r&eacute;pond en avan&ccedil;ant d&rsquo;une case, et on le voit passer. Le panneau nomme le moment : <code>TEMPS 2/2 &middot; RIPOSTE</code>, et non le nom d&rsquo;une tuile, puisque ce temps-l&agrave; n&rsquo;est pas du joueur. Remarquer ce qui <b>manque</b> : ni bande de menace, ni glyphe d&rsquo;intention, ni rep&egrave;re de h&eacute;ros &mdash; les calques du repos se taisent pendant un d&eacute;roul&eacute;, et cette planche le v&eacute;rifie sur un &eacute;cran de plus.</figcaption>
+</figure>
+
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>L&rsquo;illisibilit&eacute; avait seulement &eacute;t&eacute; repouss&eacute;e &agrave; la fin</b></div>
+  <p>D&eacute;p&ocirc;t propre, 532 tests verts, 98 planches conformes. Je cherchais un trou connu &mdash; le <i>pas</i>, seul geste du jeu &agrave; ne pas bouger &mdash; et j&rsquo;en ai trouv&eacute; un plus grave en chemin.</p>
+
+  <p><b>La phase ennemie s&rsquo;ex&eacute;cute APR&Egrave;S que le mod&egrave;le a consign&eacute; ses temps.</b> Le d&eacute;roul&eacute; s&rsquo;achevait donc sur le plateau d&rsquo;avant la riposte, et la sc&egrave;ne, en se reposant, basculait d&rsquo;un coup sur l&rsquo;&eacute;tat vrai : ennemis d&eacute;plac&eacute;s, points de vie du h&eacute;ros en moins, vague neuve. <b>L&rsquo;illisibilit&eacute; que ce d&eacute;roul&eacute; devait supprimer avait simplement &eacute;t&eacute; repouss&eacute;e &agrave; la fin de chaque salve</b> &mdash; et le h&eacute;ros pouvait y perdre des points de vie sans qu&rsquo;aucune image n&rsquo;en montre la cause. Le plateau &eacute;tabli forme d&eacute;sormais un dernier temps : tout ce qu&rsquo;aucune tuile n&rsquo;explique s&rsquo;y montre comme le reste.</p>
+
+  <p><b>Et la vieille r&egrave;gle est tomb&eacute;e avec.</b> &laquo; Une action d&rsquo;un seul temps ne se d&eacute;roule pas &raquo; avait &eacute;t&eacute; &eacute;crite quand un d&eacute;roul&eacute; n&rsquo;&eacute;tait qu&rsquo;une suite d&rsquo;images fig&eacute;es : avec un seul temps, il n&rsquo;y avait rien &agrave; &eacute;grener. Depuis que le mouvement est continu, un temps unique a un <i>trajet</i>. La r&egrave;gle devient : un temps sans tuile o&ugrave; rien ne bouge ne prend pas de place. Un demi-tour ne co&ucirc;te donc aucune latence, et un pas gagne le mouvement qu&rsquo;il n&rsquo;avait pas &mdash; ainsi que la s&eacute;paration d&rsquo;avec la riposte, qui est toute la lecture : voir qui bouge d&rsquo;abord, et qui r&eacute;pond ensuite.</p>
+
+  <p><b>Trois natures de temps, qu&rsquo;il a fallu distinguer.</b> Une tuile qui joue, le geste du joueur, la r&eacute;ponse des ennemis. Les deux derni&egrave;res ne portent aucune tuile et le panneau les aurait nomm&eacute;es pareil, alors qu&rsquo;elles disent le contraire l&rsquo;une de l&rsquo;autre : &laquo; voil&agrave; ce que tu viens de faire &raquo; et &laquo; voil&agrave; ce qu&rsquo;on te fait &raquo;. Le tressaillement suit la m&ecirc;me logique : reculer demande de savoir <i>de quoi</i>, une tuile le dit par sa case vis&eacute;e, une riposte &agrave; plusieurs ennemis ne le dit pas &mdash; il devient alors vertical, ce qui ne ment sur aucune direction.</p>
+
+  <p><b>Une planche a corrig&eacute; la r&egrave;gle que je venais d&rsquo;&eacute;crire.</b> La premi&egrave;re version &eacute;cartait <i>tout</i> temps immobile, tuile comprise ; la volte-face ne d&eacute;place personne, donc elle partait sans jamais &ecirc;tre nomm&eacute;e, et le compteur affichait <code>SALVE 1/2</code> apr&egrave;s trois tuiles l&acirc;ch&eacute;es. Vu sur l&rsquo;image, pas dans le code. Une tuile garde son temps m&ecirc;me immobile : le panneau qui nomme un coup <b>est</b> l&rsquo;information, autant que le mouvement quand il y en a un.</p>
+
+  <p style="margin-bottom:0"><b>Un quinzi&egrave;me &eacute;cran</b>, parce que l&rsquo;&eacute;cran de salve ne pouvait pas servir de t&eacute;moin : mesur&eacute;, sa derni&egrave;re tuile est une volte-face qui ne d&eacute;place personne, et l&rsquo;ennemi qui lui survit ex&eacute;cute une intention qui ne le d&eacute;place pas non plus. <code>arenaRiposte</code> joue un pas, et rien d&rsquo;autre. Deux temps, deux mouvements, quatre planches. Trois gardes du projet ont attrap&eacute; mes oublis au passage &mdash; le recensement des sc&egrave;nes, la table des noms accept&eacute;s, et le corpus des phrases d&rsquo;interface qui exigeait de voir les deux lignes neuves.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>&laquo; La seule planche qui montre le jeu d&rsquo;aujourd&rsquo;hui &raquo; ne le montrait plus</b></div>

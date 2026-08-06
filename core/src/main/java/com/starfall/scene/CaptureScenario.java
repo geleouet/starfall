@@ -119,6 +119,9 @@ public interface CaptureScenario {
         if (ShowcaseScript.SCENE_NAME.equals(scene)) {
             return ShowcaseScript.SCENARIO;
         }
+        if (RiposteScript.SCENE_NAME.equals(scene)) {
+            return RiposteScript.SCENARIO;
+        }
         if (SalvoScript.SCENE_NAME.equals(scene)) {
             return SalvoScript.SCENARIO;
         }

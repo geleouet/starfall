@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.starfall.game.ActionResult;
 import com.starfall.game.Arena;
+import com.starfall.game.Direction;
 import com.starfall.game.Tile;
 
 import java.util.List;
@@ -23,31 +24,128 @@ import org.junit.jupiter.api.Test;
  */
 class PlaybackTest {
 
+    /**
+     * Un temps ou une figure se tient sur la case dite.
+     *
+     * <p>Le plateau ne jouait AUCUN role dans ce fichier : ces temps portaient tous un plateau
+     * vide, parce qu'il ne gardait que la machine du deroule - quand il court, dans quel ordre,
+     * quand il finit. La machine depend desormais des plateaux : un temps ou rien ne bouge ne
+     * prend pas de place. Des plateaux vides bougeraient tous pareil, c'est-a-dire pas du tout,
+     * et ce fichier aurait garde une machine qui ne demarre jamais en croyant garder l'ordre de
+     * ses temps.
+     */
     private static Arena.Beat beat(Tile tile, int cell) {
-        // Le plateau du temps ne joue aucun role ici : ce fichier garde la MACHINE du deroule -
-        // quand il court, dans quel ordre, quand il finit - et pas ce qu'elle donne a dessiner.
-        return new Arena.Beat(tile, ActionResult.STRUCK, cell, List.of(), List.of());
+        return new Arena.Beat(tile, ActionResult.STRUCK, cell, board(cell), List.of());
+    }
+
+    /** Un plateau d'une seule figure, posee sur cette case. */
+    private static List<Arena.Figure> board(int cell) {
+        return List.of(new Arena.Figure(7L, cell, "enemy/sabreur", Direction.LEFT, 3, 3,
+                false, false));
+    }
+
+    /**
+     * Demarre un deroule sans lui donner d'etat final a rattraper.
+     *
+     * <p>Le plateau etabli est celui du dernier temps : ces tests-ci gardent la machine, pas le
+     * temps final qui repare la riposte. Lui passer autre chose ajouterait un temps de plus a
+     * chaque cas et ferait mentir tous les comptes.
+     */
+    private static void start(Playback playback, List<Arena.Beat> beats) {
+        playback.start(beats, List.of(),
+                beats.isEmpty() ? List.of() : beats.get(beats.size() - 1).board());
+    }
+
+    /**
+     * La regle qui a remplace « une action d'un seul temps ne se deroule pas ».
+     *
+     * <p>L'ancienne avait ete ecrite quand un deroule n'etait qu'une suite d'images figees : avec
+     * un seul temps, il n'y avait rien a egrener. Le mouvement est continu depuis, et cet argument
+     * ne couvre plus rien - un temps unique a un trajet. Il couvrait meme mal : le PAS, geste le
+     * plus frequent du jeu, tombait dedans et restait le seul a ne pas bouger.
+     */
+    @Test
+    @DisplayName("Un temps où quelque chose bouge se déroule, fût-il seul")
+    void aLoneBeatStillUnfoldsWhenSomethingMoves() {
+        Playback playback = new Playback();
+
+        start(playback, List.of(beat(Tile.STRIKE, 3)));
+
+        assertTrue(playback.isRunning(),
+                "un temps unique a un trajet depuis que le mouvement est continu : c'est le cas du"
+                        + " pas, et il n'y a aucune raison de le laisser sauter");
+        assertEquals(1, playback.step());
+        assertEquals(1, playback.total());
     }
 
     @Test
-    @DisplayName("Une action d'un seul temps ne se déroule pas")
-    void aSingleBeatActionDoesNotUnfold() {
+    @DisplayName("Un temps sans tuile où rien ne bouge ne prend pas de place")
+    void aTilelessBeatWhereNothingMovesTakesNoTime() {
         Playback playback = new Playback();
+        Arena.Beat still = new Arena.Beat(null, null, -1, board(3), List.of());
 
-        playback.start(List.of(beat(Tile.STRIKE, 3)), List.of());
+        // Le plateau d'ouverture EST celui du temps : le geste n'a deplace personne.
+        playback.start(List.of(still), still.board(), still.board());
 
         assertFalse(playback.isRunning(),
-                "un seul temps n'a rien a egrener : derouler ajouterait de la latence sans"
-                        + " ajouter de lecture");
+                "un geste qui ne deplace rien - se retourner, poser une tuile - n'a rien a montrer :"
+                        + " attendre ajouterait de la latence sans ajouter de lecture");
         assertNull(playback.current());
         assertEquals(0, playback.step());
+    }
+
+    /**
+     * Une tuile garde son temps même quand le plateau n'en garde aucune trace.
+     *
+     * <p>La première version de la règle écartait tout temps immobile, tuile comprise. La
+     * volte-face ne déplace personne : elle partait, le panneau ne la nommait jamais, et le joueur
+     * voyait sa salve de trois tuiles compter deux temps. Le défaut a été vu <b>sur une planche</b>,
+     * où le compteur affichait « SALVE 1/2 » après trois tuiles lâchées. Le panneau qui nomme un
+     * coup <em>est</em> l'information, autant que le mouvement quand il y en a un.
+     */
+    @Test
+    @DisplayName("Une tuile immobile garde quand même son temps")
+    void aTileKeepsItsBeatEvenWhenNothingMoves() {
+        Playback playback = new Playback();
+        Arena.Beat pivot = beat(Tile.PIVOT, 3);
+
+        playback.start(List.of(pivot), pivot.board(), pivot.board());
+
+        assertTrue(playback.isRunning(),
+                "la volte-face a joue : sans son temps, elle ne serait nommee nulle part");
+        assertEquals(Tile.PIVOT, playback.current().tile());
+    }
+
+    /**
+     * Le temps final, celui qui manquait.
+     *
+     * <p>La phase ennemie se joue APRES que les temps ont ete enregistres, et la vague suivante
+     * apparait apres elle. Le deroule s'achevait donc sur le plateau d'avant la riposte, et la
+     * scene basculait d'un coup sur l'etat vrai : l'illisibilite que ce deroule devait supprimer
+     * avait ete repoussee a la fin.
+     */
+    @Test
+    @DisplayName("Ce qu'aucune tuile n'explique forme un dernier temps")
+    void whatNoTileExplainsBecomesALastBeat() {
+        Playback playback = new Playback();
+        Arena.Beat fired = beat(Tile.STRIKE, 3);
+
+        // Le plateau etabli differe de celui du dernier temps : les ennemis ont riposté.
+        playback.start(List.of(fired), List.of(), board(6));
+
+        assertEquals(2, playback.total(),
+                "la riposte ennemie doit former un temps a elle : sans lui, l'ecran saute des"
+                        + " ennemis d'avant a ceux d'apres sans que rien ne montre le trajet");
+        playback.advance(Playback.BEAT_SECONDS);
+        assertNull(playback.current().tile(),
+                "le temps final ne porte aucune tuile : ce n'est pas le joueur qui l'a joue");
     }
 
     @Test
     @DisplayName("Une action vide ne se déroule pas non plus")
     void anEmptyActionDoesNotUnfoldEither() {
         Playback playback = new Playback();
-        playback.start(List.of(), List.of());
+        start(playback, List.of());
         assertFalse(playback.isRunning());
     }
 
@@ -59,7 +157,7 @@ class PlaybackTest {
         Arena.Beat third = beat(Tile.PUSH, 5);
         Playback playback = new Playback();
 
-        playback.start(List.of(first, second, third), List.of());
+        start(playback, List.of(first, second, third));
 
         assertTrue(playback.isRunning(), "trois temps : il y a de quoi derouler");
         assertSame(first, playback.current());
@@ -87,8 +185,8 @@ class PlaybackTest {
         // qu'on lui donne, et il finit toujours.
         for (float step : new float[] {0.001f, 0.05f, Playback.BEAT_SECONDS, 3f, 100f}) {
             Playback playback = new Playback();
-            playback.start(List.of(beat(Tile.STRIKE, 1), beat(Tile.THRUST, 2),
-                    beat(Tile.PUSH, 3), beat(Tile.DASH, 4), beat(Tile.PIVOT, 5)), List.of());
+            start(playback, List.of(beat(Tile.STRIKE, 1), beat(Tile.THRUST, 2),
+                    beat(Tile.PUSH, 3), beat(Tile.DASH, 4), beat(Tile.PIVOT, 5)));
 
             int guard = 0;
             while (playback.isRunning() && guard++ < 1_000_000) {
@@ -117,8 +215,8 @@ class PlaybackTest {
     @DisplayName("Se placer sur un instant donné y place vraiment, bornes comprises")
     void seekingPutsThePlaybackExactlyThere() {
         Playback playback = new Playback();
-        playback.start(List.of(beat(Tile.STRIKE, 1), beat(Tile.THRUST, 2),
-                beat(Tile.PUSH, 3)), List.of());
+        start(playback, List.of(beat(Tile.STRIKE, 1), beat(Tile.THRUST, 2),
+                beat(Tile.PUSH, 3)));
 
         playback.seek(2, 0.35f);
         assertEquals(2, playback.step(), "le rang demande est celui qui s'affiche");
@@ -146,7 +244,7 @@ class PlaybackTest {
     @DisplayName("Un pas de temps très long ne saute pas le déroulé à moitié")
     void oneHugeStepEndsItCleanly() {
         Playback playback = new Playback();
-        playback.start(List.of(beat(Tile.STRIKE, 1), beat(Tile.THRUST, 2)), List.of());
+        start(playback, List.of(beat(Tile.STRIKE, 1), beat(Tile.THRUST, 2)));
 
         playback.advance(1000f);
 

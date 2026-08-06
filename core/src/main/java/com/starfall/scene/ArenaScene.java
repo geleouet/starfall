@@ -211,7 +211,7 @@ public final class ArenaScene implements Scene {
         // Le déroulé démarre ici pour la raison qui a fait mettre l'aide ici : c'est le seul
         // endroit par lequel passent les huit gestes qui déclenchent une action. Réparti sur
         // chacun, il aurait été oublié par le neuvième.
-        playback.start(arena.beats(), arena.opening());
+        playback.start(arena.beats(), arena.opening(), arena.snapshot());
         return true;
     }
 
@@ -247,7 +247,7 @@ public final class ArenaScene implements Scene {
         playback.settle();
         int beat = scenario.playbackBeatAt(frameIndex);
         if (beat > 0) {
-            playback.start(arena.beats(), arena.opening());
+            playback.start(arena.beats(), arena.opening(), arena.snapshot());
             playback.seek(beat, scenario.playbackProgressAt(frameIndex));
         }
         if (frameIndex > scenario.size() && !exhaustionReported) {
@@ -691,7 +691,7 @@ public final class ArenaScene implements Scene {
             // Pendant le déroulé, le panneau raconte ce qui se joue au lieu de décrire la tuile
             // survolée. Décrire un plateau qu'on ne regarde pas répétait en texte le mensonge que
             // les calques faisaient en pixels.
-            return HudText.beatLines(beat.tile(), beat.result(), playback.step(), playback.total());
+            return HudText.beatLines(beat.tile(), beat.result(), playback.step(), playback.total(), playback.showsResponse());
         }
         return HudText.infoLines(arena, hoveredRackSlot, hoveredQueueSlot, hoveredCell, lastResult);
     }

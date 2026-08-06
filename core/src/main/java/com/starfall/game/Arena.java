@@ -333,6 +333,16 @@ public final class Arena {
     private void consumeTurn() {
         turnsTaken++;
         rack.gainRechargePoint();
+        // Le GESTE DU JOUEUR, resolu, avant que les ennemis ne repondent. Une salve a deja
+        // enregistre un temps par tuile ; un pas ou un echange n'ont rien enregistre du tout, et
+        // sans cette ligne leur mouvement se confondrait avec la riposte en un seul elan. Voir
+        // qui bouge d'abord et qui repond ensuite EST la lecture qu'on cherche.
+        //
+        // C'est ici parce que c'est ici que le temps passe, et nulle part ailleurs : la meme
+        // raison qui a fait centraliser le reste de cette methode.
+        if (beats.isEmpty()) {
+            beats.add(new Beat(null, null, -1, snapshot(), queue.fromOldest()));
+        }
         enemyPhase();
     }
 

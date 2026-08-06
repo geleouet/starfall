@@ -3,6 +3,7 @@ package com.starfall;
 import com.starfall.scene.CalibrationScene;
 import com.starfall.scene.CaptureScenario;
 import com.starfall.scene.CaptureScript;
+import com.starfall.scene.RiposteScript;
 import com.starfall.scene.SalvoScript;
 import com.starfall.scene.ShowcaseScript;
 
@@ -43,7 +44,8 @@ public final class LaunchOptions {
     /** Scènes connues. La mire de calibration reste atteignable : c'est une preuve de non-régression. */
     public static final List<String> SCENES =
             List.of(CaptureScript.SCENE_NAME, CalibrationScene.SCENE_NAME,
-                    ShowcaseScript.SCENE_NAME, SalvoScript.SCENE_NAME);
+                    ShowcaseScript.SCENE_NAME, SalvoScript.SCENE_NAME,
+                    RiposteScript.SCENE_NAME);
 
     /** Dossier de sortie des captures, ou {@code null} en fonctionnement normal. */
     public final String screenshotDir;

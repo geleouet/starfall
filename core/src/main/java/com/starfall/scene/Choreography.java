@@ -140,8 +140,15 @@ public final class Choreography {
                 placements.add(new Placement(figure, figure.cell(), aim,
                         lunge(time, Math.abs(aim - figure.cell())), 0f, 1f));
             } else if (figure.health() < previous.health()) {
-                placements.add(new Placement(figure, figure.cell(), away(figure.cell(), heroCell),
-                        recoil(time), 0f, 1f));
+                // Reculer demande de savoir DE QUOI l'on recule. Une tuile le dit - sa case visee
+                // est la direction du coup. La riposte ennemie ne le dit pas : plusieurs ennemis
+                // frappent, des deux cotes, et choisir un sens serait inventer. Le tressaillement
+                // devient alors vertical, ce qui ne ment sur aucune direction.
+                placements.add(aim >= 0
+                        ? new Placement(figure, figure.cell(), away(figure.cell(), heroCell),
+                                recoil(time), 0f, 1f)
+                        : new Placement(figure, figure.cell(), figure.cell(),
+                                0f, -recoil(time), 1f));
             } else {
                 placements.add(new Placement(figure, figure.cell(), figure.cell(), 0f, 0f, 1f));
             }

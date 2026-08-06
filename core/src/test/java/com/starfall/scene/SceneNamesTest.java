@@ -34,6 +34,7 @@ class SceneNamesTest {
         scenes.add(new ArenaScene());
         scenes.add(new ArenaScene(ShowcaseScript.SCENARIO));
         scenes.add(new ArenaScene(SalvoScript.SCENARIO));
+        scenes.add(new ArenaScene(RiposteScript.SCENARIO));
         scenes.add(new CalibrationScene());
         return scenes;
     }

@@ -1,6 +1,7 @@
 package com.starfall.game;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -244,7 +245,14 @@ class SalvoTest {
      * <p>Trois moitiés, et chacune peut échouer seule : l'<b>ordre</b> doit être celui de
      * l'exécution, du sommet vers le bas ; la <b>case</b> de chaque temps doit être celle que la
      * tuile visait, lue avant l'exécution puisqu'après elle ne décrit plus rien ; et un geste
-     * simple ne doit produire <em>aucun</em> temps, sans quoi la scène animerait un pas.
+     * simple doit produire <em>un</em> temps, celui de son propre geste, sans tuile.
+     *
+     * <p>Cette dernière moitié disait le contraire : « un geste simple ne doit produire aucun
+     * temps, sans quoi la scène animerait un pas ». C'était vrai tant qu'un déroulé n'était qu'une
+     * suite d'images figées — animer un pas n'aurait fait qu'ajouter de l'attente. Depuis que le
+     * mouvement est continu, un pas <b>a</b> un trajet, et il était devenu le seul geste du jeu à
+     * ne pas bouger. Le temps enregistré ici est ce qui sépare le geste du joueur de la riposte
+     * qui le suit : sans lui, les deux se confondraient en un seul élan.
      */
     @Test
     @DisplayName("La salve consigne ses temps, dans l'ordre et avec leur case")
@@ -255,7 +263,14 @@ class SalvoTest {
 
         arena.queueTile(Tile.THRUST);   // posee en premier, donc jouee en DERNIER
         arena.queueTile(Tile.STRIKE);
-        assertTrue(arena.beats().isEmpty(), "poser n'est pas un deroulement");
+        List<Arena.Beat> gesture = arena.beats();
+        assertEquals(1, gesture.size(),
+                "poser coute un tour, donc les ennemis repondent : le geste du joueur forme un"
+                        + " temps a lui, faute de quoi son mouvement et la riposte se"
+                        + " confondraient en un seul elan");
+        assertNull(gesture.get(0).tile(),
+                "ce temps-la n'est pas une tuile jouee : c'est le plateau au moment ou le joueur"
+                        + " a fini d'agir, avant que les ennemis ne bougent");
 
         arena.unleash();
         List<Arena.Beat> beats = arena.beats();
@@ -269,10 +284,14 @@ class SalvoTest {
         assertEquals(arena.heroCell() + 2, beats.get(1).cell(),
                 "l'estoc vise la deuxieme, et cette case se lit AVANT l'execution");
 
-        // Et un geste simple ne raconte rien : sans cela, la scene animerait un pas.
+        // Et un geste simple raconte SON geste, sans tuile. Le modele consigne ; c'est le
+        // deroule, cote vue, qui decide de montrer ou non - un demi-tour ne deplace personne, donc
+        // il ne prendra aucune place a l'ecran. Melanger les deux decisions ici rendrait le modele
+        // responsable d'un choix d'affichage.
         arena.step(arena.hero().facing().opposite());
-        assertTrue(arena.beats().isEmpty(),
-                "un demi-tour a produit des temps : " + arena.beats());
+        List<Arena.Beat> turned = arena.beats();
+        assertEquals(1, turned.size(), "un demi-tour consigne son geste : " + turned);
+        assertNull(turned.get(0).tile(), "aucune tuile n'a joue : le geste est celui du heros");
 
         // LA MOITIE QUI MORD. Les deux assertions de case ci-dessus ne distinguent rien : ni la
         // frappe ni l'estoc ne deplacent le heros, si bien que la case visee est la meme avant et
