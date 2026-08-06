@@ -460,8 +460,18 @@ public final class Arena {
         return enemy.isWindingUp() || enemy.kind().summons() > 0;
     }
 
-    /** Vrai si l'ennemi jouera réellement à la phase à venir. */
-    private boolean willAct(Enemy enemy) {
+    /**
+     * Vrai si l'ennemi jouera <b>réellement</b> à la phase à venir.
+     *
+     * <p>Publique parce que la <em>vue</em> en a besoin, et c'est la seule raison. Une intention
+     * annoncée dit ce qu'un ennemi fera à sa prochaine activation ; elle ne dit pas si cette
+     * activation est celle qui vient. Le colosse ne joue qu'une phase sur deux et un ennemi
+     * étourdi en saute une : tous deux affichent une menace qui ne tombera <em>pas ce tour-ci</em>,
+     * et rien à l'écran ne les distinguait de ceux qui frappent maintenant. Le joueur lisait donc
+     * un danger immédiat là où il avait un tour de répit, ce qui est la pire des deux erreurs
+     * possibles dans un jeu de placement.
+     */
+    public boolean willAct(Enemy enemy) {
         return !enemy.isStunned() && enemy.kind().actsThisPhase(phaseIndex);
     }
 

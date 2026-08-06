@@ -91,7 +91,7 @@
 <header>
   <h1>STARFALL</h1>
   <div class="sub">Tactique 2D au tour par tour · grille linéaire · file d'actions · libGDX / Java</div>
-  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 538 tests verts · 104 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
+  <div class="stamp">Dernière mise à jour : 6 août 2026 — <b style="color:var(--gold)">M1 à M10 revus et corrigés · 540 tests verts · 104 planches sur 15 &eacute;crans · la tranche est gagnable</b></div>
 </header>
 
 <div class="banner warn">
@@ -250,7 +250,7 @@
   <p>Chaque planche documente <b>son jalon tel qu'il a été livré</b>. Elles ne sont pas rafraîchies quand un jalon ultérieur change le jeu — les recapturer reviendrait à réécrire l'histoire, et une planche de M8 qui montrerait l'interface de M10 ne prouverait plus rien de ce que M8 avait fait. Sept d’entre elles ne portent pas de numéro de jalon : elles datent du travail fait <i>depuis</i> M10 &mdash; l’axe des dégâts, puis l’animation &mdash; qui n’a pas encore été découpé en jalon.</p>
   <p>Il faut donc les lire ainsi, et le dire franchement plut&ocirc;t que de laisser croire : <b>les planches ant&eacute;rieures &agrave; M10 montrent une &eacute;conomie de tours qui n&rsquo;existe plus.</b> Celle de M8 affiche m&ecirc;me, dans son aide, <code>1 &agrave; 6 : POSER UNE TUILE SUR LA FILE (GRATUIT)</code> &mdash; la r&egrave;gle exacte que M10 a renvers&eacute;e, et <code>VAGUE 1/3</code> quand la tranche en compte quatre. Celle de M10 elle-m&ecirc;me a vieilli depuis : ses tuiles ne portent pas encore le chiffre des d&eacute;g&acirc;ts.</p>
 
-  <p style="margin-bottom:0"><b>Quatre planches, et quatre seulement, montrent le jeu tel qu&rsquo;il est aujourd&rsquo;hui : celles de <code>captures/actuel</code>.</b> Ce dossier n&rsquo;est pas une convention de rangement, c&rsquo;est une <b>promesse v&eacute;rifiable</b>, et un test la v&eacute;rifie : chacune de ses images doit &ecirc;tre identique, octet pour octet, &agrave; une planche de r&eacute;f&eacute;rence &mdash; c&rsquo;est-&agrave;-dire &agrave; ce que le jeu dessine <i>maintenant</i>. Le jour o&ugrave; les visuels changeront, elles cesseront de correspondre et le test rougira : il faudra les reprendre, ou renoncer &agrave; la promesse. Cette phrase-ci existait avant le test et d&eacute;signait la planche de M10 ; elle est devenue fausse en silence, parce que rien ne la reliait &agrave; quoi que ce soit.</p>
+  <p style="margin-bottom:0"><b>Six planches, et six seulement, montrent le jeu tel qu&rsquo;il est aujourd&rsquo;hui : celles de <code>captures/actuel</code>.</b> Ce dossier n&rsquo;est pas une convention de rangement, c&rsquo;est une <b>promesse v&eacute;rifiable</b>, et un test la v&eacute;rifie : chacune de ses images doit &ecirc;tre identique, octet pour octet, &agrave; une planche de r&eacute;f&eacute;rence &mdash; c&rsquo;est-&agrave;-dire &agrave; ce que le jeu dessine <i>maintenant</i>. Le jour o&ugrave; les visuels changeront, elles cesseront de correspondre et le test rougira : il faudra les reprendre, ou renoncer &agrave; la promesse. Cette phrase-ci existait avant le test et d&eacute;signait la planche de M10 ; elle est devenue fausse en silence, parce que rien ne la reliait &agrave; quoi que ce soit.</p>
 </div>
 
 
@@ -345,7 +345,31 @@
   <figcaption><b>La riposte ennemie, saisie &agrave; mi-course &mdash; un temps qui n&rsquo;existait pas.</b> Le h&eacute;ros a fait un pas ; l&rsquo;ennemi r&eacute;pond en avan&ccedil;ant d&rsquo;une case, et on le voit passer. Le panneau nomme le moment : <code>TEMPS 2/2 &middot; RIPOSTE</code>, et non le nom d&rsquo;une tuile, puisque ce temps-l&agrave; n&rsquo;est pas du joueur. Remarquer ce qui <b>manque</b> : ni bande de menace, ni glyphe d&rsquo;intention, ni rep&egrave;re de h&eacute;ros &mdash; les calques du repos se taisent pendant un d&eacute;roul&eacute;, et cette planche le v&eacute;rifie sur un &eacute;cran de plus.</figcaption>
 </figure>
 
+<figure class="sheet">
+  <img src="captures/actuel/plaques.png" alt="Starfall, deux plaques d&rsquo;intention dor&eacute;es">
+  <figcaption><b>Deux coups partent &agrave; la fin de ce tour, des deux c&ocirc;t&eacute;s.</b> Chaque ennemi qui a quelque chose &agrave; annoncer porte une <b>plaque</b> au-dessus de la t&ecirc;te, avec une pointe vers son propri&eacute;taire : sur une ligne serr&eacute;e, il ne faut pas avoir &agrave; deviner &agrave; qui appartient un glyphe. Le cadre est <b>dor&eacute;</b> parce que ces deux-l&agrave; jouent &agrave; la phase qui vient ; il serait rouge pour une menace annonc&eacute;e qui ne tombe pas encore. Les deux ennemis de gauche avancent seulement : pas de plaque, parce qu&rsquo;encadrer &laquo; rien &raquo; ajoute du bruit l&agrave; o&ugrave; il n&rsquo;y a pas de d&eacute;cision.</figcaption>
+</figure>
+
+<figure class="sheet">
+  <img src="captures/actuel/plaque-pleine.png" alt="Starfall, une plaque pleine : le souverain invoque">
+  <figcaption><b>La plaque <i>pleine</i> : il charge, rien ne tombe.</b> Le souverain pr&eacute;pare une invocation ; le losange est d&eacute;coup&eacute; en creux dans le rouge au lieu d&rsquo;&ecirc;tre pos&eacute; dessus. Ajour&eacute;e ou pleine, la plaque fait de la question &laquo; est-ce que quelque chose me tombe dessus ? &raquo; une <b>cat&eacute;gorie</b> et non une nuance &mdash; le glyphe garde tout ce qu&rsquo;il disait, mais il n&rsquo;a plus &agrave; porter seul la question qui se pose en premier.</figcaption>
+</figure>
+
 <h2>Journal de review</h2>
+
+<div class="rev pass">
+  <div class="hd">D&rsquo;apr&egrave;s les captures &mdash; <b>Trois &eacute;tats au-dessus de la t&ecirc;te, au lieu de sept glyphes du m&ecirc;me poids</b></div>
+  <p>Relecture des captures de la source, sur un point pr&eacute;cis : le signal qui dit quand l&rsquo;adversaire <b>ajoute &agrave; sa propre file</b> et quand il <b>va l&rsquo;ex&eacute;cuter</b>. Une seule capture les montre tous les quatre c&ocirc;te &agrave; c&ocirc;te &mdash; deux ennemis avec une carte dans une plaque rouge, un troisi&egrave;me avec une plaque rouge <i>pleine</i> portant un <code>+</code>, et le h&eacute;ros avec ses propres cartes empil&eacute;es en turquoise. Une seule forme, deux couleurs : la mienne, la sienne.</p>
+
+  <p><b>Ce que Starfall avait, et pourquoi cela ne suffisait pas.</b> Sept glyphes flottaient au-dessus des t&ecirc;tes, tous du m&ecirc;me poids visuel. Le joueur devait les <em>distinguer</em> pour r&eacute;pondre &agrave; la seule question qui commande sa d&eacute;cision : est-ce que quelque chose me tombe dessus ? Deux barres voulaient dire &laquo; il se charge &raquo;, une pointe pleine &laquo; il frappe &raquo; ; &agrave; l&rsquo;&eacute;chelle d&rsquo;un pixel, cela demandait de regarder au lieu de voir. La plaque fait de la distinction une cat&eacute;gorie ; le glyphe reste dedans et garde le d&eacute;tail.</p>
+
+  <p><b>Le troisi&egrave;me &eacute;tat, et c&rsquo;&eacute;tait le plus urgent.</b> Une intention dit ce qu&rsquo;un ennemi fera &agrave; sa <i>prochaine activation</i> &mdash; elle ne dit pas si cette activation est celle qui vient. <b>Le colosse ne joue qu&rsquo;une phase sur deux, un ennemi &eacute;tourdi en saute une</b>, et tous deux affichaient une menace identique &agrave; celle qui frappe maintenant. Le joueur lisait un danger imm&eacute;diat l&agrave; o&ugrave; il avait un tour de r&eacute;pit, ce qui est la pire des deux erreurs possibles dans un jeu de placement. Le cadre devient <b>dor&eacute; et battant</b> quand le coup part &agrave; la fin de ce tour.</p>
+
+  <p><b>Le battement ne quitte jamais l&rsquo;or.</b> Il va d&rsquo;un or vif &agrave; un or sourd, jamais de l&rsquo;or au rouge : un battement qui repasserait par le rouge rendrait la cat&eacute;gorie illisible un temps sur deux, et le joueur qui regarde au mauvais moment lirait &laquo; j&rsquo;ai un tour &raquo; l&agrave; o&ugrave; il n&rsquo;en a pas. Un battement ajoute de l&rsquo;urgence &agrave; une information ; il ne la remplace jamais par son contraire. En capture il reste au temps vif, faute de quoi les planches cesseraient d&rsquo;&ecirc;tre reproductibles.</p>
+
+  <p style="margin-bottom:0"><b>Ce que je n&rsquo;ai pas fait, et pourquoi.</b> La carte de la source porte un <b>nombre</b> : la force du coup annonc&eacute;. Chez nous, <b>tout coup ennemi retire exactement un point de vie</b> &mdash; il n&rsquo;y a pas d&rsquo;axe de d&eacute;g&acirc;ts c&ocirc;t&eacute; adversaire. Peindre un <code>1</code> constant sur chaque plaque ajouterait des pixels sans ajouter de d&eacute;cision, exactement comme le z&eacute;ro qu&rsquo;on a refus&eacute; aux tuiles qui ne frappent pas. Donner aux ennemis un axe de d&eacute;g&acirc;ts est un choix de <b>game design</b> qui change le p&eacute;rim&egrave;tre et demanderait un r&eacute;&eacute;quilibrage complet : il attend une d&eacute;cision, et il est not&eacute; comme tel.</p>
+</div>
+
 
 <div class="rev pass">
   <div class="hd">Contr&ocirc;le p&eacute;riodique &mdash; <b>La branche que le h&eacute;ros emprunte &agrave; chaque coup re&ccedil;u n&rsquo;avait pas de t&eacute;moin</b></div>

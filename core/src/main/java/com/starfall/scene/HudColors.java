@@ -56,6 +56,19 @@ public final class HudColors {
     public static final Color THREAT = new Color(0xff4a5aff);
 
     /**
+     * Or : ce qui part <b>&agrave; la fin de ce tour</b>, quoi que fasse le joueur.
+     *
+     * <p>Une couleur &agrave; elle, et non une nuance de la menace. Rouge veut dire
+     * &laquo; annonc&eacute; &raquo; ; l'or veut dire &laquo; annonc&eacute; ET imminent &raquo;, et
+     * entre les deux il y a un tour de r&eacute;pit &mdash; c'est-&agrave;-dire toute la
+     * d&eacute;cision.
+     */
+    public static final Color IMMINENT = new Color(0xffd24aff);
+
+    /** L'or en creux : l'autre temps du battement. Voir {@link #IMMINENT}. */
+    public static final Color IMMINENT_DIM = new Color(0xa8792cff);
+
+    /**
      * Ce que <b>ma</b> prochaine tuile va faire : portée, case visée, trajectoire d'une poussée.
      *
      * <p>Un violet, et le choix compte : le rouge appartient à ce qui va m'arriver, le violet à ce

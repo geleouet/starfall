@@ -71,6 +71,23 @@ public final class ArenaScene implements Scene {
      * ce jeu n'a simplement aucune raison de le lui demander.
      */
     private final Color figureTint = new Color();
+
+    /**
+     * Dur&eacute;e d'un demi-battement de l'or, en secondes.
+     *
+     * <p>Assez lent pour ne pas fatiguer, assez vif pour dire l'urgence.
+     */
+    private static final float BLINK_SECONDS = 0.42f;
+
+    /**
+     * O&ugrave; en est le battement de l'or.
+     *
+     * <p>Il n'avance qu'en mode interactif. En capture il reste &agrave; z&eacute;ro, donc au temps
+     * <b>vif</b> : une planche saisie sur le temps creux montrerait un cadre &eacute;teint et
+     * laisserait croire que la r&egrave;gle ne s'applique pas &mdash; et surtout, elle ne serait
+     * plus reproductible.
+     */
+    private float blink;
     private static final Color TARGET_MARK = new Color(0xffcc33ff);
     private static final Color HOVER_MARK = HudColors.HOVER;
 
@@ -166,6 +183,7 @@ public final class ArenaScene implements Scene {
             return;
         }
         float delta = Playback.frameStep(time - lastTime);
+        blink += delta;
         lastTime = time;
         if (playback.isRunning()) {
             // Le déroulé BLOQUE les entrées tant qu'il court. Sans cela, le joueur agirait sur un
@@ -978,6 +996,83 @@ public final class ArenaScene implements Scene {
      * intentions qui ne menacent aucune case — avancer, prendre son élan — sans lesquelles le joueur
      * ne saurait pas distinguer un ennemi qui se rapproche d'un ennemi qui attend.
      */
+    /**
+     * Demi-largeur de la plaque d'intention, en pixels-monde.
+     *
+     * <p>Sept de chaque c&ocirc;t&eacute; du centre, soit quinze de large dans une case qui en fait
+     * vingt. Mesur&eacute; sur les glyphes eux-m&ecirc;mes et non choisi : la ru&eacute;e s'&eacute;tend
+     * de cinq pixels de part et d'autre, la charge de six &agrave; gauche et trois &agrave; droite,
+     * et une plaque qui rognerait son glyphe serait pire que pas de plaque.
+     */
+    private static final int PLAQUE_HALF = 7;
+
+    /** Hauteur de la plaque : le glyphe, plus deux pixels d'air au-dessus et au-dessous. */
+    private static final int PLAQUE_HEIGHT = ArenaLayout.INTENT_HEIGHT + 4;
+
+    /**
+     * La plaque qui porte l'intention d'un ennemi, et sa pointe vers son propri&eacute;taire.
+     *
+     * <h2>Pourquoi une plaque, alors que le glyphe suffisait</h2>
+     *
+     * <p>Il ne suffisait pas. Sept glyphes flottaient au-dessus des t&ecirc;tes, tous du m&ecirc;me
+     * poids visuel, et le joueur devait les <em>distinguer</em> pour savoir la seule chose qui
+     * commande sa d&eacute;cision : <b>est-ce que quelque chose me tombe dessus ce tour-ci ?</b>
+     * Deux barres voulaient dire &laquo; il se charge, tu as un tour &raquo; et une pointe pleine
+     * &laquo; il frappe maintenant &raquo; ; &agrave; l'&eacute;chelle d'un pixel, cela demandait de
+     * regarder au lieu de voir.
+     *
+     * <p>La plaque fait de la distinction une <b>cat&eacute;gorie</b> et non une nuance. Ajour&eacute;e,
+     * elle dit &laquo; voici le coup qui part &raquo;. Pleine, elle dit &laquo; il charge, rien ne
+     * tombe &raquo;. Le glyphe reste dedans et garde tout ce qu'il disait &mdash; le sens, la
+     * port&eacute;e, la nature &mdash; mais il n'a plus &agrave; porter seul la question qui se pose
+     * en premier. Une forme vaut mieux qu'une nuance.
+     *
+     * <p>La pointe existe pour la m&ecirc;me raison que les cadres pos&eacute;s sous les cases : sur
+     * une ligne serr&eacute;e, une plaque flottante appartient &agrave; celui qu'elle d&eacute;signe
+     * et &agrave; personne d'autre, et il ne faut pas avoir &agrave; le deviner.
+     */
+    private void drawPlaque(int centre, int y, boolean filled, Color color) {
+        int left = centre - PLAQUE_HALF;
+        int bottom = y - 2;
+        int width = PLAQUE_HALF * 2 + 1;
+        if (filled) {
+            painter.fill(left, bottom, width, PLAQUE_HEIGHT, color);
+        } else {
+            painter.outline(left, bottom, width, PLAQUE_HEIGHT, color);
+        }
+        painter.fill(centre - 1, bottom - 1, 3, 1, color);
+        painter.fill(centre, bottom - 2, 1, 1, color);
+    }
+
+    /**
+     * La couleur d'une plaque : rouge si c'est annonc&eacute;, or si &ccedil;a part maintenant.
+     *
+     * <h2>Le troisi&egrave;me &eacute;tat</h2>
+     *
+     * <p>La plaque disait deux choses &mdash; un coup part, ou il se charge. Il en manquait une
+     * troisi&egrave;me, et c'&eacute;tait la plus urgente : <b>est-ce que &ccedil;a tombe &agrave;
+     * la fin de CE tour ?</b> Une intention annonce ce qu'un ennemi fera &agrave; sa prochaine
+     * activation ; elle ne dit pas si cette activation est celle qui vient. Le colosse ne joue
+     * qu'une phase sur deux, un ennemi &eacute;tourdi en saute une, et tous deux affichaient une
+     * menace rouge identique &agrave; celle qui frappe maintenant.
+     *
+     * <h2>Pourquoi le battement ne quitte jamais l'or</h2>
+     *
+     * <p>Il bat entre un or vif et un or sourd, jamais entre l'or et le rouge. Un battement qui
+     * repasserait par le rouge rendrait la <em>cat&eacute;gorie</em> illisible un temps sur deux :
+     * le joueur qui regarde au mauvais moment lirait &laquo; j'ai un tour &raquo; l&agrave;
+     * o&ugrave; il n'en a pas. Le battement doit ajouter de l'urgence &agrave; une information,
+     * jamais la remplacer par son contraire. C'est le m&ecirc;me raisonnement que les tuiles sans
+     * d&eacute;g&acirc;ts, qui ne portent rien plut&ocirc;t qu'un z&eacute;ro.
+     */
+    private Color plaqueColor(Enemy enemy) {
+        if (!arena.willAct(enemy)) {
+            return HudColors.THREAT;
+        }
+        boolean lit = (int) (blink / BLINK_SECONDS) % 2 == 0;
+        return lit ? HudColors.IMMINENT : HudColors.IMMINENT_DIM;
+    }
+
     private void drawIntentions() {
         // « La case menacée dit OÙ ; ce glyphe dit QUOI » — et c'est la phrase même du javadoc
         // ci-dessus qui condamne l'oubli. J'avais fait taire les bandes de menace après la mort et
@@ -993,6 +1088,22 @@ public final class ArenaScene implements Scene {
             int centre = cellCentre(cell);
             int y = ArenaLayout.INTENT_Y;
             Intention intention = enemy.intention();
+
+            // LES DEUX CATEGORIES, avant tout le detail. « Un coup part ce tour-ci » et « il
+            // prepare quelque chose qui ne tombera pas maintenant » sont les deux etats entre
+            // lesquels le joueur choisit de rester ou de fuir ; tout le reste est du detail qu'il
+            // lira ensuite, dans le glyphe. Avancer et attendre n'appartiennent a ni l'une ni
+            // l'autre : ils ne portent pas de plaque, parce qu'encadrer « rien » ajoute du bruit
+            // la ou il n'y a pas de decision.
+            boolean lands = intention.kind().threatens();
+            boolean loading = intention.kind() == Intention.Kind.WIND_UP
+                    || intention.kind() == Intention.Kind.SUMMON;
+            if (lands || loading) {
+                drawPlaque(centre, y, loading, plaqueColor(enemy));
+            }
+            // Sur une plaque pleine, le glyphe se decoupe en creux. C'est la meme forme qu'ailleurs,
+            // lue a l'envers : elle reste reconnaissable sans concurrencer la plaque qui la porte.
+            Color mark = loading ? HudColors.PANEL : HudColors.THREAT;
 
             switch (intention.kind()) {
                 // Pointe pleine : un coup part sur une case précise.
@@ -1021,11 +1132,11 @@ public final class ArenaScene implements Scene {
                 }
                 // Invocation : un losange creux, une forme qu'aucune attaque n'utilise. Rien ne
                 // tombera sur cette case — mais quelqu'un s'y lèvera.
-                case SUMMON -> drawDiamond(centre, y, HudColors.THREAT);
+                case SUMMON -> drawDiamond(centre, y, mark);
                 // Deux barres : il se charge, on a un tour pour réagir.
                 case WIND_UP -> {
-                    painter.fill(centre - 3, y, 2, ArenaLayout.INTENT_HEIGHT, HudColors.THREAT);
-                    painter.fill(centre + 2, y, 2, ArenaLayout.INTENT_HEIGHT, HudColors.THREAT);
+                    painter.fill(centre - 3, y, 2, ArenaLayout.INTENT_HEIGHT, mark);
+                    painter.fill(centre + 2, y, 2, ArenaLayout.INTENT_HEIGHT, mark);
                 }
                 // Chevron creux : il se déplace, il ne frappe pas. La forme diffère de la pointe
                 // pleine, pour que la lecture ne repose pas seulement sur la couleur.
