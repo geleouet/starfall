@@ -165,7 +165,7 @@ public final class ArenaScene implements Scene {
             replayScript(frameIndex);
             return;
         }
-        float delta = Math.max(0f, time - lastTime);
+        float delta = Playback.frameStep(time - lastTime);
         lastTime = time;
         if (playback.isRunning()) {
             // Le déroulé BLOQUE les entrées tant qu'il court. Sans cela, le joueur agirait sur un

@@ -54,7 +54,8 @@ public interface CaptureScenario {
      * d'une durée écoulée. Une image montre le temps {@code n}, jamais un entre-deux.
      */
     default int playbackBeatAt(int frameIndex) {
-        return 0;
+        float[] moment = momentAt(frameIndex);
+        return moment == null ? 0 : (int) moment[0];
     }
 
     /**
@@ -77,7 +78,22 @@ public interface CaptureScenario {
      * {@link Playback#seek(int, float)}.
      */
     default float playbackProgressAt(int frameIndex) {
-        return 1f;
+        float[] moment = momentAt(frameIndex);
+        return moment == null ? 1f : moment[1];
+    }
+
+    /**
+     * L'instant saisi par cette image, ou {@code null} si elle montre un &eacute;tat au repos.
+     *
+     * <p>Les images des gestes viennent d'abord, celles des instants ensuite. Le rejeu de la
+     * sc&egrave;ne applique tous les gestes d&egrave;s que l'image d&eacute;passe leur nombre, si
+     * bien que ces images-l&agrave; partent toutes du m&ecirc;me &eacute;tat final et ne
+     * diff&egrave;rent que par l'instant montr&eacute; : c'est ce qui les rend reproductibles.
+     */
+    private float[] momentAt(int frameIndex) {
+        float[][] moments = moments();
+        int rank = frameIndex - size() - 1;
+        return rank >= 0 && rank < moments.length ? moments[rank] : null;
     }
 
     /**
@@ -90,7 +106,28 @@ public interface CaptureScenario {
      * raison qui avait fait descendre les longueurs ici plutôt que dans {@code LaunchOptions}.
      */
     default int lastFrame() {
-        return size();
+        return size() + moments().length;
+    }
+
+    /**
+     * Les <b>instants</b> saisis apr&egrave;s les gestes : le rang du temps, puis o&ugrave; il en
+     * est.
+     *
+     * <p>Un sc&eacute;nario qui d&eacute;clare des instants gagne, sans rien &eacute;crire de plus,
+     * la borne de ses images et les deux r&eacute;ponses qui vont avec &mdash; quel temps montrer,
+     * et &agrave; quelle fraction de son d&eacute;roulement. Vide par d&eacute;faut : un
+     * sc&eacute;nario qui ne d&eacute;clare rien montre des &eacute;tats au repos, comme avant que
+     * ce jeu sache animer quoi que ce soit.
+     *
+     * <p>Cette r&egrave;gle a &eacute;t&eacute; &eacute;crite <b>deux fois</b> avant d'atterrir ici,
+     * une fois par &eacute;cran de d&eacute;roul&eacute;, et les deux copies &eacute;taient
+     * d&eacute;j&agrave; identiques au caract&egrave;re pr&egrave;s. Ce projet sait ce qu'il advient
+     * d'une r&egrave;gle &eacute;crite &agrave; deux endroits ; il l'a pay&eacute; neuf fois. Le
+     * troisi&egrave;me &eacute;cran de d&eacute;roul&eacute; n'aura qu'un tableau &agrave;
+     * d&eacute;clarer.
+     */
+    default float[][] moments() {
+        return new float[0][];
     }
 
     /** Nombre de gestes. La dernière image porte le numéro {@code size()}. */

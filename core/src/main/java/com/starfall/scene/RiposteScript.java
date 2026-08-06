@@ -78,26 +78,8 @@ public final class RiposteScript {
         }
 
         @Override
-        public int lastFrame() {
-            return ACTIONS.size() + MOMENTS.length;
-        }
-
-        @Override
-        public int playbackBeatAt(int frameIndex) {
-            float[] moment = momentAt(frameIndex);
-            return moment == null ? 0 : (int) moment[0];
-        }
-
-        @Override
-        public float playbackProgressAt(int frameIndex) {
-            float[] moment = momentAt(frameIndex);
-            return moment == null ? 1f : moment[1];
-        }
-
-        /** L'instant saisi par cette image, ou {@code null} si elle montre un état au repos. */
-        private float[] momentAt(int frameIndex) {
-            int rank = frameIndex - FIRST_BEAT_FRAME - 1;
-            return rank >= 0 && rank < MOMENTS.length ? MOMENTS[rank] : null;
+        public float[][] moments() {
+            return MOMENTS;
         }
 
         @Override

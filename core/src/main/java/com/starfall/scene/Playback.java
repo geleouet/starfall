@@ -177,6 +177,27 @@ public final class Playback {
         }
     }
 
+    /**
+     * Le pas de temps d'une image, borné.
+     *
+     * <p>Deux écueils, un seul remède. Le premier est la <b>toute première image</b> : la
+     * scène calcule son pas par différence avec l'image précédente, et il n'y en a pas
+     * eu, si bien que le pas vaut tout le temps écoulé depuis le démarrage. Le second est
+     * l'image <b>en retard</b> : une fenêtre qu'on déplace, un point d'arrêt, un ramassage
+     * de miettes, et voilà trois secondes d'un coup.
+     *
+     * <p>Dans les deux cas, un pas non borné ferait avaler le déroulé entier par l'image
+     * même qui devait le montrer. Borné à un temps, le déroulé <em>ralentit</em>
+     * quand la machine peine, au lieu de <em>sauter</em> — c'est le bon compromis pour une
+     * animation dont toute la raison d'être est d'être vue.
+     *
+     * <p>Elle est ici, et non dans la scène où elle est appelée, parce qu'ici elle
+     * s'éprouve sans écran.
+     */
+    public static float frameStep(float seconds) {
+        return Math.min(BEAT_SECONDS, Math.max(0f, seconds));
+    }
+
     /** Vrai tant qu'un temps reste à montrer. */
     public boolean isRunning() {
         return index < beats.size();

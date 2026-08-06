@@ -141,6 +141,33 @@ class PlaybackTest {
                 "le temps final ne porte aucune tuile : ce n'est pas le joueur qui l'a joue");
     }
 
+    /**
+     * Le pas de temps d'une image, borné.
+     *
+     * <p>La scène calcule son pas par différence avec l'image précédente. À la <b>première</b>, il
+     * n'y en a pas eu : le pas valait tout le temps écoulé depuis le démarrage. Et lorsqu'une image
+     * arrive <b>en retard</b> — fenêtre déplacée, point d'arrêt, ramassage de miettes — il vaut
+     * plusieurs secondes. Dans les deux cas, un pas non borné fait avaler le déroulé entier par
+     * l'image même qui devait le montrer.
+     *
+     * <p>Ce défaut était <em>latent</em> : signalé trois contrôles de suite, jamais atteint, parce
+     * qu'aucun déroulé ne court à la première image. Il l'aurait été le jour où quelque chose en
+     * aurait lancé un plus tôt. On ne garde pas un piège en pariant sur ce qui ne l'atteint pas
+     * encore.
+     */
+    @Test
+    @DisplayName("Une image en retard ralentit le déroulé, elle ne l'avale pas")
+    void aLateFrameSlowsTheUnfoldingInsteadOfSwallowingIt() {
+        assertEquals(Playback.BEAT_SECONDS, Playback.frameStep(3f), 1e-6f,
+                "trois secondes d'un coup emporteraient tout un deroule : le pas se borne a un"
+                        + " temps, de sorte que l'animation ralentit au lieu de sauter");
+        assertEquals(0f, Playback.frameStep(-42f), 1e-6f,
+                "le pas de la premiere image se calcule contre une image qui n'a pas eu lieu");
+        assertEquals(0.01f, Playback.frameStep(0.01f), 1e-6f,
+                "un pas ordinaire traverse sans etre touche, sinon la borne changerait la vitesse"
+                        + " de tout le jeu au lieu de rattraper les accidents");
+    }
+
     @Test
     @DisplayName("Une action vide ne se déroule pas non plus")
     void anEmptyActionDoesNotUnfoldEither() {

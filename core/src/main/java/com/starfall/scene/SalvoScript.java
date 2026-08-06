@@ -91,32 +91,10 @@ public final class SalvoScript {
         }
 
         @Override
-        public int lastFrame() {
+        public float[][] moments() {
             // Les gestes, PUIS un instant par image. C'est tout l'objet de cet écran : ses
             // dernières images ne rejouent aucun geste de plus, elles égrènent la résolution.
-            return ACTIONS.size() + MOMENTS.length;
-        }
-
-        @Override
-        public int playbackBeatAt(int frameIndex) {
-            // Les images du chargement montrent l'état au repos ; celles d'après égrènent les
-            // instants. Le rejeu de la scène applique tous les gestes dès que l'image dépasse leur
-            // nombre, si bien que ces images-là partent toutes du même état final et ne diffèrent
-            // que par l'instant montré. C'est ce qui les rend reproductibles.
-            float[] moment = momentAt(frameIndex);
-            return moment == null ? 0 : (int) moment[0];
-        }
-
-        @Override
-        public float playbackProgressAt(int frameIndex) {
-            float[] moment = momentAt(frameIndex);
-            return moment == null ? 1f : moment[1];
-        }
-
-        /** L'instant saisi par cette image, ou {@code null} si elle montre le chargement. */
-        private float[] momentAt(int frameIndex) {
-            int rank = frameIndex - FIRST_BEAT_FRAME - 1;
-            return rank >= 0 && rank < MOMENTS.length ? MOMENTS[rank] : null;
+            return MOMENTS;
         }
 
         @Override
