@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.starfall.StarfallGame;
+import com.starfall.game.ActionQueue;
 import com.starfall.game.ActionResult;
 import com.starfall.game.Arena;
 import com.starfall.game.ArenaLayout;
@@ -90,6 +91,17 @@ class HudTextTest {
         }
         for (int cell = 0; cell < arena.grid().width(); cell++) {
             panel.addAll(HudText.infoLines(arena, -1, -1, cell, null));
+        }
+        // Les phrases du DEROULE. Elles ne sortent d'aucun survol : le panneau les produit pendant
+        // qu'une salve se resout, et sans cette boucle elles echapperaient aux deux regles que ce
+        // fichier garde - etre dessinables par la police, et tenir dans la bande d'interface. Une
+        // phrase que l'interface peut produire et que le corpus ignore est une phrase non gardee.
+        for (Tile tile : Tile.values()) {
+            for (ActionResult result : ActionResult.values()) {
+                panel.addAll(HudText.beatLines(tile, result, 1, ActionQueue.CAPACITY));
+                panel.addAll(HudText.beatLines(tile, result, ActionQueue.CAPACITY,
+                        ActionQueue.CAPACITY));
+            }
         }
         if (arena.isOver()) {
             panel.addAll(HudText.outcome(arena));

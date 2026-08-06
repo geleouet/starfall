@@ -46,6 +46,23 @@ public final class HudText {
     }
 
     /**
+     * Ce que dit le panneau <b>pendant le déroulé</b> d'une salve.
+     *
+     * <p>Le panneau ordinaire décrit la tuile survolée, ou ce que fera le sommet de la file : deux
+     * choses qui parlent de l'état <em>au repos</em>. Les laisser pendant qu'une action se résout
+     * répétait en texte le mensonge que les calques faisaient en pixels — décrire un plateau qui
+     * n'est pas celui qu'on regarde.
+     *
+     * <p>Plutôt que de se taire, il raconte : quel temps sur combien, quelle tuile, et ce qu'elle a
+     * produit. C'est la moitié écrite de la lecture que le déroulé apporte, et c'est elle qui
+     * permet de nommer un coup qu'on n'aurait fait qu'entrevoir.
+     */
+    public static List<String> beatLines(Tile tile, ActionResult result, int step, int total) {
+        return List.of("SALVE " + step + "/" + total + " : " + tile.label().toUpperCase(),
+                result.label().toUpperCase());
+    }
+
+    /**
      * Bandeau d'état.
      *
      * <p>Il ne porte que ce que la scène ne montre pas déjà, et une chose qu'elle montre mal : le

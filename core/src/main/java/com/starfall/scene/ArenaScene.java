@@ -646,6 +646,13 @@ public final class ArenaScene implements Scene {
     }
 
     private List<String> infoLines() {
+        Arena.Beat beat = playback.current();
+        if (beat != null) {
+            // Pendant le déroulé, le panneau raconte ce qui se joue au lieu de décrire la tuile
+            // survolée. Décrire un plateau qu'on ne regarde pas répétait en texte le mensonge que
+            // les calques faisaient en pixels.
+            return HudText.beatLines(beat.tile(), beat.result(), playback.step(), playback.total());
+        }
         return HudText.infoLines(arena, hoveredRackSlot, hoveredQueueSlot, hoveredCell, lastResult);
     }
 
