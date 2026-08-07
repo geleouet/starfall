@@ -137,6 +137,19 @@
 </table>
 
 <h2>En cours de construction</h2>
+
+<div class="banner">
+  <span class="k">O&ugrave; en est le travail, et par o&ugrave; reprendre</span>
+  <p><b>&Eacute;tat au 6 ao&ucirc;t 2026, fin de session.</b> D&eacute;p&ocirc;t propre, tout pouss&eacute; sur <code>origin/asblack</code>, <b>550 tests verts</b> et <b>105 planches sur 15 &eacute;crans</b> conformes &agrave; l&rsquo;octet. Le garde-fou du lanceur rend son verdict complet. Rien n&rsquo;attend de d&eacute;cision de ta part.</p>
+
+  <p><b>Ce qui a &eacute;t&eacute; construit depuis M10</b>, et qui n&rsquo;est pas encore d&eacute;coup&eacute; en jalon : l&rsquo;<b>axe de d&eacute;g&acirc;ts</b> des deux c&ocirc;t&eacute;s &mdash; les tuiles portent leur nombre, les ennemis aussi, et la force suit la lenteur ; l&rsquo;<b>animation</b>, avec sa chor&eacute;graphie s&eacute;par&eacute;e du dessin pour survivre au changement de visuels annonc&eacute; ; la <b>riposte</b> comme temps &agrave; part enti&egrave;re, o&ugrave; les assaillants se fendent ; et la <b>file ennemie</b>, dont le colosse est le premier et seul porteur &mdash; il accumule deux actions, les montre en pile, puis les l&acirc;che.</p>
+
+  <p><b>Le point de reprise, dans l&rsquo;ordre :</b></p>
+  <p>1. <b>&Eacute;tendre les files de plusieurs actions aux autres arch&eacute;types.</b> Seul le colosse en tient deux. C&rsquo;est l&agrave; que le p&eacute;rim&egrave;tre bouge : il faudra porter l&rsquo;invariant du t&eacute;l&eacute;graphe <i>d&rsquo;un coup &agrave; une s&eacute;quence</i>, r&eacute;&eacute;quilibrer, et retrouver une ligne gagnante.</p>
+  <p>2. <b>La ligne gagnante se retrouve par recherche</b>, et la m&eacute;thode est acquise : le faisceau du garde-fou de jouabilit&eacute;, qui <b>d&eacute;duplique sur l&rsquo;&eacute;tat</b> et non sur la suite de gestes. Deux recherches &eacute;crites &agrave; la main ont &eacute;chou&eacute; faute de cette d&eacute;duplication ; celle du projet trouve en quelques minutes. Biaiser le score vers la sant&eacute; du h&eacute;ros, sans quoi la ligne gagne &agrave; un point de vie et le garde-fou la refuse.</p>
+  <p style="margin-bottom:0">3. <b>Trois t&eacute;moins sont calibr&eacute;s sur l&rsquo;&eacute;quilibre du moment</b> et casseront &agrave; chaque r&eacute;&eacute;quilibrage : la ligne de d&eacute;monstration de la capture, la ligne courte qui gagne la derni&egrave;re vague file garnie, et la graine qui finit sur une invocation annonc&eacute;e. Les retrouver co&ucirc;te trois petites recherches, pas une r&eacute;flexion.</p>
+</div>
+
 <div class="banner">
   <span class="k">M10 — la file a enfin une économie</span>
   <p>Le jalon d'équilibrage est le seul où l'on ne peut rien prouver en lisant le code : un nombre n'est ni juste ni faux, il est trop grand ou trop petit <b>pour quelqu'un qui joue</b>. Il a donc commencé par un instrument — trois politiques qui jouent des milliers de parties, <code>run.bat --simulate N</code> — et l'instrument a trouvé ce que neuf jalons de relecture n'avaient pas vu.</p>
